@@ -19,11 +19,11 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M2) |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M2) |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M2) |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M2) |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M2) |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M3) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M3) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M3) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M3) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M3) |
 
 ## Milestone 1 — Galaxy layout and language
 
@@ -48,9 +48,9 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| P01 | Both | Click the Galaxy cog; open Settings, Help, and About; close each panel. | The menu slides up, each entry opens the right panel, and close/outside click dismisses it. | Not run |
-| P02 | Both | Switch Animations Off, hover suns and planets, open Settings, then reload. | Reveals and panels work without movement or delay; Off persists after reload. | Not run |
-| P03 | Both | Switch Animations On and test with the operating system reduced-motion preference. | Motion returns when allowed; reduced-motion still suppresses it. | Not run |
+| P01 | Both | Click the Galaxy cog; open Settings, Help, and About; close each panel. | The menu slides up, each entry opens the right panel, and close/outside click dismisses it. | Pass |
+| P02 | Both | Switch Animations Off, hover suns and planets, open Settings, then reload. | Reveals and panels work without movement or delay; Off persists after reload. | Pass |
+| P03 | Both | Switch Animations On and test with the operating system reduced-motion preference. | Motion returns when allowed; reduced-motion still suppresses it. | Pass |
 
 ## Milestone 4 — Local web editor and portability
 
@@ -82,6 +82,6 @@ After the shared checks and the current milestone's rows pass, record the commit
 | --- | --- | --- | --- |
 | 1 — Galaxy | 2026-11-15 | S01–S05 and G01–G04 passed in Playwright; screenshots inspected at 1280 and 900 pixels. | Milestone 1: Galaxy language |
 | 2 — Planets and moons | 2026-11-15 | S01–S05 and H01–H05 passed in Playwright; moon and overflow screenshots inspected. | Milestone 2: Planets and moons |
-| 3 — Settings and motion | — | Not run | — |
+| 3 — Settings and motion | 2026-11-15 | S01–S05 and P01–P03 passed in Playwright; menu and Settings screenshots inspected. | Milestone 3: Settings and motion |
 | 4 — Editor and portability | — | Not run | — |
 | 5 — Themes | — | Not run | — |

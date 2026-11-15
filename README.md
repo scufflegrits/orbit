@@ -39,3 +39,7 @@ Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` 
 The `moons` array is optional. Hover over a planet to reveal its moons; clicking the planet still opens its own destination. The Galaxy previews up to five planets per sun. A System shows up to eight planets around its sun and lists additional planets below. Up to four moons appear around a hovered planet; any extras are listed in the System.
 
 Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
+
+## Settings and help
+
+Click the cog in the Galaxy to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.

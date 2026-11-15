@@ -1,9 +1,68 @@
 const app = document.querySelector('#app');
 const count = document.querySelector('#link-count');
+const settingsTrigger = document.querySelector('#settings-trigger');
+const menuOverlay = document.querySelector('#menu-overlay');
+const menuContent = document.querySelector('#menu-content');
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
 const VISIBLE_MOONS = 4;
+let animationsEnabled = readBooleanPreference('orbit:animations', true);
+document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
+
+function readBooleanPreference(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value === null ? fallback : value === 'true';
+  } catch {
+    return fallback;
+  }
+}
+
+function savePreference(key, value) {
+  try { localStorage.setItem(key, String(value)); } catch { /* Storage may be unavailable. */ }
+}
+
+function closeMenu() {
+  menuOverlay.hidden = true;
+}
+
+function openMenu() {
+  menuContent.replaceChildren();
+  for (const option of document.querySelectorAll('[data-menu-panel]')) option.classList.remove('active');
+  menuOverlay.hidden = false;
+}
+
+function showMenuPanel(name) {
+  menuContent.replaceChildren();
+  for (const option of document.querySelectorAll('[data-menu-panel]')) {
+    option.classList.toggle('active', option.dataset.menuPanel === name);
+  }
+  menuContent.append(element('h3', '', name));
+  if (name === 'Settings') {
+    const row = element('label', 'setting-row');
+    const copy = element('span', 'setting-copy');
+    copy.append(element('strong', '', 'Animations'));
+    copy.append(element('small', '', 'Movement and reveal effects throughout Orbit'));
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = animationsEnabled;
+    input.setAttribute('aria-label', 'Animations');
+    input.addEventListener('change', () => {
+      animationsEnabled = input.checked;
+      document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
+      savePreference('orbit:animations', animationsEnabled);
+    });
+    row.append(copy, input);
+    menuContent.append(row);
+  } else if (name === 'Help') {
+    menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
+    menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Click a planet or moon to open its destination in a new tab.'));
+  } else if (name === 'About') {
+    menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
+    menuContent.append(element('p', '', 'Your link map runs on this computer, without an account or hosted service.'));
+  }
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -136,6 +195,7 @@ function homeGroup(group, index) {
 function renderHome() {
   app.replaceChildren();
   app.className = 'home-view';
+  settingsTrigger.hidden = false;
   const intro = element('div', 'intro');
   intro.append(element('p', 'eyebrow', 'YOUR PERSONAL LINK GALAXY'));
   const title = element('h1', '', 'Explore your galaxy.');
@@ -149,6 +209,7 @@ function renderHome() {
 function renderDetail(group) {
   app.replaceChildren();
   app.className = 'detail-view';
+  settingsTrigger.hidden = true;
   const top = element('div', 'detail-top');
   const back = element('a', 'back-link', '←  Return to Galaxy');
   back.href = '#';
@@ -202,6 +263,7 @@ function renderDetail(group) {
 }
 
 function render() {
+  closeMenu();
   const route = decodeURIComponent(location.hash.slice(1));
   const id = route.startsWith('group/') ? route.slice(6) : null;
   const group = groups.find(item => item.id === id);
@@ -245,6 +307,12 @@ async function init() {
 }
 
 window.addEventListener('hashchange', render);
+settingsTrigger.addEventListener('click', openMenu);
+document.querySelector('#menu-close').addEventListener('click', closeMenu);
+document.querySelector('#menu-scrim').addEventListener('click', closeMenu);
+for (const option of document.querySelectorAll('[data-menu-panel]')) {
+  option.addEventListener('click', () => showMenuPanel(option.dataset.menuPanel));
+}
 window.addEventListener('keydown', event => {
   if (event.key === 'Escape' && location.hash) location.hash = '';
 });

@@ -216,6 +216,61 @@ def run_milestone_2_fixtures(page):
     print("PASS milestone 2 (large and legacy fixtures, both modes)")
 
 
+def run_milestone_3(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.locator("#settings-trigger").click()
+    check(page.locator("#menu-overlay:visible").count() == 1,
+          f"{mode}: cog opens menu")
+    check(page.locator(".menu-option").count() == 3,
+          f"{mode}: Settings, Help, About entries")
+    page.locator('[data-menu-panel="Help"]').click()
+    check("Hover over a sun" in page.locator("#menu-content").inner_text(),
+          f"{mode}: Help content")
+    page.locator('[data-menu-panel="About"]').click()
+    check("local link map" in page.locator("#menu-content").inner_text(),
+          f"{mode}: About content")
+    page.locator('[data-menu-panel="Settings"]').click()
+    toggle = page.locator('input[aria-label="Animations"]')
+    check(toggle.is_checked(), f"{mode}: Animations defaults On")
+    toggle.uncheck()
+    check(page.locator("html").get_attribute("data-animations") == "off",
+          f"{mode}: Animations Off applies immediately")
+    check(page.locator(".menu-sheet").evaluate(
+        "el => getComputedStyle(el).animationName") == "none",
+          f"{mode}: menu motion disabled")
+    page.locator("#menu-close").click()
+    check(page.locator("#menu-overlay:visible").count() == 0,
+          f"{mode}: close control works")
+    page.reload(wait_until="load")
+    check(page.locator("html").get_attribute("data-animations") == "off",
+          f"{mode}: Animations Off persists")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.locator('input[aria-label="Animations"]').check()
+    check(page.locator("html").get_attribute("data-animations") == "on",
+          f"{mode}: Animations On applies")
+    page.locator("#menu-scrim").click(position={"x": 5, "y": 5})
+    check(page.locator("#menu-overlay:visible").count() == 0,
+          f"{mode}: outside click closes menu")
+    page.emulate_media(reduced_motion="reduce")
+    check(page.locator(".group-card").first.evaluate(
+        "el => parseFloat(getComputedStyle(el).animationDuration) < 0.001"),
+          f"{mode}: OS reduced motion takes precedence")
+    page.emulate_media(reduced_motion="no-preference")
+    page.locator("#settings-trigger").click()
+    page.wait_for_timeout(450)
+    page.screenshot(path=str(ARTIFACTS / f"milestone3-menu-{mode}.png"), full_page=True)
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.set_viewport_size({"width": 900, "height": 900})
+    sheet = page.locator(".menu-sheet").bounding_box()
+    check(sheet is not None and sheet["x"] >= 0 and sheet["x"] + sheet["width"] <= 900,
+          f"{mode}: settings panel fits narrower desktop")
+    page.screenshot(path=str(ARTIFACTS / f"milestone3-settings-{mode}-900.png"),
+                    full_page=True)
+    page.locator("#menu-close").click()
+    print(f"PASS milestone 3 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--milestone", type=int, choices=range(1, 6), required=True)
@@ -247,6 +302,8 @@ def main():
                             run_milestone_2(page, url, mode)
                             if mode == "file":
                                 run_milestone_2_fixtures(page)
+                        if args.milestone >= 3:
+                            run_milestone_3(page, url, mode)
                     finally:
                         page.close()
             finally:

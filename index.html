@@ -21,6 +21,7 @@
         <div class="topbar-right">
           <span class="local-badge"><span class="status-dot"></span> LOCAL LINK MAP</span>
           <span id="link-count" class="link-count"></span>
+          <button id="settings-trigger" class="settings-trigger" type="button" aria-label="Open menu" title="Open menu" hidden>⚙</button>
         </div>
       </header>
 
@@ -30,6 +31,25 @@
         <span>Made for the links you keep coming back to.</span>
         <span>Edit <code>links.json</code> to make this yours.</span>
       </footer>
+    </div>
+
+    <div id="menu-overlay" class="menu-overlay" hidden>
+      <button id="menu-scrim" class="menu-scrim" type="button" aria-label="Close menu"></button>
+      <section class="menu-sheet" aria-label="Orbit menu">
+        <div class="menu-top">
+          <div>
+            <p class="eyebrow">ORBIT</p>
+            <h2>Explore the menu</h2>
+          </div>
+          <button id="menu-close" class="menu-close" type="button" aria-label="Close menu">×</button>
+        </div>
+        <div class="menu-options">
+          <button class="menu-option" type="button" data-menu-panel="Settings">Settings</button>
+          <button class="menu-option" type="button" data-menu-panel="Help">Help</button>
+          <button class="menu-option" type="button" data-menu-panel="About">About</button>
+        </div>
+        <div id="menu-content" class="menu-content"></div>
+      </section>
     </div>
   </body>
 </html>
