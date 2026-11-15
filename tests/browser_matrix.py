@@ -44,6 +44,7 @@ def run_shared(page, url, mode):
     page.locator(".home-hub").first.wait_for()
     check(page.locator(".home-hub").count() == 6, f"{mode}: six suns")
     check("6 SUNS" in page.locator("#link-count").inner_text(), f"{mode}: sun count")
+    check("34 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: destination count includes moons")
     page.locator(".home-hub").first.click()
     page.locator(".detail-view").wait_for()
     check("Tech" in page.locator(".detail-heading h1").inner_text(), f"{mode}: Tech system")
@@ -115,6 +116,106 @@ def run_extra_sun_fixture(page):
     print("PASS milestone 1 (extra sun fixture)")
 
 
+def write_fixture(directory, data):
+    fixture = Path(directory)
+    for name in ("index.html", "styles.css", "app.js"):
+        shutil.copy2(ROOT / name, fixture / name)
+    (fixture / "links.json").write_text(json.dumps(data))
+    (fixture / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(data) + ";\n")
+    return fixture
+
+
+def run_milestone_2(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.locator(".home-hub").first.hover()
+    planet = page.locator(".home-planet-cluster").first
+    planet.locator(".home-satellite").hover()
+    page.wait_for_timeout(350)
+    check(planet.locator(".moon-link:visible").count() == 2,
+          f"{mode}: Engadget moons appear on planet hover")
+    moon = planet.locator(".moon-link").first
+    moon.hover()
+    check(planet.locator(".moon-link:visible").count() == 2,
+          f"{mode}: moons remain visible during pointer movement")
+    page.screenshot(path=str(ARTIFACTS / f"milestone2-moons-{mode}.png"), full_page=True)
+    page.set_viewport_size({"width": 900, "height": 900})
+    planet.locator(".home-satellite").hover()
+    page.wait_for_timeout(350)
+    for moon_link in planet.locator(".moon-link").all():
+        box = moon_link.bounding_box()
+        check(box is not None and box["x"] >= 0 and box["x"] + box["width"] <= 900,
+              f"{mode}: moon fits narrower desktop")
+    page.screenshot(path=str(ARTIFACTS / f"milestone2-moons-{mode}-900.png"), full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    planet.locator(".home-satellite").hover()
+    page.context.route("https://www.engadget.com/category/reviews/**", lambda route: route.fulfill(
+        status=200, content_type="text/html", body="<title>Test moon destination</title>"))
+    with page.expect_popup() as popup_info:
+        moon.click()
+    popup = popup_info.value
+    popup.wait_for_load_state()
+    check(popup.url == "https://www.engadget.com/category/reviews/",
+          f"{mode}: moon destination opened")
+    popup.close()
+    page.locator(".home-hub").first.click()
+    detail_planet = page.locator(".detail-planet-cluster").first
+    detail_planet.locator(".detail-satellite").hover()
+    page.wait_for_timeout(350)
+    check(detail_planet.locator(".moon-link:visible").count() == 2,
+          f"{mode}: System moons appear")
+    print(f"PASS milestone 2 ({mode})")
+
+
+def run_milestone_2_fixtures(page):
+    with tempfile.TemporaryDirectory(prefix="orbit-moons-") as directory:
+        data = json.loads((ROOT / "links.json").read_text())
+        data["groups"][0]["links"][0]["moons"] = [
+            {"name": f"Moon {i}", "url": f"https://example.com/moon/{i}"}
+            for i in range(7)
+        ]
+        data["groups"][0]["links"].extend([
+            {"name": f"Extra {i}", "url": f"https://example.com/extra/{i}"}
+            for i in range(5)
+        ])
+        fixture = write_fixture(directory, data)
+        server = ThreadingHTTPServer(("127.0.0.1", 0),
+                                     partial(QuietHandler, directory=str(fixture)))
+        Thread(target=server.serve_forever, daemon=True).start()
+        urls = (("file", (fixture / "index.html").as_uri()),
+                ("server", f"http://127.0.0.1:{server.server_port}/index.html"))
+        try:
+            for mode, url in urls:
+                page.goto(url, wait_until="load")
+                page.locator(".home-hub").first.click()
+                check(page.locator(".detail-planet-cluster").count() == 8,
+                      f"{mode}: System shows eight planets around sun")
+                check(page.locator(".overflow-planet").count() == 2,
+                      f"{mode}: System lists remaining planets")
+                check(page.locator(".moon-overflow .overflow-moon-link").count() == 3,
+                      f"{mode}: System lists moons beyond the first four")
+                planet = page.locator(".detail-planet-cluster").first
+                planet.locator(".detail-satellite").hover()
+                page.wait_for_timeout(350)
+                check(planet.locator(".moon-link:visible").count() == 4,
+                      f"{mode}: System shows first four moons around planet")
+                page.screenshot(path=str(ARTIFACTS / f"milestone2-overflow-{mode}.png"),
+                                full_page=True)
+            legacy = json.loads((ROOT / "links.json").read_text())
+            for group in legacy["groups"]:
+                for link in group["links"]:
+                    link.pop("moons", None)
+            write_fixture(directory, legacy)
+            for mode, url in urls:
+                page.goto(url, wait_until="load")
+                page.locator(".home-hub").first.wait_for()
+                check(page.locator(".moon-field").count() == 0,
+                      f"{mode}: legacy data without moons works")
+        finally:
+            server.shutdown()
+            server.server_close()
+    print("PASS milestone 2 (large and legacy fixtures, both modes)")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--milestone", type=int, choices=range(1, 6), required=True)
@@ -142,6 +243,10 @@ def main():
                             run_milestone_1(page, url, mode)
                         if mode == "file":
                             run_extra_sun_fixture(page)
+                        if args.milestone >= 2:
+                            run_milestone_2(page, url, mode)
+                            if mode == "file":
+                                run_milestone_2_fixtures(page)
                     finally:
                         page.close()
             finally:

@@ -6,7 +6,14 @@
       "description": "News, ideas, and what comes next",
       "color": "#79d9f8",
       "links": [
-        { "name": "Engadget", "url": "https://www.engadget.com/" },
+        {
+          "name": "Engadget",
+          "url": "https://www.engadget.com/",
+          "moons": [
+            { "name": "Reviews", "url": "https://www.engadget.com/category/reviews/" },
+            { "name": "Gaming", "url": "https://www.engadget.com/category/gaming/" }
+          ]
+        },
         { "name": "The Verge", "url": "https://www.theverge.com/" },
         { "name": "Ars Technica", "url": "https://arstechnica.com/" },
         { "name": "Wired", "url": "https://www.wired.com/" },
@@ -32,7 +39,14 @@
       "description": "Tools for making things",
       "color": "#f8ba7b",
       "links": [
-        { "name": "GitHub", "url": "https://github.com/" },
+        {
+          "name": "GitHub",
+          "url": "https://github.com/",
+          "moons": [
+            { "name": "Features", "url": "https://github.com/features" },
+            { "name": "Docs", "url": "https://docs.github.com/en" }
+          ]
+        },
         { "name": "MDN", "url": "https://developer.mozilla.org/" },
         { "name": "Stack Overflow", "url": "https://stackoverflow.com/" },
         { "name": "CodePen", "url": "https://codepen.io/" },

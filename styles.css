@@ -170,11 +170,14 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
 }
 
 .group-card {
+  position: relative;
   min-width: 0;
   text-align: center;
   animation: rise-in .65s ease both;
   animation-delay: calc(var(--card-index) * 65ms);
 }
+
+.group-card:hover { z-index: 8; }
 
 .home-orbit {
   position: relative;
@@ -245,7 +248,7 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
 .hub-name { font: 600 25px 'Space Grotesk', sans-serif; letter-spacing: -.05em; }
 .hub-count { margin-top: 5px; color: var(--accent); font-size: 9px; }
 
-.home-satellite, .detail-satellite, .more-link {
+.home-satellite, .detail-satellite, .more-link, .moon-link, .overflow-moon-link {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,9 +264,13 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
   overflow-wrap: anywhere;
 }
 
-.home-satellite {
+.planet-cluster {
   position: absolute;
   z-index: 4;
+  isolation: isolate;
+}
+
+.home-planet-cluster {
   left: 50%;
   top: 50%;
   width: 72px;
@@ -276,7 +283,7 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
   transition-delay: var(--delay);
 }
 
-.home-orbit:hover .home-satellite, .home-orbit:focus-within .home-satellite {
+.home-orbit:hover .home-planet-cluster, .home-orbit:focus-within .home-planet-cluster {
   left: var(--x);
   top: var(--y);
   opacity: 1;
@@ -284,7 +291,14 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
   transform: translate(-50%, -50%) scale(1);
 }
 
-.home-satellite:hover, .detail-satellite:hover, .more-link:hover {
+.home-satellite, .detail-satellite {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+}
+
+.home-satellite:hover, .detail-satellite:hover, .more-link:hover, .moon-link:hover, .overflow-moon-link:hover {
   background: color-mix(in srgb, var(--accent) 26%, #19243a);
   box-shadow: 0 8px 35px color-mix(in srgb, var(--accent) 25%, transparent);
   border-color: var(--accent);
@@ -329,17 +343,79 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
 .detail-hub-name { font: 600 clamp(21px, 4vw, 31px) 'Space Grotesk', sans-serif; letter-spacing: -.055em; }
 .detail-hub-sub { margin-top: 4px; font-size: 10px; color: var(--accent); }
 
-.detail-satellite {
+.detail-planet-cluster {
   position: absolute;
   z-index: 2;
   left: var(--x);
   top: var(--y);
   width: clamp(70px, 16vw, 100px);
   height: clamp(70px, 16vw, 100px);
-  font-size: clamp(9px, 1.5vw, 12px);
   transform: translate(-50%, -50%);
   animation: pop-in .45s cubic-bezier(.2,.8,.2,1) both;
   animation-delay: var(--delay);
+}
+
+.detail-satellite { font-size: clamp(9px, 1.5vw, 12px); }
+
+.planet-cluster:hover { z-index: 10; }
+
+.moon-field {
+  position: absolute;
+  z-index: 3;
+  left: calc(50% + var(--out-x));
+  top: calc(50% + var(--out-y));
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .18s ease, visibility .18s;
+}
+
+.planet-cluster:hover .moon-field {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.moon-spokes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-opacity: .55;
+  pointer-events: none;
+}
+
+.moon-link {
+  position: absolute;
+  z-index: 2;
+  left: calc(50% + var(--mx));
+  top: calc(50% + var(--my));
+  width: 58px;
+  height: 58px;
+  font-size: 9px;
+  transform: translate(-50%, -50%);
+  background: color-mix(in srgb, var(--accent) 24%, #141b2e);
+}
+
+.moon-badge {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: -14px;
+  min-width: 50px;
+  transform: translateX(-50%);
+  color: var(--accent);
+  font: 700 8px 'Space Grotesk', sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .detail-note { margin: -4px 0 70px; color: #71809b; text-align: center; font-size: 12px; }
@@ -347,6 +423,32 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
 .more-links h2 { font-size: 18px; }
 .more-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
 .more-link { --accent: #8fd6eb; width: 90px; height: 90px; }
+
+.overflow-planet { position: relative; width: 90px; }
+.overflow-moons {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 100%;
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: max-content;
+  max-width: 320px;
+  padding: 12px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(212, 222, 255, .16);
+  border-radius: 16px;
+  background: #151d33;
+}
+.overflow-planet:hover .overflow-moons { display: flex; }
+.overflow-moon-link { --accent: #8fd6eb; width: 68px; height: 68px; font-size: 9px; }
+.moon-overflow { max-width: 720px; margin: 0 auto 75px; text-align: center; }
+.moon-overflow h2 { font-size: 19px; }
+.moon-overflow-row { margin-top: 22px; }
+.moon-overflow-row h3 { color: #a6b2c9; font-size: 13px; }
+.moon-overflow-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 
 .footer {
   display: flex;

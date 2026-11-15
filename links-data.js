@@ -9,7 +9,17 @@ window.ORBIT_DATA = {
       "links": [
         {
           "name": "Engadget",
-          "url": "https://www.engadget.com/"
+          "url": "https://www.engadget.com/",
+          "moons": [
+            {
+              "name": "Reviews",
+              "url": "https://www.engadget.com/category/reviews/"
+            },
+            {
+              "name": "Gaming",
+              "url": "https://www.engadget.com/category/gaming/"
+            }
+          ]
         },
         {
           "name": "The Verge",
@@ -65,7 +75,17 @@ window.ORBIT_DATA = {
       "links": [
         {
           "name": "GitHub",
-          "url": "https://github.com/"
+          "url": "https://github.com/",
+          "moons": [
+            {
+              "name": "Features",
+              "url": "https://github.com/features"
+            },
+            {
+              "name": "Docs",
+              "url": "https://docs.github.com/en"
+            }
+          ]
         },
         {
           "name": "MDN",

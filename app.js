@@ -1,6 +1,9 @@
 const app = document.querySelector('#app');
 const count = document.querySelector('#link-count');
 let groups = [];
+const GALAXY_PLANETS = 5;
+const SYSTEM_PLANETS = 8;
+const VISIBLE_MOONS = 4;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -39,17 +42,81 @@ function orbitLines(points, center, size) {
   return svg;
 }
 
+function moonSpokes(points, origin, size) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'moon-spokes');
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.setAttribute('aria-hidden', 'true');
+  for (const point of points) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', origin.x);
+    line.setAttribute('y1', origin.y);
+    line.setAttribute('x2', point.x);
+    line.setAttribute('y2', point.y);
+    svg.append(line);
+  }
+  return svg;
+}
+
+function planetNode(link, context, point, size, index) {
+  const cluster = element('div', `planet-cluster ${context}-planet-cluster`);
+  cluster.style.setProperty('--x', `${point.x / size * 100}%`);
+  cluster.style.setProperty('--y', `${point.y / size * 100}%`);
+  cluster.style.setProperty('--delay', `${index * (context === 'home' ? 35 : 50)}ms`);
+  cluster.append(linkNode(link, context === 'home' ? 'home-satellite' : 'detail-satellite'));
+
+  if (link.moons.length) {
+    const field = element('div', 'moon-field');
+    const outward = 62;
+    const radius = context === 'home' ? 78 : 88;
+    const outX = Math.cos(point.angle) * outward;
+    const outY = Math.sin(point.angle) * outward;
+    field.style.setProperty('--out-x', `${outX}px`);
+    field.style.setProperty('--out-y', `${outY}px`);
+    const visible = link.moons.slice(0, VISIBLE_MOONS);
+    const positions = visible.map((_, moonIndex) => {
+      const spread = visible.length === 1 ? 0 : -1 + 2 * moonIndex / (visible.length - 1);
+      const angle = point.angle + spread * Math.PI / 3;
+      return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+    });
+    const origin = { x: 110 - outX, y: 110 - outY };
+    field.append(moonSpokes(positions.map(position => ({
+      x: origin.x + position.x, y: origin.y + position.y,
+    })), origin, 220));
+    visible.forEach((moon, moonIndex) => {
+      const node = linkNode(moon, 'moon-link');
+      node.style.setProperty('--mx', `${positions[moonIndex].x - outX}px`);
+      node.style.setProperty('--my', `${positions[moonIndex].y - outY}px`);
+      field.append(node);
+    });
+    cluster.append(field);
+    cluster.append(element('span', 'moon-badge', `${link.moons.length} moon${link.moons.length === 1 ? '' : 's'}`));
+  }
+  return cluster;
+}
+
+function overflowPlanetNode(link) {
+  const item = element('div', 'overflow-planet');
+  item.append(linkNode(link, 'more-link'));
+  if (link.moons.length) {
+    const moons = element('div', 'overflow-moons');
+    link.moons.forEach(moon => moons.append(linkNode(moon, 'overflow-moon-link')));
+    item.append(moons);
+  }
+  return item;
+}
+
 function homeGroup(group, index) {
   const card = element('section', 'group-card');
   card.style.setProperty('--accent', safeColor(group.color));
   card.style.setProperty('--card-index', index);
   const orbit = element('div', 'home-orbit');
-  const visible = group.links.slice(0, 5);
+  const visible = group.links.slice(0, GALAXY_PLANETS);
   const center = 160;
   const radius = 108;
   const points = visible.map((_, i) => {
     const angle = (-90 + (360 / visible.length) * i) * Math.PI / 180;
-    return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius };
+    return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius, angle };
   });
 
   orbit.append(orbitLines(points, center, 320));
@@ -60,13 +127,7 @@ function homeGroup(group, index) {
   hub.append(element('span', 'hub-count', `${group.links.length} PLANETS`));
   hub.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(group.id)}`; });
   orbit.append(hub);
-  visible.forEach((link, i) => {
-    const satellite = linkNode(link, 'home-satellite');
-    satellite.style.setProperty('--x', `${points[i].x / 320 * 100}%`);
-    satellite.style.setProperty('--y', `${points[i].y / 320 * 100}%`);
-    satellite.style.setProperty('--delay', `${i * 35}ms`);
-    orbit.append(satellite);
-  });
+  visible.forEach((link, i) => orbit.append(planetNode(link, 'home', points[i], 320, i)));
 
   card.append(orbit, element('p', 'group-description', group.description));
   return card;
@@ -100,25 +161,19 @@ function renderDetail(group) {
 
   const stage = element('div', 'detail-stage');
   stage.style.setProperty('--accent', safeColor(group.color));
-  const visible = group.links.slice(0, 8);
+  const visible = group.links.slice(0, SYSTEM_PLANETS);
   const center = 320;
   const radius = 205;
   const points = visible.map((_, i) => {
     const angle = (-90 + (360 / visible.length) * i) * Math.PI / 180;
-    return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius };
+    return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius, angle };
   });
   stage.append(orbitLines(points, center, 640));
   const hub = element('div', 'detail-hub');
   hub.append(element('span', 'detail-hub-name', group.name));
   hub.append(element('span', 'detail-hub-sub', `${group.links.length} planets`));
   stage.append(hub);
-  visible.forEach((link, i) => {
-    const satellite = linkNode(link, 'detail-satellite');
-    satellite.style.setProperty('--x', `${points[i].x / 640 * 100}%`);
-    satellite.style.setProperty('--y', `${points[i].y / 640 * 100}%`);
-    satellite.style.setProperty('--delay', `${i * 50}ms`);
-    stage.append(satellite);
-  });
+  visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i)));
 
   const note = element('p', 'detail-note', 'Select a planet to open its destination in a new tab.');
   app.append(top, heading, stage, note);
@@ -126,9 +181,23 @@ function renderDetail(group) {
     const more = element('section', 'more-links');
     more.append(element('h2', '', 'More planets in this system'));
     const list = element('div', 'more-grid');
-    group.links.slice(visible.length).forEach(link => list.append(linkNode(link, 'more-link')));
+    group.links.slice(visible.length).forEach(link => list.append(overflowPlanetNode(link)));
     more.append(list);
     app.append(more);
+  }
+  const extraMoons = group.links.filter(link => link.moons.length > VISIBLE_MOONS);
+  if (extraMoons.length) {
+    const section = element('section', 'moon-overflow');
+    section.append(element('h2', '', 'More moons'));
+    extraMoons.forEach(planet => {
+      const row = element('div', 'moon-overflow-row');
+      row.append(element('h3', '', `Around ${planet.name}`));
+      const links = element('div', 'moon-overflow-links');
+      planet.moons.slice(VISIBLE_MOONS).forEach(moon => links.append(linkNode(moon, 'overflow-moon-link')));
+      row.append(links);
+      section.append(row);
+    });
+    app.append(section);
   }
 }
 
@@ -155,10 +224,17 @@ async function init() {
     if (!Array.isArray(data.groups)) throw new Error('links.json needs a "groups" array.');
     groups = data.groups.map((group, index) => {
       if (!group.name || !Array.isArray(group.links)) throw new Error(`Group ${index + 1} needs a name and links array.`);
-      const links = group.links.filter(link => link.name && /^https?:\/\//i.test(link.url));
+      const links = group.links.filter(link => link.name && /^https?:\/\//i.test(link.url)).map(link => ({
+        ...link,
+        moons: Array.isArray(link.moons)
+          ? link.moons.filter(moon => moon.name && /^https?:\/\//i.test(moon.url))
+          : [],
+      }));
       return { ...group, id: String(group.id || group.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')), links };
     });
-    count.textContent = `${groups.reduce((total, group) => total + group.links.length, 0)} LINKS · ${groups.length} SUNS`;
+    const destinations = groups.reduce((total, group) => total + group.links.reduce(
+      (sum, link) => sum + 1 + link.moons.length, 0), 0);
+    count.textContent = `${destinations} LINKS · ${groups.length} SUNS`;
     render();
   } catch (error) {
     app.className = 'error-view';

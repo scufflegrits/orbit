@@ -19,11 +19,11 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M1) |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M1) |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M1) |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M1) |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M1) |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M2) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M2) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M2) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M2) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M2) |
 
 ## Milestone 1 — Galaxy layout and language
 
@@ -38,11 +38,11 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| H01 | Both | Load existing link data with no `moons` fields. | Existing suns and planet destinations still work. | Not run |
-| H02 | Both | Hover over a sun, then a planet with moons; move the pointer onto a moon. | Planets appear, then moons and their spokes appear; moons stay visible during pointer movement. | Not run |
-| H03 | Both | Open a planet's own URL and a moon's URL. | Each opens its distinct configured destination in a new tab. | Not run |
-| H04 | Both | Load a System with more than eight planets. | Every planet is shown around the sun or in a clear overflow area and can be opened. | Not run |
-| H05 | Both | Load a planet with more moons than fit around it. | Every moon remains visible or reachable through overflow; labels do not overlap controls. | Not run |
+| H01 | Both | Load existing link data with no `moons` fields. | Existing suns and planet destinations still work. | Pass |
+| H02 | Both | Hover over a sun, then a planet with moons; move the pointer onto a moon. | Planets appear, then moons and their spokes appear; moons stay visible during pointer movement. | Pass |
+| H03 | Both | Open a planet's own URL and a moon's URL. | Each opens its distinct configured destination in a new tab. | Pass |
+| H04 | Both | Load a System with more than eight planets. | Every planet is shown around the sun or in a clear overflow area and can be opened. | Pass |
+| H05 | Both | Load a planet with more moons than fit around it. | Every moon remains visible or reachable through overflow; labels do not overlap controls. | Pass |
 
 ## Milestone 3 — Settings, Help, About, and motion
 
@@ -81,7 +81,7 @@ After the shared checks and the current milestone's rows pass, record the commit
 | Milestone | Date | Result summary | Commit |
 | --- | --- | --- | --- |
 | 1 — Galaxy | 2026-11-15 | S01–S05 and G01–G04 passed in Playwright; screenshots inspected at 1280 and 900 pixels. | Milestone 1: Galaxy language |
-| 2 — Planets and moons | — | Not run | — |
+| 2 — Planets and moons | 2026-11-15 | S01–S05 and H01–H05 passed in Playwright; moon and overflow screenshots inspected. | Milestone 2: Planets and moons |
 | 3 — Settings and motion | — | Not run | — |
 | 4 — Editor and portability | — | Not run | — |
 | 5 — Themes | — | Not run | — |
