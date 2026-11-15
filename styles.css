@@ -27,25 +27,25 @@
 }
 
 html[data-theme='alabama'] {
-  --page-bg: #1b1319;
-  --surface: #2c1d27;
-  --surface-input: #1c141b;
-  --planet-base: #251922;
-  --hub-base: #39222d;
-  --hover-base: #482a36;
-  --text: #fff8f7;
-  --muted: #dcc6cb;
-  --muted-strong: #f1dfe2;
-  --subtle: #b99da5;
-  --faint: #9e858d;
-  --theme-accent: #f08a9a;
+  --page-bg: #151719;
+  --surface: #25282b;
+  --surface-input: #1b1e21;
+  --planet-base: #262a2d;
+  --hub-base: #343a3e;
+  --hover-base: #3b4247;
+  --text: #faf9f7;
+  --muted: #c8ced1;
+  --muted-strong: #e0e4e6;
+  --subtle: #abb3b8;
+  --faint: #939da2;
+  --theme-accent: #e87c90;
   --theme-core: #9e1b32;
-  --line: rgba(244, 208, 214, .19);
-  --line-soft: rgba(244, 208, 214, .11);
-  --star: #d8b5bc;
-  --glow: rgba(158, 27, 50, .2);
-  --top-glow: rgba(158, 27, 50, .18);
-  --scrim: rgba(14, 5, 10, .72);
+  --line: rgba(218, 224, 226, .2);
+  --line-soft: rgba(218, 224, 226, .11);
+  --star: #aeb5b8;
+  --glow: rgba(158, 27, 50, .14);
+  --top-glow: rgba(130, 138, 143, .12);
+  --scrim: rgba(7, 8, 9, .74);
 }
 
 html[data-theme='auburn'] {
@@ -376,7 +376,7 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
 
 html[data-theme='alabama'] .group-card,
 html[data-theme='alabama'] .detail-stage {
-  --accent: color-mix(in srgb, var(--sun-accent) 22%, var(--theme-accent));
+  --accent: color-mix(in srgb, var(--sun-accent) 68%, var(--theme-core));
 }
 html[data-theme='auburn'] .group-card,
 html[data-theme='auburn'] .detail-stage {

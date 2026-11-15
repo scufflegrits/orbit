@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–5 complete (2026-11-15). This plan is based on `request-improvements.md` and the initial build. The defaults below guided implementation.
+Status: milestones 1–5 complete (2026-11-15). Milestones 6–10 extend the local app with theme, finding, editing, larger-map, and font-size improvements.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -93,6 +93,46 @@ The earlier improvement notes used a few terms loosely. The Galaxy already shows
 ## Later — Keyboard navigation
 
 Add keyboard access to the sun → planet → moon interaction and the settings panels, including visible focus, focus management, and Escape behavior. Existing browser-native keyboard behavior can remain, but new keyboard interactions are outside the current milestones.
+
+## Milestone 6 — Alabama theme refresh
+
+- Use neutral charcoal and gray as the base, with crimson for selected accents and silver for quieter details.
+- Let sun colors remain distinct while keeping the theme recognizable. Keep Auburn's current appearance.
+- Inspect Galaxy, System, and editor screens in both run modes at normal and narrow desktop widths; verify text contrast and motion settings.
+
+**Done when:** Alabama has clear contrast between the background, circles, and accents; the six sample suns remain distinguishable; Auburn still looks and behaves as before.
+
+## Milestone 7 — Quick find
+
+- Add a Galaxy search that matches sun, planet, and moon names without a network request.
+- Show each result's parent path and let a pointer open the sun's System or a destination link.
+- Keep results current after browser edits, imports, and resets. Explain when nothing matches.
+
+**Done when:** A user can find and open any sun, planet, or moon from the Galaxy without tracing its circle hierarchy.
+
+## Milestone 8 — Editor recovery
+
+- Show whether the active link map comes from bundled project data or browser edits.
+- Add Undo for the latest removal, including a removed sun's planets and moons; keep it available after closing the editor or reloading.
+- Preserve import/export and reset behavior, with a clear data-source indicator after each operation.
+
+**Done when:** The active source is clear, and the latest accidental removal can be restored without losing later edits.
+
+## Milestone 9 — Eight-sun map and scale review
+
+- Add a **Stocks & Investing** sun and a **Science** sun with useful planets and moons. Expand moon examples among existing planets.
+- Keep every destination local to the bundled JSON and generated direct-file data; validate each URL and preserve existing IDs.
+- Review the eight-sun Galaxy, long names, populated Systems, and moon clusters at normal and narrow desktop widths.
+
+**Done when:** Eight suns fit the Galaxy, all sample destinations are reachable, long labels remain readable, and overflow handles larger sets without hiding links.
+
+## Milestone 10 — Font size setting
+
+- Add a Settings choice for Small, Standard, Large, and Extra large text, with Standard as the default.
+- Save the choice in this browser and apply it to Galaxy, System, search, menu, and editor text.
+- Keep circle labels, controls, and overflow readable at each size on normal and narrow desktop widths, in all themes.
+
+**Done when:** The chosen size applies immediately and survives a reload in both run modes, while every destination remains readable and reachable.
 
 ## Delivery approach
 
