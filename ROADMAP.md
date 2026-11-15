@@ -1,8 +1,8 @@
 # Orbit roadmap
 
-Status: ready for implementation. This plan is based on `request-improvements.md` and the initial build. The defaults below guide implementation without additional product decisions.
+Status: milestones 1–5 complete (2026-11-15). This plan is based on `request-improvements.md` and the initial build. The defaults below guided implementation.
 
-The planned editor is part of the local browser app; it does not require hosting or an account.
+The editor is part of the local browser app; it does not require hosting or an account.
 
 ## Product language
 
@@ -12,12 +12,12 @@ The planned editor is part of the local browser app; it does not require hosting
 | Sun | A top-level group, such as Tech |
 | System | The expanded view opened from a sun |
 | Planet | A destination link belonging to a sun, such as Engadget |
-| Moon | A future nested link belonging to a planet |
+| Moon | A nested link belonging to a planet |
 | Spokes | Lines connecting a sun to planets or a planet to moons |
 
 The earlier improvement notes used a few terms loosely. The Galaxy already shows six suns, which is a good starting layout. The five small circles previewed around a sun are planets. Hovering over a sun reveals its planets; hovering over a planet reveals its moons. The System supports more planets than the Galaxy preview, and each planet can have moons.
 
-## Starting point
+## Starting point (before milestone 1)
 
 - The current home view already provides the basic Galaxy: it displays six groups, each with a sun and up to five planets on hover or keyboard focus.
 - Clicking a sun opens the current expanded group view, which becomes the System. It displays up to eight planets around the sun and lists the rest below.

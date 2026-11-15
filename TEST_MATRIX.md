@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: ready for milestone runs. This matrix tracks the checks for each milestone in [ROADMAP.md](ROADMAP.md). The assistant runs the checks before each milestone commit and records results here.
+Status: milestones 1–5 passed. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -19,11 +19,11 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M4) |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M4) |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M4) |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M4) |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M4) |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M5) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M5) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M5) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M5) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M5) |
 
 ## Milestone 1 — Galaxy layout and language
 
@@ -69,10 +69,10 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| T01 | Both | Select Default, Alabama-inspired, and Auburn-inspired themes in the Galaxy and a System. | Each theme applies to suns, planets, moons, spokes, and menus; Default matches the original look. | Not run |
-| T02 | Both | Reload after choosing each theme. | The selected theme persists and can be reset to Default. | Not run |
-| T03 | Both | Inspect text, controls, hover states, and the editor in each theme. | Labels remain readable and controls visually distinguishable; no remote theme assets are required. | Not run |
-| T04 | Both | Turn Animations Off while using each theme. | The motion setting still works in every theme. | Not run |
+| T01 | Both | Select Default, Alabama-inspired, and Auburn-inspired themes in the Galaxy and a System. | Each theme applies to suns, planets, moons, spokes, and menus; Default matches the original look. | Pass |
+| T02 | Both | Reload after choosing each theme. | The selected theme persists and can be reset to Default. | Pass |
+| T03 | Both | Inspect text, controls, hover states, and the editor in each theme. | Labels remain readable and controls visually distinguishable; no remote theme assets are required. | Pass |
+| T04 | Both | Turn Animations Off while using each theme. | The motion setting still works in every theme. | Pass |
 
 ## Milestone commit record
 
@@ -84,4 +84,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 2 — Planets and moons | 2026-11-15 | S01–S05 and H01–H05 passed in Playwright; moon and overflow screenshots inspected. | Milestone 2: Planets and moons |
 | 3 — Settings and motion | 2026-11-15 | S01–S05 and P01–P03 passed in Playwright; menu and Settings screenshots inspected. | Milestone 3: Settings and motion |
 | 4 — Editor and portability | 2026-11-15 | S01–S05 and E01–E08 passed in Playwright; editor and always-show screenshots inspected. | Milestone 4: Local link editor |
-| 5 — Themes | — | Not run | — |
+| 5 — Themes | 2026-11-15 | S01–S05 and T01–T04 passed in Playwright; theme screenshots and text contrast checked. | Milestone 5: Themes |

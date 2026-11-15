@@ -446,6 +446,86 @@ def run_milestone_4(page, url, mode):
     print(f"PASS milestone 4 ({mode})")
 
 
+def contrast_ratio(foreground, background):
+    def luminance(value):
+        channels = [int(value[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [channel / 12.92 if channel <= 0.04045 else
+                  ((channel + 0.055) / 1.055) ** 2.4 for channel in channels]
+        return sum(channel * weight for channel, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+    brighter, darker = sorted((luminance(foreground), luminance(background)), reverse=True)
+    return (brighter + 0.05) / (darker + 0.05)
+
+
+def run_milestone_5(page, url, mode):
+    requests = []
+    page.on("request", lambda request: requests.append(request.url))
+    page.goto(url, wait_until="load")
+    appearances = {}
+    for theme in ("default", "alabama", "auburn"):
+        page.locator("#settings-trigger").click()
+        page.locator('[data-menu-panel="Settings"]').click()
+        theme_select = page.get_by_label("Theme")
+        check(theme_select.locator("option").count() == 3, f"{mode}: three theme choices")
+        theme_select.select_option(theme)
+        check(page.locator("html").get_attribute("data-theme") == theme,
+              f"{mode}: {theme} theme selected")
+        palette = page.evaluate("""() => {
+          const style = getComputedStyle(document.documentElement);
+          return Object.fromEntries(['--page-bg', '--surface', '--text', '--muted',
+            '--subtle', '--faint', '--theme-accent'].map(key => [key, style.getPropertyValue(key).trim()]));
+        }""")
+        for foreground, background in (("--text", "--page-bg"), ("--text", "--surface"),
+                                       ("--muted", "--page-bg"), ("--theme-accent", "--surface")):
+            ratio = contrast_ratio(palette[foreground], palette[background])
+            check(ratio >= 4.5, f"{mode}: {theme} {foreground} contrast {ratio:.2f}")
+        page.get_by_label("Animations").uncheck()
+        check(page.locator(".menu-sheet").evaluate(
+            "el => getComputedStyle(el).animationName") == "none",
+            f"{mode}: motion Off works in {theme}")
+        page.get_by_label("Animations").check()
+        menu_background = page.locator(".menu-sheet").evaluate(
+            "el => getComputedStyle(el).backgroundColor")
+        page.locator("#menu-close").click()
+        page.wait_for_timeout(700)
+        sun_background = page.locator(".home-hub").first.evaluate(
+            "el => getComputedStyle(el).backgroundImage")
+        moon_background = page.locator(".moon-link").first.evaluate(
+            "el => getComputedStyle(el).backgroundColor")
+        spoke_color = page.locator(".orbit-lines").first.evaluate(
+            "el => getComputedStyle(el).stroke")
+        appearances[theme] = (menu_background, sun_background, moon_background, spoke_color)
+        page.screenshot(path=str(ARTIFACTS / f"milestone5-{theme}-{mode}-galaxy.png"),
+                        full_page=True)
+        page.locator(".home-hub").first.click()
+        page.wait_for_timeout(700)
+        page.screenshot(path=str(ARTIFACTS / f"milestone5-{theme}-{mode}-system.png"),
+                        full_page=False)
+        page.locator(".back-link").click()
+        page.locator("#settings-trigger").click()
+        page.locator('[data-menu-panel="Settings"]').click()
+        page.get_by_role("button", name="Edit links").click()
+        page.set_viewport_size({"width": 900, "height": 900})
+        page.screenshot(path=str(ARTIFACTS / f"milestone5-{theme}-{mode}-editor.png"),
+                        full_page=True)
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.locator("#menu-close").click()
+        page.reload(wait_until="load")
+        check(page.locator("html").get_attribute("data-theme") == theme,
+              f"{mode}: {theme} persists after reload")
+    check(len(set(appearances.values())) == 3,
+          f"{mode}: all themes change sun, moon, spokes, and menu")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.get_by_label("Theme").select_option("default")
+    check(page.locator("html").get_attribute("data-theme") == "default",
+          f"{mode}: Default theme restores original selection")
+    page.locator("#menu-close").click()
+    external = [request for request in requests if request.startswith("http") and
+                not request.startswith("http://127.0.0.1:")]
+    check(not external, f"{mode}: no remote theme assets loaded: {external}")
+    print(f"PASS milestone 5 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--milestone", type=int, choices=range(1, 6), required=True)
@@ -481,6 +561,8 @@ def main():
                             run_milestone_3(page, url, mode)
                         if args.milestone >= 4:
                             run_milestone_4(page, url, mode)
+                        if args.milestone >= 5:
+                            run_milestone_5(page, url, mode)
                     finally:
                         page.close()
             finally:

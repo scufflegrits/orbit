@@ -10,10 +10,12 @@ const VISIBLE_MOONS = 4;
 const MAP_STORAGE_KEY = 'orbit:map:v1';
 let animationsEnabled = readBooleanPreference('orbit:animations', true);
 let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
+let activeTheme = readThemePreference();
 let seedData = null;
 let storageWarning = '';
 document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
 document.documentElement.dataset.moons = alwaysShowMoons ? 'always' : 'hover';
+document.documentElement.dataset.theme = activeTheme;
 
 function readBooleanPreference(key, fallback) {
   try {
@@ -26,6 +28,15 @@ function readBooleanPreference(key, fallback) {
 
 function savePreference(key, value) {
   try { localStorage.setItem(key, String(value)); } catch { /* Storage may be unavailable. */ }
+}
+
+function readThemePreference() {
+  try {
+    const value = localStorage.getItem('orbit:theme');
+    return ['default', 'alabama', 'auburn'].includes(value) ? value : 'default';
+  } catch {
+    return 'default';
+  }
 }
 
 function validDestination(value, label) {
@@ -121,6 +132,27 @@ function showMenuPanel(name) {
   }
   menuContent.append(element('h3', '', name));
   if (name === 'Settings') {
+    const themeRow = element('label', 'setting-row');
+    const themeCopy = element('span', 'setting-copy');
+    themeCopy.append(element('strong', '', 'Theme'));
+    themeCopy.append(element('small', '', 'Choose the colors for your Galaxy'));
+    const themeSelect = document.createElement('select');
+    themeSelect.setAttribute('aria-label', 'Theme');
+    for (const [value, label] of [
+      ['default', 'Default'], ['alabama', 'Alabama inspired'], ['auburn', 'Auburn inspired'],
+    ]) {
+      const option = element('option', '', label);
+      option.value = value;
+      themeSelect.append(option);
+    }
+    themeSelect.value = activeTheme;
+    themeSelect.addEventListener('change', () => {
+      activeTheme = themeSelect.value;
+      document.documentElement.dataset.theme = activeTheme;
+      savePreference('orbit:theme', activeTheme);
+    });
+    themeRow.append(themeCopy, themeSelect);
+    menuContent.append(themeRow);
     const row = element('label', 'setting-row');
     const copy = element('span', 'setting-copy');
     copy.append(element('strong', '', 'Animations'));
@@ -559,7 +591,7 @@ function overflowPlanetNode(link) {
 
 function homeGroup(group, index) {
   const card = element('section', 'group-card');
-  card.style.setProperty('--accent', safeColor(group.color));
+  card.style.setProperty('--sun-accent', safeColor(group.color));
   card.style.setProperty('--card-index', index);
   const orbit = element('div', 'home-orbit');
   const visible = group.links.slice(0, GALAXY_PLANETS);
@@ -613,7 +645,7 @@ function renderDetail(group) {
   heading.append(element('p', 'intro-copy', group.description));
 
   const stage = element('div', 'detail-stage');
-  stage.style.setProperty('--accent', safeColor(group.color));
+  stage.style.setProperty('--sun-accent', safeColor(group.color));
   const visible = group.links.slice(0, SYSTEM_PLANETS);
   const center = 320;
   const radius = 205;
