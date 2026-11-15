@@ -1,0 +1,173 @@
+// Generated from links.json by sync.py. Edit links.json instead.
+window.ORBIT_DATA = {
+  "groups": [
+    {
+      "id": "tech",
+      "name": "Tech",
+      "description": "News, ideas, and what comes next",
+      "color": "#79d9f8",
+      "links": [
+        {
+          "name": "Engadget",
+          "url": "https://www.engadget.com/"
+        },
+        {
+          "name": "The Verge",
+          "url": "https://www.theverge.com/"
+        },
+        {
+          "name": "Ars Technica",
+          "url": "https://arstechnica.com/"
+        },
+        {
+          "name": "Wired",
+          "url": "https://www.wired.com/"
+        },
+        {
+          "name": "Hacker News",
+          "url": "https://news.ycombinator.com/"
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "name": "Work",
+      "description": "The everyday desk",
+      "color": "#b6a4ff",
+      "links": [
+        {
+          "name": "Gmail",
+          "url": "https://mail.google.com/"
+        },
+        {
+          "name": "Calendar",
+          "url": "https://calendar.google.com/"
+        },
+        {
+          "name": "Drive",
+          "url": "https://drive.google.com/"
+        },
+        {
+          "name": "Notion",
+          "url": "https://www.notion.so/"
+        },
+        {
+          "name": "Zoom",
+          "url": "https://zoom.us/"
+        }
+      ]
+    },
+    {
+      "id": "build",
+      "name": "Build",
+      "description": "Tools for making things",
+      "color": "#f8ba7b",
+      "links": [
+        {
+          "name": "GitHub",
+          "url": "https://github.com/"
+        },
+        {
+          "name": "MDN",
+          "url": "https://developer.mozilla.org/"
+        },
+        {
+          "name": "Stack Overflow",
+          "url": "https://stackoverflow.com/"
+        },
+        {
+          "name": "CodePen",
+          "url": "https://codepen.io/"
+        },
+        {
+          "name": "npm",
+          "url": "https://www.npmjs.com/"
+        }
+      ]
+    },
+    {
+      "id": "read",
+      "name": "Read",
+      "description": "Stories for a quiet moment",
+      "color": "#a9e7bb",
+      "links": [
+        {
+          "name": "AP News",
+          "url": "https://apnews.com/"
+        },
+        {
+          "name": "Reuters",
+          "url": "https://www.reuters.com/"
+        },
+        {
+          "name": "Wikipedia",
+          "url": "https://www.wikipedia.org/"
+        },
+        {
+          "name": "Longreads",
+          "url": "https://longreads.com/"
+        },
+        {
+          "name": "Project Gutenberg",
+          "url": "https://www.gutenberg.org/"
+        }
+      ]
+    },
+    {
+      "id": "media",
+      "name": "Media",
+      "description": "Watch, listen, wander",
+      "color": "#f5a7c8",
+      "links": [
+        {
+          "name": "YouTube",
+          "url": "https://www.youtube.com/"
+        },
+        {
+          "name": "Spotify",
+          "url": "https://open.spotify.com/"
+        },
+        {
+          "name": "Bandcamp",
+          "url": "https://bandcamp.com/"
+        },
+        {
+          "name": "Vimeo",
+          "url": "https://vimeo.com/"
+        },
+        {
+          "name": "Radio Garden",
+          "url": "https://radio.garden/"
+        }
+      ]
+    },
+    {
+      "id": "everyday",
+      "name": "Everyday",
+      "description": "The little useful things",
+      "color": "#eadc8c",
+      "links": [
+        {
+          "name": "Maps",
+          "url": "https://www.google.com/maps"
+        },
+        {
+          "name": "Weather",
+          "url": "https://www.weather.gov/"
+        },
+        {
+          "name": "Translate",
+          "url": "https://translate.google.com/"
+        },
+        {
+          "name": "Internet Archive",
+          "url": "https://archive.org/"
+        },
+        {
+          "name": "Canva",
+          "url": "https://www.canva.com/"
+        }
+      ]
+    }
+  ]
+};
