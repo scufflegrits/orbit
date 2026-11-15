@@ -271,6 +271,181 @@ def run_milestone_3(page, url, mode):
     print(f"PASS milestone 3 ({mode})")
 
 
+def open_editor(page):
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.get_by_role("button", name="Edit links").click()
+    page.locator(".editor-list-row").first.wait_for()
+
+
+def submit_editor_form(page):
+    page.locator(".editor-form button[type='submit']").click()
+
+
+def run_milestone_4(page, url, mode):
+    page.goto(url, wait_until="load")
+    open_editor(page)
+    check(page.locator(".editor-list-row").count() == 6, f"{mode}: editor lists suns")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone4-editor-{mode}-900.png"), full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+
+    page.get_by_role("button", name="Add sun").click()
+    page.get_by_label("Sun name").fill("Personal")
+    page.get_by_label("Description").fill("My saved places")
+    page.get_by_label("Color").fill("#67bbcc")
+    submit_editor_form(page)
+    sun_id = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.at(-1).id")
+    check(sun_id == "personal", f"{mode}: new sun has stable ID")
+    page.get_by_label("Sun name").fill("Personal Renamed")
+    submit_editor_form(page)
+    check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.at(-1).id") == sun_id,
+          f"{mode}: rename preserves sun ID")
+    page.get_by_role("button", name="Move up").click()
+    check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.at(-2).name") == "Personal Renamed",
+          f"{mode}: sun reorder saved")
+
+    page.get_by_role("button", name="Add planet").click()
+    page.get_by_label("Planet name").fill("Test Planet")
+    page.get_by_label("Destination URL").fill("https://example.com/planet")
+    submit_editor_form(page)
+    page.get_by_label("Planet name").fill("Renamed Planet")
+    page.get_by_label("Destination URL").fill("https://example.com/planet-updated")
+    submit_editor_form(page)
+    page.get_by_role("button", name="Add moon").click()
+    page.get_by_label("Moon name").fill("First Moon")
+    page.get_by_label("Destination URL").fill("https://example.com/moon-one")
+    submit_editor_form(page)
+    page.get_by_label("Moon name").fill("Renamed Moon")
+    page.get_by_label("Destination URL").fill("https://example.com/moon-updated")
+    submit_editor_form(page)
+    page.locator(".editor-back").click()
+    page.get_by_role("button", name="Add moon").click()
+    page.get_by_label("Moon name").fill("Second Moon")
+    page.get_by_label("Destination URL").fill("https://example.com/moon-two")
+    submit_editor_form(page)
+    page.get_by_role("button", name="Move up").click()
+    check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons[0].name") == "Second Moon",
+          f"{mode}: moon reorder saved")
+    page.locator(".editor-back").click()
+    page.get_by_role("button", name="Add moon").click()
+    before_invalid = page.evaluate("localStorage.getItem('orbit:map:v1')")
+    page.get_by_label("Destination URL").fill("ftp://example.com")
+    submit_editor_form(page)
+    check(page.locator(".editor-error").count() == 1,
+          f"{mode}: blank moon name rejected")
+    page.get_by_label("Moon name").fill("Invalid Moon")
+    submit_editor_form(page)
+    check("http or https" in page.locator(".editor-error").inner_text(),
+          f"{mode}: non-HTTP URL rejected")
+    check(page.evaluate("localStorage.getItem('orbit:map:v1')") == before_invalid,
+          f"{mode}: invalid edit leaves saved map intact")
+    page.locator(".editor-back").click()
+    page.locator(".editor-back").click()
+    page.locator(".editor-back").click()
+
+    with page.expect_download() as download_info:
+        page.get_by_role("button", name="Export JSON").click()
+    exported = Path(download_info.value.path()).read_bytes()
+    exported_map = json.loads(exported)
+    check(len(exported_map["groups"]) == 7, f"{mode}: export includes new sun")
+    check(exported_map["groups"][5]["links"][0]["moons"][0]["name"] == "Second Moon",
+          f"{mode}: export preserves moon order")
+
+    with page.expect_file_chooser() as chooser_info:
+        page.get_by_role("button", name="Import JSON").click()
+    chooser_info.value.set_files({"name": "bad.json", "mimeType": "application/json", "buffer": b"{bad"})
+    page.locator(".editor-error").wait_for()
+    check(page.evaluate("localStorage.getItem('orbit:map:v1')") == before_invalid,
+          f"{mode}: malformed import leaves map intact")
+    with page.expect_file_chooser() as chooser_info:
+        page.get_by_role("button", name="Import JSON").click()
+    chooser_info.value.set_files({"name": "bad-color.json", "mimeType": "application/json",
+                                  "buffer": b'{"groups":[{"name":"Bad","color":"#zzzzzz","links":[]}]}'})
+    page.locator(".editor-error").filter(has_text="six-digit hex").wait_for()
+    check("six-digit hex" in page.locator(".editor-error").inner_text(),
+          f"{mode}: invalid color import rejected")
+
+    page.locator("#menu-close").click()
+    page.reload(wait_until="load")
+    check(page.locator(".home-hub").count() == 7,
+          f"{mode}: browser edits survive reload")
+    personal = page.locator(".home-hub").filter(has_text="Personal Renamed")
+    personal.click()
+    check(page.url.endswith(f"group/{sun_id}"), f"{mode}: renamed sun route remains stable")
+    page.locator(".back-link").click()
+    open_editor(page)
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Reset to file data").click()
+    check(page.locator(".editor-list-row").count() == 6,
+          f"{mode}: reset restores bundled suns")
+    with page.expect_file_chooser() as chooser_info:
+        page.get_by_role("button", name="Import JSON").click()
+    chooser_info.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
+                                  "buffer": exported})
+    page.get_by_role("button", name="Apply import").click()
+    check(page.locator(".editor-list-row").count() == 7,
+          f"{mode}: import restores exported map")
+    check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons.length") == 2,
+          f"{mode}: import restores moon hierarchy")
+    check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1'))") == exported_map,
+          f"{mode}: import restores full exported map")
+
+    page.locator(".editor-back").click()
+    page.get_by_label("Always show moons").check()
+    page.locator("#menu-close").click()
+    personal = page.locator(".home-hub").filter(has_text="Personal Renamed")
+    personal.hover()
+    page.wait_for_timeout(450)
+    card = page.locator(".group-card").filter(has=personal)
+    check(card.locator(".moon-link:visible").count() == 2,
+          f"{mode}: always-show reveals moons around visible planet")
+    page.context.route("https://example.com/moon-two", lambda route: route.fulfill(
+        status=200, content_type="text/html", body="<title>Custom moon</title>"))
+    with page.expect_popup() as popup_info:
+        card.locator(".moon-link").first.click()
+    popup = popup_info.value
+    popup.wait_for_load_state()
+    check(popup.url == "https://example.com/moon-two",
+          f"{mode}: custom moon opens configured URL")
+    popup.close()
+    page.screenshot(path=str(ARTIFACTS / f"milestone4-always-moons-{mode}.png"),
+                    full_page=True)
+    page.reload(wait_until="load")
+    check(page.locator("html").get_attribute("data-moons") == "always",
+          f"{mode}: moon setting persists")
+    check(page.locator(".home-orbit").first.locator(".moon-link:visible").count() == 0,
+          f"{mode}: hidden Galaxy planets stay hidden")
+
+    open_editor(page)
+    page.locator(".editor-list-row").filter(has_text="Personal Renamed").get_by_role("button", name="Edit").click()
+    page.locator(".editor-list-row").filter(has_text="Renamed Planet").get_by_role("button", name="Edit").click()
+    page.locator(".editor-list-row").filter(has_text="Renamed Moon").get_by_role("button", name="Edit").click()
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Remove moon").click()
+    check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons.length") == 1,
+          f"{mode}: removing a moon preserves its sibling")
+    page.locator(".editor-back").click()
+    page.once("dialog", lambda dialog: dialog.dismiss())
+    page.get_by_role("button", name="Remove sun").click()
+    check(page.locator(".home-hub").count() == 7, f"{mode}: cancel preserves sun")
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Remove sun").click()
+    check(page.locator(".editor-list-row").count() == 6, f"{mode}: confirm removes sun and children")
+
+    page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
+    page.get_by_role("button", name="Add planet").click()
+    page.get_by_label("Planet name").fill("Preview Planet")
+    page.get_by_label("Destination URL").fill("https://example.com/preview")
+    submit_editor_form(page)
+    page.get_by_role("button", name="Move up").click()
+    check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'tech').links[4].name") == "Preview Planet",
+          f"{mode}: planet reorder changes Galaxy preview")
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Remove planet").click()
+    print(f"PASS milestone 4 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--milestone", type=int, choices=range(1, 6), required=True)
@@ -304,6 +479,8 @@ def main():
                                 run_milestone_2_fixtures(page)
                         if args.milestone >= 3:
                             run_milestone_3(page, url, mode)
+                        if args.milestone >= 4:
+                            run_milestone_4(page, url, mode)
                     finally:
                         page.close()
             finally:

@@ -7,8 +7,13 @@ let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
 const VISIBLE_MOONS = 4;
+const MAP_STORAGE_KEY = 'orbit:map:v1';
 let animationsEnabled = readBooleanPreference('orbit:animations', true);
+let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
+let seedData = null;
+let storageWarning = '';
 document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
+document.documentElement.dataset.moons = alwaysShowMoons ? 'always' : 'hover';
 
 function readBooleanPreference(key, fallback) {
   try {
@@ -21,6 +26,82 @@ function readBooleanPreference(key, fallback) {
 
 function savePreference(key, value) {
   try { localStorage.setItem(key, String(value)); } catch { /* Storage may be unavailable. */ }
+}
+
+function validDestination(value, label) {
+  if (!value || typeof value !== 'object') throw new Error(`${label} needs a name and URL.`);
+  const name = String(value.name || '').trim();
+  const url = String(value.url || '').trim();
+  if (!name) throw new Error(`${label} needs a name.`);
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) {
+      throw new Error('unsupported URL');
+    }
+  } catch {
+    throw new Error(`${label} needs an http or https URL.`);
+  }
+  return { name, url };
+}
+
+function uniqueSunId(name, used) {
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sun';
+  let id = base;
+  let suffix = 2;
+  while (used.has(id)) id = `${base}-${suffix++}`;
+  return id;
+}
+
+function validateMap(data) {
+  if (!data || !Array.isArray(data.groups)) throw new Error('The link map needs a "groups" array.');
+  const used = new Set();
+  const normalized = data.groups.map((group, groupIndex) => {
+    if (!group || typeof group !== 'object') throw new Error(`Sun ${groupIndex + 1} is invalid.`);
+    const name = String(group.name || '').trim();
+    if (!name) throw new Error(`Sun ${groupIndex + 1} needs a name.`);
+    const color = group.color === undefined ? '#79d9f8' : String(group.color).trim();
+    if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error(`${name} needs a six-digit hex color.`);
+    if (!Array.isArray(group.links)) throw new Error(`${name} needs a planets array.`);
+    const id = group.id === undefined || group.id === null || group.id === ''
+      ? uniqueSunId(name, used) : String(group.id);
+    if (used.has(id)) throw new Error(`Duplicate sun ID: ${id}`);
+    used.add(id);
+    const links = group.links.map((link, linkIndex) => {
+      const planet = validDestination(link, `Planet ${linkIndex + 1} in ${name}`);
+      if (link.moons !== undefined && !Array.isArray(link.moons)) {
+        throw new Error(`${planet.name} needs a moons array.`);
+      }
+      const moons = (link.moons || []).map((moon, moonIndex) =>
+        validDestination(moon, `Moon ${moonIndex + 1} around ${planet.name}`));
+      return { ...planet, moons };
+    });
+    return { id, name, description: String(group.description || ''), color, links };
+  });
+  return { groups: normalized };
+}
+
+function countDestinations() {
+  const destinations = groups.reduce((total, group) => total + group.links.reduce(
+    (sum, link) => sum + 1 + link.moons.length, 0), 0);
+  count.textContent = `${destinations} LINKS · ${groups.length} SUNS`;
+}
+
+function loadBrowserMap() {
+  try {
+    const text = localStorage.getItem(MAP_STORAGE_KEY);
+    return text ? validateMap(JSON.parse(text)) : null;
+  } catch (error) {
+    storageWarning = `Saved browser data could not be loaded: ${error.message}`;
+    return null;
+  }
+}
+
+function saveMap(data) {
+  const normalized = validateMap(data);
+  localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(normalized));
+  groups = normalized.groups;
+  countDestinations();
+  render();
 }
 
 function closeMenu() {
@@ -55,6 +136,26 @@ function showMenuPanel(name) {
     });
     row.append(copy, input);
     menuContent.append(row);
+    const moonRow = element('label', 'setting-row');
+    const moonCopy = element('span', 'setting-copy');
+    moonCopy.append(element('strong', '', 'Always show moons'));
+    moonCopy.append(element('small', '', 'Show moons around visible planets without hovering'));
+    const moonInput = document.createElement('input');
+    moonInput.type = 'checkbox';
+    moonInput.checked = alwaysShowMoons;
+    moonInput.setAttribute('aria-label', 'Always show moons');
+    moonInput.addEventListener('change', () => {
+      alwaysShowMoons = moonInput.checked;
+      document.documentElement.dataset.moons = alwaysShowMoons ? 'always' : 'hover';
+      savePreference('orbit:always-show-moons', alwaysShowMoons);
+    });
+    moonRow.append(moonCopy, moonInput);
+    menuContent.append(moonRow);
+    const edit = element('button', 'editor-open', 'Edit links');
+    edit.type = 'button';
+    edit.addEventListener('click', () => showEditor('suns'));
+    menuContent.append(edit);
+    if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Click a planet or moon to open its destination in a new tab.'));
@@ -62,6 +163,297 @@ function showMenuPanel(name) {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
     menuContent.append(element('p', '', 'Your link map runs on this computer, without an account or hosted service.'));
   }
+}
+
+function editorButton(label, action, className = 'editor-button') {
+  const button = element('button', className, label);
+  button.type = 'button';
+  button.addEventListener('click', action);
+  return button;
+}
+
+function editorField(label, value, type = 'text') {
+  const wrapper = element('label', 'editor-field');
+  wrapper.append(element('span', '', label));
+  const input = type === 'textarea' ? document.createElement('textarea') : document.createElement('input');
+  if (type !== 'textarea') input.type = type;
+  input.value = value;
+  wrapper.append(input);
+  return { wrapper, input };
+}
+
+function editorError(message) {
+  const previous = menuContent.querySelector('.editor-error');
+  if (previous) previous.remove();
+  menuContent.prepend(element('p', 'editor-error', message));
+}
+
+function editorHeader(title, back) {
+  menuContent.replaceChildren();
+  const header = element('div', 'editor-header');
+  header.append(editorButton('← Back', back, 'editor-back'));
+  header.append(element('h3', '', title));
+  menuContent.append(header);
+}
+
+function copyGroups() {
+  return JSON.parse(JSON.stringify(groups));
+}
+
+function applyEditorChange(nextGroups, showNext) {
+  try {
+    saveMap({ groups: nextGroups });
+    storageWarning = '';
+    showNext();
+  } catch (error) {
+    editorError(error.message);
+  }
+}
+
+function moveEntry(items, index, amount) {
+  const target = index + amount;
+  if (target < 0 || target >= items.length) return false;
+  [items[index], items[target]] = [items[target], items[index]];
+  return true;
+}
+
+function editorActions() {
+  const actions = element('div', 'editor-actions');
+  menuContent.append(actions);
+  return actions;
+}
+
+function exportMap() {
+  const blob = new Blob([JSON.stringify({ groups }, null, 2) + '\n'], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'orbit-links.json';
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function showImportReview(data) {
+  editorHeader('Review import', showSunList);
+  const planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0);
+  const moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
+    (total, planet) => total + planet.moons.length, 0), 0);
+  menuContent.append(element('p', '', `${data.groups.length} suns · ${planetCount} planets · ${moonCount} moons`));
+  menuContent.append(element('p', '', 'Applying this file replaces the link map saved in this browser. Export your current map first if you want a backup.'));
+  const actions = editorActions();
+  actions.append(editorButton('Apply import', () => applyEditorChange(data.groups, showSunList), 'editor-primary'));
+  actions.append(editorButton('Cancel', showSunList));
+}
+
+function importMap() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', async () => {
+    if (!input.files.length) return;
+    try {
+      showImportReview(validateMap(JSON.parse(await input.files[0].text())));
+    } catch (error) {
+      editorError(`Import failed: ${error.message}`);
+    }
+  });
+  input.click();
+}
+
+function resetMap() {
+  if (!window.confirm('Replace browser edits with the link data loaded from the project files?')) return;
+  try {
+    localStorage.removeItem(MAP_STORAGE_KEY);
+    groups = validateMap(seedData).groups;
+    storageWarning = '';
+    countDestinations();
+    render();
+    showSunList();
+  } catch (error) {
+    editorError(error.message);
+  }
+}
+
+function showSunList() {
+  editorHeader('Edit links', () => showMenuPanel('Settings'));
+  menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Changes are saved in this browser.'));
+  const list = element('div', 'editor-list');
+  groups.forEach((sun, index) => {
+    const row = element('div', 'editor-list-row');
+    row.append(element('span', '', `${sun.name} · ${sun.links.length} planets`));
+    row.append(editorButton('Edit', () => showSunEditor(index)));
+    list.append(row);
+  });
+  menuContent.append(list);
+  const actions = editorActions();
+  actions.append(editorButton('Add sun', () => showSunEditor(null), 'editor-primary'));
+  actions.append(editorButton('Import JSON', importMap));
+  actions.append(editorButton('Export JSON', exportMap));
+  actions.append(editorButton('Reset to file data', resetMap));
+}
+
+function showSunEditor(index) {
+  const isNew = index === null;
+  const sun = isNew ? { name: '', description: '', color: '#79d9f8', links: [] } : groups[index];
+  editorHeader(isNew ? 'Add sun' : `Edit ${sun.name}`, showSunList);
+  const form = element('form', 'editor-form');
+  const name = editorField('Sun name', sun.name);
+  const description = editorField('Description', sun.description, 'textarea');
+  const color = editorField('Color', sun.color, 'color');
+  form.append(name.wrapper, description.wrapper, color.wrapper);
+  const actions = element('div', 'editor-actions');
+  const save = element('button', 'editor-primary', isNew ? 'Add sun' : 'Save sun');
+  save.type = 'submit';
+  actions.append(save);
+  if (!isNew) {
+    actions.append(editorButton('Move up', () => {
+      const next = copyGroups();
+      if (moveEntry(next, index, -1)) applyEditorChange(next, () => showSunEditor(index - 1));
+    }));
+    actions.append(editorButton('Move down', () => {
+      const next = copyGroups();
+      if (moveEntry(next, index, 1)) applyEditorChange(next, () => showSunEditor(index + 1));
+    }));
+    actions.append(editorButton('Remove sun', () => {
+      if (!window.confirm(`Remove ${sun.name} and all its planets and moons?`)) return;
+      const next = copyGroups();
+      next.splice(index, 1);
+      applyEditorChange(next, showSunList);
+    }, 'editor-danger'));
+  }
+  form.append(actions);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const next = copyGroups();
+    const value = { name: name.input.value.trim(), description: description.input.value.trim(),
+      color: color.input.value, links: isNew ? [] : next[index].links };
+    if (isNew) {
+      value.id = uniqueSunId(value.name, new Set(next.map(item => item.id)));
+      next.push(value);
+    } else {
+      value.id = next[index].id;
+      next[index] = value;
+    }
+    applyEditorChange(next, () => showSunEditor(isNew ? next.length - 1 : index));
+  });
+  menuContent.append(form);
+  if (!isNew) {
+    menuContent.append(element('h4', 'editor-section-title', 'Planets'));
+    const list = element('div', 'editor-list');
+    sun.links.forEach((planet, planetIndex) => {
+      const row = element('div', 'editor-list-row');
+      row.append(element('span', '', `${planet.name} · ${planet.moons.length} moons`));
+      row.append(editorButton('Edit', () => showPlanetEditor(index, planetIndex)));
+      list.append(row);
+    });
+    menuContent.append(list);
+    editorActions().append(editorButton('Add planet', () => showPlanetEditor(index, null), 'editor-primary'));
+  }
+}
+
+function showPlanetEditor(sunIndex, planetIndex) {
+  const isNew = planetIndex === null;
+  const planet = isNew ? { name: '', url: '', moons: [] } : groups[sunIndex].links[planetIndex];
+  editorHeader(isNew ? 'Add planet' : `Edit ${planet.name}`, () => showSunEditor(sunIndex));
+  menuContent.append(element('p', '', `Sun: ${groups[sunIndex].name}`));
+  const form = element('form', 'editor-form');
+  const name = editorField('Planet name', planet.name);
+  const url = editorField('Destination URL', planet.url, 'url');
+  form.append(name.wrapper, url.wrapper);
+  const actions = element('div', 'editor-actions');
+  const save = element('button', 'editor-primary', isNew ? 'Add planet' : 'Save planet');
+  save.type = 'submit';
+  actions.append(save);
+  if (!isNew) {
+    for (const [label, amount] of [['Move up', -1], ['Move down', 1]]) {
+      actions.append(editorButton(label, () => {
+        const next = copyGroups();
+        if (moveEntry(next[sunIndex].links, planetIndex, amount)) {
+          applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex + amount));
+        }
+      }));
+    }
+    actions.append(editorButton('Remove planet', () => {
+      if (!window.confirm(`Remove ${planet.name} and all its moons?`)) return;
+      const next = copyGroups();
+      next[sunIndex].links.splice(planetIndex, 1);
+      applyEditorChange(next, () => showSunEditor(sunIndex));
+    }, 'editor-danger'));
+  }
+  form.append(actions);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const next = copyGroups();
+    const value = { name: name.input.value.trim(), url: url.input.value.trim(),
+      moons: isNew ? [] : next[sunIndex].links[planetIndex].moons };
+    if (isNew) next[sunIndex].links.push(value);
+    else next[sunIndex].links[planetIndex] = value;
+    applyEditorChange(next, () => showPlanetEditor(sunIndex,
+      isNew ? next[sunIndex].links.length - 1 : planetIndex));
+  });
+  menuContent.append(form);
+  if (!isNew) {
+    menuContent.append(element('h4', 'editor-section-title', 'Moons'));
+    const list = element('div', 'editor-list');
+    planet.moons.forEach((moon, moonIndex) => {
+      const row = element('div', 'editor-list-row');
+      row.append(element('span', '', moon.name));
+      row.append(editorButton('Edit', () => showMoonEditor(sunIndex, planetIndex, moonIndex)));
+      list.append(row);
+    });
+    menuContent.append(list);
+    editorActions().append(editorButton('Add moon', () => showMoonEditor(sunIndex, planetIndex, null), 'editor-primary'));
+  }
+}
+
+function showMoonEditor(sunIndex, planetIndex, moonIndex) {
+  const isNew = moonIndex === null;
+  const planet = groups[sunIndex].links[planetIndex];
+  const moon = isNew ? { name: '', url: '' } : planet.moons[moonIndex];
+  editorHeader(isNew ? 'Add moon' : `Edit ${moon.name}`,
+    () => showPlanetEditor(sunIndex, planetIndex));
+  menuContent.append(element('p', '', `${groups[sunIndex].name} sun → ${planet.name} planet`));
+  const form = element('form', 'editor-form');
+  const name = editorField('Moon name', moon.name);
+  const url = editorField('Destination URL', moon.url, 'url');
+  form.append(name.wrapper, url.wrapper);
+  const actions = element('div', 'editor-actions');
+  const save = element('button', 'editor-primary', isNew ? 'Add moon' : 'Save moon');
+  save.type = 'submit';
+  actions.append(save);
+  if (!isNew) {
+    for (const [label, amount] of [['Move up', -1], ['Move down', 1]]) {
+      actions.append(editorButton(label, () => {
+        const next = copyGroups();
+        if (moveEntry(next[sunIndex].links[planetIndex].moons, moonIndex, amount)) {
+          applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex, moonIndex + amount));
+        }
+      }));
+    }
+    actions.append(editorButton('Remove moon', () => {
+      if (!window.confirm(`Remove ${moon.name}?`)) return;
+      const next = copyGroups();
+      next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
+      applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex));
+    }, 'editor-danger'));
+  }
+  form.append(actions);
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const next = copyGroups();
+    const value = { name: name.input.value.trim(), url: url.input.value.trim() };
+    if (isNew) next[sunIndex].links[planetIndex].moons.push(value);
+    else next[sunIndex].links[planetIndex].moons[moonIndex] = value;
+    applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex,
+      isNew ? next[sunIndex].links[planetIndex].moons.length - 1 : moonIndex));
+  });
+  menuContent.append(form);
+}
+
+function showEditor(level) {
+  if (level === 'suns') showSunList();
 }
 
 function element(tag, className, text) {
@@ -263,7 +655,6 @@ function renderDetail(group) {
 }
 
 function render() {
-  closeMenu();
   const route = decodeURIComponent(location.hash.slice(1));
   const id = route.startsWith('group/') ? route.slice(6) : null;
   const group = groups.find(item => item.id === id);
@@ -283,20 +674,9 @@ async function init() {
       data = await response.json();
     }
     if (!data) throw new Error('Run `python3 sync.py` to generate links-data.js.');
-    if (!Array.isArray(data.groups)) throw new Error('links.json needs a "groups" array.');
-    groups = data.groups.map((group, index) => {
-      if (!group.name || !Array.isArray(group.links)) throw new Error(`Group ${index + 1} needs a name and links array.`);
-      const links = group.links.filter(link => link.name && /^https?:\/\//i.test(link.url)).map(link => ({
-        ...link,
-        moons: Array.isArray(link.moons)
-          ? link.moons.filter(moon => moon.name && /^https?:\/\//i.test(moon.url))
-          : [],
-      }));
-      return { ...group, id: String(group.id || group.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')), links };
-    });
-    const destinations = groups.reduce((total, group) => total + group.links.reduce(
-      (sum, link) => sum + 1 + link.moons.length, 0), 0);
-    count.textContent = `${destinations} LINKS · ${groups.length} SUNS`;
+    seedData = validateMap(data);
+    groups = (loadBrowserMap() || seedData).groups;
+    countDestinations();
     render();
   } catch (error) {
     app.className = 'error-view';
@@ -306,7 +686,7 @@ async function init() {
   }
 }
 
-window.addEventListener('hashchange', render);
+window.addEventListener('hashchange', () => { closeMenu(); render(); });
 settingsTrigger.addEventListener('click', openMenu);
 document.querySelector('#menu-close').addEventListener('click', closeMenu);
 document.querySelector('#menu-scrim').addEventListener('click', closeMenu);

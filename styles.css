@@ -184,6 +184,56 @@ button:focus-visible, a:focus-visible {
 .setting-copy small { font-size: 11px; }
 .setting-row input[type='checkbox'] { width: 20px; height: 20px; accent-color: #8fd6eb; cursor: pointer; }
 
+.editor-open, .editor-button, .editor-primary, .editor-danger, .editor-back {
+  padding: 10px 14px;
+  border: 1px solid rgba(212, 222, 255, .2);
+  border-radius: 10px;
+  background: rgba(136, 214, 235, .06);
+  color: #d7e4f6;
+  font: 600 12px 'Space Grotesk', sans-serif;
+  cursor: pointer;
+}
+.editor-open:hover, .editor-button:hover, .editor-back:hover { border-color: #8fd6eb; color: #fff; }
+.editor-open { width: 100%; margin-top: 12px; text-align: left; }
+.editor-primary { border-color: #8fd6eb; background: rgba(136, 214, 235, .18); color: #fff; }
+.editor-primary:hover { background: rgba(136, 214, 235, .29); }
+.editor-danger { border-color: rgba(245, 167, 200, .45); color: #ffd5e4; }
+.editor-danger:hover { background: rgba(245, 167, 200, .14); }
+.editor-back { padding: 7px 10px; }
+.editor-header { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.menu-content .editor-header h3 { margin: 0; }
+.editor-form { display: grid; gap: 12px; margin: 14px 0 20px; }
+.editor-field { display: grid; gap: 5px; color: #d7e4f6; font-size: 12px; }
+.editor-field input, .editor-field textarea {
+  width: 100%;
+  min-height: 39px;
+  padding: 9px 11px;
+  border: 1px solid rgba(212, 222, 255, .25);
+  border-radius: 9px;
+  background: #0e1628;
+  color: #f7f7fc;
+  font: 13px 'DM Sans', system-ui, sans-serif;
+}
+.editor-field textarea { min-height: 72px; resize: vertical; }
+.editor-field input[type='color'] { width: 86px; padding: 4px; cursor: pointer; }
+.editor-field input:focus, .editor-field textarea:focus { outline: 2px solid #8fd6eb; outline-offset: 1px; }
+.editor-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 13px 0; }
+.editor-section-title { margin: 22px 0 10px; color: #f7f7fc; font: 600 16px 'Space Grotesk', sans-serif; }
+.editor-list { display: grid; gap: 8px; }
+.editor-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 7px 6px 13px;
+  border: 1px solid rgba(212, 222, 255, .12);
+  border-radius: 11px;
+  background: rgba(136, 214, 235, .04);
+  color: #d7e4f6;
+}
+.editor-error { padding: 10px 12px; border-radius: 9px; background: rgba(245, 167, 200, .12); color: #ffd5e4; }
+
 .local-badge, .link-count, .eyebrow, .hub-count, .detail-index {
   font: 700 10px 'Space Grotesk', sans-serif;
   letter-spacing: .17em;
@@ -445,11 +495,23 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
   transition: opacity .18s ease, visibility .18s;
 }
 
-.planet-cluster:hover .moon-field {
+.planet-cluster:hover .moon-field,
+html[data-moons='always'] .planet-cluster .moon-field {
   opacity: 1;
   visibility: visible;
+}
+
+.planet-cluster:hover .moon-field {
   pointer-events: auto;
 }
+
+html[data-moons='always'] .planet-cluster .moon-field { pointer-events: none; }
+html[data-moons='always'] .planet-cluster:hover .moon-field { pointer-events: auto; }
+.home-orbit:not(:hover):not(:focus-within) .moon-field {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+.home-orbit:not(:hover):not(:focus-within) .moon-link { pointer-events: none; }
 
 .moon-spokes {
   position: absolute;
@@ -469,11 +531,13 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
   z-index: 2;
   left: calc(50% + var(--mx));
   top: calc(50% + var(--my));
-  width: 58px;
-  height: 58px;
-  font-size: 9px;
+  width: 64px;
+  height: 64px;
+  padding: 4px;
+  font-size: 8px;
   transform: translate(-50%, -50%);
   background: color-mix(in srgb, var(--accent) 24%, #141b2e);
+  pointer-events: auto;
 }
 
 .moon-badge {
@@ -513,7 +577,8 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
   border-radius: 16px;
   background: #151d33;
 }
-.overflow-planet:hover .overflow-moons { display: flex; }
+.overflow-planet:hover .overflow-moons,
+html[data-moons='always'] .overflow-planet .overflow-moons { display: flex; }
 .overflow-moon-link { --accent: #8fd6eb; width: 68px; height: 68px; font-size: 9px; }
 .moon-overflow { max-width: 720px; margin: 0 auto 75px; text-align: center; }
 .moon-overflow h2 { font-size: 19px; }
