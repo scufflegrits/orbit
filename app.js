@@ -3,6 +3,7 @@ const count = document.querySelector('#link-count');
 const settingsTrigger = document.querySelector('#settings-trigger');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
+const APP_VERSION = '1.0.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -194,6 +195,7 @@ function showMenuPanel(name) {
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
     menuContent.append(element('p', '', 'Your link map runs on this computer, without an account or hosted service.'));
+    menuContent.append(element('p', '', `Version ${APP_VERSION}`));
   }
 }
 
