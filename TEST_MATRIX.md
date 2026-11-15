@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: draft. This matrix tracks the checks for each milestone in [ROADMAP.md](ROADMAP.md). The assistant runs the checks before each milestone commit and records results here.
+Status: ready for milestone runs. This matrix tracks the checks for each milestone in [ROADMAP.md](ROADMAP.md). The assistant runs the checks before each milestone commit and records results here.
 
 ## Scope and method
 

@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: draft for discussion. This plan is based on `request-improvements.md` and the initial build. It defines the work before application code changes.
+Status: ready for implementation. This plan is based on `request-improvements.md` and the initial build. The defaults below guide implementation without additional product decisions.
 
 The planned editor is part of the local browser app; it does not require hosting or an account.
 
@@ -49,7 +49,7 @@ The earlier improvement notes used a few terms loosely. The Galaxy already shows
 ## Milestone 3 — Settings, Help, and About
 
 - Add a cog to the Galaxy. Activating it opens a menu that slides up with **Settings**, **Help**, and **About**.
-- Give Settings a clear place for theme choice, an **Edit links** interface, an **Animations** on/off switch, and the “always show moons” option. Help explains Galaxy → Sun → Planet → Moon navigation and the System view; About describes the local app.
+- Give Settings a clear place for an **Animations** on/off switch and for theme choice, **Edit links**, and “always show moons” as those features are delivered in later milestones. Help explains Galaxy → Sun → Planet → Moon navigation and the System view; About describes the local app.
 - Default Animations to **On**. When switched **Off**, remove movement, fades, and reveal delays throughout the Galaxy, Systems, moon clusters, and settings panels while keeping every interaction available. Save the choice locally across reloads.
 - Continue honoring the operating system's reduced-motion preference even when the Animations switch is On.
 - Support a visible close control, outside-click dismissal, reduced motion, and narrow desktop windows for the menu and its panels.
@@ -79,16 +79,16 @@ The earlier improvement notes used a few terms loosely. The Galaxy already shows
 
 **Done when:** Theme changes take effect immediately, survive a reload in the same browser, and remain usable in both the direct-file and local-server modes.
 
-## Decisions to settle
+## Implementation defaults
 
-| Question | Working recommendation |
+| Choice | Default |
 | --- | --- |
 | How should the Galaxy grow beyond its current six suns? | Keep all suns accessible and adapt the grid as more are added. |
 | How should a System present more than eight planets? | Keep a readable circular layout plus a clearly labeled list for overflow. |
 | How should planets beyond the Galaxy's first five be included in its preview? | Let the user reorder planets in Settings; the first five in that order appear on hover. |
 | How should moons stay open as the pointer moves from a planet to a moon? | Treat the planet and its moons as one hover region. |
 | How should “always show moons” behave when a planet is hidden in the Galaxy? | Show moons only for planets currently visible; keep the five-planet preview limit. |
-| Where do in-app edits and imported data live? | Store a browser-local override in both run modes, allow export, and provide a reset to the bundled link data. Confirm this precedence before building the editor. |
+| Where do in-app edits and imported data live? | Store a browser-local override in both run modes, allow export, and provide a reset to the bundled link data. |
 
 ## Later — Keyboard navigation
 
