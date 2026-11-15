@@ -1,6 +1,6 @@
 # Orbit
 
-A local link map organized into circles. Hover over a circle to reveal its links, click the center to see the whole circle, or click a smaller circle to open that destination in a new tab.
+A local link map organized as a Galaxy of suns and planets. Each sun is a group of links. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination in a new tab.
 
 ## Run
 
@@ -16,7 +16,7 @@ Then open <http://localhost:8000>. The server listens only on this computer. Pre
 
 ## Add your links
 
-Edit `links.json`. Each item in `groups` is a large circle, and each item in its `links` array is a destination:
+Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` array is a planet with a destination:
 
 ```json
 {
@@ -30,4 +30,4 @@ Edit `links.json`. Each item in `groups` is a large circle, and each item in its
 }
 ```
 
-Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh. Up to five links appear on the home hover preview; up to eight appear around the center in the expanded view, with any extra links listed below.
+Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh. Up to five planets appear around each sun in the Galaxy hover preview; up to eight appear around the sun in its System, with any extra planets listed below.

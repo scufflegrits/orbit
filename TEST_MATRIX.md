@@ -19,20 +19,20 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Not run |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Not run |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Not run |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Not run |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Not run |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M1) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M1) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M1) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M1) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M1) |
 
 ## Milestone 1 — Galaxy layout and language
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| G01 | Both | Load the Galaxy with the six sample suns and with an added sun. | Every sun is visible or reachable; no sun is silently omitted. | Not run |
-| G02 | Both | Hover over a sun with more than five planets. | Its first five planets and spokes appear; later planets stay available in its System. | Not run |
-| G03 | Both | Click a sun and use “Return to Galaxy.” | The correct System opens and the return action reaches the Galaxy. | Not run |
-| G04 | Both | Inspect visible labels and help text. | Galaxy, Sun, System, and Planet are used consistently. | Not run |
+| G01 | Both | Load the Galaxy with the six sample suns and with an added sun. | Every sun is visible or reachable; no sun is silently omitted. | Pass |
+| G02 | Both | Hover over a sun with more than five planets. | Its first five planets and spokes appear; later planets stay available in its System. | Pass |
+| G03 | Both | Click a sun and use “Return to Galaxy.” | The correct System opens and the return action reaches the Galaxy. | Pass |
+| G04 | Both | Inspect visible labels and help text. | Galaxy, Sun, System, and Planet are used consistently. | Pass |
 
 ## Milestone 2 — More planets and nested moons
 
@@ -80,7 +80,7 @@ After the shared checks and the current milestone's rows pass, record the commit
 
 | Milestone | Date | Result summary | Commit |
 | --- | --- | --- | --- |
-| 1 — Galaxy | — | Not run | — |
+| 1 — Galaxy | 2026-11-15 | S01–S05 and G01–G04 passed in Playwright; screenshots inspected at 1280 and 900 pixels. | Milestone 1: Galaxy language |
 | 2 — Planets and moons | — | Not run | — |
 | 3 — Settings and motion | — | Not run | — |
 | 4 — Editor and portability | — | Not run | — |

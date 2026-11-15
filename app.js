@@ -55,9 +55,9 @@ function homeGroup(group, index) {
   orbit.append(orbitLines(points, center, 320));
   const hub = element('button', 'home-hub');
   hub.type = 'button';
-  hub.setAttribute('aria-label', `Open ${group.name} circle with ${group.links.length} links`);
+  hub.setAttribute('aria-label', `Open ${group.name} system with ${group.links.length} planets`);
   hub.append(element('span', 'hub-name', group.name));
-  hub.append(element('span', 'hub-count', `${group.links.length} LINKS`));
+  hub.append(element('span', 'hub-count', `${group.links.length} PLANETS`));
   hub.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(group.id)}`; });
   orbit.append(hub);
   visible.forEach((link, i) => {
@@ -76,10 +76,10 @@ function renderHome() {
   app.replaceChildren();
   app.className = 'home-view';
   const intro = element('div', 'intro');
-  intro.append(element('p', 'eyebrow', 'YOUR PERSONAL LINK UNIVERSE'));
-  const title = element('h1', '', 'Everything in its orbit.');
+  intro.append(element('p', 'eyebrow', 'YOUR PERSONAL LINK GALAXY'));
+  const title = element('h1', '', 'Explore your galaxy.');
   intro.append(title);
-  intro.append(element('p', 'intro-copy', 'Your favorite places, one circle away. Hover over a circle to peek inside, or click it to explore.'));
+  intro.append(element('p', 'intro-copy', 'Hover over a sun to see its planets. Click the sun to explore its system.'));
   const grid = element('div', 'group-grid');
   groups.forEach((group, index) => grid.append(homeGroup(group, index)));
   app.append(intro, grid);
@@ -89,12 +89,12 @@ function renderDetail(group) {
   app.replaceChildren();
   app.className = 'detail-view';
   const top = element('div', 'detail-top');
-  const back = element('a', 'back-link', '←  All circles');
+  const back = element('a', 'back-link', '←  Return to Galaxy');
   back.href = '#';
   top.append(back, element('span', 'detail-index', `${String(groups.indexOf(group) + 1).padStart(2, '0')} / ${String(groups.length).padStart(2, '0')}`));
 
   const heading = element('div', 'detail-heading');
-  heading.append(element('p', 'eyebrow', 'EXPLORE THIS CIRCLE'));
+  heading.append(element('p', 'eyebrow', 'EXPLORE THIS SYSTEM'));
   heading.append(element('h1', '', group.name));
   heading.append(element('p', 'intro-copy', group.description));
 
@@ -110,7 +110,7 @@ function renderDetail(group) {
   stage.append(orbitLines(points, center, 640));
   const hub = element('div', 'detail-hub');
   hub.append(element('span', 'detail-hub-name', group.name));
-  hub.append(element('span', 'detail-hub-sub', `${group.links.length} destinations`));
+  hub.append(element('span', 'detail-hub-sub', `${group.links.length} planets`));
   stage.append(hub);
   visible.forEach((link, i) => {
     const satellite = linkNode(link, 'detail-satellite');
@@ -120,11 +120,11 @@ function renderDetail(group) {
     stage.append(satellite);
   });
 
-  const note = element('p', 'detail-note', 'Select a destination to open it in a new tab.');
+  const note = element('p', 'detail-note', 'Select a planet to open its destination in a new tab.');
   app.append(top, heading, stage, note);
   if (group.links.length > visible.length) {
     const more = element('section', 'more-links');
-    more.append(element('h2', '', 'More in this circle'));
+    more.append(element('h2', '', 'More planets in this system'));
     const list = element('div', 'more-grid');
     group.links.slice(visible.length).forEach(link => list.append(linkNode(link, 'more-link')));
     more.append(list);
@@ -158,7 +158,7 @@ async function init() {
       const links = group.links.filter(link => link.name && /^https?:\/\//i.test(link.url));
       return { ...group, id: String(group.id || group.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')), links };
     });
-    count.textContent = `${groups.reduce((total, group) => total + group.links.length, 0)} LINKS · ${groups.length} CIRCLES`;
+    count.textContent = `${groups.reduce((total, group) => total + group.links.length, 0)} LINKS · ${groups.length} SUNS`;
     render();
   } catch (error) {
     app.className = 'error-view';
