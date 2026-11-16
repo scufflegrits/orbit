@@ -3,7 +3,7 @@ const count = document.querySelector('#link-count');
 const settingsTrigger = document.querySelector('#settings-trigger');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -55,10 +55,19 @@ function readFontSizePreference() {
 }
 
 function validDestination(value, label) {
-  if (!value || typeof value !== 'object') throw new Error(`${label} needs a name and URL.`);
+  if (!value || typeof value !== 'object') throw new Error(`${label} needs a name and destination.`);
   const name = String(value.name || '').trim();
-  const url = String(value.url || '').trim();
   if (!name) throw new Error(`${label} needs a name.`);
+  if (value.type === 'rdp') {
+    const host = String(value.host || '').trim();
+    const match = /^([a-z0-9][a-z0-9.-]*)(?::([0-9]{1,5}))?$/i.exec(host);
+    if (!match || (match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535))) {
+      throw new Error(`${label} needs a computer name or IP address, with an optional port.`);
+    }
+    return { name, type: 'rdp', host };
+  }
+  if (value.type !== undefined && value.type !== 'web') throw new Error(`${label} has an unsupported destination type.`);
+  const url = String(value.url || '').trim();
   try {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) {
@@ -164,7 +173,8 @@ function undoRemoval() {
         sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
       } else {
         const matching = sun.links.find(planet =>
-          planet.url === record.planetUrl && planet.name === record.planetName);
+          planet.url === record.planetUrl && planet.host === record.planetHost &&
+          planet.name === record.planetName);
         const planet = matching || sun.links[record.planetIndex];
         if (!planet) throw new Error('The parent planet no longer exists.');
         planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
@@ -276,7 +286,8 @@ function showMenuPanel(name) {
     if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
-    menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Click a planet or moon to open its destination in a new tab.'));
+    menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
+    menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file. Open the file on Windows to start the connection; Orbit does not store credentials.'));
     menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
@@ -300,6 +311,32 @@ function editorField(label, value, type = 'text') {
   input.value = value;
   wrapper.append(input);
   return { wrapper, input };
+}
+
+function destinationFields(form, destination) {
+  const type = element('label', 'editor-field');
+  type.append(element('span', '', 'Destination type'));
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', 'Destination type');
+  for (const [value, label] of [['web', 'Website'], ['rdp', 'Windows Remote Desktop']]) {
+    const option = element('option', '', label);
+    option.value = value;
+    select.append(option);
+  }
+  select.value = destination.type === 'rdp' ? 'rdp' : 'web';
+  type.append(select);
+  const url = editorField('Destination URL', destination.url || '', 'url');
+  const host = editorField('Computer name or IP address', destination.host || '');
+  const update = () => {
+    url.wrapper.hidden = select.value !== 'web';
+    host.wrapper.hidden = select.value !== 'rdp';
+  };
+  select.addEventListener('change', update);
+  form.append(type, url.wrapper, host.wrapper);
+  update();
+  return () => select.value === 'rdp'
+    ? { type: 'rdp', host: host.input.value.trim() }
+    : { url: url.input.value.trim() };
 }
 
 function editorError(message) {
@@ -505,8 +542,8 @@ function showPlanetEditor(sunIndex, planetIndex) {
   menuContent.append(element('p', '', `Sun: ${groups[sunIndex].name}`));
   const form = element('form', 'editor-form');
   const name = editorField('Planet name', planet.name);
-  const url = editorField('Destination URL', planet.url, 'url');
-  form.append(name.wrapper, url.wrapper);
+  form.append(name.wrapper);
+  const readDestination = destinationFields(form, planet);
   const actions = element('div', 'editor-actions');
   const save = element('button', 'editor-primary', isNew ? 'Add planet' : 'Save planet');
   save.type = 'submit';
@@ -534,7 +571,7 @@ function showPlanetEditor(sunIndex, planetIndex) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = copyGroups();
-    const value = { name: name.input.value.trim(), url: url.input.value.trim(),
+    const value = { name: name.input.value.trim(), ...readDestination(),
       moons: isNew ? [] : next[sunIndex].links[planetIndex].moons };
     if (isNew) next[sunIndex].links.push(value);
     else next[sunIndex].links[planetIndex] = value;
@@ -565,8 +602,8 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   menuContent.append(element('p', '', `${groups[sunIndex].name} sun → ${planet.name} planet`));
   const form = element('form', 'editor-form');
   const name = editorField('Moon name', moon.name);
-  const url = editorField('Destination URL', moon.url, 'url');
-  form.append(name.wrapper, url.wrapper);
+  form.append(name.wrapper);
+  const readDestination = destinationFields(form, moon);
   const actions = element('div', 'editor-actions');
   const save = element('button', 'editor-primary', isNew ? 'Add moon' : 'Save moon');
   save.type = 'submit';
@@ -586,7 +623,7 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
       next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
       applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex), { undoRecord: {
         kind: 'moon', sunId: groups[sunIndex].id, planetIndex,
-        planetName: planet.name, planetUrl: planet.url,
+        planetName: planet.name, planetUrl: planet.url, planetHost: planet.host,
         index: moonIndex, item: moon, label: `${moon.name} moon`,
       } });
     }, 'editor-danger'));
@@ -595,7 +632,7 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = copyGroups();
-    const value = { name: name.input.value.trim(), url: url.input.value.trim() };
+    const value = { name: name.input.value.trim(), ...readDestination() };
     if (isNew) next[sunIndex].links[planetIndex].moons.push(value);
     else next[sunIndex].links[planetIndex].moons[moonIndex] = value;
     applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex,
@@ -619,14 +656,35 @@ function safeColor(value) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#79d9f8';
 }
 
+function downloadRdp(destination) {
+  const content = `full address:s:${destination.host}\r\nprompt for credentials:i:1\r\n`;
+  const blob = new Blob([content], { type: 'application/x-rdp' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `${destination.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'remote-desktop'}.rdp`;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function linkNode(link, className) {
-  const anchor = element('a', className, link.name);
-  anchor.href = link.url;
-  anchor.target = '_blank';
-  anchor.rel = 'noopener noreferrer';
-  anchor.title = `Open ${link.name} in a new tab`;
-  anchor.setAttribute('aria-label', `Open ${link.name} in a new tab`);
-  return anchor;
+  const isRdp = link.type === 'rdp';
+  const node = element(isRdp ? 'button' : 'a', className, link.name);
+  if (isRdp) {
+    node.type = 'button';
+    node.addEventListener('click', () => downloadRdp(link));
+    node.title = `Download Remote Desktop connection for ${link.name}`;
+    node.setAttribute('aria-label', node.title);
+  } else {
+    node.href = link.url;
+    node.target = '_blank';
+    node.rel = 'noopener noreferrer';
+    node.title = `Open ${link.name} in a new tab`;
+    node.setAttribute('aria-label', node.title);
+  }
+  return node;
 }
 
 function orbitLines(points, center, size) {
@@ -747,12 +805,12 @@ function findMatches(query) {
     }
     for (const planet of sun.links) {
       if (planet.name.toLocaleLowerCase().includes(needle)) {
-        matches.push({ kind: 'Planet', name: planet.name, path: sun.name, url: planet.url });
+        matches.push({ kind: 'Planet', name: planet.name, path: sun.name, destination: planet });
       }
       for (const moon of planet.moons) {
         if (moon.name.toLocaleLowerCase().includes(needle)) {
           matches.push({ kind: 'Moon', name: moon.name,
-            path: `${sun.name} / ${planet.name}`, url: moon.url });
+            path: `${sun.name} / ${planet.name}`, destination: moon });
         }
       }
     }
@@ -761,19 +819,24 @@ function findMatches(query) {
 }
 
 function findResult(match) {
-  const node = element(match.id ? 'button' : 'a', 'find-item');
+  const isRdp = match.destination?.type === 'rdp';
+  const node = element(match.id || isRdp ? 'button' : 'a', 'find-item');
   if (match.id) {
     node.type = 'button';
     node.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(match.id)}`; });
+  } else if (isRdp) {
+    node.type = 'button';
+    node.addEventListener('click', () => downloadRdp(match.destination));
+    node.title = `Download Remote Desktop connection for ${match.name}`;
   } else {
-    node.href = match.url;
+    node.href = match.destination.url;
     node.target = '_blank';
     node.rel = 'noopener noreferrer';
   }
   node.append(element('span', 'find-kind', match.kind));
   const copy = element('span', 'find-copy');
   copy.append(element('strong', '', match.name), element('small', '', match.path));
-  node.append(copy, element('span', 'find-arrow', match.id ? '→' : '↗'));
+  node.append(copy, element('span', 'find-arrow', match.id ? '→' : isRdp ? '↓' : '↗'));
   return node;
 }
 
@@ -851,7 +914,9 @@ function renderDetail(group) {
   stage.append(hub);
   visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i)));
 
-  const note = element('p', 'detail-note', 'Select a planet to open its destination in a new tab.');
+  const note = element('p', 'detail-note', group.links.some(link => link.type === 'rdp')
+    ? 'Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect.'
+    : 'Select a planet to open its destination in a new tab.');
   app.append(top, heading, stage, note);
   if (group.links.length > visible.length) {
     const more = element('section', 'more-links');

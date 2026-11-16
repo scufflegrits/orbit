@@ -43,9 +43,9 @@ def run_data_checks():
 def run_shared(page, url, mode):
     page.goto(url, wait_until="load")
     page.locator(".home-hub").first.wait_for()
-    check(page.locator(".home-hub").count() == 8, f"{mode}: eight suns")
-    check("8 SUNS" in page.locator("#link-count").inner_text(), f"{mode}: sun count")
-    check("96 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: destination count includes moons")
+    check(page.locator(".home-hub").count() == 9, f"{mode}: nine suns")
+    check("9 SUNS" in page.locator("#link-count").inner_text(), f"{mode}: sun count")
+    check("106 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: destination count includes moons")
     page.locator(".home-hub").first.click()
     page.locator(".detail-view").wait_for()
     check("Tech" in page.locator(".detail-heading h1").inner_text(), f"{mode}: Tech system")
@@ -107,7 +107,7 @@ def run_extra_sun_fixture(page):
         (fixture / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(data) + ";\n")
         page.goto((fixture / "index.html").as_uri(), wait_until="load")
         page.locator(".home-hub").first.wait_for()
-        check(page.locator(".home-hub").count() == 9, "extra sun remains visible")
+        check(page.locator(".home-hub").count() == 10, "extra sun remains visible")
         page.locator(".home-hub").first.hover()
         check(page.locator(".home-orbit").first.locator(".home-satellite").count() == 5,
               "Galaxy preview stays at five planets")
@@ -286,7 +286,7 @@ def submit_editor_form(page):
 def run_milestone_4(page, url, mode):
     page.goto(url, wait_until="load")
     open_editor(page)
-    check(page.locator(".editor-list-row").count() == 8, f"{mode}: editor lists suns")
+    check(page.locator(".editor-list-row").count() == 9, f"{mode}: editor lists suns")
     page.set_viewport_size({"width": 900, "height": 900})
     page.screenshot(path=str(ARTIFACTS / f"milestone4-editor-{mode}-900.png"), full_page=True)
     page.set_viewport_size({"width": 1280, "height": 900})
@@ -349,7 +349,7 @@ def run_milestone_4(page, url, mode):
         page.get_by_role("button", name="Export JSON").click()
     exported = Path(download_info.value.path()).read_bytes()
     exported_map = json.loads(exported)
-    check(len(exported_map["groups"]) == 9, f"{mode}: export includes new sun")
+    check(len(exported_map["groups"]) == 10, f"{mode}: export includes new sun")
     exported_personal = next(group for group in exported_map["groups"] if group["id"] == "personal")
     check(exported_personal["links"][0]["moons"][0]["name"] == "Second Moon",
           f"{mode}: export preserves moon order")
@@ -370,7 +370,7 @@ def run_milestone_4(page, url, mode):
 
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
-    check(page.locator(".home-hub").count() == 9,
+    check(page.locator(".home-hub").count() == 10,
           f"{mode}: browser edits survive reload")
     personal = page.locator(".home-hub").filter(has_text="Personal Renamed")
     personal.click()
@@ -379,14 +379,14 @@ def run_milestone_4(page, url, mode):
     open_editor(page)
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Reset to file data").click()
-    check(page.locator(".editor-list-row").count() == 8,
+    check(page.locator(".editor-list-row").count() == 9,
           f"{mode}: reset restores bundled suns")
     with page.expect_file_chooser() as chooser_info:
         page.get_by_role("button", name="Import JSON").click()
     chooser_info.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
                                   "buffer": exported})
     page.get_by_role("button", name="Apply import").click()
-    check(page.locator(".editor-list-row").count() == 9,
+    check(page.locator(".editor-list-row").count() == 10,
           f"{mode}: import restores exported map")
     check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons.length") == 2,
           f"{mode}: import restores moon hierarchy")
@@ -430,10 +430,10 @@ def run_milestone_4(page, url, mode):
     page.locator(".editor-back").click()
     page.once("dialog", lambda dialog: dialog.dismiss())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".home-hub").count() == 9, f"{mode}: cancel preserves sun")
+    check(page.locator(".home-hub").count() == 10, f"{mode}: cancel preserves sun")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".editor-list-row").count() == 8, f"{mode}: confirm removes sun and children")
+    check(page.locator(".editor-list-row").count() == 9, f"{mode}: confirm removes sun and children")
 
     page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
     page.get_by_role("button", name="Add planet").click()
@@ -671,7 +671,7 @@ def run_milestone_8(page, url, mode):
     page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".editor-list-row").count() == 7,
+    check(page.locator(".editor-list-row").count() == 8,
           f"{mode}: sun and children removed")
     page.get_by_role("button", name="Undo removal").click()
     saved = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups[0]")
@@ -705,10 +705,13 @@ def run_milestone_9(page, url, mode):
     suns = data["groups"]
     planets = [planet for sun in suns for planet in sun["links"]]
     moons = [moon for planet in planets for moon in planet.get("moons", [])]
-    check(len(suns) == 8 and len(planets) == 40 and len(moons) == 56,
-          "eight-sun sample counts")
-    check(len({sun["id"] for sun in suns}) == 8, "unique sun IDs")
-    for destination in planets + moons:
+    original_suns = suns[:8]
+    original_planets = [planet for sun in original_suns for planet in sun["links"]]
+    original_moons = [moon for planet in original_planets for moon in planet.get("moons", [])]
+    check(len(original_suns) == 8 and len(original_planets) == 40 and len(original_moons) == 56,
+          "original eight-sun sample counts")
+    check(len({sun["id"] for sun in suns}) == 9, "unique sun IDs")
+    for destination in original_planets + original_moons:
         parsed = urlparse(destination["url"])
         check(destination["name"].strip() and parsed.scheme == "https" and parsed.netloc,
               f"valid sample destination: {destination}")
@@ -716,8 +719,8 @@ def run_milestone_9(page, url, mode):
     page.evaluate("localStorage.removeItem('orbit:map:v1'); localStorage.removeItem('orbit:undo-removal:v1')")
     page.reload(wait_until="load")
     page.wait_for_timeout(700)
-    check(page.locator(".home-hub").count() == 8,
-          f"{mode}: eight suns on Galaxy")
+    check(page.locator(".home-hub").count() == 9,
+          f"{mode}: nine suns on Galaxy")
     cards = page.locator(".group-card").all()
     centers = []
     for card in cards:
@@ -725,8 +728,8 @@ def run_milestone_9(page, url, mode):
         check(box is not None and 0 <= box["x"] and box["x"] + box["width"] <= 1280,
               f"{mode}: sun card fits Galaxy")
         centers.append(box["x"] + box["width"] / 2)
-    check(abs((centers[-2] + centers[-1]) / 2 - 640) < 10,
-          f"{mode}: last two suns are centered")
+    check(abs(sum(centers[-3:]) / 3 - 640) < 10,
+          f"{mode}: last row of three suns is centered")
     check(page.locator(".home-hub").filter(has_text="Stocks & Investing").count() == 1 and
           page.locator(".home-hub").filter(has_text="Science").count() == 1,
           f"{mode}: new suns present")
@@ -873,9 +876,81 @@ def run_milestone_10(page, url, mode):
     print(f"PASS milestone 10 ({mode})")
 
 
+def run_milestone_11(page, url, mode):
+    data = json.loads((ROOT / "links.json").read_text())
+    check(len(data["groups"]) == 9, "nine bundled suns")
+    labs = data["groups"][-1]
+    check(labs["id"] == "labs" and [planet["name"] for planet in labs["links"]] ==
+          [f"lab{i}" for i in range(1, 6)], "five lab planets")
+    check([moon["name"] for moon in labs["links"][0]["moons"]] ==
+          [f"lab1-server{i}" for i in range(1, 6)], "five lab1 server moons")
+    check(all(item.get("type") == "rdp" and item.get("host") for item in
+              labs["links"] + labs["links"][0]["moons"]), "lab destinations use RDP hosts")
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1')")
+    page.reload(wait_until="load")
+    check("106 LINKS" in page.locator("#link-count").inner_text(),
+          f"{mode}: nine-sun link count")
+    labs_hub = page.locator(".home-hub").filter(has_text="Labs")
+    check(labs_hub.count() == 1, f"{mode}: Labs sun appears")
+    labs_hub.click()
+    page.wait_for_function("document.querySelector('.detail-heading h1')?.textContent === 'Labs'")
+    check(page.locator(".detail-planet-cluster").count() == 5,
+          f"{mode}: five lab planets visible")
+    lab1 = page.locator(".detail-planet-cluster").filter(has_text="lab1")
+    lab1.locator(".detail-satellite").hover()
+    check(lab1.locator(".moon-link:visible").count() == 4 and
+          page.locator(".moon-overflow .overflow-moon-link").count() == 1,
+          f"{mode}: first four server moons orbit and fifth appears in overflow")
+    with page.expect_download() as download_info:
+        lab1.locator(".moon-link").first.click()
+    download = download_info.value
+    check(download.suggested_filename == "lab1-server1.rdp", f"{mode}: RDP filename")
+    check(Path(download.path()).read_text() ==
+          "full address:s:lab1-server1\nprompt for credentials:i:1\n",
+          f"{mode}: RDP file targets selected server without stored credentials")
+    with page.expect_download() as download_info:
+        page.locator(".moon-overflow .overflow-moon-link").click()
+    check(download_info.value.suggested_filename == "lab1-server5.rdp",
+          f"{mode}: overflow server downloads")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone11-labs-{mode}-900.png"), full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.locator(".back-link").click()
+    page.get_by_role("searchbox", name="Quick find").fill("lab1-server1")
+    with page.expect_download() as download_info:
+        page.locator(".find-item").click()
+    check(download_info.value.suggested_filename == "lab1-server1.rdp",
+          f"{mode}: Quick find downloads RDP")
+    page.get_by_role("searchbox", name="Quick find").fill("")
+    open_editor(page)
+    page.locator(".editor-list-row").filter(has_text="Labs").get_by_role("button", name="Edit").click()
+    page.locator(".editor-list-row").filter(has_text="lab1").get_by_role("button", name="Edit").click()
+    page.locator(".editor-list-row").filter(has_text="lab1-server1").get_by_role("button", name="Edit").click()
+    check(page.get_by_label("Destination type").input_value() == "rdp",
+          f"{mode}: editor loads RDP type")
+    page.get_by_label("Computer name or IP address").fill("bad;host")
+    submit_editor_form(page)
+    check("computer name or IP address" in page.locator(".editor-error").inner_text(),
+          f"{mode}: invalid host rejected")
+    page.get_by_label("Computer name or IP address").fill("10.10.1.11:3390")
+    submit_editor_form(page)
+    saved = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'labs').links[0].moons[0]")
+    check(saved == {"name": "lab1-server1", "type": "rdp", "host": "10.10.1.11:3390"},
+          f"{mode}: RDP host edit persists")
+    page.locator("#menu-close").click()
+    page.reload(wait_until="load")
+    page.get_by_role("searchbox", name="Quick find").fill("lab1-server1")
+    with page.expect_download() as download_info:
+        page.locator(".find-item").click()
+    check("full address:s:10.10.1.11:3390" in Path(download_info.value.path()).read_text(),
+          f"{mode}: edited host appears in download after reload")
+    print(f"PASS milestone 11 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 11), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 12), required=True)
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
@@ -920,6 +995,8 @@ def main():
                             run_milestone_9(page, url, mode)
                         if args.milestone >= 10:
                             run_milestone_10(page, url, mode)
+                        if args.milestone >= 11:
+                            run_milestone_11(page, url, mode)
                     finally:
                         page.close()
             finally:

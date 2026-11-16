@@ -4,7 +4,7 @@ A local link map organized as a Galaxy of suns and planets. Each sun is a group 
 
 Use **Quick find** on the Galaxy to search sun, planet, and moon names. Results show their parent path and open the System or destination directly.
 
-The bundled map has eight sample suns, including **Stocks & Investing** and **Science**, with 40 planets and 56 moons. The Galaxy centers its last row when it has eight suns. These links are examples; replace them with your own in Edit links.
+The bundled map has nine sample suns, including **Stocks & Investing**, **Science**, and **Labs**, with 45 planets and 61 moons. These destinations are examples; replace them with your own in Edit links.
 
 ## Run
 
@@ -42,6 +42,16 @@ Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` 
 
 The `moons` array is optional. Hover over a planet to reveal its moons; clicking the planet still opens its own destination. The Galaxy previews up to five planets per sun. A System shows up to eight planets around its sun and lists additional planets below. Up to four moons appear around a hovered planet; any extras are listed in the System.
 
+## Windows Remote Desktop entries
+
+The **Labs** sun contains `lab1` through `lab5` as planets and five server moons around `lab1`. Their computer names are examples; edit each target to match a reachable host on your network. A Windows Remote Desktop destination uses `type` and `host` instead of `url`:
+
+```json
+{ "name": "lab1-server1", "type": "rdp", "host": "lab1-server1" }
+```
+
+Clicking one downloads a `.rdp` connection file with that host. Open the downloaded file on Windows to start Remote Desktop Connection; Windows may show its usual file or connection prompts. Orbit does not store credentials. The destination editor offers **Windows Remote Desktop** as a type for any planet or moon, and accepts a computer name or IP address with an optional port such as `lab1-server1:3390`.
+
 Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
 
 ## Settings and help
@@ -50,7 +60,7 @@ Click the cog in the Galaxy to open Settings, Help, or About. Settings includes 
 
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
 
-Settings also includes **Always show moons** and **Edit links**. The editor lets you add, rename, reorder, or remove suns, planets, and moons, and edit their descriptions, colors, and destination URLs. Changes appear immediately and are stored in this browser. Export JSON for a portable backup, import a JSON file to replace the browser map, or reset to the link data loaded from the project files.
+Settings also includes **Always show moons** and **Edit links**. The editor lets you add, rename, reorder, or remove suns, planets, and moons, and edit their descriptions, colors, website URLs, and Remote Desktop hosts. Changes appear immediately and are stored in this browser. Export JSON for a portable backup, import a JSON file to replace the browser map, or reset to the link data loaded from the project files.
 
 Settings and Edit links show whether the active map is bundled project data or browser edits. After removing a sun, planet, or moon, use **Undo removal** in the editor to restore it. The latest removal remains available after a reload; importing or resetting the map clears it.
 

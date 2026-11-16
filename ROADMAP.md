@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–10 complete (2026-11-15).
+Status: milestones 1–11 complete (2026-11-15).
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -133,6 +133,16 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Keep circle labels, controls, and overflow readable at each size on normal and narrow desktop widths, in all themes.
 
 **Done when:** The chosen size applies immediately and survives a reload in both run modes, while every destination remains readable and reachable.
+
+## Milestone 11 — Labs and Windows Remote Desktop
+
+- Add a ninth **Labs** sun with `lab1` through `lab5` planets. Give `lab1` five server moons, `lab1-server1` through `lab1-server5`, to demonstrate moon overflow.
+- Allow a planet or moon to use a Windows Remote Desktop destination with a computer name or IP address and optional port. Keep website links compatible with existing maps.
+- Generate a `.rdp` file for the selected target, including a credential prompt; show that opening the downloaded file on Windows starts the client. Do not store credentials in Orbit.
+- Let the browser editor create, change, import, export, search, and persist Remote Desktop destinations. Validate host input before generating a file.
+- Treat bundled lab hostnames as examples until the user replaces them with reachable targets.
+
+**Done when:** Nine suns fit the Galaxy; all five labs and the five `lab1` servers are reachable; clicking a Remote Desktop destination downloads the correct host file in direct-file and local-server modes; edits survive reload and export.
 
 ## Delivery approach
 

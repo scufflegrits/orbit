@@ -500,6 +500,66 @@ window.ORBIT_DATA = {
           ]
         }
       ]
+    },
+    {
+      "id": "labs",
+      "name": "Labs",
+      "description": "Windows Remote Desktop connections",
+      "color": "#f1a2c6",
+      "links": [
+        {
+          "name": "lab1",
+          "type": "rdp",
+          "host": "lab1",
+          "moons": [
+            {
+              "name": "lab1-server1",
+              "type": "rdp",
+              "host": "lab1-server1"
+            },
+            {
+              "name": "lab1-server2",
+              "type": "rdp",
+              "host": "lab1-server2"
+            },
+            {
+              "name": "lab1-server3",
+              "type": "rdp",
+              "host": "lab1-server3"
+            },
+            {
+              "name": "lab1-server4",
+              "type": "rdp",
+              "host": "lab1-server4"
+            },
+            {
+              "name": "lab1-server5",
+              "type": "rdp",
+              "host": "lab1-server5"
+            }
+          ]
+        },
+        {
+          "name": "lab2",
+          "type": "rdp",
+          "host": "lab2"
+        },
+        {
+          "name": "lab3",
+          "type": "rdp",
+          "host": "lab3"
+        },
+        {
+          "name": "lab4",
+          "type": "rdp",
+          "host": "lab4"
+        },
+        {
+          "name": "lab5",
+          "type": "rdp",
+          "host": "lab5"
+        }
+      ]
     }
   ]
 };

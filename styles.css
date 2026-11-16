@@ -298,7 +298,7 @@ button:focus-visible, a:focus-visible {
 .menu-content .editor-header h3 { margin: 0; }
 .editor-form { display: grid; gap: 12px; margin: 14px 0 20px; }
 .editor-field { display: grid; gap: 5px; color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
-.editor-field input, .editor-field textarea {
+.editor-field input, .editor-field textarea, .editor-field select {
   width: 100%;
   min-height: 39px;
   padding: 9px 11px;
@@ -310,7 +310,8 @@ button:focus-visible, a:focus-visible {
 }
 .editor-field textarea { min-height: 72px; resize: vertical; }
 .editor-field input[type='color'] { width: 86px; padding: 4px; cursor: pointer; }
-.editor-field input:focus, .editor-field textarea:focus { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
+.editor-field input:focus, .editor-field textarea:focus, .editor-field select:focus { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
+.editor-field[hidden] { display: none; }
 .editor-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 13px 0; }
 .editor-section-title { margin: 22px 0 10px; color: var(--text); font: 600 calc(16px * var(--font-scale)) 'Space Grotesk', sans-serif; }
 .editor-list { display: grid; gap: 8px; }
@@ -532,6 +533,7 @@ html[data-theme='auburn'] .detail-stage {
   text-decoration: none;
   font: 600 calc(10px * var(--font-scale))/1.2 'Space Grotesk', sans-serif;
   overflow-wrap: anywhere;
+  cursor: pointer;
 }
 
 .planet-cluster {
