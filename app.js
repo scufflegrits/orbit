@@ -5,7 +5,7 @@ const topbarSearch = document.querySelector('#topbar-search');
 const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -330,7 +330,7 @@ function showMenuPanel(name) {
     menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
     if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
   } else if (name === 'Help') {
-    menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
+    menuContent.append(element('p', '', 'Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
     menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.'));
     menuContent.append(element('p', '', 'Your browser may ask before opening the helper. Orbit does not store credentials.'));
@@ -987,11 +987,6 @@ function renderHome() {
   app.className = 'home-view';
   settingsTrigger.hidden = false;
   topbarSearch.hidden = false;
-  const intro = element('div', 'intro');
-  intro.append(element('p', 'eyebrow', 'YOUR PERSONAL LINK GALAXY'));
-  const title = element('h1', '', 'Explore your galaxy.');
-  intro.append(title);
-  intro.append(element('p', 'intro-copy', 'Hover over a sun to see its planets. Click the sun to explore its system.'));
   quickFind.value = findQuery;
   const results = element('section', 'find-results');
   results.setAttribute('aria-live', 'polite');
@@ -1014,7 +1009,7 @@ function renderHome() {
     }
   };
   quickFind.oninput = updateFind;
-  app.append(intro, results, grid);
+  app.append(results, grid);
   updateFind();
 }
 

@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14 complete (2026-11-15); milestone 15 is in progress, with testing deferred at the user's request. Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
+Status: milestones 1–14 complete (2026-11-15); milestones 15–16 are in progress, with testing deferred at the user's request. Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -178,6 +178,14 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Keep the Animations switch and reduced-motion preference effective for the new panel animation.
 
 **Done when:** The new labels appear, saved preferences still select the same palettes, and the menu enters from the right and remains usable at normal and narrow desktop widths in both run modes. Browser testing is deferred until the next requested test batch.
+
+## Milestone 16 — Compact Galaxy home
+
+- Remove the large Galaxy heading and hover instructions from the home page so suns begin closer to the top bar.
+- Keep the sun, planet, and moon guidance in cog → Help; retain the System description in each expanded sun.
+- Keep Quick find and the home grid usable at normal and narrow desktop widths.
+
+**Done when:** The Galaxy shows the suns without the introductory block, Help provides the navigation instructions, and search and System navigation still work. Browser testing is deferred until the next requested test batch.
 
 ## Delivery approach
 

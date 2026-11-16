@@ -81,7 +81,11 @@ def run_milestone_1(page, url, mode):
     page.wait_for_timeout(400)
     check(page.locator(".home-orbit").first.locator(".home-satellite:visible").count() == 5,
           f"{mode}: first five planets visible on hover")
-    check("GALAXY" in page.locator(".intro .eyebrow").inner_text(), f"{mode}: Galaxy label")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Help"]').click()
+    check("Explore your Galaxy" in page.locator("#menu-content").inner_text(),
+          f"{mode}: Galaxy guidance is in Help")
+    page.locator("#menu-close").click()
     page.locator(".home-hub").first.click()
     check("SYSTEM" in page.locator(".detail-heading .eyebrow").inner_text(),
           f"{mode}: System label")

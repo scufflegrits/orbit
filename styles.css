@@ -370,21 +370,11 @@ button:focus-visible, a:focus-visible {
 
 main { flex: 1; }
 
-.intro { text-align: center; padding-top: 76px; }
-
 .eyebrow { margin: 0 0 15px; color: var(--theme-accent); }
 
 h1, h2, p { margin-top: 0; }
 
 h1, h2 { font-family: 'Space Grotesk', sans-serif; }
-
-.intro h1 {
-  margin-bottom: 13px;
-  font-size: calc(clamp(38px, 5vw, 64px) * var(--font-scale));
-  font-weight: 600;
-  line-height: 1.12;
-  letter-spacing: -.065em;
-}
 
 .intro-copy {
   max-width: 510px;
@@ -789,8 +779,6 @@ code { color: var(--muted-strong); font-family: ui-monospace, monospace; }
   .settings-trigger { margin-left: 12px; }
   .link-count { display: none; }
   .local-badge { font-size: calc(9px * var(--font-scale)); }
-  .intro { padding-top: 59px; }
-  .intro h1 { font-size: calc(43px * var(--font-scale)); }
   .intro-copy { font-size: calc(13px * var(--font-scale)); }
   .find-list { grid-template-columns: 1fr; }
   .group-grid { gap: 0; margin-top: 20px; }

@@ -163,6 +163,13 @@ Browser tests should use existing tool permissions when available. If a browser 
 | M15-02 | Both | Open the cog menu at normal and narrow desktop widths; inspect Settings, Help, About, and the editor. | The panel slides in from the right edge, scrolls when needed, and closes by button or outside click. | Not run — deferred at the user's request. |
 | M15-03 | Both | Turn Animations Off and use reduced motion, then open the menu. | The panel appears immediately without a slide while all controls remain usable. | Not run — deferred at the user's request. |
 
+## Milestone 16 — Compact Galaxy home
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| M16-01 | Both | Open the Galaxy at normal and narrow desktop widths. | The large heading and instructions are absent; all suns remain visible and reachable near the top bar. | Not run — deferred at the user's request. |
+| M16-02 | Both | Open cog → Help, use Quick find, then open and leave a System. | Help contains the navigation instructions and search and System navigation still work. | Not run — deferred at the user's request. |
+
 ## Milestone commit record
 
 After the shared checks and the current milestone's rows pass, record the commit here. If any check is blocked, record the reason and the remaining risk before committing.
