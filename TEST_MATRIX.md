@@ -19,11 +19,11 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M7) |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M7) |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M7) |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M7) |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M7) |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M8) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M8) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M8) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M8) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M8) |
 
 ## Milestone 1 — Galaxy layout and language
 
@@ -92,8 +92,8 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| R01 | Both | Inspect source status before editing and after edit, import, and reset. | The active source is accurately labeled. | Not run |
-| R02 | Both | Remove a sun, planet, and moon; undo after another edit and after reload. | The latest removal and its children return in their original position without losing subsequent edits. | Not run |
+| R01 | Both | Inspect source status before editing and after edit, import, and reset. | The active source is accurately labeled. | Pass |
+| R02 | Both | Remove a sun, planet, and moon; undo after another edit and after reload. | The latest removal and its children return in their original position without losing subsequent edits. | Pass |
 
 ## Milestone 9 — Eight-sun map and scale review
 
@@ -123,6 +123,6 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 5 — Themes | 2026-11-15 | S01–S05 and T01–T04 passed in Playwright; theme screenshots and text contrast checked. | Milestone 5: Themes |
 | 6 — Alabama refresh | 2026-11-15 | S01–S05 and A01–A02 passed; Alabama screenshots inspected and Auburn rules unchanged. | Milestone 6: Alabama theme refresh |
 | 7 — Quick find | 2026-11-15 | S01–S05 and Q01–Q02 passed in Playwright; 900-pixel result screenshot inspected. | Milestone 7: Quick find |
-| 8 — Editor recovery | — | Not run | — |
+| 8 — Editor recovery | 2026-11-15 | S01–S05 and R01–R02 passed in Playwright; 900-pixel editor screenshot inspected. | Milestone 8: Editor recovery |
 | 9 — Eight-sun map | — | Not run | — |
 | 10 — Font sizes | — | Not run | — |

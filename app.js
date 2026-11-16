@@ -9,12 +9,14 @@ const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
 const VISIBLE_MOONS = 4;
 const MAP_STORAGE_KEY = 'orbit:map:v1';
+const UNDO_STORAGE_KEY = 'orbit:undo-removal:v1';
 let animationsEnabled = readBooleanPreference('orbit:animations', true);
 let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
 let activeTheme = readThemePreference();
 let seedData = null;
 let storageWarning = '';
 let findQuery = '';
+let activeMapSource = 'bundled';
 document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
 document.documentElement.dataset.moons = alwaysShowMoons ? 'always' : 'hover';
 document.documentElement.dataset.theme = activeTheme;
@@ -113,8 +115,56 @@ function saveMap(data) {
   const normalized = validateMap(data);
   localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(normalized));
   groups = normalized.groups;
+  activeMapSource = 'browser';
   countDestinations();
   render();
+}
+
+function dataSourceLabel() {
+  return activeMapSource === 'browser' ? 'Browser edits' : 'Bundled project data';
+}
+
+function loadUndoRecord() {
+  try {
+    const saved = localStorage.getItem(UNDO_STORAGE_KEY);
+    if (!saved) return null;
+    const record = JSON.parse(saved);
+    return record && ['sun', 'planet', 'moon'].includes(record.kind) &&
+      Number.isInteger(record.index) && record.index >= 0 && record.item ? record : null;
+  } catch {
+    return null;
+  }
+}
+
+function undoRemoval() {
+  const record = loadUndoRecord();
+  if (!record) return editorError('There is no removal to undo.');
+  try {
+    const next = copyGroups();
+    if (record.kind === 'sun') {
+      if (next.some(sun => sun.id === record.item.id)) {
+        record.item.id = uniqueSunId(record.item.name, new Set(next.map(sun => sun.id)));
+      }
+      next.splice(Math.min(record.index, next.length), 0, record.item);
+    } else {
+      const sun = next.find(item => item.id === record.sunId);
+      if (!sun) throw new Error('The parent sun no longer exists.');
+      if (record.kind === 'planet') {
+        sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
+      } else {
+        const matching = sun.links.find(planet =>
+          planet.url === record.planetUrl && planet.name === record.planetName);
+        const planet = matching || sun.links[record.planetIndex];
+        if (!planet) throw new Error('The parent planet no longer exists.');
+        planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
+      }
+    }
+    saveMap({ groups: next });
+    localStorage.removeItem(UNDO_STORAGE_KEY);
+    showSunList();
+  } catch (error) {
+    editorError(`Could not undo removal: ${error.message}`);
+  }
 }
 
 function closeMenu() {
@@ -189,6 +239,7 @@ function showMenuPanel(name) {
     edit.type = 'button';
     edit.addEventListener('click', () => showEditor('suns'));
     menuContent.append(edit);
+    menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
     if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
@@ -230,18 +281,37 @@ function editorHeader(title, back) {
   header.append(editorButton('← Back', back, 'editor-back'));
   header.append(element('h3', '', title));
   menuContent.append(header);
+  const undo = loadUndoRecord();
+  if (undo) {
+    const notice = element('div', 'editor-undo');
+    notice.append(element('span', '', `Last removed: ${undo.label}`));
+    notice.append(editorButton('Undo removal', undoRemoval));
+    menuContent.append(notice);
+  }
 }
 
 function copyGroups() {
   return JSON.parse(JSON.stringify(groups));
 }
 
-function applyEditorChange(nextGroups, showNext) {
+function applyEditorChange(nextGroups, showNext, options = {}) {
+  let previousUndo;
   try {
+    if (options.undoRecord) {
+      previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
+      localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(options.undoRecord));
+    }
     saveMap({ groups: nextGroups });
+    if (options.clearUndo) localStorage.removeItem(UNDO_STORAGE_KEY);
     storageWarning = '';
     showNext();
   } catch (error) {
+    if (options.undoRecord) {
+      try {
+        if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
+        else if (previousUndo !== undefined) localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
+      } catch { /* Keep the original error visible. */ }
+    }
     editorError(error.message);
   }
 }
@@ -279,7 +349,8 @@ function showImportReview(data) {
   menuContent.append(element('p', '', `${data.groups.length} suns · ${planetCount} planets · ${moonCount} moons`));
   menuContent.append(element('p', '', 'Applying this file replaces the link map saved in this browser. Export your current map first if you want a backup.'));
   const actions = editorActions();
-  actions.append(editorButton('Apply import', () => applyEditorChange(data.groups, showSunList), 'editor-primary'));
+  actions.append(editorButton('Apply import', () =>
+    applyEditorChange(data.groups, showSunList, { clearUndo: true }), 'editor-primary'));
   actions.append(editorButton('Cancel', showSunList));
 }
 
@@ -302,7 +373,9 @@ function resetMap() {
   if (!window.confirm('Replace browser edits with the link data loaded from the project files?')) return;
   try {
     localStorage.removeItem(MAP_STORAGE_KEY);
+    localStorage.removeItem(UNDO_STORAGE_KEY);
     groups = validateMap(seedData).groups;
+    activeMapSource = 'bundled';
     storageWarning = '';
     countDestinations();
     render();
@@ -315,6 +388,7 @@ function resetMap() {
 function showSunList() {
   editorHeader('Edit links', () => showMenuPanel('Settings'));
   menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Changes are saved in this browser.'));
+  menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
   const list = element('div', 'editor-list');
   groups.forEach((sun, index) => {
     const row = element('div', 'editor-list-row');
@@ -356,7 +430,9 @@ function showSunEditor(index) {
       if (!window.confirm(`Remove ${sun.name} and all its planets and moons?`)) return;
       const next = copyGroups();
       next.splice(index, 1);
-      applyEditorChange(next, showSunList);
+      applyEditorChange(next, showSunList, { undoRecord: {
+        kind: 'sun', index, item: sun, label: `${sun.name} sun`,
+      } });
     }, 'editor-danger'));
   }
   form.append(actions);
@@ -415,7 +491,10 @@ function showPlanetEditor(sunIndex, planetIndex) {
       if (!window.confirm(`Remove ${planet.name} and all its moons?`)) return;
       const next = copyGroups();
       next[sunIndex].links.splice(planetIndex, 1);
-      applyEditorChange(next, () => showSunEditor(sunIndex));
+      applyEditorChange(next, () => showSunEditor(sunIndex), { undoRecord: {
+        kind: 'planet', sunId: groups[sunIndex].id, index: planetIndex,
+        item: planet, label: `${planet.name} planet`,
+      } });
     }, 'editor-danger'));
   }
   form.append(actions);
@@ -472,7 +551,11 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
       if (!window.confirm(`Remove ${moon.name}?`)) return;
       const next = copyGroups();
       next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
-      applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex));
+      applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex), { undoRecord: {
+        kind: 'moon', sunId: groups[sunIndex].id, planetIndex,
+        planetName: planet.name, planetUrl: planet.url,
+        index: moonIndex, item: moon, label: `${moon.name} moon`,
+      } });
     }, 'editor-danger'));
   }
   form.append(actions);
@@ -780,7 +863,9 @@ async function init() {
     }
     if (!data) throw new Error('Run `python3 sync.py` to generate links-data.js.');
     seedData = validateMap(data);
-    groups = (loadBrowserMap() || seedData).groups;
+    const browserMap = loadBrowserMap();
+    groups = (browserMap || seedData).groups;
+    activeMapSource = browserMap ? 'browser' : 'bundled';
     countDestinations();
     render();
   } catch (error) {

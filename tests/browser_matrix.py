@@ -625,9 +625,81 @@ def run_milestone_7(page, url, mode):
     print(f"PASS milestone 7 ({mode})")
 
 
+def run_milestone_8(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1'); localStorage.removeItem('orbit:undo-removal:v1')")
+    page.reload(wait_until="load")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    check("Bundled project data" in page.locator(".data-source").inner_text(),
+          f"{mode}: bundled source in Settings")
+    page.get_by_role("button", name="Edit links").click()
+    check("Bundled project data" in page.locator(".data-source").inner_text(),
+          f"{mode}: bundled source in editor")
+    page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
+    page.locator(".editor-list-row").filter(has_text="Engadget").get_by_role("button", name="Edit").click()
+    page.locator(".editor-list-row").filter(has_text="Reviews").get_by_role("button", name="Edit").click()
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Remove moon").click()
+    check("Reviews moon" in page.locator(".editor-undo").inner_text(),
+          f"{mode}: moon removal offers undo")
+    page.locator(".editor-back").click()
+    page.get_by_label("Description").fill("Changed after removal")
+    submit_editor_form(page)
+    page.locator("#menu-close").click()
+    page.reload(wait_until="load")
+    open_editor(page)
+    check("Browser edits" in page.locator(".data-source").inner_text(),
+          f"{mode}: browser source survives reload")
+    page.get_by_role("button", name="Undo removal").click()
+    saved = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups[0]")
+    check(saved["description"] == "Changed after removal" and
+          len(saved["links"][0]["moons"]) == 2,
+          f"{mode}: moon undo after reload preserves later edit")
+    page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
+    page.locator(".editor-list-row").filter(has_text="Engadget").get_by_role("button", name="Edit").click()
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Remove planet").click()
+    page.get_by_role("button", name="Undo removal").click()
+    saved = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups[0]")
+    check(saved["links"][0]["name"] == "Engadget" and
+          len(saved["links"][0]["moons"]) == 2,
+          f"{mode}: planet undo restores moons and order")
+    page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Remove sun").click()
+    check(page.locator(".editor-list-row").count() == 5,
+          f"{mode}: sun and children removed")
+    page.get_by_role("button", name="Undo removal").click()
+    saved = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups[0]")
+    check(saved["id"] == "tech" and len(saved["links"]) == 5 and
+          len(saved["links"][0]["moons"]) == 2,
+          f"{mode}: sun undo restores full hierarchy")
+    imported = {"groups": [{"id": "sample", "name": "Sample", "color": "#8899aa",
+                            "links": []}]}
+    with page.expect_file_chooser() as chooser_info:
+        page.get_by_role("button", name="Import JSON").click()
+    chooser_info.value.set_files({"name": "source.json", "mimeType": "application/json",
+                                  "buffer": json.dumps(imported).encode()})
+    page.get_by_role("button", name="Apply import").click()
+    check("Browser edits" in page.locator(".data-source").inner_text(),
+          f"{mode}: import uses browser source")
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Reset to file data").click()
+    check("Bundled project data" in page.locator(".data-source").inner_text(),
+          f"{mode}: reset restores bundled source")
+    check(page.locator(".editor-undo").count() == 0,
+          f"{mode}: replacement clears stale undo")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone8-editor-{mode}-900.png"),
+                    full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    print(f"PASS milestone 8 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 8), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 9), required=True)
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
@@ -666,6 +738,8 @@ def main():
                             run_milestone_6(page, url, mode)
                         if args.milestone >= 7:
                             run_milestone_7(page, url, mode)
+                        if args.milestone >= 8:
+                            run_milestone_8(page, url, mode)
                     finally:
                         page.close()
             finally:
