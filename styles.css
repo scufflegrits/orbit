@@ -209,18 +209,18 @@ button:focus-visible, a:focus-visible {
 }
 .menu-sheet {
   position: absolute;
-  left: 50%;
-  bottom: 24px;
-  width: min(580px, calc(100% - 36px));
-  max-height: calc(100vh - 48px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(580px, 100%);
   padding: 28px;
   overflow-y: auto;
-  transform: translateX(-50%);
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-right: 0;
+  border-radius: 24px 0 0 24px;
   background: var(--surface);
   box-shadow: 0 24px 90px rgba(0, 0, 0, .44);
-  animation: sheet-rise .3s ease both;
+  animation: sheet-slide-in .3s ease both;
 }
 .menu-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .menu-top .eyebrow { margin-bottom: 8px; }
@@ -773,7 +773,7 @@ code { color: var(--muted-strong); font-family: ui-monospace, monospace; }
 @keyframes rise-in { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pop-in { from { opacity: 0; transform: translate(-50%, -50%) scale(.55); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
-@keyframes sheet-rise { from { opacity: 0; transform: translate(-50%, 28px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes sheet-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
 @media (max-width: 1030px) {
   .group-grid { max-width: 760px; }
@@ -781,6 +781,7 @@ code { color: var(--muted-strong); font-family: ui-monospace, monospace; }
 }
 
 @media (max-width: 680px) {
+  .menu-sheet { border-radius: 0; }
   .app-shell { width: min(100% - 36px, 440px); }
   .topbar { min-height: 72px; flex-wrap: wrap; gap: 0 12px; padding-bottom: 12px; }
   .topbar-search { order: 3; flex-basis: 100%; max-width: none; margin: 0; }

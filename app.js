@@ -5,7 +5,7 @@ const topbarSearch = document.querySelector('#topbar-search');
 const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -226,7 +226,7 @@ function showMenuPanel(name) {
     const themeSelect = document.createElement('select');
     themeSelect.setAttribute('aria-label', 'Theme');
     for (const [value, label] of [
-      ['default', 'Default'], ['alabama', 'Alabama inspired'], ['auburn', 'Auburn inspired'],
+      ['default', 'Default'], ['alabama', 'Red'], ['auburn', 'Blue'],
     ]) {
       const option = element('option', '', label);
       option.value = value;

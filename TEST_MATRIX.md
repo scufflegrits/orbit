@@ -155,6 +155,14 @@ Browser tests should use existing tool permissions when available. If a browser 
 | C02 | Both | Import the same planet twice, open its System, and follow its planet and moon entries. | Both suns remain distinct; the original destination and moons are reachable. | Pass |
 | C03 | Both | Cancel a valid conversion and try mismatched or invalid files. | The current Galaxy stays unchanged and the error identifies the issue. | Pass |
 
+## Milestone 15 — Theme names and right-side menu
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| M15-01 | Both | Open Theme in Settings after choosing Red and Blue, including after reload with older saved theme values. | Labels read Red and Blue; both retain their palettes and saved choices. | Not run — deferred at the user's request. |
+| M15-02 | Both | Open the cog menu at normal and narrow desktop widths; inspect Settings, Help, About, and the editor. | The panel slides in from the right edge, scrolls when needed, and closes by button or outside click. | Not run — deferred at the user's request. |
+| M15-03 | Both | Turn Animations Off and use reduced motion, then open the menu. | The panel appears immediately without a slide while all controls remain usable. | Not run — deferred at the user's request. |
+
 ## Milestone commit record
 
 After the shared checks and the current milestone's rows pass, record the commit here. If any check is blocked, record the reason and the remaining risk before committing.

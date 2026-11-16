@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
+Status: milestones 1–14 complete (2026-11-15); milestone 15 is in progress, with testing deferred at the user's request. Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -170,6 +170,14 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Reject invalid or mismatched files without changing the map; keep normal sun, planet, moon, and Galaxy imports working.
 
 **Done when:** A shared planet becomes a navigable sun in both run modes, its destination and moons survive reload and export, and cancelled or invalid conversions leave the map intact.
+
+## Milestone 15 — Theme names and right-side menu
+
+- Show the existing Alabama theme as **Red** and the existing Auburn theme as **Blue**, preserving saved theme selections and colors.
+- Open the cog menu as a full-height panel that slides in from the right edge. Keep Settings, Help, About, the close control, outside-click dismissal, and scrollable editor content.
+- Keep the Animations switch and reduced-motion preference effective for the new panel animation.
+
+**Done when:** The new labels appear, saved preferences still select the same palettes, and the menu enters from the right and remains usable at normal and narrow desktop widths in both run modes. Browser testing is deferred until the next requested test batch.
 
 ## Delivery approach
 
