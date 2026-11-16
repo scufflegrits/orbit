@@ -2,7 +2,7 @@
 
 A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination.
 
-Use **Quick find** on the Galaxy to search sun, planet, and moon names. Results show their parent path and open the System or destination directly.
+Use **Quick find** in the Galaxy's top bar to search sun, planet, and moon names. Results show their parent path and open the System or destination directly.
 
 The bundled map has nine sample suns, including **Stocks & Investing**, **Science**, and **Labs**, with 45 planets and 61 moons. These destinations are examples; replace them with your own in Edit links.
 

@@ -1,6 +1,8 @@
 const app = document.querySelector('#app');
 const count = document.querySelector('#link-count');
 const settingsTrigger = document.querySelector('#settings-trigger');
+const topbarSearch = document.querySelector('#topbar-search');
+const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
 const APP_VERSION = '1.3.2';
@@ -901,26 +903,19 @@ function renderHome() {
   app.replaceChildren();
   app.className = 'home-view';
   settingsTrigger.hidden = false;
+  topbarSearch.hidden = false;
   const intro = element('div', 'intro');
   intro.append(element('p', 'eyebrow', 'YOUR PERSONAL LINK GALAXY'));
   const title = element('h1', '', 'Explore your galaxy.');
   intro.append(title);
   intro.append(element('p', 'intro-copy', 'Hover over a sun to see its planets. Click the sun to explore its system.'));
-  const find = element('div', 'find');
-  const label = element('label', 'find-label', 'Quick find');
-  const input = element('input', 'find-input');
-  input.type = 'search';
-  input.placeholder = 'Search suns, planets, moons';
-  input.autocomplete = 'off';
-  input.value = findQuery;
-  label.append(input);
-  find.append(label);
+  quickFind.value = findQuery;
   const results = element('section', 'find-results');
   results.setAttribute('aria-live', 'polite');
   const grid = element('div', 'group-grid');
   groups.forEach((group, index) => grid.append(homeGroup(group, index)));
   const updateFind = () => {
-    findQuery = input.value;
+    findQuery = quickFind.value;
     const active = Boolean(findQuery.trim());
     grid.hidden = active;
     results.hidden = !active;
@@ -935,8 +930,8 @@ function renderHome() {
       results.append(element('p', 'find-empty', 'No matching suns, planets, or moons. Try another name.'));
     }
   };
-  input.addEventListener('input', updateFind);
-  app.append(intro, find, results, grid);
+  quickFind.oninput = updateFind;
+  app.append(intro, results, grid);
   updateFind();
 }
 
@@ -944,6 +939,7 @@ function renderDetail(group) {
   app.replaceChildren();
   app.className = 'detail-view';
   settingsTrigger.hidden = true;
+  topbarSearch.hidden = true;
   const top = element('div', 'detail-top');
   const back = element('a', 'back-link', '←  Return to Galaxy');
   back.href = '#';
