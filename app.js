@@ -14,6 +14,7 @@ let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
 let activeTheme = readThemePreference();
 let seedData = null;
 let storageWarning = '';
+let findQuery = '';
 document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
 document.documentElement.dataset.moons = alwaysShowMoons ? 'always' : 'hover';
 document.documentElement.dataset.theme = activeTheme;
@@ -192,6 +193,7 @@ function showMenuPanel(name) {
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Click a planet or moon to open its destination in a new tab.'));
+    menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
     menuContent.append(element('p', '', 'Your link map runs on this computer, without an account or hosted service.'));
@@ -618,6 +620,46 @@ function homeGroup(group, index) {
   return card;
 }
 
+function findMatches(query) {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return [];
+  const matches = [];
+  for (const sun of groups) {
+    if (sun.name.toLocaleLowerCase().includes(needle)) {
+      matches.push({ kind: 'Sun', name: sun.name, path: 'Galaxy', id: sun.id });
+    }
+    for (const planet of sun.links) {
+      if (planet.name.toLocaleLowerCase().includes(needle)) {
+        matches.push({ kind: 'Planet', name: planet.name, path: sun.name, url: planet.url });
+      }
+      for (const moon of planet.moons) {
+        if (moon.name.toLocaleLowerCase().includes(needle)) {
+          matches.push({ kind: 'Moon', name: moon.name,
+            path: `${sun.name} / ${planet.name}`, url: moon.url });
+        }
+      }
+    }
+  }
+  return matches;
+}
+
+function findResult(match) {
+  const node = element(match.id ? 'button' : 'a', 'find-item');
+  if (match.id) {
+    node.type = 'button';
+    node.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(match.id)}`; });
+  } else {
+    node.href = match.url;
+    node.target = '_blank';
+    node.rel = 'noopener noreferrer';
+  }
+  node.append(element('span', 'find-kind', match.kind));
+  const copy = element('span', 'find-copy');
+  copy.append(element('strong', '', match.name), element('small', '', match.path));
+  node.append(copy, element('span', 'find-arrow', match.id ? '→' : '↗'));
+  return node;
+}
+
 function renderHome() {
   app.replaceChildren();
   app.className = 'home-view';
@@ -627,9 +669,38 @@ function renderHome() {
   const title = element('h1', '', 'Explore your galaxy.');
   intro.append(title);
   intro.append(element('p', 'intro-copy', 'Hover over a sun to see its planets. Click the sun to explore its system.'));
+  const find = element('div', 'find');
+  const label = element('label', 'find-label', 'Quick find');
+  const input = element('input', 'find-input');
+  input.type = 'search';
+  input.placeholder = 'Search suns, planets, moons';
+  input.autocomplete = 'off';
+  input.value = findQuery;
+  label.append(input);
+  find.append(label);
+  const results = element('section', 'find-results');
+  results.setAttribute('aria-live', 'polite');
   const grid = element('div', 'group-grid');
   groups.forEach((group, index) => grid.append(homeGroup(group, index)));
-  app.append(intro, grid);
+  const updateFind = () => {
+    findQuery = input.value;
+    const active = Boolean(findQuery.trim());
+    grid.hidden = active;
+    results.hidden = !active;
+    if (!active) return;
+    const matches = findMatches(findQuery);
+    results.replaceChildren(element('p', 'find-summary', `${matches.length} result${matches.length === 1 ? '' : 's'} for “${findQuery.trim()}”`));
+    if (matches.length) {
+      const list = element('div', 'find-list');
+      matches.forEach(match => list.append(findResult(match)));
+      results.append(list);
+    } else {
+      results.append(element('p', 'find-empty', 'No matching suns, planets, or moons. Try another name.'));
+    }
+  };
+  input.addEventListener('input', updateFind);
+  app.append(intro, find, results, grid);
+  updateFind();
 }
 
 function renderDetail(group) {

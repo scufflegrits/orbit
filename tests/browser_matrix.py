@@ -526,9 +526,108 @@ def run_milestone_5(page, url, mode):
     print(f"PASS milestone 5 ({mode})")
 
 
+def run_milestone_6(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.get_by_label("Theme").select_option("alabama")
+    page.locator("#menu-close").click()
+    page.wait_for_timeout(700)
+    colors = page.locator(".home-hub").evaluate_all(
+        "nodes => nodes.map(node => getComputedStyle(node).borderColor)")
+    check(len(set(colors)) >= 5, f"{mode}: Alabama preserves distinct sun colors")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone6-alabama-{mode}-900.png"),
+                    full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.get_by_label("Theme").select_option("default")
+    page.locator("#menu-close").click()
+    print(f"PASS milestone 6 ({mode})")
+
+
+def run_milestone_7(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1')")
+    page.reload(wait_until="load")
+    search = page.get_by_role("searchbox", name="Quick find")
+    search.fill("teCH")
+    sun_result = page.locator(".find-item").filter(has_text="Galaxy")
+    check(sun_result.count() == 1, f"{mode}: partial sun search")
+    check("Galaxy" in sun_result.inner_text(),
+          f"{mode}: sun result path")
+    sun_result.click()
+    check("Tech" in page.locator(".detail-heading h1").inner_text(),
+          f"{mode}: sun result opens System")
+    page.locator(".back-link").click()
+    search = page.get_by_role("searchbox", name="Quick find")
+    check(search.input_value() == "teCH", f"{mode}: query survives return to Galaxy")
+    search.fill("Engadget")
+    check("Tech" in page.locator(".find-item").inner_text(),
+          f"{mode}: planet result shows parent")
+    with page.expect_popup() as popup_info:
+        page.locator(".find-item").click()
+    popup = popup_info.value
+    check(popup.url == "https://www.engadget.com/", f"{mode}: planet search URL")
+    popup.close()
+    search.fill("Reviews")
+    check("Tech / Engadget" in page.locator(".find-item").inner_text(),
+          f"{mode}: moon result shows full parent path")
+    with page.expect_popup() as popup_info:
+        page.locator(".find-item").click()
+    popup = popup_info.value
+    check(popup.url == "https://www.engadget.com/category/reviews/",
+          f"{mode}: moon search URL")
+    popup.close()
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone7-find-{mode}-900.png"),
+                    full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    search.fill("no such destination")
+    check(page.locator(".find-item").count() == 0 and
+          "No matching" in page.locator(".find-empty").inner_text(),
+          f"{mode}: useful empty state")
+    search.fill("Tech")
+    open_editor(page)
+    page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
+    page.get_by_label("Sun name").fill("Technology")
+    submit_editor_form(page)
+    page.locator("#menu-close").click()
+    check("Technology" in page.locator(".find-item").filter(has_text="Galaxy").inner_text(),
+          f"{mode}: search updates after edit")
+    open_editor(page)
+    imported = {"groups": [{"id": "research", "name": "Research", "color": "#8899aa",
+                            "links": [{"name": "Papers", "url": "https://example.com/papers",
+                                       "moons": [{"name": "Preprints", "url": "https://example.com/preprints"}]}]}]}
+    with page.expect_file_chooser() as chooser_info:
+        page.get_by_role("button", name="Import JSON").click()
+    chooser_info.value.set_files({"name": "search.json", "mimeType": "application/json",
+                                  "buffer": json.dumps(imported).encode()})
+    page.get_by_role("button", name="Apply import").click()
+    page.locator("#menu-close").click()
+    check(page.locator(".find-item").count() == 0,
+          f"{mode}: old search result disappears after import")
+    search = page.get_by_role("searchbox", name="Quick find")
+    search.fill("Preprints")
+    check("Research / Papers" in page.locator(".find-item").inner_text(),
+          f"{mode}: imported moon is searchable")
+    open_editor(page)
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Reset to file data").click()
+    page.locator("#menu-close").click()
+    check(page.locator(".find-item").count() == 0,
+          f"{mode}: imported result disappears after reset")
+    search = page.get_by_role("searchbox", name="Quick find")
+    search.fill("Tech")
+    check(page.locator(".find-item").filter(has_text="Galaxy").count() == 1,
+          f"{mode}: bundled search results return after reset")
+    print(f"PASS milestone 7 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 6), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 8), required=True)
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
@@ -563,6 +662,10 @@ def main():
                             run_milestone_4(page, url, mode)
                         if args.milestone >= 5:
                             run_milestone_5(page, url, mode)
+                        if args.milestone >= 6:
+                            run_milestone_6(page, url, mode)
+                        if args.milestone >= 7:
+                            run_milestone_7(page, url, mode)
                     finally:
                         page.close()
             finally:

@@ -2,6 +2,8 @@
 
 A local link map organized as a Galaxy of suns and planets. Each sun is a group of links. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination in a new tab.
 
+Use **Quick find** on the Galaxy to search sun, planet, and moon names. Results show their parent path and open the System or destination directly.
+
 ## Run
 
 Open `index.html` in your browser. No server or internet connection is needed for the page itself.
