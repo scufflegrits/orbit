@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–12 passed; optional PowerShell 7 installer check N06 is pending. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–13 passed; optional PowerShell 7 installer check N06 is pending. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -135,8 +135,17 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| U01 | Both | Open the Galaxy and a System at normal and narrow desktop widths; use Quick find. | Search appears in the Galaxy top bar beside the map status, is hidden in Systems, and still finds suns, planets, and moons. | Not run — deferred until the next change batch at the user's request. |
-| U02 | Both | Search from the Galaxy, then click the Orbit logo; repeat after opening a System from a search result. | Quick find clears and all suns appear on the Galaxy. | Not run — deferred until the next change batch at the user's request. |
+| U01 | Both | Open the Galaxy and a System at normal and narrow desktop widths; use Quick find. | Search appears in the Galaxy top bar beside the map status, is hidden in Systems, and still finds suns, planets, and moons. | Pass |
+| U02 | Both | Search from the Galaxy, then click the Orbit logo; repeat after opening a System from a search result. | Quick find clears and all suns appear on the Galaxy. | Pass |
+
+## Milestone 13 — Share selected links
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| I01 | Both | Export a sun, planet, and moon, then inspect each JSON file. | Each has the right type and only the selected item and its descendants; RDP hosts remain intact. | Pass |
+| I02 | Both | Import each item into a chosen parent and reload. | Review shows the destination; imported links append, persist, and remain navigable; an imported duplicate sun gets a unique ID. | Pass |
+| I03 | Both | Import malformed, mismatched, and invalid item files; cancel a valid import. | The current map stays unchanged and errors explain what went wrong. | Pass |
+| I04 | Both | Export and import the entire Galaxy after scoped imports. | Full export includes all links and full import still replaces the map after review. | Pass |
 
 ## Milestone commit record
 
@@ -158,3 +167,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 12 — Native Windows launch | 2026-11-15 | S01–S05 and N01–N03 and N05 passed in Playwright in both run modes; the user confirmed N04 on Windows 11 after installing the helper. | Milestone 12: Native Windows launch |
 | 12 follow-up — Setup guidance | 2026-11-15 | S01–S05 and N05 passed in both run modes; the 900-pixel Settings view was inspected. PowerShell scripts now document their behavior. | Explain Orbit's mstsc helper setup |
 | 12 follow-up — PowerShell fallback | 2026-11-15 | Installer selection and setup text updated for PowerShell 7; N05 browser check passed. N06 awaits a Windows PowerShell 7 run. | Support PowerShell 7 in Orbit installer |
+| 13 — Share selected links | 2026-11-15 | S01–S05, U01–U02, and I01–I04 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel editor screenshot inspected. | Milestone 13: Share selected links |

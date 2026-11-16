@@ -1005,9 +1005,155 @@ def run_milestone_12(page, url, mode):
     print(f"PASS milestone 12 ({mode})")
 
 
+def upload_json(page, button, data):
+    content = data if isinstance(data, bytes) else json.dumps(data).encode()
+    with page.expect_file_chooser() as chooser_info:
+        page.get_by_role("button", name=button, exact=True).click()
+    chooser_info.value.set_files({"name": "shared.json", "mimeType": "application/json",
+                                  "buffer": content})
+
+
+def download_json(page, button):
+    with page.expect_download() as download_info:
+        page.get_by_role("button", name=button, exact=True).click()
+    return json.loads(Path(download_info.value.path()).read_text())
+
+
+def run_pending_ui(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1')")
+    page.reload(wait_until="load")
+    search = page.get_by_role("searchbox", name="Quick find")
+    check(page.locator("#topbar-search:visible").count() == 1,
+          f"{mode}: Quick find appears in the top bar")
+    search.fill("Engadget")
+    check(page.locator(".find-item").count() > 0 and page.locator(".group-grid:visible").count() == 0,
+          f"{mode}: top bar search finds links")
+    page.locator(".brand").click()
+    check(search.input_value() == "" and page.locator(".home-hub").count() == 9,
+          f"{mode}: Orbit logo clears search and shows all suns")
+    search.fill("Tech")
+    page.locator(".find-item").first.click()
+    page.locator(".detail-view").wait_for()
+    check(page.locator("#topbar-search:visible").count() == 0,
+          f"{mode}: Quick find hides in a System")
+    page.locator(".brand").click()
+    check(search.input_value() == "" and page.locator(".home-hub").count() == 9,
+          f"{mode}: Orbit logo returns from a System to all suns")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"pending-ui-{mode}-900.png"), full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    print(f"PASS pending UI ({mode})")
+
+
+def run_milestone_13(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1')")
+    page.reload(wait_until="load")
+    open_editor(page)
+    page.set_viewport_size({"width": 900, "height": 900})
+    sheet = page.locator(".menu-sheet").bounding_box()
+    check(sheet is not None and sheet["x"] >= 0 and sheet["x"] + sheet["width"] <= 900,
+          f"{mode}: scoped import controls fit narrower editor")
+    page.get_by_role("button", name="Import sun").scroll_into_view_if_needed()
+    page.screenshot(path=str(ARTIFACTS / f"milestone13-editor-{mode}-900.png"))
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.locator(".editor-list-row").filter(has_text="Labs").get_by_role("button", name="Edit").click()
+    sun_file = download_json(page, "Export sun")
+    check(sun_file["format"] == "orbit-item-v1" and sun_file["kind"] == "sun" and
+          sun_file["item"]["id"] == "labs" and len(sun_file["item"]["links"]) == 5 and
+          "groups" not in sun_file, f"{mode}: sun export contains only Labs and descendants")
+    page.locator(".editor-list-row").filter(has_text="lab1").get_by_role("button", name="Edit").click()
+    planet_file = download_json(page, "Export planet")
+    check(planet_file["kind"] == "planet" and planet_file["item"]["name"] == "lab1" and
+          len(planet_file["item"]["moons"]) == 5 and "links" not in planet_file,
+          f"{mode}: planet export includes its five moons only")
+    page.locator(".editor-list-row").filter(has_text="lab1-server1").get_by_role("button", name="Edit").click()
+    moon_file = download_json(page, "Export moon")
+    check(moon_file["kind"] == "moon" and moon_file["item"]["host"] == "lab1-server1" and
+          "moons" not in moon_file["item"], f"{mode}: moon export contains only its RDP target")
+    page.locator(".editor-back").click()
+    page.locator(".editor-back").click()
+    page.locator(".editor-back").click()
+
+    original = page.evaluate("JSON.stringify(groups)")
+    upload_json(page, "Import sun", planet_file)
+    page.locator(".editor-error").filter(has_text="Choose an Orbit sun export file").wait_for()
+    check(page.evaluate("JSON.stringify(groups)") == original,
+          f"{mode}: mismatched item file leaves Galaxy unchanged")
+    upload_json(page, "Import sun", b"{bad")
+    page.locator(".editor-error").filter(has_text="Import failed").wait_for()
+    check(page.evaluate("JSON.stringify(groups)") == original,
+          f"{mode}: malformed item file leaves Galaxy unchanged")
+    upload_json(page, "Import sun", sun_file)
+    page.locator(".editor-header h3").filter(has_text="Review sun import").wait_for()
+    check("Add to the Galaxy" in page.locator("#menu-content").inner_text(),
+          f"{mode}: sun review shows target")
+    page.get_by_role("button", name="Cancel").click()
+    check(page.evaluate("JSON.stringify(groups)") == original,
+          f"{mode}: cancelling a valid item import leaves Galaxy unchanged")
+    upload_json(page, "Import sun", sun_file)
+    page.locator(".editor-header h3").filter(has_text="Review sun import").wait_for()
+    page.get_by_role("button", name="Add sun", exact=True).click()
+    suns = page.evaluate("groups.map(sun => sun.id)")
+    check(len(suns) == 10 and suns.count("labs") == 1 and "labs-2" in suns,
+          f"{mode}: imported duplicate sun gets a unique ID")
+    page.locator(".editor-back").click()
+    page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
+    upload_json(page, "Import planet", planet_file)
+    page.locator(".editor-header h3").filter(has_text="Review planet import").wait_for()
+    check("Tech sun" in page.locator("#menu-content").inner_text(),
+          f"{mode}: planet review shows chosen sun")
+    page.get_by_role("button", name="Add planet", exact=True).click()
+    check(page.evaluate("groups.find(sun => sun.id === 'tech').links.at(-1).moons.length") == 5,
+          f"{mode}: imported planet keeps its moons")
+    page.locator(".editor-back").click()
+    page.locator(".editor-list-row").filter(has_text="Engadget").get_by_role("button", name="Edit").click()
+    before_moons = page.evaluate("groups.find(sun => sun.id === 'tech').links[0].moons.length")
+    bad_moon = {**moon_file, "item": {"name": "Unsafe", "url": "javascript:alert(1)"}}
+    upload_json(page, "Import moon", bad_moon)
+    page.locator(".editor-error").filter(has_text="http or https URL").wait_for()
+    check(page.evaluate("groups.find(sun => sun.id === 'tech').links[0].moons.length") == before_moons,
+          f"{mode}: invalid moon leaves the chosen planet unchanged")
+    upload_json(page, "Import moon", moon_file)
+    page.locator(".editor-header h3").filter(has_text="Review moon import").wait_for()
+    check("Tech sun → Engadget planet" in page.locator("#menu-content").inner_text(),
+          f"{mode}: moon review shows chosen planet")
+    page.get_by_role("button", name="Add moon", exact=True).click()
+    check(page.evaluate("groups.find(sun => sun.id === 'tech').links[0].moons.at(-1).host") == "lab1-server1",
+          f"{mode}: imported moon appends to chosen planet")
+    page.locator("#menu-close").click()
+    page.reload(wait_until="load")
+    check(page.locator(".home-hub").count() == 10 and
+          page.evaluate("groups.find(sun => sun.id === 'tech').links.at(-1).moons.length") == 5,
+          f"{mode}: scoped imports persist after reload")
+    page.locator(".home-hub").filter(has_text="Tech").click()
+    page.locator(".detail-view").wait_for()
+    check(page.locator(".detail-satellite").filter(has_text="lab1").count() == 1,
+          f"{mode}: imported planet appears in its chosen System")
+    engadget = page.locator(".detail-planet-cluster").filter(has_text="Engadget")
+    engadget.locator(".detail-satellite").hover()
+    check(engadget.locator(".moon-link").filter(has_text="lab1-server1").count() == 1,
+          f"{mode}: imported moon appears under its chosen planet")
+    page.locator(".brand").click()
+    open_editor(page)
+    full_file = download_json(page, "Export JSON")
+    check(len(full_file["groups"]) == 10 and
+          full_file["groups"][0]["links"][0]["moons"][-1]["host"] == "lab1-server1",
+          f"{mode}: full export includes scoped imports")
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Reset to file data").click()
+    check(page.evaluate("groups.length") == 9, f"{mode}: reset removes scoped imports")
+    upload_json(page, "Import JSON", full_file)
+    page.get_by_role("button", name="Apply import").click()
+    check(page.evaluate("groups.length") == 10, f"{mode}: full import restores scoped imports")
+    print(f"PASS milestone 13 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 13), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 14), required=True)
+    parser.add_argument("--only-new", action="store_true", help="Run only the selected milestone")
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
@@ -1028,34 +1174,37 @@ def main():
                     page = browser.new_page(viewport={"width": 1280, "height": 900})
                     try:
                         run_shared(page, url, mode)
-                        if args.milestone >= 1:
+                        if args.milestone >= 1 and (not args.only_new or args.milestone == 1):
                             run_milestone_1(page, url, mode)
-                        if mode == "file":
+                        if mode == "file" and (not args.only_new or args.milestone == 1):
                             run_extra_sun_fixture(page)
-                        if args.milestone >= 2:
+                        if args.milestone >= 2 and (not args.only_new or args.milestone == 2):
                             run_milestone_2(page, url, mode)
                             if mode == "file":
                                 run_milestone_2_fixtures(page)
-                        if args.milestone >= 3:
+                        if args.milestone >= 3 and (not args.only_new or args.milestone == 3):
                             run_milestone_3(page, url, mode)
-                        if args.milestone >= 4:
+                        if args.milestone >= 4 and (not args.only_new or args.milestone == 4):
                             run_milestone_4(page, url, mode)
-                        if args.milestone >= 5:
+                        if args.milestone >= 5 and (not args.only_new or args.milestone == 5):
                             run_milestone_5(page, url, mode)
-                        if args.milestone >= 6:
+                        if args.milestone >= 6 and (not args.only_new or args.milestone == 6):
                             run_milestone_6(page, url, mode)
-                        if args.milestone >= 7:
+                        if args.milestone >= 7 and (not args.only_new or args.milestone == 7):
                             run_milestone_7(page, url, mode)
-                        if args.milestone >= 8:
+                        if args.milestone >= 8 and (not args.only_new or args.milestone == 8):
                             run_milestone_8(page, url, mode)
-                        if args.milestone >= 9:
+                        if args.milestone >= 9 and (not args.only_new or args.milestone == 9):
                             run_milestone_9(page, url, mode)
-                        if args.milestone >= 10:
+                        if args.milestone >= 10 and (not args.only_new or args.milestone == 10):
                             run_milestone_10(page, url, mode)
-                        if args.milestone >= 11:
+                        if args.milestone >= 11 and (not args.only_new or args.milestone == 11):
                             run_milestone_11(page, url, mode)
-                        if args.milestone >= 12:
+                        if args.milestone >= 12 and (not args.only_new or args.milestone == 12):
                             run_milestone_12(page, url, mode)
+                        if args.milestone >= 13:
+                            run_pending_ui(page, url, mode)
+                            run_milestone_13(page, url, mode)
                     finally:
                         page.close()
             finally:

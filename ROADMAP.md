@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–12 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
+Status: milestones 1–13 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -152,6 +152,15 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Apply the choice to planets, moons, overflow, and Quick find in both run modes. Show the required Orbit helper install command in Settings when native mode is selected; distinguish built-in `mstsc.exe` from the separate MSRDC app. Document the browser's external-app prompt and how to remove the helper.
 
 **Done when:** Native mode produces the right protocol link for every Remote Desktop destination, the setting persists, and download mode still works. A Windows PC with the helper installed must be used for the final client-launch check.
+
+## Milestone 13 — Share selected links
+
+- Export one sun with its planets and moons, one planet with its moons, or one moon alone from its editor screen. Keep whole-Galaxy export available.
+- Mark each item file with its type and version so the importer can reject the wrong file or invalid data. Include no unrelated suns, planets, or moons.
+- Import a sun into the Galaxy, a planet into a chosen sun, or a moon into a chosen planet. Review the item and target before adding it; leave existing links intact. Resolve a duplicate imported sun ID without changing the existing sun's link.
+- Keep full-Galaxy import as a separate replacement action. Explain the distinction in the editor and README.
+
+**Done when:** Each item round-trips through export and import in file and server modes, descendants are preserved, invalid or mismatched files leave the map intact, and full-Galaxy import/export still works.
 
 ## Delivery approach
 

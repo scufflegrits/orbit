@@ -5,7 +5,7 @@ const topbarSearch = document.querySelector('#topbar-search');
 const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.3.2';
+const APP_VERSION = '1.4.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -445,16 +445,40 @@ function editorActions() {
   return actions;
 }
 
-function exportMap() {
-  const blob = new Blob([JSON.stringify({ groups }, null, 2) + '\n'], { type: 'application/json' });
+function downloadJson(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2) + '\n'], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = 'orbit-links.json';
+  anchor.download = filename;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportMap() {
+  downloadJson({ groups }, 'orbit-links.json');
+}
+
+function exportItem(kind, item) {
+  const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || kind;
+  downloadJson({ format: 'orbit-item-v1', kind, item }, `orbit-${kind}-${slug}.json`);
+}
+
+function selectJsonFile(onData) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.addEventListener('change', async () => {
+    if (!input.files.length) return;
+    try {
+      onData(JSON.parse(await input.files[0].text()));
+    } catch (error) {
+      editorError(`Import failed: ${error.message}`);
+    }
+  });
+  input.click();
 }
 
 function showImportReview(data) {
@@ -471,18 +495,57 @@ function showImportReview(data) {
 }
 
 function importMap() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json,application/json';
-  input.addEventListener('change', async () => {
-    if (!input.files.length) return;
-    try {
-      showImportReview(validateMap(JSON.parse(await input.files[0].text())));
-    } catch (error) {
-      editorError(`Import failed: ${error.message}`);
+  selectJsonFile(data => showImportReview(validateMap(data)));
+}
+
+function importItem(kind, sunIndex = null, planetIndex = null) {
+  selectJsonFile(data => {
+    if (!data || data.format !== 'orbit-item-v1' || data.kind !== kind || !data.item) {
+      throw new Error(`Choose an Orbit ${kind} export file.`);
     }
+    const item = kind === 'sun' ? validateMap({ groups: [data.item] }).groups[0]
+      : kind === 'planet' ? validateMap({ groups: [{ name: 'Import', links: [data.item] }] }).groups[0].links[0]
+        : validDestination(data.item, 'Moon');
+    const back = kind === 'sun' ? showSunList
+      : kind === 'planet' ? () => showSunEditor(sunIndex)
+        : () => showPlanetEditor(sunIndex, planetIndex);
+    editorHeader(`Review ${kind} import`, back);
+    menuContent.append(element('p', '', item.name));
+    if (kind === 'sun') {
+      const moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);
+      menuContent.append(element('p', '', `${item.links.length} planets · ${moons} moons`));
+    } else if (kind === 'planet') {
+      menuContent.append(element('p', '', `${item.moons.length} moons · ${item.host || item.url}`));
+    } else {
+      menuContent.append(element('p', '', item.host || item.url));
+    }
+    const destination = kind === 'sun' ? 'the Galaxy'
+      : kind === 'planet' ? `${groups[sunIndex].name} sun`
+        : `${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet`;
+    menuContent.append(element('p', '', `Add to ${destination}. Existing links will remain.`));
+    const actions = editorActions();
+    actions.append(editorButton(`Add ${kind}`, () => {
+      const next = copyGroups();
+      const imported = JSON.parse(JSON.stringify(item));
+      let showNext;
+      if (kind === 'sun') {
+        if (next.some(sun => sun.id === imported.id)) {
+          imported.id = uniqueSunId(imported.name, new Set(next.map(sun => sun.id)));
+        }
+        next.push(imported);
+        showNext = () => showSunEditor(next.length - 1);
+      } else if (kind === 'planet') {
+        next[sunIndex].links.push(imported);
+        showNext = () => showPlanetEditor(sunIndex, next[sunIndex].links.length - 1);
+      } else {
+        next[sunIndex].links[planetIndex].moons.push(imported);
+        showNext = () => showMoonEditor(sunIndex, planetIndex,
+          next[sunIndex].links[planetIndex].moons.length - 1);
+      }
+      applyEditorChange(next, showNext);
+    }, 'editor-primary'));
+    actions.append(editorButton('Cancel', back));
   });
-  input.click();
 }
 
 function resetMap() {
@@ -503,7 +566,7 @@ function resetMap() {
 
 function showSunList() {
   editorHeader('Edit links', () => showMenuPanel('Settings'));
-  menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Changes are saved in this browser.'));
+  menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Import JSON replaces the Galaxy; Import sun adds one sun. Changes are saved in this browser.'));
   menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
   const list = element('div', 'editor-list');
   groups.forEach((sun, index) => {
@@ -517,6 +580,7 @@ function showSunList() {
   actions.append(editorButton('Add sun', () => showSunEditor(null), 'editor-primary'));
   actions.append(editorButton('Import JSON', importMap));
   actions.append(editorButton('Export JSON', exportMap));
+  actions.append(editorButton('Import sun', () => importItem('sun')));
   actions.append(editorButton('Reset to file data', resetMap));
 }
 
@@ -568,6 +632,7 @@ function showSunEditor(index) {
   });
   menuContent.append(form);
   if (!isNew) {
+    editorActions().append(editorButton('Export sun', () => exportItem('sun', sun)));
     menuContent.append(element('h4', 'editor-section-title', 'Planets'));
     const list = element('div', 'editor-list');
     sun.links.forEach((planet, planetIndex) => {
@@ -577,7 +642,9 @@ function showSunEditor(index) {
       list.append(row);
     });
     menuContent.append(list);
-    editorActions().append(editorButton('Add planet', () => showPlanetEditor(index, null), 'editor-primary'));
+    const planetActions = editorActions();
+    planetActions.append(editorButton('Add planet', () => showPlanetEditor(index, null), 'editor-primary'));
+    planetActions.append(editorButton('Import planet', () => importItem('planet', index)));
   }
 }
 
@@ -626,6 +693,7 @@ function showPlanetEditor(sunIndex, planetIndex) {
   });
   menuContent.append(form);
   if (!isNew) {
+    editorActions().append(editorButton('Export planet', () => exportItem('planet', planet)));
     menuContent.append(element('h4', 'editor-section-title', 'Moons'));
     const list = element('div', 'editor-list');
     planet.moons.forEach((moon, moonIndex) => {
@@ -635,7 +703,9 @@ function showPlanetEditor(sunIndex, planetIndex) {
       list.append(row);
     });
     menuContent.append(list);
-    editorActions().append(editorButton('Add moon', () => showMoonEditor(sunIndex, planetIndex, null), 'editor-primary'));
+    const moonActions = editorActions();
+    moonActions.append(editorButton('Add moon', () => showMoonEditor(sunIndex, planetIndex, null), 'editor-primary'));
+    moonActions.append(editorButton('Import moon', () => importItem('moon', sunIndex, planetIndex)));
   }
 }
 
@@ -685,6 +755,7 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
       isNew ? next[sunIndex].links[planetIndex].moons.length - 1 : moonIndex));
   });
   menuContent.append(form);
+  if (!isNew) editorActions().append(editorButton('Export moon', () => exportItem('moon', moon)));
 }
 
 function showEditor(level) {
