@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–13 passed; optional PowerShell 7 installer check N06 is pending. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–14 passed; optional PowerShell 7 installer check N06 is pending. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -147,6 +147,14 @@ Browser tests should use existing tool permissions when available. If a browser 
 | I03 | Both | Import malformed, mismatched, and invalid item files; cancel a valid import. | The current map stays unchanged and errors explain what went wrong. | Pass |
 | I04 | Both | Export and import the entire Galaxy after scoped imports. | Full export includes all links and full import still replaces the map after review. | Pass |
 
+## Milestone 14 — Import a planet as a sun
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| C01 | Both | Import a planet export as a sun, then reload and export the new sun. | The sun has a unique ID and contains the original planet, its destination, and all moons. | Pass |
+| C02 | Both | Import the same planet twice, open its System, and follow its planet and moon entries. | Both suns remain distinct; the original destination and moons are reachable. | Pass |
+| C03 | Both | Cancel a valid conversion and try mismatched or invalid files. | The current Galaxy stays unchanged and the error identifies the issue. | Pass |
+
 ## Milestone commit record
 
 After the shared checks and the current milestone's rows pass, record the commit here. If any check is blocked, record the reason and the remaining risk before committing.
@@ -168,3 +176,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 12 follow-up — Setup guidance | 2026-11-15 | S01–S05 and N05 passed in both run modes; the 900-pixel Settings view was inspected. PowerShell scripts now document their behavior. | Explain Orbit's mstsc helper setup |
 | 12 follow-up — PowerShell fallback | 2026-11-15 | Installer selection and setup text updated for PowerShell 7; N05 browser check passed. N06 awaits a Windows PowerShell 7 run. | Support PowerShell 7 in Orbit installer |
 | 13 — Share selected links | 2026-11-15 | S01–S05, U01–U02, and I01–I04 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel editor screenshot inspected. | Milestone 13: Share selected links |
+| 14 — Planet as sun | 2026-11-15 | S01–S05 and C01–C03 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel review screenshot inspected. | Milestone 14: Import planet as sun |

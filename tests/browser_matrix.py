@@ -1150,9 +1150,76 @@ def run_milestone_13(page, url, mode):
     print(f"PASS milestone 13 ({mode})")
 
 
+def run_milestone_14(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1')")
+    page.reload(wait_until="load")
+    open_editor(page)
+    shared_planet = {"format": "orbit-item-v1", "kind": "planet", "item": {
+        "name": "Shared Research", "url": "https://example.com/research", "moons": [
+            {"name": "Papers", "url": "https://example.com/papers"},
+            {"name": "Lab Server", "type": "rdp", "host": "shared-lab:3390"},
+        ],
+    }}
+    original = page.evaluate("JSON.stringify(groups)")
+    upload_json(page, "Import planet as sun", {**shared_planet, "kind": "moon"})
+    page.locator(".editor-error").filter(has_text="Choose an Orbit planet export file").wait_for()
+    check(page.evaluate("JSON.stringify(groups)") == original,
+          f"{mode}: wrong item type does not change Galaxy")
+    invalid = {**shared_planet, "item": {**shared_planet["item"], "url": "javascript:alert(1)"}}
+    upload_json(page, "Import planet as sun", invalid)
+    page.locator(".editor-error").filter(has_text="http or https URL").wait_for()
+    check(page.evaluate("JSON.stringify(groups)") == original,
+          f"{mode}: invalid planet does not change Galaxy")
+    upload_json(page, "Import planet as sun", shared_planet)
+    page.locator(".editor-header h3").filter(has_text="Review planet as sun").wait_for()
+    check("first planet in a new sun" in page.locator("#menu-content").inner_text() and
+          "Planet destination: https://example.com/research" in page.locator("#menu-content").inner_text(),
+          f"{mode}: conversion review explains where the link and moons go")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone14-review-{mode}-900.png"))
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.get_by_role("button", name="Cancel").click()
+    check(page.evaluate("JSON.stringify(groups)") == original,
+          f"{mode}: cancelled conversion leaves Galaxy unchanged")
+    for expected_id in ("shared-research", "shared-research-2"):
+        upload_json(page, "Import planet as sun", shared_planet)
+        page.locator(".editor-header h3").filter(has_text="Review planet as sun").wait_for()
+        page.get_by_role("button", name="Add sun", exact=True).click()
+        saved = page.evaluate("groups.at(-1)")
+        check(saved["id"] == expected_id and saved["name"] == "Shared Research" and
+              saved["links"] == [shared_planet["item"]] and saved["color"] == "#79d9f8",
+              f"{mode}: converted sun preserves planet and moons with unique ID")
+        page.locator(".editor-back").click()
+    page.locator("#menu-close").click()
+    page.reload(wait_until="load")
+    check(page.locator(".home-hub").count() == 11,
+          f"{mode}: both converted suns persist after reload")
+    page.locator(".home-hub").filter(has_text="Shared Research").first.click()
+    page.locator(".detail-view").wait_for()
+    planet = page.locator(".detail-planet-cluster").first
+    check(planet.locator(".detail-satellite").get_attribute("href") ==
+          "https://example.com/research", f"{mode}: original planet destination remains reachable")
+    planet.locator(".detail-satellite").hover()
+    check(planet.locator(".moon-link").filter(has_text="Papers").get_attribute("href") ==
+          "https://example.com/papers", f"{mode}: web moon remains reachable")
+    with page.expect_download() as download_info:
+        planet.locator(".moon-link").filter(has_text="Lab Server").click()
+    check("full address:s:shared-lab:3390" in Path(download_info.value.path()).read_text(),
+          f"{mode}: RDP moon retains its host and port")
+    page.locator(".brand").click()
+    open_editor(page)
+    page.locator(".editor-list-row").filter(has_text="Shared Research").first.get_by_role(
+        "button", name="Edit").click()
+    exported_sun = download_json(page, "Export sun")
+    check(exported_sun["item"]["links"] == [shared_planet["item"]] and
+          "groups" not in exported_sun, f"{mode}: converted sun exports only the shared planet")
+    print(f"PASS milestone 14 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 14), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 15), required=True)
     parser.add_argument("--only-new", action="store_true", help="Run only the selected milestone")
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
@@ -1203,8 +1270,11 @@ def main():
                         if args.milestone >= 12 and (not args.only_new or args.milestone == 12):
                             run_milestone_12(page, url, mode)
                         if args.milestone >= 13:
-                            run_pending_ui(page, url, mode)
-                            run_milestone_13(page, url, mode)
+                            if not args.only_new or args.milestone == 13:
+                                run_pending_ui(page, url, mode)
+                                run_milestone_13(page, url, mode)
+                        if args.milestone >= 14:
+                            run_milestone_14(page, url, mode)
                     finally:
                         page.close()
             finally:

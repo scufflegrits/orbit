@@ -82,6 +82,8 @@ Settings also includes **Always show moons** and **Edit links**. The editor lets
 
 To share part of your map, open a sun, planet, or moon in **Edit links** and choose **Export sun**, **Export planet**, or **Export moon**. A sun export includes its planets and moons; a planet export includes its moons; a moon export includes only that moon. The downloaded `orbit-*.json` file contains just that item and its descendants. To receive one, use **Import sun** in the editor's sun list, **Import planet** inside the destination sun, or **Import moon** inside the destination planet. Review the item and destination, then add it. This appends the imported links and keeps your existing map. If an imported sun ID already exists, Orbit gives the new sun a unique ID. **Import JSON** still replaces the entire Galaxy after review.
 
+If someone shares a planet and you want it at the top level, choose **Import planet as sun** in the sun list. Orbit creates a sun named after the planet and places the shared planet inside it as its first planet. The planet's destination and moons remain available. The new sun receives a default color that you can change in the editor.
+
 Settings and Edit links show whether the active map is bundled project data or browser edits. After removing a sun, planet, or moon, use **Undo removal** in the editor to restore it. The latest removal remains available after a reload; importing or resetting the map clears it.
 
 Browser edits take precedence over `links.json` (or `links-data.js` in direct-file mode) until you reset. Direct-file and local-server pages have separate browser storage; use export and import to move edits between them. The browser editor does not write `links.json` directly.

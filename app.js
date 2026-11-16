@@ -5,7 +5,7 @@ const topbarSearch = document.querySelector('#topbar-search');
 const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -498,22 +498,33 @@ function importMap() {
   selectJsonFile(data => showImportReview(validateMap(data)));
 }
 
-function importItem(kind, sunIndex = null, planetIndex = null) {
+function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
   selectJsonFile(data => {
-    if (!data || data.format !== 'orbit-item-v1' || data.kind !== kind || !data.item) {
-      throw new Error(`Choose an Orbit ${kind} export file.`);
+    if (!data || data.format !== 'orbit-item-v1' || data.kind !== sourceKind || !data.item) {
+      throw new Error(`Choose an Orbit ${sourceKind} export file.`);
     }
-    const item = kind === 'sun' ? validateMap({ groups: [data.item] }).groups[0]
-      : kind === 'planet' ? validateMap({ groups: [{ name: 'Import', links: [data.item] }] }).groups[0].links[0]
-        : validDestination(data.item, 'Moon');
+    let item;
+    if (kind === 'sun' && sourceKind === 'planet') {
+      item = validateMap({ groups: [{ name: data.item.name, links: [data.item] }] }).groups[0];
+    } else if (kind === 'sun') {
+      item = validateMap({ groups: [data.item] }).groups[0];
+    } else if (kind === 'planet') {
+      item = validateMap({ groups: [{ name: 'Import', links: [data.item] }] }).groups[0].links[0];
+    } else {
+      item = validDestination(data.item, 'Moon');
+    }
     const back = kind === 'sun' ? showSunList
       : kind === 'planet' ? () => showSunEditor(sunIndex)
         : () => showPlanetEditor(sunIndex, planetIndex);
-    editorHeader(`Review ${kind} import`, back);
+    editorHeader(sourceKind === kind ? `Review ${kind} import` : 'Review planet as sun', back);
     menuContent.append(element('p', '', item.name));
+    if (sourceKind === 'planet' && kind === 'sun') {
+      menuContent.append(element('p', '', 'The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.'));
+      menuContent.append(element('p', '', `Planet destination: ${item.links[0].host || item.links[0].url}`));
+    }
     if (kind === 'sun') {
       const moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);
-      menuContent.append(element('p', '', `${item.links.length} planets · ${moons} moons`));
+      menuContent.append(element('p', '', `${item.links.length} planet${item.links.length === 1 ? '' : 's'} · ${moons} moon${moons === 1 ? '' : 's'}`));
     } else if (kind === 'planet') {
       menuContent.append(element('p', '', `${item.moons.length} moons · ${item.host || item.url}`));
     } else {
@@ -566,7 +577,7 @@ function resetMap() {
 
 function showSunList() {
   editorHeader('Edit links', () => showMenuPanel('Settings'));
-  menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Import JSON replaces the Galaxy; Import sun adds one sun. Changes are saved in this browser.'));
+  menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Import JSON replaces the Galaxy; item imports add links. Changes are saved in this browser.'));
   menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
   const list = element('div', 'editor-list');
   groups.forEach((sun, index) => {
@@ -581,6 +592,7 @@ function showSunList() {
   actions.append(editorButton('Import JSON', importMap));
   actions.append(editorButton('Export JSON', exportMap));
   actions.append(editorButton('Import sun', () => importItem('sun')));
+  actions.append(editorButton('Import planet as sun', () => importItem('sun', null, null, 'planet')));
   actions.append(editorButton('Reset to file data', resetMap));
 }
 

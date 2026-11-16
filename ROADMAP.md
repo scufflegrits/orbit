@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–13 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
+Status: milestones 1–14 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -161,6 +161,15 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Keep full-Galaxy import as a separate replacement action. Explain the distinction in the editor and README.
 
 **Done when:** Each item round-trips through export and import in file and server modes, descendants are preserved, invalid or mismatched files leave the map intact, and full-Galaxy import/export still works.
+
+## Milestone 14 — Import a planet as a sun
+
+- Accept an Orbit planet export from the Galaxy's sun list as a new sun.
+- Name the new sun after the planet and put the original planet inside it, preserving its destination and moons. Give the new sun a default color that the editor can change.
+- Review the conversion before saving, append it without changing existing suns, and generate a unique sun ID when the same planet is imported more than once.
+- Reject invalid or mismatched files without changing the map; keep normal sun, planet, moon, and Galaxy imports working.
+
+**Done when:** A shared planet becomes a navigable sun in both run modes, its destination and moons survive reload and export, and cancelled or invalid conversions leave the map intact.
 
 ## Delivery approach
 
