@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14 complete (2026-11-15); milestones 15–16 are in progress, with testing deferred at the user's request. Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
+Status: milestones 1–14 complete (2026-11-15); milestones 15–18 are in progress, with testing deferred at the user's request. Native `mstsc.exe` launch was confirmed on Windows 11 for host-only links; the optional PowerShell 7 installer path and imported-profile launch await Windows runs.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -186,6 +186,24 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Keep Quick find and the home grid usable at normal and narrow desktop widths.
 
 **Done when:** The Galaxy shows the suns without the introductory block, Help provides the navigation instructions, and search and System navigation still work. Browser testing is deferred until the next requested test batch.
+
+## Milestone 17 — Global settings and search
+
+- Show the cog and Quick find in the top bar on the Galaxy and every System.
+- Opening the cog from a System should show the same Settings, Help, About, and editor controls as on the Galaxy.
+- Typing in Quick find from a System should return to the Galaxy and show results for the entered query. Keep the query when opening a System from search results; the Orbit logo still clears it.
+- Keep the top bar usable at normal and narrow desktop widths.
+
+**Done when:** Settings and Quick find are available from both views, a System search reaches Galaxy results, and the header remains readable. Browser testing is deferred until the next requested test batch.
+
+## Milestone 18 — Import saved Remote Desktop profiles
+
+- Let the editor read a local `.rdp` file into an existing or new planet or moon, including a lab server moon. Decode common UTF-8 and UTF-16 saved files and require a valid `full address` setting.
+- Preserve connection settings with the link and update the profile's target if the host is edited. Exclude saved passwords, tokens, and signatures; keep imports local to the browser and show what was excluded.
+- Use the saved profile for `.rdp` downloads and pass it to the Windows helper for native `mstsc.exe` launches. Validate profile data again in the helper and require the user to rerun the installer to update an older helper.
+- Include profile settings in Orbit JSON export/import and document what to review before sharing.
+
+**Done when:** A custom `.rdp` file can populate an existing lab moon, survive reload and JSON export/import, and open with its settings in download and native modes. Browser and Windows testing are deferred until the next requested test batch.
 
 ## Delivery approach
 

@@ -2,7 +2,7 @@
 
 A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination.
 
-Use **Quick find** in the Galaxy's top bar to search sun, planet, and moon names. Results show their parent path and open the System or destination directly.
+Use **Quick find** in the top bar on the Galaxy or any System to search sun, planet, and moon names. Searching from a System returns to the Galaxy with matching results. Results show their parent path and open the System or destination directly.
 
 The bundled map has nine sample suns, including **Stocks & Investing**, **Science**, and **Labs**, with 45 planets and 61 moons. These destinations are examples; replace them with your own in Edit links.
 
@@ -54,6 +54,8 @@ The **Labs** sun contains `lab1` through `lab5` as planets and five server moons
 
 By default, clicking one downloads a `.rdp` connection file with that host. Open the downloaded file on Windows to start Remote Desktop Connection. The destination editor offers **Windows Remote Desktop** as a type for any planet or moon, and accepts a computer name or IP address with an optional port such as `lab1-server1:3390`.
 
+To use a saved connection, open its planet or moon in **Settings → Edit links** and select **Import .rdp file**. For example, open **Labs → lab1 → lab1-server3**, import the saved file, review the computer address, then select **Save moon**. Orbit keeps the file's connection settings with that link for future `.rdp` downloads and native `mstsc.exe` launches. The same control can fill a new planet or moon; its file name becomes the link name if you have not entered one. Editing the computer address later updates the saved profile's target while retaining its other settings. Password, token, and signature fields are excluded; Orbit does not store credentials. Exported Orbit JSON includes the remaining profile settings, so review it before sharing.
+
 To open the Windows client directly from a moon, install the per-user **Orbit launcher** once on the Windows PC where you use Orbit. This opens the built-in `mstsc.exe`; the separate MSRDC app installed by `winget install Microsoft.RemoteDesktopClient` does not register Orbit's launcher. From the project folder, run with Windows PowerShell 5.1:
 
 ```powershell
@@ -66,7 +68,7 @@ Windows 10 and 11 include Windows PowerShell 5.1 by default. If it is unavailabl
 pwsh.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Install-OrbitRdp.ps1
 ```
 
-The installer registers the same PowerShell executable that ran it. Running it again replaces the current user's `orbit-rdp://` registration with the new executable, so a 5.1 install followed by a PowerShell 7 install switches future clicks to `pwsh.exe`. It also refreshes the copied helper; Orbit's browser settings and generated `.rdp` files remain in place. Re-run the installer if you later remove the registered PowerShell installation.
+The installer registers the same PowerShell executable that ran it. Running it again replaces the current user's `orbit-rdp://` registration with the new executable, so a 5.1 install followed by a PowerShell 7 install switches future clicks to `pwsh.exe`. It also refreshes the copied helper; Orbit's browser settings and generated `.rdp` files remain in place. Re-run the installer after updating Orbit to enable imported profiles, or if you later remove the registered PowerShell installation.
 
 Then choose **Settings → Remote Desktop → Open mstsc.exe**. Clicking a lab planet or moon asks Windows to open the Orbit launcher, which opens Remote Desktop Connection with the computer prefilled. Click **Connect** in the client. Your browser may ask whether to open the external app. This setting is saved in the browser; **Download .rdp file** remains available in the same menu. The helper stores connection files under `%LOCALAPPDATA%\Orbit\Connections` and stores no credentials.
 
@@ -74,7 +76,7 @@ To remove the launcher registration from that Windows account, run `powershell.e
 
 ## Settings and help
 
-Click the cog in the Galaxy to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
+Click the cog on the Galaxy or any System to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
 
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
 

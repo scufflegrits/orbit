@@ -5,7 +5,7 @@ const topbarSearch = document.querySelector('#topbar-search');
 const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.7.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -65,20 +65,57 @@ function readRdpLaunchPreference() {
   }
 }
 
+function validRdpHost(host, label) {
+  const match = /^([^:]+)(?::([0-9]{1,5}))?$/.exec(host);
+  const computer = match?.[1];
+  if (!computer || computer.length > 253 || computer.split('.').some(part =>
+    part.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(part)) ||
+    (match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535))) {
+    throw new Error(`${label} needs a computer name or IP address, with an optional port.`);
+  }
+  return match[2] ? `${computer}:${Number(match[2])}` : computer;
+}
+
+function parseRdpProfile(text, targetHost = null) {
+  if (typeof text !== 'string' || text.includes('\0')) throw new Error('The .rdp file is not valid text.');
+  const rows = [];
+  let sourceHost = null;
+  let removed = 0;
+  for (const line of text.replace(/^\uFEFF/, '').split(/\r\n|\n|\r/)) {
+    if (!line) continue;
+    const match = /^([^:]+):([sib]):(.*)$/i.exec(line);
+    if (!match || !/^[a-z0-9 _.-]+$/i.test(match[1])) {
+      throw new Error('The .rdp file has an invalid setting line.');
+    }
+    const key = match[1].toLowerCase();
+    if (/(?:password|passwd|token|secret|signature|signscope)/i.test(key)) {
+      removed++;
+      continue;
+    }
+    if (key === 'full address') {
+      if (sourceHost || match[2].toLowerCase() !== 's') throw new Error('The .rdp file has more than one computer address.');
+      sourceHost = validRdpHost(match[3].trim(), 'The .rdp file');
+      rows.push(`full address:s:${targetHost || sourceHost}`);
+    } else {
+      rows.push(line);
+    }
+  }
+  if (!sourceHost) throw new Error('The .rdp file needs a full address setting.');
+  const content = rows.join('\r\n') + '\r\n';
+  if (new TextEncoder().encode(content).length > 12000) {
+    throw new Error('The .rdp file is too large to launch through Orbit.');
+  }
+  return { host: sourceHost, content, removed, settings: rows.length };
+}
+
 function validDestination(value, label) {
   if (!value || typeof value !== 'object') throw new Error(`${label} needs a name and destination.`);
   const name = String(value.name || '').trim();
   if (!name) throw new Error(`${label} needs a name.`);
   if (value.type === 'rdp') {
-    const host = String(value.host || '').trim();
-    const match = /^([^:]+)(?::([0-9]{1,5}))?$/.exec(host);
-    const computer = match?.[1];
-    if (!computer || computer.length > 253 || computer.split('.').some(label =>
-      label.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label)) ||
-      (match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535))) {
-      throw new Error(`${label} needs a computer name or IP address, with an optional port.`);
-    }
-    return { name, type: 'rdp', host };
+    const host = validRdpHost(String(value.host || '').trim(), label);
+    if (value.rdpProfile === undefined) return { name, type: 'rdp', host };
+    return { name, type: 'rdp', host, rdpProfile: parseRdpProfile(value.rdpProfile, host).content };
   }
   if (value.type !== undefined && value.type !== 'web') throw new Error(`${label} has an unsupported destination type.`);
   const url = String(value.url || '').trim();
@@ -283,6 +320,7 @@ function showMenuPanel(name) {
     rdpSetup.append(element('code', '', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\windows\\Install-OrbitRdp.ps1'));
     rdpSetup.append(element('p', '', 'If only PowerShell 7 is available, run:'));
     rdpSetup.append(element('code', '', 'pwsh.exe -NoProfile -ExecutionPolicy Bypass -File .\\windows\\Install-OrbitRdp.ps1'));
+    rdpSetup.append(element('p', '', 'If you installed the helper before importing .rdp profiles was added, run the installer again to update the helper.'));
     const updateRdpSetup = () => { rdpSetup.hidden = rdpSelect.value !== 'client'; };
     updateRdpSetup();
     rdpSelect.addEventListener('change', () => {
@@ -333,6 +371,7 @@ function showMenuPanel(name) {
     menuContent.append(element('p', '', 'Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
     menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.'));
+    menuContent.append(element('p', '', 'In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.'));
     menuContent.append(element('p', '', 'Your browser may ask before opening the helper. Orbit does not store credentials.'));
     menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
   } else if (name === 'About') {
@@ -359,7 +398,18 @@ function editorField(label, value, type = 'text') {
   return { wrapper, input };
 }
 
-function destinationFields(form, destination) {
+async function readRdpText(file) {
+  if (file.size > 64000) throw new Error('The .rdp file is too large to import.');
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const utf16Le = bytes[0] === 0xff && bytes[1] === 0xfe;
+  const utf16Be = bytes[0] === 0xfe && bytes[1] === 0xff;
+  const likelyUtf16Le = !utf16Le && !utf16Be && bytes.length > 8 &&
+    bytes[1] === 0 && bytes[3] === 0 && bytes[5] === 0;
+  const encoding = utf16Le || likelyUtf16Le ? 'utf-16le' : utf16Be ? 'utf-16be' : 'utf-8';
+  return new TextDecoder(encoding, { fatal: true }).decode(bytes);
+}
+
+function destinationFields(form, destination, onRdpImported) {
   const type = element('label', 'editor-field');
   type.append(element('span', '', 'Destination type'));
   const select = document.createElement('select');
@@ -373,15 +423,39 @@ function destinationFields(form, destination) {
   type.append(select);
   const url = editorField('Destination URL', destination.url || '', 'url');
   const host = editorField('Computer name or IP address', destination.host || '');
+  let rdpProfile = destination.rdpProfile || null;
+  const profileNote = element('p', 'data-source', rdpProfile
+    ? 'Custom .rdp settings are saved with this link.' : 'No custom .rdp settings are saved.');
+  const importRdp = editorButton('Import .rdp file', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.rdp,application/x-rdp';
+    input.addEventListener('change', async () => {
+      if (!input.files.length) return;
+      try {
+        const parsed = parseRdpProfile(await readRdpText(input.files[0]));
+        select.value = 'rdp';
+        host.input.value = parsed.host;
+        rdpProfile = parsed.content;
+        profileNote.textContent = `${parsed.settings} connection settings imported. ${parsed.removed ? `${parsed.removed} password, token, or signature settings excluded. ` : ''}Save this link to keep the profile.`;
+        update();
+        onRdpImported?.(input.files[0]);
+      } catch (error) {
+        editorError(`RDP import failed: ${error.message}`);
+      }
+    });
+    input.click();
+  });
   const update = () => {
     url.wrapper.hidden = select.value !== 'web';
     host.wrapper.hidden = select.value !== 'rdp';
+    profileNote.hidden = select.value !== 'rdp';
   };
   select.addEventListener('change', update);
-  form.append(type, url.wrapper, host.wrapper);
+  form.append(type, url.wrapper, host.wrapper, profileNote, importRdp);
   update();
   return () => select.value === 'rdp'
-    ? { type: 'rdp', host: host.input.value.trim() }
+    ? { type: 'rdp', host: host.input.value.trim(), ...(rdpProfile ? { rdpProfile } : {}) }
     : { url: url.input.value.trim() };
 }
 
@@ -668,7 +742,9 @@ function showPlanetEditor(sunIndex, planetIndex) {
   const form = element('form', 'editor-form');
   const name = editorField('Planet name', planet.name);
   form.append(name.wrapper);
-  const readDestination = destinationFields(form, planet);
+  const readDestination = destinationFields(form, planet, file => {
+    if (isNew && !name.input.value.trim()) name.input.value = file.name.replace(/\.rdp$/i, '');
+  });
   const actions = element('div', 'editor-actions');
   const save = element('button', 'editor-primary', isNew ? 'Add planet' : 'Save planet');
   save.type = 'submit';
@@ -731,7 +807,9 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   const form = element('form', 'editor-form');
   const name = editorField('Moon name', moon.name);
   form.append(name.wrapper);
-  const readDestination = destinationFields(form, moon);
+  const readDestination = destinationFields(form, moon, file => {
+    if (isNew && !name.input.value.trim()) name.input.value = file.name.replace(/\.rdp$/i, '');
+  });
   const actions = element('div', 'editor-actions');
   const save = element('button', 'editor-primary', isNew ? 'Add moon' : 'Save moon');
   save.type = 'submit';
@@ -786,7 +864,8 @@ function safeColor(value) {
 }
 
 function downloadRdp(destination) {
-  const content = `full address:s:${destination.host}\r\nprompt for credentials:i:1\r\n`;
+  const content = destination.rdpProfile ||
+    `full address:s:${destination.host}\r\nprompt for credentials:i:1\r\n`;
   const blob = new Blob([content], { type: 'application/x-rdp' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -799,7 +878,12 @@ function downloadRdp(destination) {
 }
 
 function rdpLaunchUrl(destination) {
-  return `orbit-rdp://${destination.host}/`;
+  if (!destination.rdpProfile) return `orbit-rdp://${destination.host}/`;
+  const bytes = new TextEncoder().encode(destination.rdpProfile);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const profile = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `orbit-rdp://${destination.host}/?profile=${profile}`;
 }
 
 function linkNode(link, className) {
@@ -1016,8 +1100,13 @@ function renderHome() {
 function renderDetail(group) {
   app.replaceChildren();
   app.className = 'detail-view';
-  settingsTrigger.hidden = true;
-  topbarSearch.hidden = true;
+  settingsTrigger.hidden = false;
+  topbarSearch.hidden = false;
+  quickFind.value = findQuery;
+  quickFind.oninput = () => {
+    findQuery = quickFind.value;
+    location.hash = '';
+  };
   const top = element('div', 'detail-top');
   const back = element('a', 'back-link', '←  Return to Galaxy');
   back.href = '#';

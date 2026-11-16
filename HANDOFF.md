@@ -6,12 +6,12 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 
 ## Current state
 
-- Milestones 1–12 in [ROADMAP.md](ROADMAP.md) are complete. [TEST_MATRIX.md](TEST_MATRIX.md) records browser checks for both direct-file and local-server modes, plus the user-confirmed Windows 11 launch check.
+- Milestones 1–14 are complete. Milestones 15–18 are implemented and awaiting the next test batch requested by the user. See [ROADMAP.md](ROADMAP.md) and [TEST_MATRIX.md](TEST_MATRIX.md).
 - The bundled data contains nine sample suns, 45 planets, and 61 moons. Five planets can appear around each Galaxy sun; eight appear around a System sun. Overflow lists keep additional destinations reachable.
-- The Galaxy cog opens Settings, Help, and About. Settings contains Animations, Always show moons, Theme, Font size, and the local link editor. Font size offers Small, Standard, Large, and Extra large; the selected size is stored in this browser.
-- Quick find sits in the Galaxy top bar and searches every sun, planet, and moon. The editor supports adding, renaming, reordering, and removing them; URL and color validation; JSON import/export; reset to bundled data; and Undo for the latest removal. Browser edits take precedence over project files until reset.
-- Themes include Default, Alabama inspired, and Auburn inspired. The page uses local CSS and no remote theme assets.
-- Labs contains `lab1`–`lab5` and five `lab1` server moons. Their hosts are examples. Remote Desktop destinations download `.rdp` files by default. The optional Windows helper registers `orbit-rdp://` to open built-in `mstsc.exe` with a host loaded; credentials are never stored in the map. Settings shows the installer command when native launch is selected. Installing the separate MSRDC app does not register the Orbit protocol.
+- The cog and Quick find appear on the Galaxy and System views. Quick find from a System returns to Galaxy results. The home view omits the large intro block; navigation guidance is in Help. The cog panel enters from the right.
+- Themes are named Default, Red, and Blue. Settings also includes Animations, Always show moons, font size, Remote Desktop mode, and the local link editor.
+- The editor supports scoped sun/planet/moon JSON sharing and importing a planet as a sun. It can also import local `.rdp` profiles into planet or moon entries, preserving settings while excluding password, token, and signature fields.
+- Labs contains `lab1`–`lab5` and five `lab1` server moons. Their hosts are examples. Remote Desktop destinations download `.rdp` files by default. The Windows helper passes imported profiles to built-in `mstsc.exe`; the native imported-profile path requires a Windows run. Re-run the installer after updating the helper. Installing MSRDC does not register Orbit's protocol.
 - The installer registers the executable running it: Windows PowerShell 5.1 (`powershell.exe`) or PowerShell 7 (`pwsh.exe`). Running it again overwrites the per-user protocol command and refreshes the helper, so moving from 5.1 to 7 switches future clicks. Settings and README show both commands; the user must re-run the installer if that executable is removed.
 - Keyboard navigation is deferred by the roadmap. Touch interaction is outside its scope.
 
@@ -42,6 +42,6 @@ To edit bundled data, change `links.json` and run `python3 sync.py` for direct-f
 
 ## Verification
 
-Run `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 12` to check the current matrix with Playwright and Chromium. It writes screenshots under `/tmp/orbit-browser-tests`. The test runner covers direct-file and local-server modes, data validation, pointer navigation, settings, editor operations, persistence, themes, font sizes, Remote Desktop downloads, native protocol links, and reduced motion. The user confirmed that the installed helper opens `mstsc.exe` on Windows 11.
+Run `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 18` to check the current matrix with Playwright and Chromium. It writes screenshots under `/tmp/orbit-browser-tests`. It covers direct-file and local-server modes. The user confirmed host-only native launch on Windows 11; imported-profile launch still needs Windows verification.
 
 No deployment or hosting was performed, and no personal links have been supplied.

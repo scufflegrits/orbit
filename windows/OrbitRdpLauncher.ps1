@@ -3,10 +3,12 @@
 Opens built-in mstsc.exe with an Orbit Remote Desktop target prefilled.
 
 .DESCRIPTION
-Receives orbit-rdp://computer[:port]/ from the browser, validates the host,
-writes a minimal .rdp file under %LOCALAPPDATA%\Orbit\Connections, and opens
-that file with mstsc.exe /edit. The user reviews the target and clicks Connect.
-The helper does not store credentials or make the connection itself.
+Receives orbit-rdp://computer[:port]/ from the browser, with an optional
+profile containing connection settings imported from a local .rdp file.
+Validates the host and profile, writes the connection under
+%LOCALAPPDATA%\Orbit\Connections, and opens it with mstsc.exe /edit.
+The user reviews the target and clicks Connect. Passwords, tokens, and
+signatures are not accepted in imported profiles.
 #>
 
 param(
@@ -20,7 +22,7 @@ try {
     # Treat protocol URLs as untrusted input; any application can invoke them.
     $request = [System.Uri]::new($RequestUri, [System.UriKind]::Absolute)
     if ($request.Scheme -ne 'orbit-rdp' -or $request.AbsolutePath -ne '/' -or
-        $request.UserInfo -or $request.Query -or $request.Fragment) {
+        $request.UserInfo -or $request.Fragment) {
         throw 'The Remote Desktop link is invalid.'
     }
 
@@ -47,8 +49,50 @@ try {
     [System.IO.Directory]::CreateDirectory($connectionDir) | Out-Null
     $fileName = ($address -replace '[^A-Za-z0-9.-]', '_') + '.rdp'
     $connectionFile = Join-Path $connectionDir $fileName
-    # Keep the file limited to the address and a credential prompt.
     $content = "full address:s:$address`r`nprompt for credentials:i:1`r`n"
+    if ($request.Query) {
+        # Browser-imported settings travel as base64url UTF-8; never accept credential fields.
+        if (-not ($request.Query -cmatch '^\?profile=([A-Za-z0-9_-]{1,16000})$')) {
+            throw 'The Remote Desktop profile link is invalid.'
+        }
+        $encoded = $Matches[1].Replace('-', '+').Replace('_', '/')
+        $encoded += '=' * ((4 - ($encoded.Length % 4)) % 4)
+        $profileBytes = [System.Convert]::FromBase64String($encoded)
+        if ($profileBytes.Length -gt 12000) {
+            throw 'The Remote Desktop profile is too large.'
+        }
+        $strictUtf8 = [System.Text.UTF8Encoding]::new($false, $true)
+        $profileText = $strictUtf8.GetString($profileBytes)
+        if ($profileText.Contains([char]0)) {
+            throw 'The Remote Desktop profile is invalid.'
+        }
+        $safeLines = New-Object 'System.Collections.Generic.List[string]'
+        $addressFound = $false
+        foreach ($line in ($profileText -split "`r`n|`n|`r")) {
+            if (-not $line) { continue }
+            if (-not ($line -match '^([^:]+):([sib]):(.*)$')) {
+                throw 'The Remote Desktop profile has an invalid setting.'
+            }
+            $key = $Matches[1]
+            $kind = $Matches[2]
+            $value = $Matches[3]
+            if ($key -cnotmatch '^[A-Za-z0-9 _.-]+$' -or
+                $key -match 'password|passwd|token|secret|signature|signscope') {
+                throw 'The Remote Desktop profile has an unsafe setting.'
+            }
+            if ($key -ieq 'full address') {
+                if ($addressFound -or $kind -ine 's' -or $value -ine $address) {
+                    throw 'The Remote Desktop profile computer does not match the link.'
+                }
+                $addressFound = $true
+            }
+            $safeLines.Add($line)
+        }
+        if (-not $addressFound) {
+            throw 'The Remote Desktop profile needs a computer address.'
+        }
+        $content = ($safeLines -join "`r`n") + "`r`n"
+    }
     $encoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($connectionFile, $content, $encoding)
 

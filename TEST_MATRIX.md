@@ -135,7 +135,7 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| U01 | Both | Open the Galaxy and a System at normal and narrow desktop widths; use Quick find. | Search appears in the Galaxy top bar beside the map status, is hidden in Systems, and still finds suns, planets, and moons. | Pass |
+| U01 | Both | Open the Galaxy and a System at normal and narrow desktop widths; use Quick find. | Search appears in the Galaxy top bar beside the map status, is hidden in Systems, and still finds suns, planets, and moons. | Pass — historical behavior, superseded by milestone 17. |
 | U02 | Both | Search from the Galaxy, then click the Orbit logo; repeat after opening a System from a search result. | Quick find clears and all suns appear on the Galaxy. | Pass |
 
 ## Milestone 13 — Share selected links
@@ -169,6 +169,23 @@ Browser tests should use existing tool permissions when available. If a browser 
 | --- | --- | --- | --- | --- |
 | M16-01 | Both | Open the Galaxy at normal and narrow desktop widths. | The large heading and instructions are absent; all suns remain visible and reachable near the top bar. | Not run — deferred at the user's request. |
 | M16-02 | Both | Open cog → Help, use Quick find, then open and leave a System. | Help contains the navigation instructions and search and System navigation still work. | Not run — deferred at the user's request. |
+
+## Milestone 17 — Global settings and search
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| M17-01 | Both | Open the Galaxy and a System at normal and narrow desktop widths; open the cog in each. | Settings, Help, and About are available from both views and the header fits. | Not run — deferred at the user's request. |
+| M17-02 | Both | Type a sun, planet, or moon query while viewing a System. | Orbit returns to Galaxy results with the query preserved; the chosen result opens correctly. | Not run — deferred at the user's request. |
+| M17-03 | Both | Open a System from search results, then click the Orbit logo. | Quick find stays visible in the System, and the logo clears the query and shows all suns. | Not run — deferred at the user's request. |
+
+## Milestone 18 — Import saved Remote Desktop profiles
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| M18-01 | Both | Import a UTF-8 `.rdp` file into an existing lab moon; save and reload. | Host, port, name, and other settings persist under the intended parent. | Not run |
+| M18-02 | Both | Download an imported link's `.rdp` file, edit its host, then export the moon. | The generated file and JSON retain settings, and its `full address` follows the edited host. | Not run |
+| M18-03 | Both | Import a profile with a password, token, or signature, and try malformed or oversized files. | Secrets and signatures are omitted; invalid files leave the saved map unchanged with an error. | Not run |
+| M18-04 | Windows | Reinstall the Orbit helper and open an imported profile in native mode. | `mstsc.exe /edit` opens with the imported settings and correct host; the browser's external-app prompt still works. | Not run — deferred at the user's request; requires Windows. |
 
 ## Milestone commit record
 

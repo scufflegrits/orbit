@@ -1039,8 +1039,8 @@ def run_pending_ui(page, url, mode):
     search.fill("Tech")
     page.locator(".find-item").first.click()
     page.locator(".detail-view").wait_for()
-    check(page.locator("#topbar-search:visible").count() == 0,
-          f"{mode}: Quick find hides in a System")
+    check(page.locator("#topbar-search:visible").count() == 1,
+          f"{mode}: Quick find remains visible in a System")
     page.locator(".brand").click()
     check(search.input_value() == "" and page.locator(".home-hub").count() == 9,
           f"{mode}: Orbit logo returns from a System to all suns")
