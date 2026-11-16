@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–9 passed; milestone 10 in progress. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–10 passed. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -19,11 +19,11 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; eight sample suns and the link count appear. | Pass (M9) |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M9) |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M9) |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M9) |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M9) |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; eight sample suns and the link count appear. | Pass (M10) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M10) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M10) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M10) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M10) |
 
 ## Milestone 1 — Galaxy layout and language
 
@@ -107,8 +107,8 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| F01 | Both | Select Small, Standard, Large, and Extra large, then reload. | Each applies immediately and persists across reloads. | Not run |
-| F02 | Both | Inspect Galaxy, Systems, search, menus, and editor at each size and theme. | Text changes size without clipping labels or hiding links at 1280 and 900 pixels. | Not run |
+| F01 | Both | Select Small, Standard, Large, and Extra large, then reload. | Each applies immediately and persists across reloads. | Pass |
+| F02 | Both | Inspect Galaxy, Systems, search, menus, and editor at each size and theme. | Text changes size without clipping labels or hiding links at 1280 and 900 pixels. | Pass |
 
 ## Milestone commit record
 
@@ -125,4 +125,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 7 — Quick find | 2026-11-15 | S01–S05 and Q01–Q02 passed in Playwright; 900-pixel result screenshot inspected. | Milestone 7: Quick find |
 | 8 — Editor recovery | 2026-11-15 | S01–S05 and R01–R02 passed in Playwright; 900-pixel editor screenshot inspected. | Milestone 8: Editor recovery |
 | 9 — Eight-sun map | 2026-11-15 | S01–S05 and L01–L03 passed in Playwright; Galaxy and System screenshots inspected at 1280 and 900 pixels. | Milestone 9: Eight-sun map |
-| 10 — Font sizes | — | Not run | — |
+| 10 — Font sizes | 2026-11-15 | S01–S05 and F01–F02 passed in Playwright in both run modes; all 12 font/theme combinations checked per mode and extra-large screenshots inspected. | Milestone 10: Font size setting |

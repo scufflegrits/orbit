@@ -48,6 +48,8 @@ Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` d
 
 Click the cog in the Galaxy to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
 
+The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
+
 Settings also includes **Always show moons** and **Edit links**. The editor lets you add, rename, reorder, or remove suns, planets, and moons, and edit their descriptions, colors, and destination URLs. Changes appear immediately and are stored in this browser. Export JSON for a portable backup, import a JSON file to replace the browser map, or reset to the link data loaded from the project files.
 
 Settings and Edit links show whether the active map is bundled project data or browser edits. After removing a sun, planet, or moon, use **Undo removal** in the editor to restore it. The latest removal remains available after a reload; importing or resetting the map clears it.

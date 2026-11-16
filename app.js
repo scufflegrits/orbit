@@ -3,7 +3,7 @@ const count = document.querySelector('#link-count');
 const settingsTrigger = document.querySelector('#settings-trigger');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -13,6 +13,7 @@ const UNDO_STORAGE_KEY = 'orbit:undo-removal:v1';
 let animationsEnabled = readBooleanPreference('orbit:animations', true);
 let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
 let activeTheme = readThemePreference();
+let activeFontSize = readFontSizePreference();
 let seedData = null;
 let storageWarning = '';
 let findQuery = '';
@@ -20,6 +21,7 @@ let activeMapSource = 'bundled';
 document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
 document.documentElement.dataset.moons = alwaysShowMoons ? 'always' : 'hover';
 document.documentElement.dataset.theme = activeTheme;
+document.documentElement.dataset.fontSize = activeFontSize;
 
 function readBooleanPreference(key, fallback) {
   try {
@@ -40,6 +42,15 @@ function readThemePreference() {
     return ['default', 'alabama', 'auburn'].includes(value) ? value : 'default';
   } catch {
     return 'default';
+  }
+}
+
+function readFontSizePreference() {
+  try {
+    const value = localStorage.getItem('orbit:font-size');
+    return ['small', 'standard', 'large', 'extra'].includes(value) ? value : 'standard';
+  } catch {
+    return 'standard';
   }
 }
 
@@ -205,6 +216,28 @@ function showMenuPanel(name) {
     });
     themeRow.append(themeCopy, themeSelect);
     menuContent.append(themeRow);
+    const fontRow = element('label', 'setting-row');
+    const fontCopy = element('span', 'setting-copy');
+    fontCopy.append(element('strong', '', 'Font size'));
+    fontCopy.append(element('small', '', 'Text size throughout Orbit'));
+    const fontSelect = document.createElement('select');
+    fontSelect.setAttribute('aria-label', 'Font size');
+    for (const [value, label] of [
+      ['small', 'Small (90%)'], ['standard', 'Standard (100%)'],
+      ['large', 'Large (115%)'], ['extra', 'Extra large (130%)'],
+    ]) {
+      const option = element('option', '', label);
+      option.value = value;
+      fontSelect.append(option);
+    }
+    fontSelect.value = activeFontSize;
+    fontSelect.addEventListener('change', () => {
+      activeFontSize = fontSelect.value;
+      document.documentElement.dataset.fontSize = activeFontSize;
+      savePreference('orbit:font-size', activeFontSize);
+    });
+    fontRow.append(fontCopy, fontSelect);
+    menuContent.append(fontRow);
     const row = element('label', 'setting-row');
     const copy = element('span', 'setting-copy');
     copy.append(element('strong', '', 'Animations'));
@@ -694,6 +727,7 @@ function homeGroup(group, index) {
   hub.type = 'button';
   hub.setAttribute('aria-label', `Open ${group.name} system with ${group.links.length} planets`);
   hub.append(element('span', 'hub-name', group.name));
+  if (group.name.length > 12) hub.classList.add('long-name');
   hub.append(element('span', 'hub-count', `${group.links.length} PLANETS`));
   hub.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(group.id)}`; });
   orbit.append(hub);
@@ -811,6 +845,7 @@ function renderDetail(group) {
   });
   stage.append(orbitLines(points, center, 640));
   const hub = element('div', 'detail-hub');
+  if (group.name.length > 12) hub.classList.add('long-name');
   hub.append(element('span', 'detail-hub-name', group.name));
   hub.append(element('span', 'detail-hub-sub', `${group.links.length} planets`));
   stage.append(hub);

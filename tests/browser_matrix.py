@@ -778,6 +778,7 @@ def run_milestone_9(page, url, mode):
     page.set_viewport_size({"width": 1280, "height": 900})
     page.locator(".back-link").click()
     page.locator(".home-hub").filter(has_text="Science").click()
+    page.wait_for_function("document.querySelector('.detail-heading h1')?.textContent?.includes('Science')")
     check(page.locator(".detail-satellite").count() == 5,
           f"{mode}: science planets visible")
     nasa = page.locator(".detail-planet-cluster").filter(has_text="NASA Science")
@@ -802,9 +803,79 @@ def run_milestone_9(page, url, mode):
     print(f"PASS milestone 9 ({mode})")
 
 
+def run_milestone_10(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:font-size'); localStorage.removeItem('orbit:map:v1')")
+    page.reload(wait_until="load")
+    check(page.locator("html").get_attribute("data-font-size") == "standard",
+          f"{mode}: font size defaults Standard")
+    sizes = {"small": 0.9, "standard": 1, "large": 1.15, "extra": 1.3}
+    for theme in ("default", "alabama", "auburn"):
+        for size, scale in sizes.items():
+            page.locator("#settings-trigger").click()
+            page.locator('[data-menu-panel="Settings"]').click()
+            page.get_by_label("Theme").select_option(theme)
+            page.get_by_label("Font size").select_option(size)
+            check(page.locator("html").get_attribute("data-font-size") == size,
+                  f"{mode}: {theme} {size} applies immediately")
+            setting_size = page.locator(".setting-copy strong").first.evaluate(
+                "el => parseFloat(getComputedStyle(el).fontSize)")
+            check(abs(setting_size - 14 * scale) < 0.2,
+                  f"{mode}: {theme} {size} menu text scales")
+            page.locator("#menu-close").click()
+            page.reload(wait_until="load")
+            page.locator(".home-hub").first.wait_for()
+            check(page.locator("html").get_attribute("data-font-size") == size,
+                  f"{mode}: {theme} {size} persists after reload")
+            page.set_viewport_size({"width": 900, "height": 900})
+            for hub in page.locator(".home-hub").all():
+                check(hub.evaluate("el => el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1"),
+                      f"{mode}: {theme} {size} sun label fits")
+            hub_size = page.locator(".home-hub").first.locator(".hub-name").evaluate(
+                "el => parseFloat(getComputedStyle(el).fontSize)")
+            check(abs(hub_size - 25 * scale) < 0.2,
+                  f"{mode}: {theme} {size} sun text scales")
+            search = page.get_by_role("searchbox", name="Quick find")
+            search.fill("Investor.gov")
+            check(page.locator(".find-item").count() == 1,
+                  f"{mode}: {theme} {size} search result reachable")
+            search.fill("")
+            page.locator(".home-hub").filter(has_text="Stocks & Investing").click()
+            page.wait_for_function("document.querySelector('.detail-heading h1')?.textContent?.includes('Stocks & Investing')")
+            check(page.locator(".detail-hub").evaluate(
+                "el => el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1"),
+                f"{mode}: {theme} {size} long System label fits")
+            investor = page.locator(".detail-planet-cluster").filter(has_text="Investor.gov")
+            investor.locator(".detail-satellite").hover()
+            for moon in investor.locator(".moon-link:visible").all():
+                box = moon.bounding_box()
+                check(box is not None and box["x"] >= 0 and box["x"] + box["width"] <= 900,
+                      f"{mode}: {theme} {size} moon fits System")
+            page.locator(".back-link").click()
+            open_editor(page)
+            sheet = page.locator(".menu-sheet").bounding_box()
+            check(sheet is not None and sheet["x"] >= 0 and sheet["x"] + sheet["width"] <= 900,
+                  f"{mode}: {theme} {size} editor fits desktop")
+            if size == "extra":
+                page.screenshot(path=str(ARTIFACTS / f"milestone10-{theme}-{mode}-editor.png"),
+                                full_page=True)
+            page.set_viewport_size({"width": 1280, "height": 900})
+            sheet = page.locator(".menu-sheet").bounding_box()
+            check(sheet is not None and sheet["x"] >= 0 and sheet["x"] + sheet["width"] <= 1280,
+                  f"{mode}: {theme} {size} editor fits normal desktop")
+            page.locator("#menu-close").click()
+            for hub in page.locator(".home-hub").all():
+                check(hub.evaluate("el => el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1"),
+                      f"{mode}: {theme} {size} sun label fits normal desktop")
+            if size == "extra":
+                page.screenshot(path=str(ARTIFACTS / f"milestone10-{theme}-{mode}-galaxy.png"),
+                                full_page=True)
+    print(f"PASS milestone 10 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 10), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 11), required=True)
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
@@ -847,6 +918,8 @@ def main():
                             run_milestone_8(page, url, mode)
                         if args.milestone >= 9:
                             run_milestone_9(page, url, mode)
+                        if args.milestone >= 10:
+                            run_milestone_10(page, url, mode)
                     finally:
                         page.close()
             finally:

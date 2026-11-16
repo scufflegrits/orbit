@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–9 complete (2026-11-15). Milestone 10 adds a font-size setting.
+Status: milestones 1–10 complete (2026-11-15).
 
 The editor is part of the local browser app; it does not require hosting or an account.
 

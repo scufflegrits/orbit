@@ -6,9 +6,9 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 
 ## Current state
 
-- Milestones 1–9 in [ROADMAP.md](ROADMAP.md) are complete. [TEST_MATRIX.md](TEST_MATRIX.md) records browser checks for both direct-file and local-server modes.
+- Milestones 1–10 in [ROADMAP.md](ROADMAP.md) are complete. [TEST_MATRIX.md](TEST_MATRIX.md) records browser checks for both direct-file and local-server modes.
 - The bundled data contains eight sample suns, 40 planets, and 56 moons. Five planets can appear around each Galaxy sun; eight appear around a System sun. Overflow lists keep additional destinations reachable.
-- The Galaxy cog opens Settings, Help, and About. Settings contains Animations, Always show moons, Theme, and the local link editor.
+- The Galaxy cog opens Settings, Help, and About. Settings contains Animations, Always show moons, Theme, Font size, and the local link editor. Font size offers Small, Standard, Large, and Extra large; the selected size is stored in this browser.
 - Quick find searches every sun, planet, and moon. The editor supports adding, renaming, reordering, and removing them; URL and color validation; JSON import/export; reset to bundled data; and Undo for the latest removal. Browser edits take precedence over project files until reset.
 - Themes include Default, Alabama inspired, and Auburn inspired. The page uses local CSS and no remote theme assets.
 - Keyboard navigation is deferred by the roadmap. Touch interaction is outside its scope.
@@ -37,6 +37,6 @@ To edit bundled data, change `links.json` and run `python3 sync.py` for direct-f
 
 ## Verification
 
-Run `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 9` to check the current matrix with Playwright and Chromium. It writes screenshots under `/tmp/orbit-browser-tests`. The test runner covers direct-file and local-server modes, data validation, pointer navigation, settings, editor operations, persistence, themes, and reduced motion.
+Run `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 10` to check the current matrix with Playwright and Chromium. It writes screenshots under `/tmp/orbit-browser-tests`. The test runner covers direct-file and local-server modes, data validation, pointer navigation, settings, editor operations, persistence, themes, font sizes, and reduced motion.
 
 No deployment or hosting was performed, and no personal links have been supplied.
