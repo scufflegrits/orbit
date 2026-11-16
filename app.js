@@ -3,7 +3,7 @@ const count = document.querySelector('#link-count');
 const settingsTrigger = document.querySelector('#settings-trigger');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.3.2';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -277,8 +277,10 @@ function showMenuPanel(name) {
     const rdpSetup = element('div', 'rdp-setup');
     rdpSetup.append(element('strong', '', 'Windows setup required'));
     rdpSetup.append(element('p', '', 'This opens built-in mstsc.exe. Installing Microsoft Remote Desktop Client (MSRDC) does not install the Orbit helper.'));
-    rdpSetup.append(element('p', '', 'In PowerShell, from the Orbit project folder, run:'));
+    rdpSetup.append(element('p', '', 'From the Orbit project folder, run with Windows PowerShell 5.1:'));
     rdpSetup.append(element('code', '', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\windows\\Install-OrbitRdp.ps1'));
+    rdpSetup.append(element('p', '', 'If only PowerShell 7 is available, run:'));
+    rdpSetup.append(element('code', '', 'pwsh.exe -NoProfile -ExecutionPolicy Bypass -File .\\windows\\Install-OrbitRdp.ps1'));
     const updateRdpSetup = () => { rdpSetup.hidden = rdpSelect.value !== 'client'; };
     updateRdpSetup();
     rdpSelect.addEventListener('change', () => {

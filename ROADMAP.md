@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–12 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11.
+Status: milestones 1–12 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -148,6 +148,7 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 
 - Add a browser setting that switches Remote Desktop destinations between `.rdp` download and opening built-in `mstsc.exe`. Keep download as the default and preserve the choice across reloads.
 - Provide a per-user Windows helper that registers an `orbit-rdp://` protocol handler. Validate the selected host and port, create a connection file without credentials, and open it in Remote Desktop Connection for review before connecting.
+- Register the PowerShell executable that runs the installer, supporting Windows PowerShell 5.1 or PowerShell 7 when either is available.
 - Apply the choice to planets, moons, overflow, and Quick find in both run modes. Show the required Orbit helper install command in Settings when native mode is selected; distinguish built-in `mstsc.exe` from the separate MSRDC app. Document the browser's external-app prompt and how to remove the helper.
 
 **Done when:** Native mode produces the right protocol link for every Remote Desktop destination, the setting persists, and download mode still works. A Windows PC with the helper installed must be used for the final client-launch check.

@@ -965,7 +965,8 @@ def run_milestone_12(page, url, mode):
           f"{mode}: native mode clearly names the built-in client")
     setup = page.locator(".rdp-setup:visible")
     check(setup.count() == 1 and "Install-OrbitRdp.ps1" in setup.inner_text() and
-          "mstsc.exe" in setup.inner_text() and "MSRDC" in setup.inner_text(),
+          "mstsc.exe" in setup.inner_text() and "MSRDC" in setup.inner_text() and
+          "powershell.exe" in setup.inner_text() and "pwsh.exe" in setup.inner_text(),
           f"{mode}: native setup guidance names the required installer and client")
     page.set_viewport_size({"width": 900, "height": 900})
     page.screenshot(path=str(ARTIFACTS / f"milestone12-settings-{mode}-900.png"), full_page=True)
