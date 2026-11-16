@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–14 passed; optional PowerShell 7 installer check N06 is pending. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–14 passed; the PowerShell 7 installer check N06 passed on Windows. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -129,7 +129,7 @@ Browser tests should use existing tool permissions when available. If a browser 
 | N03 | Both | Return to download mode and click a server result. | The `.rdp` file still downloads with the configured server name. | Pass |
 | N04 | Windows | Install the per-user helper; click a moon and use Connect. | The browser opens Remote Desktop Connection with that moon's host prefilled. | Pass — user confirmed native launch works on Windows 11 after installing the helper. |
 | N05 | Both | Switch between download and native modes in Settings. | Native mode shows the Orbit helper install commands for Windows PowerShell 5.1 and PowerShell 7, and distinguishes built-in `mstsc.exe` from MSRDC; download mode hides setup guidance. | Pass |
-| N06 | Windows | Run the installer using `pwsh.exe` 7. | The registered protocol command points to that PowerShell 7 executable and opens `mstsc.exe`. | Not run — PowerShell 7 is unavailable in this workspace; the user-validated Windows 5.1 path remains the default. |
+| N06 | Windows | Run the installer using `pwsh.exe` 7. | The registered protocol command points to that PowerShell 7 executable and opens `mstsc.exe`. | Pass — user confirmed on Windows 11 (2026-11-15): installer registered PowerShell 7.7 `pwsh.exe`, the protocol command pointed to it, and Remote Desktop Connection opened with the host populated. |
 
 ## Pending UI batch checks
 
@@ -206,7 +206,7 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 11 — Labs and Remote Desktop | 2026-11-15 | S01–S05 and D01–D05 passed in Playwright in both run modes; RDP file contents and 900-pixel Labs screenshot inspected. Bundled lab hostnames remain examples. | Milestone 11: Labs and Remote Desktop |
 | 12 — Native Windows launch | 2026-11-15 | S01–S05 and N01–N03 and N05 passed in Playwright in both run modes; the user confirmed N04 on Windows 11 after installing the helper. | Milestone 12: Native Windows launch |
 | 12 follow-up — Setup guidance | 2026-11-15 | S01–S05 and N05 passed in both run modes; the 900-pixel Settings view was inspected. PowerShell scripts now document their behavior. | Explain Orbit's mstsc helper setup |
-| 12 follow-up — PowerShell fallback | 2026-11-15 | Installer selection and setup text updated for PowerShell 7; N05 browser check passed. N06 awaits a Windows PowerShell 7 run. | Support PowerShell 7 in Orbit installer |
+| 12 follow-up — PowerShell fallback | 2026-11-15 | Installer selection and setup text updated for PowerShell 7; N05 browser check passed. N06 later passed on Windows. | Support PowerShell 7 in Orbit installer |
 | 13 — Share selected links | 2026-11-15 | S01–S05, U01–U02, and I01–I04 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel editor screenshot inspected. | Milestone 13: Share selected links |
 | 14 — Planet as sun | 2026-11-15 | S01–S05 and C01–C03 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel review screenshot inspected. | Milestone 14: Import planet as sun |
 | 18 — Import saved Remote Desktop profiles | 2026-11-15 | M18-01 to M18-03 automated and passed in both run modes (`--milestone 18 --only-new`, 5 consecutive runs); M18-04 confirmed by the user on Windows. Fixture values were not logged or committed. | Milestone 18: Import saved Remote Desktop profiles |

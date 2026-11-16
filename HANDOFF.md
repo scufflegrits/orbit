@@ -42,7 +42,7 @@ To edit bundled data, change `links.json` and run `python3 sync.py` for direct-f
 
 ## Verification
 
-The Playwright runner accepts `--milestone` 1–18. `--milestone N` replays every milestone up to N in both modes and is slow; add `--only-new` to run just milestone N (about 20 seconds for 18). M18-01 to M18-03 are automated (`run_milestone_18`: UTF-16 fixture import, persistence, download, export, host edit, secret stripping, and malformed/oversized negatives) and passed in both modes over five consecutive runs. M18-04 (native launch) is user-confirmed on Windows. Remaining Windows-only gap: the PowerShell 7 installer path (N06). Known flake: an M13 check ("Orbit logo returns from a System") failed once; see [REFACTOR_PLAN.md](REFACTOR_PLAN.md).
+The Playwright runner accepts `--milestone` 1–18. `--milestone N` replays every milestone up to N in both modes and is slow; add `--only-new` to run just milestone N (about 20 seconds for 18). M18-01 to M18-03 are automated (`run_milestone_18`: UTF-16 fixture import, persistence, download, export, host edit, secret stripping, and malformed/oversized negatives) and passed in both modes over five consecutive runs. M18-04 (native launch) is user-confirmed on Windows. N06 (PowerShell 7 installer) was confirmed on Windows; no Windows-only checks remain. Known flake: an M13 check ("Orbit logo returns from a System") failed once; see [REFACTOR_PLAN.md](REFACTOR_PLAN.md).
 
 ## Next work
 
