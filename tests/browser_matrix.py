@@ -17,6 +17,8 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = Path("/tmp/orbit-browser-tests")
+# Classic scripts loaded by index.html (besides links-data.js). Add new split files here.
+APP_SCRIPTS = ("rdp.js", "app.js")
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -35,7 +37,7 @@ def run_data_checks():
     check(json.loads(generated.removesuffix(";\n")) == data, "generated data matches JSON")
     for name in ("serve.py", "sync.py", "tests/browser_matrix.py"):
         ast.parse((ROOT / name).read_text())
-    for name in ("app.js", "links-data.js"):
+    for name in (*APP_SCRIPTS, "links-data.js"):
         subprocess.run(["node", "--check", str(ROOT / name)], check=True, capture_output=True)
     print("PASS shared (data and syntax)")
 
@@ -99,7 +101,7 @@ def run_milestone_1(page, url, mode):
 def run_extra_sun_fixture(page):
     with tempfile.TemporaryDirectory(prefix="orbit-fixture-") as directory:
         fixture = Path(directory)
-        for name in ("index.html", "styles.css", "app.js"):
+        for name in ("index.html", "styles.css", *APP_SCRIPTS):
             shutil.copy2(ROOT / name, fixture / name)
         data = json.loads((ROOT / "links.json").read_text())
         data["groups"][0]["links"].extend([
@@ -123,7 +125,7 @@ def run_extra_sun_fixture(page):
 
 def write_fixture(directory, data):
     fixture = Path(directory)
-    for name in ("index.html", "styles.css", "app.js"):
+    for name in ("index.html", "styles.css", *APP_SCRIPTS):
         shutil.copy2(ROOT / name, fixture / name)
     (fixture / "links.json").write_text(json.dumps(data))
     (fixture / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(data) + ";\n")
