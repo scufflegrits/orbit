@@ -136,6 +136,7 @@ Browser tests should use existing tool permissions when available. If a browser 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
 | U01 | Both | Open the Galaxy and a System at normal and narrow desktop widths; use Quick find. | Search appears in the Galaxy top bar beside the map status, is hidden in Systems, and still finds suns, planets, and moons. | Not run — deferred until the next change batch at the user's request. |
+| U02 | Both | Search from the Galaxy, then click the Orbit logo; repeat after opening a System from a search result. | Quick find clears and all suns appear on the Galaxy. | Not run — deferred until the next change batch at the user's request. |
 
 ## Milestone commit record
 

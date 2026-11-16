@@ -1032,6 +1032,13 @@ async function init() {
 }
 
 window.addEventListener('hashchange', () => { closeMenu(); render(); });
+document.querySelector('.brand').addEventListener('click', event => {
+  event.preventDefault();
+  findQuery = '';
+  quickFind.value = '';
+  if (location.hash && location.hash !== '#') location.hash = '';
+  else render();
+});
 settingsTrigger.addEventListener('click', openMenu);
 document.querySelector('#menu-close').addEventListener('click', closeMenu);
 document.querySelector('#menu-scrim').addEventListener('click', closeMenu);
