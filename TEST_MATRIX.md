@@ -185,7 +185,7 @@ Browser tests should use existing tool permissions when available. If a browser 
 | M18-01 | Both | Import a UTF-8 `.rdp` file into an existing lab moon; save and reload. | Host, port, name, and other settings persist under the intended parent. | Not run |
 | M18-02 | Both | Download an imported link's `.rdp` file, edit its host, then export the moon. | The generated file and JSON retain settings, and its `full address` follows the edited host. | Not run |
 | M18-03 | Both | Import a profile with a password, token, or signature, and try malformed or oversized files. | Secrets and signatures are omitted; invalid files leave the saved map unchanged with an error. | Not run |
-| M18-04 | Windows | Reinstall the Orbit helper and open an imported profile in native mode. | `mstsc.exe /edit` opens with the imported settings and correct host; the browser's external-app prompt still works. | Not run — deferred at the user's request; requires Windows. |
+| M18-04 | Windows | Reinstall the Orbit helper and open an imported profile in native mode. | `mstsc.exe /edit` opens with the imported settings and correct host; the browser's external-app prompt still works. | Pass — user confirmed the updated helper fixed native profile launch on Windows. |
 
 ## Milestone commit record
 

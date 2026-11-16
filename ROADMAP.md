@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14 complete (2026-11-15); milestones 15–18 are in progress, with testing deferred at the user's request. Native `mstsc.exe` launch was confirmed on Windows 11 for host-only links; the optional PowerShell 7 installer path and imported-profile launch await Windows runs.
+Status: milestones 1–14 complete (2026-11-15); milestones 15–18 are in progress, with testing deferred at the user's request. Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
