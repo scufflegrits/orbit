@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–11 complete (2026-11-15). Milestone 12 is implemented; its Windows client launch check awaits a Windows PC.
+Status: milestones 1–12 complete (2026-11-15). Native `mstsc.exe` launch was confirmed on Windows 11.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 

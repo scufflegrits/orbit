@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–11 passed; milestone 12 browser checks passed, with its Windows client check pending. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–12 passed. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -124,10 +124,10 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| N01 | Both | Select Open Windows client, reload, then select Download `.rdp` file. | The selection persists after reload and can be changed back. | Pass |
+| N01 | Both | Select Open `mstsc.exe`, reload, then select Download `.rdp` file. | The selection persists after reload and can be changed back. | Pass |
 | N02 | Both | Inspect a lab planet, moon, overflow moon, and Quick find result in client mode. | Each points to the `orbit-rdp://` URI for its own host. | Pass |
 | N03 | Both | Return to download mode and click a server result. | The `.rdp` file still downloads with the configured server name. | Pass |
-| N04 | Windows | Install the per-user helper; click a moon and use Connect. | The browser opens Remote Desktop Connection with that moon's host prefilled. | Blocked — no Windows runtime in this workspace; requires a Windows PC. |
+| N04 | Windows | Install the per-user helper; click a moon and use Connect. | The browser opens Remote Desktop Connection with that moon's host prefilled. | Pass — user confirmed native launch works on Windows 11 after installing the helper. |
 | N05 | Both | Switch between download and native modes in Settings. | Native mode shows the Orbit helper install command and distinguishes built-in `mstsc.exe` from MSRDC; download mode hides setup guidance. | Pass |
 
 ## Milestone commit record
@@ -146,6 +146,6 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 8 — Editor recovery | 2026-11-15 | S01–S05 and R01–R02 passed in Playwright; 900-pixel editor screenshot inspected. | Milestone 8: Editor recovery |
 | 9 — Eight-sun map | 2026-11-15 | S01–S05 and L01–L03 passed in Playwright; Galaxy and System screenshots inspected at 1280 and 900 pixels. | Milestone 9: Eight-sun map |
 | 10 — Font sizes | 2026-11-15 | S01–S05 and F01–F02 passed in Playwright in both run modes; all 12 font/theme combinations checked per mode and extra-large screenshots inspected. | Milestone 10: Font size setting |
-| 11 — Labs and Remote Desktop | 2026-11-15 | S01–S05 and D01–D05 passed in Playwright in both run modes; RDP file contents and 900-pixel Labs screenshot inspected. Windows client connection awaits real hostnames. | Milestone 11: Labs and Remote Desktop |
-| 12 — Native Windows launch | 2026-11-15 | S01–S05 and N01–N03 and N05 passed in Playwright in both run modes; N04 awaits a Windows PC. Settings now shows the helper installation command. | Milestone 12: Native Windows launch |
+| 11 — Labs and Remote Desktop | 2026-11-15 | S01–S05 and D01–D05 passed in Playwright in both run modes; RDP file contents and 900-pixel Labs screenshot inspected. Bundled lab hostnames remain examples. | Milestone 11: Labs and Remote Desktop |
+| 12 — Native Windows launch | 2026-11-15 | S01–S05 and N01–N03 and N05 passed in Playwright in both run modes; the user confirmed N04 on Windows 11 after installing the helper. | Milestone 12: Native Windows launch |
 | 12 follow-up — Setup guidance | 2026-11-15 | S01–S05 and N05 passed in both run modes; the 900-pixel Settings view was inspected. PowerShell scripts now document their behavior. | Explain Orbit's mstsc helper setup |

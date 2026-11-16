@@ -6,7 +6,7 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 
 ## Current state
 
-- Milestones 1–11 in [ROADMAP.md](ROADMAP.md) are complete; milestone 12 is implemented with its Windows client launch check pending. [TEST_MATRIX.md](TEST_MATRIX.md) records browser checks for both direct-file and local-server modes.
+- Milestones 1–12 in [ROADMAP.md](ROADMAP.md) are complete. [TEST_MATRIX.md](TEST_MATRIX.md) records browser checks for both direct-file and local-server modes, plus the user-confirmed Windows 11 launch check.
 - The bundled data contains nine sample suns, 45 planets, and 61 moons. Five planets can appear around each Galaxy sun; eight appear around a System sun. Overflow lists keep additional destinations reachable.
 - The Galaxy cog opens Settings, Help, and About. Settings contains Animations, Always show moons, Theme, Font size, and the local link editor. Font size offers Small, Standard, Large, and Extra large; the selected size is stored in this browser.
 - Quick find searches every sun, planet, and moon. The editor supports adding, renaming, reordering, and removing them; URL and color validation; JSON import/export; reset to bundled data; and Undo for the latest removal. Browser edits take precedence over project files until reset.
@@ -41,6 +41,6 @@ To edit bundled data, change `links.json` and run `python3 sync.py` for direct-f
 
 ## Verification
 
-Run `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 12` to check the current matrix with Playwright and Chromium. It writes screenshots under `/tmp/orbit-browser-tests`. The test runner covers direct-file and local-server modes, data validation, pointer navigation, settings, editor operations, persistence, themes, font sizes, Remote Desktop downloads, native protocol links, and reduced motion. The helper's actual launch into `mstsc.exe` needs a Windows PC for final verification.
+Run `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 12` to check the current matrix with Playwright and Chromium. It writes screenshots under `/tmp/orbit-browser-tests`. The test runner covers direct-file and local-server modes, data validation, pointer navigation, settings, editor operations, persistence, themes, font sizes, Remote Desktop downloads, native protocol links, and reduced motion. The user confirmed that the installed helper opens `mstsc.exe` on Windows 11.
 
 No deployment or hosting was performed, and no personal links have been supplied.
