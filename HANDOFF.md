@@ -6,7 +6,7 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 
 ## Current state
 
-- Milestones 1–14 are complete. Milestones 15–18 are implemented and awaiting the next test batch requested by the user. See [ROADMAP.md](ROADMAP.md) and [TEST_MATRIX.md](TEST_MATRIX.md).
+- Milestones 1–14 and 18 are complete. Milestones 15–17 are implemented and awaiting the next test batch requested by the user. See [ROADMAP.md](ROADMAP.md) and [TEST_MATRIX.md](TEST_MATRIX.md).
 - The bundled data contains nine sample suns, 45 planets, and 61 moons. Five planets can appear around each Galaxy sun; eight appear around a System sun. Overflow lists keep additional destinations reachable.
 - The cog and Quick find appear on the Galaxy and System views. Quick find from a System returns to Galaxy results. The home view omits the large intro block; navigation guidance is in Help. The cog panel enters from the right.
 - Themes are named Default, Red, and Blue. Settings also includes Animations, Always show moons, font size, Remote Desktop mode, and the local link editor.
@@ -42,25 +42,10 @@ To edit bundled data, change `links.json` and run `python3 sync.py` for direct-f
 
 ## Verification
 
-The Playwright runner currently accepts `--milestone` values only through 14. Milestone 18 profile-import checks have not been automated or run. The user confirmed imported-profile native launch on Windows after updating the helper; that check is recorded as M18-04 in `TEST_MATRIX.md`.
+The Playwright runner accepts `--milestone` 1–18. `--milestone N` replays every milestone up to N in both modes and is slow; add `--only-new` to run just milestone N (about 20 seconds for 18). M18-01 to M18-03 are automated (`run_milestone_18`: UTF-16 fixture import, persistence, download, export, host edit, secret stripping, and malformed/oversized negatives) and passed in both modes over five consecutive runs. M18-04 (native launch) is user-confirmed on Windows. Remaining Windows-only gap: the PowerShell 7 installer path (N06). Known flake: an M13 check ("Orbit logo returns from a System") failed once; see [REFACTOR_PLAN.md](REFACTOR_PLAN.md).
 
-## Active handoff — automate imported RDP profile checks
+## Next work
 
-The user asked whether the remaining profile checks can be automated, then authorized writing the handoff. They saved a fixture at `tests/rdptest01.rdp`. It is UTF-16 little-endian with CRLF line endings, which exercises the importer's UTF-16 decoding path. Treat the fixture as user-provided connection data: avoid printing its setting values in logs or committing it without an explicit decision. `git status` currently shows it as untracked.
-
-The implementation is in `app.js` and `windows/OrbitRdpLauncher.ps1`. Import is available while editing a planet or moon. It saves non-secret profile settings with that destination, strips password/token/signature settings, and updates `full address` when the host is edited. Downloads use the profile. Native launch sends it through the protocol URI to the helper. The user has already confirmed that native profile launch works after rerunning the installer.
-
-Next work:
-
-1. Add a `run_milestone_18` Playwright check to `tests/browser_matrix.py` and extend the CLI milestone range and dispatch. Run it in both file and local-server modes.
-2. Use `tests/rdptest01.rdp` as the UTF-16 fixture. Import it into the existing `Labs → lab1 → lab1-server3` moon, save, reload, and check the address and representative settings without logging private values.
-3. Download the imported moon's `.rdp` file and verify its settings remain. Edit the host and check that the saved and downloaded `full address` changes with it. Export the moon JSON and verify `rdpProfile` is included.
-4. In-memory upload fixtures can exercise malformed and oversized imports and verify the saved map stays unchanged. Use a synthetic profile containing password, token, and signature keys to verify those fields are excluded. Do not modify the user fixture to create negative cases.
-5. Update M18-01 to describe UTF-16 input, add coverage for import persistence, export/download, host edits, and invalid input in M18-02/M18-03, and record each automated result. M18-04 is already user-confirmed on Windows.
-6. After checks, update `TEST_MATRIX.md` results and milestone summary. Update `ROADMAP.md` status and completion note only if all milestone checks are complete; keep M18 in progress if any check remains pending or fails. Update `README.md` if the actual import behavior or invocation guidance changes, and update this handoff with the final results and remaining Windows-only limitations.
-7. Reconcile milestone range references: `README.md` currently says `--milestone 18`, but the runner only accepts through 14. After adding the runner, run `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 18`.
-8. Review `git status` and the diff. Keep `tests/rdptest01.rdp` untracked unless its contents are confirmed safe and there is a clear reason to commit the user-provided fixture. Commit the implementation and docs after checks, then push; the user requested both.
-
-The recent README, ROADMAP, and TEST_MATRIX edits are uncommitted; keep them. `HANDOFF.md` is also being updated with the plan. No tests were run in the preceding turn.
+Optional cleanup is planned in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): stabilize the test gate, split `app.js`, and split the test runner. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
 
 No deployment or hosting was performed, and no personal links have been supplied.

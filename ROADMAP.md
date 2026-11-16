@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14 complete (2026-11-15); milestones 15–18 are in progress, with testing deferred at the user's request. Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
+Status: milestones 1–14 and 18 complete (2026-11-15); milestones 15–17 are implemented, with testing deferred at the user's request. Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the optional PowerShell 7 installer path awaits a Windows run.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -203,7 +203,7 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Use the saved profile for `.rdp` downloads and pass it to the Windows helper for native `mstsc.exe` launches. Validate profile data again in the helper and require the user to rerun the installer to update an older helper.
 - Include profile settings in Orbit JSON export/import and document what to review before sharing.
 
-**Done when:** A custom `.rdp` file can populate an existing lab moon, survive reload and JSON export/import, and open with its settings in download and native modes. Browser and Windows testing are deferred until the next requested test batch.
+**Done when:** A custom `.rdp` file can populate an existing lab moon, survive reload and JSON export/import, and open with its settings in download and native modes. Completed 2026-11-15: browser checks are automated (`tests/browser_matrix.py --milestone 18 --only-new`) and native launch was confirmed on Windows.
 
 ## Delivery approach
 

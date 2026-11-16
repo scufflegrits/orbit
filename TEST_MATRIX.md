@@ -182,9 +182,9 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| M18-01 | Both | Import a UTF-8 `.rdp` file into an existing lab moon; save and reload. | Host, port, name, and other settings persist under the intended parent. | Not run |
-| M18-02 | Both | Download an imported link's `.rdp` file, edit its host, then export the moon. | The generated file and JSON retain settings, and its `full address` follows the edited host. | Not run |
-| M18-03 | Both | Import a profile with a password, token, or signature, and try malformed or oversized files. | Secrets and signatures are omitted; invalid files leave the saved map unchanged with an error. | Not run |
+| M18-01 | Both | Import a UTF-16 little-endian `.rdp` file (`tests/rdptest01.rdp`, kept untracked) into the `lab1-server3` moon; save and reload. | Host, name, and every non-secret setting persist under the intended parent. | Pass — automated in `run_milestone_18`, both modes, 5 consecutive runs. |
+| M18-02 | Both | Download an imported link's `.rdp` file, export the moon, then edit its host and download again. | The downloaded file and moon JSON (`rdpProfile`) retain settings, and `full address` follows the edited host in the saved profile and download. | Pass — automated, both modes. |
+| M18-03 | Both | Import a synthetic profile with password, token, secret, and signature settings; try malformed, missing-address, duplicate-address, bad-host, NUL, oversized, over-launch-limit, and invalid-encoding files. | Secrets are omitted; each invalid file shows an error and leaves the saved map and form host unchanged. | Pass — automated with in-memory fixtures, both modes. |
 | M18-04 | Windows | Reinstall the Orbit helper and open an imported profile in native mode. | `mstsc.exe /edit` opens with the imported settings and correct host; the browser's external-app prompt still works. | Pass — user confirmed the updated helper fixed native profile launch on Windows. |
 
 ## Milestone commit record
@@ -209,3 +209,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 12 follow-up — PowerShell fallback | 2026-11-15 | Installer selection and setup text updated for PowerShell 7; N05 browser check passed. N06 awaits a Windows PowerShell 7 run. | Support PowerShell 7 in Orbit installer |
 | 13 — Share selected links | 2026-11-15 | S01–S05, U01–U02, and I01–I04 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel editor screenshot inspected. | Milestone 13: Share selected links |
 | 14 — Planet as sun | 2026-11-15 | S01–S05 and C01–C03 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel review screenshot inspected. | Milestone 14: Import planet as sun |
+| 18 — Import saved Remote Desktop profiles | 2026-11-15 | M18-01 to M18-03 automated and passed in both run modes (`--milestone 18 --only-new`, 5 consecutive runs); M18-04 confirmed by the user on Windows. Fixture values were not logged or committed. | Milestone 18: Import saved Remote Desktop profiles |
