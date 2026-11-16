@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–5 passed; milestones 6–10 in progress. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–9 passed; milestone 10 in progress. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -19,17 +19,17 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; six sample suns and the link count appear. | Pass (M8) |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M8) |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M8) |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M8) |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M8) |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; eight sample suns and the link count appear. | Pass (M9) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M9) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; destination opens its configured URL in a new tab. | Pass (M9) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M9) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M9) |
 
 ## Milestone 1 — Galaxy layout and language
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| G01 | Both | Load the Galaxy with the six sample suns and with an added sun. | Every sun is visible or reachable; no sun is silently omitted. | Pass |
+| G01 | Both | Load the Galaxy with the eight sample suns and with an added sun. | Every sun is visible or reachable; no sun is silently omitted. | Pass |
 | G02 | Both | Hover over a sun with more than five planets. | Its first five planets and spokes appear; later planets stay available in its System. | Pass |
 | G03 | Both | Click a sun and use “Return to Galaxy.” | The correct System opens and the return action reaches the Galaxy. | Pass |
 | G04 | Both | Inspect visible labels and help text. | Galaxy, Sun, System, and Planet are used consistently. | Pass |
@@ -99,9 +99,9 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| L01 | Both | Open the eight-sun Galaxy at 1280 and 900 pixels. | All suns, including Stocks & Investing and Science, are readable and reachable. | Not run |
-| L02 | Both | Open new Systems, planets, and moons; inspect existing moon-rich planets. | URLs match bundled data and all destinations are reachable, including overflow. | Not run |
-| L03 | Data | Validate URLs, generated data sync, names, IDs, and counts. | Project data is valid and direct-file/server copies match. | Not run |
+| L01 | Both | Open the eight-sun Galaxy at 1280 and 900 pixels. | All suns, including Stocks & Investing and Science, are readable and reachable. | Pass |
+| L02 | Both | Open new Systems, planets, and moons; inspect existing moon-rich planets. | URLs match bundled data and all destinations are reachable, including overflow. | Pass |
+| L03 | Data | Validate URLs, generated data sync, names, IDs, and counts. | Project data is valid and direct-file/server copies match. | Pass |
 
 ## Milestone 10 — Font size setting
 
@@ -124,5 +124,5 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 6 — Alabama refresh | 2026-11-15 | S01–S05 and A01–A02 passed; Alabama screenshots inspected and Auburn rules unchanged. | Milestone 6: Alabama theme refresh |
 | 7 — Quick find | 2026-11-15 | S01–S05 and Q01–Q02 passed in Playwright; 900-pixel result screenshot inspected. | Milestone 7: Quick find |
 | 8 — Editor recovery | 2026-11-15 | S01–S05 and R01–R02 passed in Playwright; 900-pixel editor screenshot inspected. | Milestone 8: Editor recovery |
-| 9 — Eight-sun map | — | Not run | — |
+| 9 — Eight-sun map | 2026-11-15 | S01–S05 and L01–L03 passed in Playwright; Galaxy and System screenshots inspected at 1280 and 900 pixels. | Milestone 9: Eight-sun map |
 | 10 — Font sizes | — | Not run | — |

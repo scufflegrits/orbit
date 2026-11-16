@@ -23,19 +23,59 @@ window.ORBIT_DATA = {
         },
         {
           "name": "The Verge",
-          "url": "https://www.theverge.com/"
+          "url": "https://www.theverge.com/",
+          "moons": [
+            {
+              "name": "Tech",
+              "url": "https://www.theverge.com/tech"
+            },
+            {
+              "name": "Reviews",
+              "url": "https://www.theverge.com/reviews"
+            }
+          ]
         },
         {
           "name": "Ars Technica",
-          "url": "https://arstechnica.com/"
+          "url": "https://arstechnica.com/",
+          "moons": [
+            {
+              "name": "Science",
+              "url": "https://arstechnica.com/science/"
+            },
+            {
+              "name": "Policy",
+              "url": "https://arstechnica.com/tech-policy/"
+            }
+          ]
         },
         {
           "name": "Wired",
-          "url": "https://www.wired.com/"
+          "url": "https://www.wired.com/",
+          "moons": [
+            {
+              "name": "Reviews",
+              "url": "https://www.wired.com/category/gear/"
+            },
+            {
+              "name": "Science",
+              "url": "https://www.wired.com/category/science/"
+            }
+          ]
         },
         {
           "name": "Hacker News",
-          "url": "https://news.ycombinator.com/"
+          "url": "https://news.ycombinator.com/",
+          "moons": [
+            {
+              "name": "New",
+              "url": "https://news.ycombinator.com/newest"
+            },
+            {
+              "name": "Ask",
+              "url": "https://news.ycombinator.com/ask"
+            }
+          ]
         }
       ]
     },
@@ -59,11 +99,31 @@ window.ORBIT_DATA = {
         },
         {
           "name": "Notion",
-          "url": "https://www.notion.so/"
+          "url": "https://www.notion.so/",
+          "moons": [
+            {
+              "name": "Templates",
+              "url": "https://www.notion.com/templates"
+            },
+            {
+              "name": "Help",
+              "url": "https://www.notion.com/help"
+            }
+          ]
         },
         {
           "name": "Zoom",
-          "url": "https://zoom.us/"
+          "url": "https://zoom.us/",
+          "moons": [
+            {
+              "name": "Meetings",
+              "url": "https://www.zoom.com/en/products/virtual-meetings/"
+            },
+            {
+              "name": "Support",
+              "url": "https://support.zoom.com/hc"
+            }
+          ]
         }
       ]
     },
@@ -89,11 +149,31 @@ window.ORBIT_DATA = {
         },
         {
           "name": "MDN",
-          "url": "https://developer.mozilla.org/"
+          "url": "https://developer.mozilla.org/",
+          "moons": [
+            {
+              "name": "Web Docs",
+              "url": "https://developer.mozilla.org/en-US/docs/Web"
+            },
+            {
+              "name": "Learn",
+              "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development"
+            }
+          ]
         },
         {
           "name": "Stack Overflow",
-          "url": "https://stackoverflow.com/"
+          "url": "https://stackoverflow.com/",
+          "moons": [
+            {
+              "name": "Questions",
+              "url": "https://stackoverflow.com/questions"
+            },
+            {
+              "name": "Tags",
+              "url": "https://stackoverflow.com/tags"
+            }
+          ]
         },
         {
           "name": "CodePen",
@@ -113,7 +193,17 @@ window.ORBIT_DATA = {
       "links": [
         {
           "name": "AP News",
-          "url": "https://apnews.com/"
+          "url": "https://apnews.com/",
+          "moons": [
+            {
+              "name": "World",
+              "url": "https://apnews.com/world-news"
+            },
+            {
+              "name": "Business",
+              "url": "https://apnews.com/business"
+            }
+          ]
         },
         {
           "name": "Reuters",
@@ -129,7 +219,17 @@ window.ORBIT_DATA = {
         },
         {
           "name": "Project Gutenberg",
-          "url": "https://www.gutenberg.org/"
+          "url": "https://www.gutenberg.org/",
+          "moons": [
+            {
+              "name": "Top 100",
+              "url": "https://www.gutenberg.org/browse/scores/top"
+            },
+            {
+              "name": "Book Search",
+              "url": "https://www.gutenberg.org/ebooks/"
+            }
+          ]
         }
       ]
     },
@@ -141,7 +241,17 @@ window.ORBIT_DATA = {
       "links": [
         {
           "name": "YouTube",
-          "url": "https://www.youtube.com/"
+          "url": "https://www.youtube.com/",
+          "moons": [
+            {
+              "name": "Gaming",
+              "url": "https://www.youtube.com/gaming"
+            },
+            {
+              "name": "Trending",
+              "url": "https://www.youtube.com/feed/trending"
+            }
+          ]
         },
         {
           "name": "Spotify",
@@ -149,7 +259,17 @@ window.ORBIT_DATA = {
         },
         {
           "name": "Bandcamp",
-          "url": "https://bandcamp.com/"
+          "url": "https://bandcamp.com/",
+          "moons": [
+            {
+              "name": "Daily",
+              "url": "https://daily.bandcamp.com/"
+            },
+            {
+              "name": "Features",
+              "url": "https://daily.bandcamp.com/features"
+            }
+          ]
         },
         {
           "name": "Vimeo",
@@ -173,7 +293,17 @@ window.ORBIT_DATA = {
         },
         {
           "name": "Weather",
-          "url": "https://www.weather.gov/"
+          "url": "https://www.weather.gov/",
+          "moons": [
+            {
+              "name": "Forecast Maps",
+              "url": "https://www.weather.gov/forecastmaps"
+            },
+            {
+              "name": "Alerts",
+              "url": "https://www.weather.gov/alerts"
+            }
+          ]
         },
         {
           "name": "Translate",
@@ -181,11 +311,193 @@ window.ORBIT_DATA = {
         },
         {
           "name": "Internet Archive",
-          "url": "https://archive.org/"
+          "url": "https://archive.org/",
+          "moons": [
+            {
+              "name": "Wayback",
+              "url": "https://web.archive.org/"
+            },
+            {
+              "name": "Texts",
+              "url": "https://archive.org/details/texts"
+            }
+          ]
         },
         {
           "name": "Canva",
           "url": "https://www.canva.com/"
+        }
+      ]
+    },
+    {
+      "id": "stocks-investing",
+      "name": "Stocks & Investing",
+      "description": "Markets, filings, and investor tools",
+      "color": "#79d0aa",
+      "links": [
+        {
+          "name": "Nasdaq",
+          "url": "https://www.nasdaq.com/market-activity/stocks",
+          "moons": [
+            {
+              "name": "Most Active",
+              "url": "https://www.nasdaq.com/market-activity/most-active"
+            },
+            {
+              "name": "ETFs",
+              "url": "https://www.nasdaq.com/market-activity/etf"
+            }
+          ]
+        },
+        {
+          "name": "SEC EDGAR",
+          "url": "https://www.sec.gov/search-filings",
+          "moons": [
+            {
+              "name": "Full Text",
+              "url": "https://www.sec.gov/edgar/search/"
+            },
+            {
+              "name": "Latest",
+              "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent"
+            }
+          ]
+        },
+        {
+          "name": "Investor.gov",
+          "url": "https://www.investor.gov/",
+          "moons": [
+            {
+              "name": "Investing",
+              "url": "https://www.investor.gov/introduction-investing"
+            },
+            {
+              "name": "Fees",
+              "url": "https://www.investor.gov/introduction-investing/getting-started/understanding-fees"
+            },
+            {
+              "name": "Compound",
+              "url": "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator"
+            },
+            {
+              "name": "Fraud",
+              "url": "https://www.investor.gov/protect-your-investments"
+            }
+          ]
+        },
+        {
+          "name": "FINRA",
+          "url": "https://www.finra.org/investors",
+          "moons": [
+            {
+              "name": "Tools",
+              "url": "https://www.finra.org/investors/tools-and-calculators"
+            },
+            {
+              "name": "BrokerCheck",
+              "url": "https://www.finra.org/investors/protect-your-money/check-registration"
+            },
+            {
+              "name": "Basics",
+              "url": "https://www.finra.org/investors/investing/investing-basics"
+            }
+          ]
+        },
+        {
+          "name": "FRED",
+          "url": "https://fred.stlouisfed.org/",
+          "moons": [
+            {
+              "name": "S&P 500",
+              "url": "https://fred.stlouisfed.org/series/SP500"
+            },
+            {
+              "name": "Fed Funds",
+              "url": "https://fred.stlouisfed.org/series/FEDFUNDS"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "description": "Research from Earth to space",
+      "color": "#95b7ff",
+      "links": [
+        {
+          "name": "NASA Science",
+          "url": "https://science.nasa.gov/",
+          "moons": [
+            {
+              "name": "Solar System",
+              "url": "https://science.nasa.gov/solar-system/"
+            },
+            {
+              "name": "Earth",
+              "url": "https://science.nasa.gov/earth/"
+            },
+            {
+              "name": "Missions",
+              "url": "https://www.nasa.gov/missions/"
+            }
+          ]
+        },
+        {
+          "name": "NOAA",
+          "url": "https://www.noaa.gov/",
+          "moons": [
+            {
+              "name": "Education",
+              "url": "https://www.noaa.gov/education"
+            },
+            {
+              "name": "Oceans",
+              "url": "https://oceanservice.noaa.gov/"
+            }
+          ]
+        },
+        {
+          "name": "ESA",
+          "url": "https://www.esa.int/",
+          "moons": [
+            {
+              "name": "Science",
+              "url": "https://www.esa.int/directorates/about-us/directorates/science"
+            },
+            {
+              "name": "Missions",
+              "url": "https://www.esa.int/what-we-do/our-missions"
+            }
+          ]
+        },
+        {
+          "name": "arXiv",
+          "url": "https://arxiv.org/",
+          "moons": [
+            {
+              "name": "Astrophysics",
+              "url": "https://arxiv.org/list/astro-ph/recent"
+            },
+            {
+              "name": "Computer Sci",
+              "url": "https://arxiv.org/list/cs/recent"
+            }
+          ]
+        },
+        {
+          "name": "USGS Quakes",
+          "url": "https://earthquake.usgs.gov/",
+          "moons": [
+            {
+              "name": "Latest Map",
+              "url": "https://earthquake.usgs.gov/earthquakes/map/"
+            },
+            {
+              "name": "Catalog",
+              "url": "https://earthquake.usgs.gov/earthquakes/search/"
+            }
+          ]
         }
       ]
     }

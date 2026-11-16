@@ -4,6 +4,8 @@ A local link map organized as a Galaxy of suns and planets. Each sun is a group 
 
 Use **Quick find** on the Galaxy to search sun, planet, and moon names. Results show their parent path and open the System or destination directly.
 
+The bundled map has eight sample suns, including **Stocks & Investing** and **Science**, with 40 planets and 56 moons. The Galaxy centers its last row when it has eight suns. These links are examples; replace them with your own in Edit links.
+
 ## Run
 
 Open `index.html` in your browser. No server or internet connection is needed for the page itself.

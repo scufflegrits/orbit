@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import tempfile
+from urllib.parse import urlparse
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -42,9 +43,9 @@ def run_data_checks():
 def run_shared(page, url, mode):
     page.goto(url, wait_until="load")
     page.locator(".home-hub").first.wait_for()
-    check(page.locator(".home-hub").count() == 6, f"{mode}: six suns")
-    check("6 SUNS" in page.locator("#link-count").inner_text(), f"{mode}: sun count")
-    check("34 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: destination count includes moons")
+    check(page.locator(".home-hub").count() == 8, f"{mode}: eight suns")
+    check("8 SUNS" in page.locator("#link-count").inner_text(), f"{mode}: sun count")
+    check("96 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: destination count includes moons")
     page.locator(".home-hub").first.click()
     page.locator(".detail-view").wait_for()
     check("Tech" in page.locator(".detail-heading h1").inner_text(), f"{mode}: Tech system")
@@ -106,7 +107,7 @@ def run_extra_sun_fixture(page):
         (fixture / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(data) + ";\n")
         page.goto((fixture / "index.html").as_uri(), wait_until="load")
         page.locator(".home-hub").first.wait_for()
-        check(page.locator(".home-hub").count() == 7, "extra sun remains visible")
+        check(page.locator(".home-hub").count() == 9, "extra sun remains visible")
         page.locator(".home-hub").first.hover()
         check(page.locator(".home-orbit").first.locator(".home-satellite").count() == 5,
               "Galaxy preview stays at five planets")
@@ -285,7 +286,7 @@ def submit_editor_form(page):
 def run_milestone_4(page, url, mode):
     page.goto(url, wait_until="load")
     open_editor(page)
-    check(page.locator(".editor-list-row").count() == 6, f"{mode}: editor lists suns")
+    check(page.locator(".editor-list-row").count() == 8, f"{mode}: editor lists suns")
     page.set_viewport_size({"width": 900, "height": 900})
     page.screenshot(path=str(ARTIFACTS / f"milestone4-editor-{mode}-900.png"), full_page=True)
     page.set_viewport_size({"width": 1280, "height": 900})
@@ -348,8 +349,9 @@ def run_milestone_4(page, url, mode):
         page.get_by_role("button", name="Export JSON").click()
     exported = Path(download_info.value.path()).read_bytes()
     exported_map = json.loads(exported)
-    check(len(exported_map["groups"]) == 7, f"{mode}: export includes new sun")
-    check(exported_map["groups"][5]["links"][0]["moons"][0]["name"] == "Second Moon",
+    check(len(exported_map["groups"]) == 9, f"{mode}: export includes new sun")
+    exported_personal = next(group for group in exported_map["groups"] if group["id"] == "personal")
+    check(exported_personal["links"][0]["moons"][0]["name"] == "Second Moon",
           f"{mode}: export preserves moon order")
 
     with page.expect_file_chooser() as chooser_info:
@@ -368,7 +370,7 @@ def run_milestone_4(page, url, mode):
 
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
-    check(page.locator(".home-hub").count() == 7,
+    check(page.locator(".home-hub").count() == 9,
           f"{mode}: browser edits survive reload")
     personal = page.locator(".home-hub").filter(has_text="Personal Renamed")
     personal.click()
@@ -377,14 +379,14 @@ def run_milestone_4(page, url, mode):
     open_editor(page)
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Reset to file data").click()
-    check(page.locator(".editor-list-row").count() == 6,
+    check(page.locator(".editor-list-row").count() == 8,
           f"{mode}: reset restores bundled suns")
     with page.expect_file_chooser() as chooser_info:
         page.get_by_role("button", name="Import JSON").click()
     chooser_info.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
                                   "buffer": exported})
     page.get_by_role("button", name="Apply import").click()
-    check(page.locator(".editor-list-row").count() == 7,
+    check(page.locator(".editor-list-row").count() == 9,
           f"{mode}: import restores exported map")
     check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons.length") == 2,
           f"{mode}: import restores moon hierarchy")
@@ -428,10 +430,10 @@ def run_milestone_4(page, url, mode):
     page.locator(".editor-back").click()
     page.once("dialog", lambda dialog: dialog.dismiss())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".home-hub").count() == 7, f"{mode}: cancel preserves sun")
+    check(page.locator(".home-hub").count() == 9, f"{mode}: cancel preserves sun")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".editor-list-row").count() == 6, f"{mode}: confirm removes sun and children")
+    check(page.locator(".editor-list-row").count() == 8, f"{mode}: confirm removes sun and children")
 
     page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
     page.get_by_role("button", name="Add planet").click()
@@ -572,10 +574,11 @@ def run_milestone_7(page, url, mode):
     check(popup.url == "https://www.engadget.com/", f"{mode}: planet search URL")
     popup.close()
     search.fill("Reviews")
-    check("Tech / Engadget" in page.locator(".find-item").inner_text(),
+    review = page.locator(".find-item").filter(has_text="Tech / Engadget")
+    check(review.count() == 1 and "Tech / Engadget" in review.inner_text(),
           f"{mode}: moon result shows full parent path")
     with page.expect_popup() as popup_info:
-        page.locator(".find-item").click()
+        review.click()
     popup = popup_info.value
     check(popup.url == "https://www.engadget.com/category/reviews/",
           f"{mode}: moon search URL")
@@ -668,7 +671,7 @@ def run_milestone_8(page, url, mode):
     page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".editor-list-row").count() == 5,
+    check(page.locator(".editor-list-row").count() == 7,
           f"{mode}: sun and children removed")
     page.get_by_role("button", name="Undo removal").click()
     saved = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups[0]")
@@ -697,9 +700,111 @@ def run_milestone_8(page, url, mode):
     print(f"PASS milestone 8 ({mode})")
 
 
+def run_milestone_9(page, url, mode):
+    data = json.loads((ROOT / "links.json").read_text())
+    suns = data["groups"]
+    planets = [planet for sun in suns for planet in sun["links"]]
+    moons = [moon for planet in planets for moon in planet.get("moons", [])]
+    check(len(suns) == 8 and len(planets) == 40 and len(moons) == 56,
+          "eight-sun sample counts")
+    check(len({sun["id"] for sun in suns}) == 8, "unique sun IDs")
+    for destination in planets + moons:
+        parsed = urlparse(destination["url"])
+        check(destination["name"].strip() and parsed.scheme == "https" and parsed.netloc,
+              f"valid sample destination: {destination}")
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1'); localStorage.removeItem('orbit:undo-removal:v1')")
+    page.reload(wait_until="load")
+    page.wait_for_timeout(700)
+    check(page.locator(".home-hub").count() == 8,
+          f"{mode}: eight suns on Galaxy")
+    cards = page.locator(".group-card").all()
+    centers = []
+    for card in cards:
+        box = card.bounding_box()
+        check(box is not None and 0 <= box["x"] and box["x"] + box["width"] <= 1280,
+              f"{mode}: sun card fits Galaxy")
+        centers.append(box["x"] + box["width"] / 2)
+    check(abs((centers[-2] + centers[-1]) / 2 - 640) < 10,
+          f"{mode}: last two suns are centered")
+    check(page.locator(".home-hub").filter(has_text="Stocks & Investing").count() == 1 and
+          page.locator(".home-hub").filter(has_text="Science").count() == 1,
+          f"{mode}: new suns present")
+    check(page.locator(".hub-name").filter(has_text="Stocks & Investing").evaluate(
+        "el => el.scrollWidth <= el.clientWidth + 1"),
+        f"{mode}: long sun name fits its circle")
+    page.screenshot(path=str(ARTIFACTS / f"milestone9-galaxy-{mode}-1280.png"),
+                    full_page=True)
+    page.set_viewport_size({"width": 900, "height": 900})
+    for card in cards:
+        box = card.bounding_box()
+        check(box is not None and box["x"] >= -1 and box["x"] + box["width"] <= 901,
+              f"{mode}: sun card fits narrow Galaxy")
+    page.screenshot(path=str(ARTIFACTS / f"milestone9-galaxy-{mode}-900.png"),
+                    full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.locator(".home-hub").filter(has_text="Stocks & Investing").click()
+    check("Stocks & Investing" in page.locator(".detail-heading h1").inner_text(),
+          f"{mode}: stocks System opens")
+    check(page.locator(".detail-satellite").count() == 5,
+          f"{mode}: stocks planets visible")
+    investor = page.locator(".detail-planet-cluster").filter(has_text="Investor.gov")
+    investor.locator(".detail-satellite").hover()
+    page.wait_for_timeout(350)
+    check(investor.locator(".moon-link:visible").count() == 4,
+          f"{mode}: four Investor.gov moons visible")
+    check(investor.locator(".moon-link").nth(2).get_attribute("href") ==
+          "https://www.investor.gov/financial-tools-calculators/calculators/compound-interest-calculator",
+          f"{mode}: investing moon URL")
+    page.screenshot(path=str(ARTIFACTS / f"milestone9-stocks-{mode}.png"),
+                    full_page=False)
+    page.set_viewport_size({"width": 900, "height": 900})
+    investor.locator(".detail-satellite").hover()
+    for moon in investor.locator(".moon-link:visible").all():
+        box = moon.bounding_box()
+        check(box is not None and box["x"] >= 0 and box["x"] + box["width"] <= 900,
+              f"{mode}: investing moons fit narrow System")
+    page.context.route("https://www.investor.gov/protect-your-investments", lambda route: route.fulfill(
+        status=200, content_type="text/html", body="<title>Investor.gov</title>"))
+    with page.expect_popup() as popup_info:
+        investor.locator(".moon-link").last.click()
+    popup = popup_info.value
+    popup.wait_for_load_state()
+    check(popup.url == "https://www.investor.gov/protect-your-investments",
+          f"{mode}: investing moon reachable")
+    popup.close()
+    page.screenshot(path=str(ARTIFACTS / f"milestone9-stocks-{mode}-900.png"),
+                    full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.locator(".back-link").click()
+    page.locator(".home-hub").filter(has_text="Science").click()
+    check(page.locator(".detail-satellite").count() == 5,
+          f"{mode}: science planets visible")
+    nasa = page.locator(".detail-planet-cluster").filter(has_text="NASA Science")
+    nasa.locator(".detail-satellite").hover()
+    page.wait_for_timeout(350)
+    check(nasa.locator(".moon-link:visible").count() == 3,
+          f"{mode}: NASA moons visible")
+    check(nasa.locator(".moon-link").first.get_attribute("href") ==
+          "https://science.nasa.gov/solar-system/",
+          f"{mode}: science moon URL")
+    page.screenshot(path=str(ARTIFACTS / f"milestone9-science-{mode}.png"),
+                    full_page=False)
+    page.set_viewport_size({"width": 900, "height": 900})
+    nasa.locator(".detail-satellite").hover()
+    for moon in nasa.locator(".moon-link:visible").all():
+        box = moon.bounding_box()
+        check(box is not None and box["x"] >= 0 and box["x"] + box["width"] <= 900,
+              f"{mode}: science moons fit narrow System")
+    page.screenshot(path=str(ARTIFACTS / f"milestone9-science-{mode}-900.png"),
+                    full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    print(f"PASS milestone 9 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 9), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 10), required=True)
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
@@ -740,6 +845,8 @@ def main():
                             run_milestone_7(page, url, mode)
                         if args.milestone >= 8:
                             run_milestone_8(page, url, mode)
+                        if args.milestone >= 9:
+                            run_milestone_9(page, url, mode)
                     finally:
                         page.close()
             finally:

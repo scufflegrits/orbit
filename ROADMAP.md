@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–5 complete (2026-11-15). Milestones 6–10 extend the local app with theme, finding, editing, larger-map, and font-size improvements.
+Status: milestones 1–9 complete (2026-11-15). Milestone 10 adds a font-size setting.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
