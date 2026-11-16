@@ -11,7 +11,7 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 - The Galaxy cog opens Settings, Help, and About. Settings contains Animations, Always show moons, Theme, Font size, and the local link editor. Font size offers Small, Standard, Large, and Extra large; the selected size is stored in this browser.
 - Quick find searches every sun, planet, and moon. The editor supports adding, renaming, reordering, and removing them; URL and color validation; JSON import/export; reset to bundled data; and Undo for the latest removal. Browser edits take precedence over project files until reset.
 - Themes include Default, Alabama inspired, and Auburn inspired. The page uses local CSS and no remote theme assets.
-- Labs contains `lab1`–`lab5` and five `lab1` server moons. Their hosts are examples. Remote Desktop destinations download `.rdp` files by default. The optional Windows helper registers `orbit-rdp://` to open the client with a host loaded; credentials are never stored in the map.
+- Labs contains `lab1`–`lab5` and five `lab1` server moons. Their hosts are examples. Remote Desktop destinations download `.rdp` files by default. The optional Windows helper registers `orbit-rdp://` to open built-in `mstsc.exe` with a host loaded; credentials are never stored in the map. Settings shows the installer command when native launch is selected. Installing the separate MSRDC app does not register the Orbit protocol.
 - Keyboard navigation is deferred by the roadmap. Touch interaction is outside its scope.
 
 ## Files

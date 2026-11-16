@@ -956,9 +956,17 @@ def run_milestone_12(page, url, mode):
     page.locator('[data-menu-panel="Settings"]').click()
     mode_select = page.get_by_label("Remote Desktop launch")
     check(mode_select.input_value() == "download", f"{mode}: RDP download is default")
+    check(page.locator(".rdp-setup:visible").count() == 0,
+          f"{mode}: native setup guidance stays hidden in download mode")
     mode_select.select_option("client")
     check(page.evaluate("localStorage.getItem('orbit:rdp-launch')") == "client",
           f"{mode}: client setting saved")
+    check(mode_select.locator("option:checked").inner_text() == "Open mstsc.exe",
+          f"{mode}: native mode clearly names the built-in client")
+    setup = page.locator(".rdp-setup:visible")
+    check(setup.count() == 1 and "Install-OrbitRdp.ps1" in setup.inner_text() and
+          "mstsc.exe" in setup.inner_text() and "MSRDC" in setup.inner_text(),
+          f"{mode}: native setup guidance names the required installer and client")
     page.set_viewport_size({"width": 900, "height": 900})
     page.screenshot(path=str(ARTIFACTS / f"milestone12-settings-{mode}-900.png"), full_page=True)
     page.set_viewport_size({"width": 1280, "height": 900})
@@ -983,6 +991,8 @@ def run_milestone_12(page, url, mode):
     check(page.get_by_label("Remote Desktop launch").input_value() == "client",
           f"{mode}: client setting persists after reload")
     page.get_by_label("Remote Desktop launch").select_option("download")
+    check(page.locator(".rdp-setup:visible").count() == 0,
+          f"{mode}: setup guidance hides when download returns")
     page.locator("#menu-close").click()
     page.get_by_role("searchbox", name="Quick find").fill("lab1-server1")
     check(page.locator(".find-item").get_attribute("href") is None,

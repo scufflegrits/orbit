@@ -277,6 +277,18 @@ button:focus-visible, a:focus-visible {
   font: calc(12px * var(--font-scale)) 'DM Sans', system-ui, sans-serif;
   cursor: pointer;
 }
+.rdp-setup {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--theme-accent);
+  border-radius: 12px;
+  background: var(--surface-input);
+  color: var(--muted-strong);
+}
+.rdp-setup[hidden] { display: none; }
+.rdp-setup strong { color: var(--text); }
+.rdp-setup p { margin: 7px 0; }
+.rdp-setup code { display: block; overflow-wrap: anywhere; font-size: calc(12px * var(--font-scale)); }
 
 .editor-open, .editor-button, .editor-primary, .editor-danger, .editor-back {
   padding: 10px 14px;

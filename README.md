@@ -42,6 +42,8 @@ Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` 
 
 The `moons` array is optional. Hover over a planet to reveal its moons; clicking the planet still opens its own destination. The Galaxy previews up to five planets per sun. A System shows up to eight planets around its sun and lists additional planets below. Up to four moons appear around a hovered planet; any extras are listed in the System.
 
+Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
+
 ## Windows Remote Desktop entries
 
 The **Labs** sun contains `lab1` through `lab5` as planets and five server moons around `lab1`. Their computer names are examples; edit each target to match a reachable host on your network. A Windows Remote Desktop destination uses `type` and `host` instead of `url`:
@@ -52,17 +54,15 @@ The **Labs** sun contains `lab1` through `lab5` as planets and five server moons
 
 By default, clicking one downloads a `.rdp` connection file with that host. Open the downloaded file on Windows to start Remote Desktop Connection. The destination editor offers **Windows Remote Desktop** as a type for any planet or moon, and accepts a computer name or IP address with an optional port such as `lab1-server1:3390`.
 
-To open the Windows client directly from a moon, install the per-user Orbit launcher once on the Windows PC where you use Orbit. From a PowerShell prompt in the project folder, run:
+To open the Windows client directly from a moon, install the per-user **Orbit launcher** once on the Windows PC where you use Orbit. This opens the built-in `mstsc.exe`; the separate MSRDC app installed by `winget install Microsoft.RemoteDesktopClient` does not register Orbit's launcher. From a PowerShell prompt in the project folder, run:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Install-OrbitRdp.ps1
 ```
 
-Then choose **Settings → Remote Desktop → Open Windows client**. Clicking a lab planet or moon asks Windows to open the Orbit launcher, which opens Remote Desktop Connection with the computer prefilled. Click **Connect** in the client. Your browser may ask whether to open the external app. This setting is saved in the browser; **Download .rdp file** remains available in the same menu. The helper stores connection files under `%LOCALAPPDATA%\Orbit\Connections` and stores no credentials.
+Then choose **Settings → Remote Desktop → Open mstsc.exe**. Clicking a lab planet or moon asks Windows to open the Orbit launcher, which opens Remote Desktop Connection with the computer prefilled. Click **Connect** in the client. Your browser may ask whether to open the external app. This setting is saved in the browser; **Download .rdp file** remains available in the same menu. The helper stores connection files under `%LOCALAPPDATA%\Orbit\Connections` and stores no credentials.
 
 To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files remain available for manual use.
-
-Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
 
 ## Settings and help
 

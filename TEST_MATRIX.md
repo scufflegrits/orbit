@@ -128,6 +128,7 @@ Browser tests should use existing tool permissions when available. If a browser 
 | N02 | Both | Inspect a lab planet, moon, overflow moon, and Quick find result in client mode. | Each points to the `orbit-rdp://` URI for its own host. | Pass |
 | N03 | Both | Return to download mode and click a server result. | The `.rdp` file still downloads with the configured server name. | Pass |
 | N04 | Windows | Install the per-user helper; click a moon and use Connect. | The browser opens Remote Desktop Connection with that moon's host prefilled. | Blocked — no Windows runtime in this workspace; requires a Windows PC. |
+| N05 | Both | Switch between download and native modes in Settings. | Native mode shows the Orbit helper install command and distinguishes built-in `mstsc.exe` from MSRDC; download mode hides setup guidance. | Pass |
 
 ## Milestone commit record
 
@@ -146,4 +147,5 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 9 — Eight-sun map | 2026-11-15 | S01–S05 and L01–L03 passed in Playwright; Galaxy and System screenshots inspected at 1280 and 900 pixels. | Milestone 9: Eight-sun map |
 | 10 — Font sizes | 2026-11-15 | S01–S05 and F01–F02 passed in Playwright in both run modes; all 12 font/theme combinations checked per mode and extra-large screenshots inspected. | Milestone 10: Font size setting |
 | 11 — Labs and Remote Desktop | 2026-11-15 | S01–S05 and D01–D05 passed in Playwright in both run modes; RDP file contents and 900-pixel Labs screenshot inspected. Windows client connection awaits real hostnames. | Milestone 11: Labs and Remote Desktop |
-| 12 — Native Windows launch | 2026-11-15 | S01–S05 and N01–N03 passed in Playwright in both run modes; N04 awaits a Windows PC. The helper and setting are ready for a live check. | Milestone 12: Native Windows launch |
+| 12 — Native Windows launch | 2026-11-15 | S01–S05 and N01–N03 and N05 passed in Playwright in both run modes; N04 awaits a Windows PC. Settings now shows the helper installation command. | Milestone 12: Native Windows launch |
+| 12 follow-up — Setup guidance | 2026-11-15 | S01–S05 and N05 passed in both run modes; the 900-pixel Settings view was inspected. PowerShell scripts now document their behavior. | Explain Orbit's mstsc helper setup |

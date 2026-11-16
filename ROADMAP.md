@@ -146,9 +146,9 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 
 ## Milestone 12 — Open Windows Remote Desktop client
 
-- Add a browser setting that switches Remote Desktop destinations between `.rdp` download and opening the Windows client. Keep download as the default and preserve the choice across reloads.
+- Add a browser setting that switches Remote Desktop destinations between `.rdp` download and opening built-in `mstsc.exe`. Keep download as the default and preserve the choice across reloads.
 - Provide a per-user Windows helper that registers an `orbit-rdp://` protocol handler. Validate the selected host and port, create a connection file without credentials, and open it in Remote Desktop Connection for review before connecting.
-- Apply the choice to planets, moons, overflow, and Quick find in both run modes. Document installation, the browser's external-app prompt, and how to remove the helper.
+- Apply the choice to planets, moons, overflow, and Quick find in both run modes. Show the required Orbit helper install command in Settings when native mode is selected; distinguish built-in `mstsc.exe` from the separate MSRDC app. Document the browser's external-app prompt and how to remove the helper.
 
 **Done when:** Native mode produces the right protocol link for every Remote Desktop destination, the setting persists, and download mode still works. A Windows PC with the helper installed must be used for the final client-launch check.
 

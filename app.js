@@ -3,7 +3,7 @@ const count = document.querySelector('#link-count');
 const settingsTrigger = document.querySelector('#settings-trigger');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -263,24 +263,32 @@ function showMenuPanel(name) {
     const rdpRow = element('label', 'setting-row');
     const rdpCopy = element('span', 'setting-copy');
     rdpCopy.append(element('strong', '', 'Remote Desktop'));
-    rdpCopy.append(element('small', '', 'How Windows connections open'));
+    rdpCopy.append(element('small', '', 'Opening the client requires the Orbit Windows helper'));
     const rdpSelect = document.createElement('select');
     rdpSelect.setAttribute('aria-label', 'Remote Desktop launch');
     for (const [value, label] of [
-      ['download', 'Download .rdp file'], ['client', 'Open Windows client'],
+      ['download', 'Download .rdp file'], ['client', 'Open mstsc.exe'],
     ]) {
       const option = element('option', '', label);
       option.value = value;
       rdpSelect.append(option);
     }
     rdpSelect.value = rdpLaunchMode;
+    const rdpSetup = element('div', 'rdp-setup');
+    rdpSetup.append(element('strong', '', 'Windows setup required'));
+    rdpSetup.append(element('p', '', 'This opens built-in mstsc.exe. Installing Microsoft Remote Desktop Client (MSRDC) does not install the Orbit helper.'));
+    rdpSetup.append(element('p', '', 'In PowerShell, from the Orbit project folder, run:'));
+    rdpSetup.append(element('code', '', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\windows\\Install-OrbitRdp.ps1'));
+    const updateRdpSetup = () => { rdpSetup.hidden = rdpSelect.value !== 'client'; };
+    updateRdpSetup();
     rdpSelect.addEventListener('change', () => {
       rdpLaunchMode = rdpSelect.value;
       savePreference('orbit:rdp-launch', rdpLaunchMode);
+      updateRdpSetup();
       render();
     });
     rdpRow.append(rdpCopy, rdpSelect);
-    menuContent.append(rdpRow);
+    menuContent.append(rdpRow, rdpSetup);
     const row = element('label', 'setting-row');
     const copy = element('span', 'setting-copy');
     copy.append(element('strong', '', 'Animations'));
@@ -320,7 +328,7 @@ function showMenuPanel(name) {
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
-    menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open Windows client in Settings to open Remote Desktop Connection with the target loaded.'));
+    menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.'));
     menuContent.append(element('p', '', 'Your browser may ask before opening the helper. Orbit does not store credentials.'));
     menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
   } else if (name === 'About') {
