@@ -17,7 +17,9 @@ Outcome: 12 sequential and 6 parallel M13-only runs of the old code all passed, 
 2. **Replace racy reads with waits.** After each `page.reload`, wait for `.home-hub` (or the System's `.detail-view`) before calling `page.evaluate` or counting elements. Prefer Playwright's auto-waiting `expect`-style locator checks over `count()` snapshots. Change one test function per commit.
 3. **Add a repeat option.** Add `--repeat N` to `tests/browser_matrix.py` so a milestone can be run N times in one command. Pass criterion for Part 1: 10 consecutive green runs of `--milestone 18`.
 
-## Part 2 — Split `app.js` (classic scripts, bottom-up)
+## Part 2 — Split `app.js` (classic scripts, bottom-up) (done 2026-11-15)
+
+Outcome: steps 4–9 are done, one commit each, and the full matrix (milestones 1–18, both modes, 37 PASS lines) passed after every step. Final sizes: `app.js` 113 lines, `rdp.js` 80, `storage.js` 132, `menu.js` 145, `render.js` 302, `editor.js` 463 (slightly over the target; split it further only if it grows). A scan found no duplicate top-level names. The test runner copies fixtures through `APP_SCRIPTS`, so a new script must be added there.
 
 Order moves the pieces with the fewest dependencies first. After each step, load order in `index.html` is updated and the gate is run. Roughly 1,200 lines now; the target is no file over about 400.
 

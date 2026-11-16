@@ -21,7 +21,12 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 | --- | --- |
 | `index.html` | Page shell and script loading |
 | `styles.css` | Layout, animations, responsive rules, and themes |
-| `app.js` | Data loading, rendering, navigation, settings, and editor |
+| `app.js` | Shared DOM handles, state and constants, destination count, undo, event wiring, and `init` |
+| `rdp.js` | Remote Desktop host validation, `.rdp` parsing, download, and protocol URLs |
+| `storage.js` | Preferences, destination and map validation, browser map and undo storage |
+| `editor.js` | Sun, planet, and moon editors, JSON import/export, reset |
+| `menu.js` | Settings menu: open/close and the Settings, Help, and About panels |
+| `render.js` | Galaxy and System rendering, planet/moon nodes, Quick find |
 | `links.json` | Bundled suns, planets, and moons |
 | `links-data.js` | Generated copy of the JSON for direct-file use |
 | `sync.py` | Regenerates `links-data.js` from `links.json` |
@@ -46,6 +51,6 @@ The Playwright runner accepts `--milestone` 1–18. `--milestone N` replays ever
 
 ## Next work
 
-Optional cleanup is planned in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): stabilize the test gate, split `app.js`, and split the test runner. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
+The scripts are classic scripts (not modules, so `file://` works) loaded in order by `index.html`: `links-data.js`, `rdp.js`, `storage.js`, `editor.js`, `menu.js`, `render.js`, `app.js`. They share top-level globals; keep the order and add any new script to `APP_SCRIPTS` in `tests/browser_matrix.py`, which copies and syntax-checks them. Cleanup progress is tracked in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): test stabilization and the `app.js` split are done; splitting the test runner remains. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
 
 No deployment or hosting was performed, and no personal links have been supplied.
