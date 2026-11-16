@@ -276,6 +276,18 @@ def run_milestone_3(page, url, mode):
     print(f"PASS milestone 3 ({mode})")
 
 
+def click_logo_to_galaxy(page):
+    """Click the Orbit logo and wait for the Galaxy to render.
+
+    Leaving a System changes the hash, so the render and the menu close happen
+    in a later hashchange event. Waiting avoids reading or opening the editor
+    before that event runs.
+    """
+    page.locator(".brand").click()
+    page.locator(".detail-view").wait_for(state="detached")
+    page.locator(".home-hub").first.wait_for()
+
+
 def open_editor(page):
     page.locator("#settings-trigger").click()
     page.locator('[data-menu-panel="Settings"]').click()
@@ -1041,7 +1053,7 @@ def run_pending_ui(page, url, mode):
     page.locator(".detail-view").wait_for()
     check(page.locator("#topbar-search:visible").count() == 1,
           f"{mode}: Quick find remains visible in a System")
-    page.locator(".brand").click()
+    click_logo_to_galaxy(page)
     check(search.input_value() == "" and page.locator(".home-hub").count() == 9,
           f"{mode}: Orbit logo returns from a System to all suns")
     page.set_viewport_size({"width": 900, "height": 900})
@@ -1139,7 +1151,7 @@ def run_milestone_13(page, url, mode):
     engadget.locator(".detail-satellite").hover()
     check(engadget.locator(".moon-link").filter(has_text="lab1-server1").count() == 1,
           f"{mode}: imported moon appears under its chosen planet")
-    page.locator(".brand").click()
+    click_logo_to_galaxy(page)
     open_editor(page)
     full_file = download_json(page, "Export JSON")
     check(len(full_file["groups"]) == 10 and
@@ -1211,7 +1223,7 @@ def run_milestone_14(page, url, mode):
         planet.locator(".moon-link").filter(has_text="Lab Server").click()
     check("full address:s:shared-lab:3390" in Path(download_info.value.path()).read_text(),
           f"{mode}: RDP moon retains its host and port")
-    page.locator(".brand").click()
+    click_logo_to_galaxy(page)
     open_editor(page)
     page.locator(".editor-list-row").filter(has_text="Shared Research").first.get_by_role(
         "button", name="Edit").click()
@@ -1353,7 +1365,18 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--milestone", type=int, choices=range(1, 19), required=True)
     parser.add_argument("--only-new", action="store_true", help="Run only the selected milestone")
+    parser.add_argument("--repeat", type=int, default=1,
+                        help="Run the selection this many times; stop at the first failure")
     args = parser.parse_args()
+    for number in range(1, args.repeat + 1):
+        if args.repeat > 1:
+            print(f"--- repeat {number}/{args.repeat}")
+        run_once(args)
+    if args.repeat > 1:
+        print(f"PASS all {args.repeat} repeats")
+
+
+def run_once(args):
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
     server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT)))

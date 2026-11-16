@@ -9,7 +9,9 @@ This plan is separate from [ROADMAP.md](ROADMAP.md), which tracks user-facing mi
 - Gate for every step: `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 18` passes in both file and server modes. Run it twice, since the first problem to fix is flakiness.
 - Do not change `tests/rdptest01.rdp` or commit it.
 
-## Part 1 — Make the gate trustworthy
+## Part 1 — Make the gate trustworthy (done 2026-11-15)
+
+Outcome: 12 sequential and 6 parallel M13-only runs of the old code all passed, so the flake needs load to appear. The likely cause is that leaving a System (logo click) sets the hash, and the render and `closeMenu()` run in a later `hashchange` event; tests that read elements or opened the editor straight after the click could win the race. Fixed with `click_logo_to_galaxy` (waits for the System to detach and the Galaxy to render) at all three call sites, and `--repeat N` was added. `--milestone 18 --only-new --repeat 10` passed 10 of 10 in both modes.
 
 1. **Find the flaky check.** Rerun milestone 13 on its own about ten times in each mode and record which assertion fails ("Orbit logo returns from a System to all suns" has failed once, and the M18 `groups` race failed once). Write the finding in the commit message.
 2. **Replace racy reads with waits.** After each `page.reload`, wait for `.home-hub` (or the System's `.detail-view`) before calling `page.evaluate` or counting elements. Prefer Playwright's auto-waiting `expect`-style locator checks over `count()` snapshots. Change one test function per commit.
