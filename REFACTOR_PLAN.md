@@ -39,7 +39,9 @@ Outcome: `browser_matrix.py` (99 lines) keeps the CLI and dispatch; `helpers.py`
 10. Move shared helpers (`check`, `open_editor`, `upload_json`, `download_json`, `upload_rdp`, fixtures) into `tests/helpers.py`.
 11. Move milestone functions into `tests/milestones_01_08.py`, `tests/milestones_09_14.py`, and `tests/milestone_18.py`, with `browser_matrix.py` keeping only the CLI and server setup. Keep `--milestone` and `--only-new` behavior identical.
 
-## Done when
+## Done when (all met 2026-11-15)
+
+Final check on the finished layout: `--milestone 18 --only-new --repeat 10` passed 10 of 10 in both modes, and the full matrix (37 PASS lines) passed after every step.
 
 - Ten consecutive green gate runs in both modes.
 - No source file over about 400 lines, with `index.html` listing the scripts in dependency order.
