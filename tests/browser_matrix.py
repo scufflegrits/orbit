@@ -18,7 +18,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = Path("/tmp/orbit-browser-tests")
 # Classic scripts loaded by index.html (besides links-data.js). Add new split files here.
-APP_SCRIPTS = ("rdp.js", "storage.js", "editor.js", "app.js")
+APP_SCRIPTS = ("rdp.js", "storage.js", "editor.js", "menu.js", "app.js")
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
