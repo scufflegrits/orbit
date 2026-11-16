@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–11 complete (2026-11-15).
+Status: milestones 1–11 complete (2026-11-15). Milestone 12 is implemented; its Windows client launch check awaits a Windows PC.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -143,6 +143,14 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Treat bundled lab hostnames as examples until the user replaces them with reachable targets.
 
 **Done when:** Nine suns fit the Galaxy; all five labs and the five `lab1` servers are reachable; clicking a Remote Desktop destination downloads the correct host file in direct-file and local-server modes; edits survive reload and export.
+
+## Milestone 12 — Open Windows Remote Desktop client
+
+- Add a browser setting that switches Remote Desktop destinations between `.rdp` download and opening the Windows client. Keep download as the default and preserve the choice across reloads.
+- Provide a per-user Windows helper that registers an `orbit-rdp://` protocol handler. Validate the selected host and port, create a connection file without credentials, and open it in Remote Desktop Connection for review before connecting.
+- Apply the choice to planets, moons, overflow, and Quick find in both run modes. Document installation, the browser's external-app prompt, and how to remove the helper.
+
+**Done when:** Native mode produces the right protocol link for every Remote Desktop destination, the setting persists, and download mode still works. A Windows PC with the helper installed must be used for the final client-launch check.
 
 ## Delivery approach
 

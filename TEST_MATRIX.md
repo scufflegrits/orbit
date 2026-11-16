@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–11 passed. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–11 passed; milestone 12 browser checks passed, with its Windows client check pending. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -19,11 +19,11 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
-| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; nine sample suns and the link count appear. | Pass (M11) |
-| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M11) |
-| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; website destinations open their configured URL in a new tab. | Pass (M11) |
-| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M11) |
-| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M11) |
+| S01 | File | Open the Galaxy from `index.html`. | Page loads without an app error; nine sample suns and the link count appear. | Pass (M12) |
+| S02 | Server | Open the Galaxy through `serve.py`. | Page loads the current `links.json` data without an app error. | Pass (M12) |
+| S03 | Both | Open a sun, return to the Galaxy, and open a destination. | Navigation works; website destinations open their configured URL in a new tab. | Pass (M12) |
+| S04 | Data | Parse `links.json`, check JavaScript and Python syntax, and compare generated direct-file data with JSON. | Files are valid and `links-data.js` represents the same link map as `links.json`. | Pass (M12) |
+| S05 | Both | Inspect a normal and narrower desktop window. | Suns, planets, menus, and links remain readable and reachable without clipping. | Pass (M12) |
 
 ## Milestone 1 — Galaxy layout and language
 
@@ -120,6 +120,15 @@ Browser tests should use existing tool permissions when available. If a browser 
 | D04 | Both | Enter an invalid host, then edit a valid host and reload. | Invalid hosts are rejected; valid hosts persist and appear in the downloaded file. | Pass |
 | D05 | Both | Inspect Labs at a 900-pixel desktop width. | Planet and moon labels remain readable and all targets reachable. | Pass |
 
+## Milestone 12 — Open Windows Remote Desktop client
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| N01 | Both | Select Open Windows client, reload, then select Download `.rdp` file. | The selection persists after reload and can be changed back. | Pass |
+| N02 | Both | Inspect a lab planet, moon, overflow moon, and Quick find result in client mode. | Each points to the `orbit-rdp://` URI for its own host. | Pass |
+| N03 | Both | Return to download mode and click a server result. | The `.rdp` file still downloads with the configured server name. | Pass |
+| N04 | Windows | Install the per-user helper; click a moon and use Connect. | The browser opens Remote Desktop Connection with that moon's host prefilled. | Blocked — no Windows runtime in this workspace; requires a Windows PC. |
+
 ## Milestone commit record
 
 After the shared checks and the current milestone's rows pass, record the commit here. If any check is blocked, record the reason and the remaining risk before committing.
@@ -137,3 +146,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 9 — Eight-sun map | 2026-11-15 | S01–S05 and L01–L03 passed in Playwright; Galaxy and System screenshots inspected at 1280 and 900 pixels. | Milestone 9: Eight-sun map |
 | 10 — Font sizes | 2026-11-15 | S01–S05 and F01–F02 passed in Playwright in both run modes; all 12 font/theme combinations checked per mode and extra-large screenshots inspected. | Milestone 10: Font size setting |
 | 11 — Labs and Remote Desktop | 2026-11-15 | S01–S05 and D01–D05 passed in Playwright in both run modes; RDP file contents and 900-pixel Labs screenshot inspected. Windows client connection awaits real hostnames. | Milestone 11: Labs and Remote Desktop |
+| 12 — Native Windows launch | 2026-11-15 | S01–S05 and N01–N03 passed in Playwright in both run modes; N04 awaits a Windows PC. The helper and setting are ready for a live check. | Milestone 12: Native Windows launch |

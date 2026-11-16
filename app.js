@@ -3,7 +3,7 @@ const count = document.querySelector('#link-count');
 const settingsTrigger = document.querySelector('#settings-trigger');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuContent = document.querySelector('#menu-content');
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 let groups = [];
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
@@ -14,6 +14,7 @@ let animationsEnabled = readBooleanPreference('orbit:animations', true);
 let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
 let activeTheme = readThemePreference();
 let activeFontSize = readFontSizePreference();
+let rdpLaunchMode = readRdpLaunchPreference();
 let seedData = null;
 let storageWarning = '';
 let findQuery = '';
@@ -54,14 +55,25 @@ function readFontSizePreference() {
   }
 }
 
+function readRdpLaunchPreference() {
+  try {
+    return localStorage.getItem('orbit:rdp-launch') === 'client' ? 'client' : 'download';
+  } catch {
+    return 'download';
+  }
+}
+
 function validDestination(value, label) {
   if (!value || typeof value !== 'object') throw new Error(`${label} needs a name and destination.`);
   const name = String(value.name || '').trim();
   if (!name) throw new Error(`${label} needs a name.`);
   if (value.type === 'rdp') {
     const host = String(value.host || '').trim();
-    const match = /^([a-z0-9][a-z0-9.-]*)(?::([0-9]{1,5}))?$/i.exec(host);
-    if (!match || (match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535))) {
+    const match = /^([^:]+)(?::([0-9]{1,5}))?$/.exec(host);
+    const computer = match?.[1];
+    if (!computer || computer.length > 253 || computer.split('.').some(label =>
+      label.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label)) ||
+      (match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535))) {
       throw new Error(`${label} needs a computer name or IP address, with an optional port.`);
     }
     return { name, type: 'rdp', host };
@@ -248,6 +260,27 @@ function showMenuPanel(name) {
     });
     fontRow.append(fontCopy, fontSelect);
     menuContent.append(fontRow);
+    const rdpRow = element('label', 'setting-row');
+    const rdpCopy = element('span', 'setting-copy');
+    rdpCopy.append(element('strong', '', 'Remote Desktop'));
+    rdpCopy.append(element('small', '', 'How Windows connections open'));
+    const rdpSelect = document.createElement('select');
+    rdpSelect.setAttribute('aria-label', 'Remote Desktop launch');
+    for (const [value, label] of [
+      ['download', 'Download .rdp file'], ['client', 'Open Windows client'],
+    ]) {
+      const option = element('option', '', label);
+      option.value = value;
+      rdpSelect.append(option);
+    }
+    rdpSelect.value = rdpLaunchMode;
+    rdpSelect.addEventListener('change', () => {
+      rdpLaunchMode = rdpSelect.value;
+      savePreference('orbit:rdp-launch', rdpLaunchMode);
+      render();
+    });
+    rdpRow.append(rdpCopy, rdpSelect);
+    menuContent.append(rdpRow);
     const row = element('label', 'setting-row');
     const copy = element('span', 'setting-copy');
     copy.append(element('strong', '', 'Animations'));
@@ -287,7 +320,8 @@ function showMenuPanel(name) {
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'The Galaxy contains your suns. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
-    menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file. Open the file on Windows to start the connection; Orbit does not store credentials.'));
+    menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open Windows client in Settings to open Remote Desktop Connection with the target loaded.'));
+    menuContent.append(element('p', '', 'Your browser may ask before opening the helper. Orbit does not store credentials.'));
     menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
@@ -669,13 +703,22 @@ function downloadRdp(destination) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function rdpLaunchUrl(destination) {
+  return `orbit-rdp://${destination.host}/`;
+}
+
 function linkNode(link, className) {
   const isRdp = link.type === 'rdp';
-  const node = element(isRdp ? 'button' : 'a', className, link.name);
-  if (isRdp) {
+  const download = isRdp && rdpLaunchMode === 'download';
+  const node = element(download ? 'button' : 'a', className, link.name);
+  if (download) {
     node.type = 'button';
     node.addEventListener('click', () => downloadRdp(link));
     node.title = `Download Remote Desktop connection for ${link.name}`;
+    node.setAttribute('aria-label', node.title);
+  } else if (isRdp) {
+    node.href = rdpLaunchUrl(link);
+    node.title = `Open Remote Desktop Connection for ${link.name}`;
     node.setAttribute('aria-label', node.title);
   } else {
     node.href = link.url;
@@ -820,14 +863,18 @@ function findMatches(query) {
 
 function findResult(match) {
   const isRdp = match.destination?.type === 'rdp';
-  const node = element(match.id || isRdp ? 'button' : 'a', 'find-item');
+  const download = isRdp && rdpLaunchMode === 'download';
+  const node = element(match.id || download ? 'button' : 'a', 'find-item');
   if (match.id) {
     node.type = 'button';
     node.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(match.id)}`; });
-  } else if (isRdp) {
+  } else if (download) {
     node.type = 'button';
     node.addEventListener('click', () => downloadRdp(match.destination));
     node.title = `Download Remote Desktop connection for ${match.name}`;
+  } else if (isRdp) {
+    node.href = rdpLaunchUrl(match.destination);
+    node.title = `Open Remote Desktop Connection for ${match.name}`;
   } else {
     node.href = match.destination.url;
     node.target = '_blank';
@@ -836,7 +883,7 @@ function findResult(match) {
   node.append(element('span', 'find-kind', match.kind));
   const copy = element('span', 'find-copy');
   copy.append(element('strong', '', match.name), element('small', '', match.path));
-  node.append(copy, element('span', 'find-arrow', match.id ? '→' : isRdp ? '↓' : '↗'));
+  node.append(copy, element('span', 'find-arrow', match.id ? '→' : download ? '↓' : '↗'));
   return node;
 }
 
@@ -915,7 +962,9 @@ function renderDetail(group) {
   visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i)));
 
   const note = element('p', 'detail-note', group.links.some(link => link.type === 'rdp')
-    ? 'Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect.'
+    ? rdpLaunchMode === 'client'
+      ? 'Select a lab to open Remote Desktop Connection with its target loaded. Your browser may ask to open the helper.'
+      : 'Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect.'
     : 'Select a planet to open its destination in a new tab.');
   app.append(top, heading, stage, note);
   if (group.links.length > visible.length) {

@@ -948,9 +948,55 @@ def run_milestone_11(page, url, mode):
     print(f"PASS milestone 11 ({mode})")
 
 
+def run_milestone_12(page, url, mode):
+    page.goto(url, wait_until="load")
+    page.evaluate("localStorage.removeItem('orbit:map:v1'); localStorage.removeItem('orbit:rdp-launch')")
+    page.reload(wait_until="load")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    mode_select = page.get_by_label("Remote Desktop launch")
+    check(mode_select.input_value() == "download", f"{mode}: RDP download is default")
+    mode_select.select_option("client")
+    check(page.evaluate("localStorage.getItem('orbit:rdp-launch')") == "client",
+          f"{mode}: client setting saved")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone12-settings-{mode}-900.png"), full_page=True)
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.locator("#menu-close").click()
+    page.locator(".home-hub").filter(has_text="Labs").click()
+    page.wait_for_function("document.querySelector('.detail-heading h1')?.textContent === 'Labs'")
+    check(page.locator(".detail-satellite").first.get_attribute("href") == "orbit-rdp://lab1/",
+          f"{mode}: lab planet opens native URI")
+    lab1 = page.locator(".detail-planet-cluster").filter(has_text="lab1")
+    lab1.locator(".detail-satellite").hover()
+    check(lab1.locator(".moon-link").first.get_attribute("href") ==
+          "orbit-rdp://lab1-server1/", f"{mode}: lab moon opens native URI")
+    check(page.locator(".moon-overflow .overflow-moon-link").get_attribute("href") ==
+          "orbit-rdp://lab1-server5/", f"{mode}: overflow moon opens native URI")
+    page.locator(".back-link").click()
+    page.get_by_role("searchbox", name="Quick find").fill("lab1-server1")
+    check(page.locator(".find-item").get_attribute("href") == "orbit-rdp://lab1-server1/",
+          f"{mode}: Quick find opens native URI")
+    page.reload(wait_until="load")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    check(page.get_by_label("Remote Desktop launch").input_value() == "client",
+          f"{mode}: client setting persists after reload")
+    page.get_by_label("Remote Desktop launch").select_option("download")
+    page.locator("#menu-close").click()
+    page.get_by_role("searchbox", name="Quick find").fill("lab1-server1")
+    check(page.locator(".find-item").get_attribute("href") is None,
+          f"{mode}: download mode restores button")
+    with page.expect_download() as download_info:
+        page.locator(".find-item").click()
+    check(download_info.value.suggested_filename == "lab1-server1.rdp",
+          f"{mode}: download mode remains available")
+    print(f"PASS milestone 12 ({mode})")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 12), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 13), required=True)
     args = parser.parse_args()
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
@@ -997,6 +1043,8 @@ def main():
                             run_milestone_10(page, url, mode)
                         if args.milestone >= 11:
                             run_milestone_11(page, url, mode)
+                        if args.milestone >= 12:
+                            run_milestone_12(page, url, mode)
                     finally:
                         page.close()
             finally:

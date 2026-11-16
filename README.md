@@ -1,6 +1,6 @@
 # Orbit
 
-A local link map organized as a Galaxy of suns and planets. Each sun is a group of links. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination in a new tab.
+A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination.
 
 Use **Quick find** on the Galaxy to search sun, planet, and moon names. Results show their parent path and open the System or destination directly.
 
@@ -50,7 +50,17 @@ The **Labs** sun contains `lab1` through `lab5` as planets and five server moons
 { "name": "lab1-server1", "type": "rdp", "host": "lab1-server1" }
 ```
 
-Clicking one downloads a `.rdp` connection file with that host. Open the downloaded file on Windows to start Remote Desktop Connection; Windows may show its usual file or connection prompts. Orbit does not store credentials. The destination editor offers **Windows Remote Desktop** as a type for any planet or moon, and accepts a computer name or IP address with an optional port such as `lab1-server1:3390`.
+By default, clicking one downloads a `.rdp` connection file with that host. Open the downloaded file on Windows to start Remote Desktop Connection. The destination editor offers **Windows Remote Desktop** as a type for any planet or moon, and accepts a computer name or IP address with an optional port such as `lab1-server1:3390`.
+
+To open the Windows client directly from a moon, install the per-user Orbit launcher once on the Windows PC where you use Orbit. From a PowerShell prompt in the project folder, run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Install-OrbitRdp.ps1
+```
+
+Then choose **Settings → Remote Desktop → Open Windows client**. Clicking a lab planet or moon asks Windows to open the Orbit launcher, which opens Remote Desktop Connection with the computer prefilled. Click **Connect** in the client. Your browser may ask whether to open the external app. This setting is saved in the browser; **Download .rdp file** remains available in the same menu. The helper stores connection files under `%LOCALAPPDATA%\Orbit\Connections` and stores no credentials.
+
+To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files remain available for manual use.
 
 Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
 
