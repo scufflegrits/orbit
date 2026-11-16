@@ -31,7 +31,11 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 | `links-data.js` | Generated copy of the JSON for direct-file use |
 | `sync.py` | Regenerates `links-data.js` from `links.json` |
 | `serve.py` | Optional local server bound to `127.0.0.1:8000` |
-| `tests/browser_matrix.py` | Playwright checks for the roadmap milestones |
+| `tests/browser_matrix.py` | Test runner CLI (`--milestone`, `--only-new`, `--repeat`) and per-mode dispatch |
+| `tests/helpers.py` | Shared constants (`ROOT`, `ARTIFACTS`, `APP_SCRIPTS`), fixtures, and page helpers |
+| `tests/milestones_01_08.py` | Browser checks for milestones 1–8 |
+| `tests/milestones_09_14.py` | Browser checks for milestones 9–14 and the pending-UI checks |
+| `tests/milestone_18.py` | Browser checks for imported Remote Desktop profiles |
 | `README.md` | User instructions |
 | `ROADMAP.md` | Scope, milestones, and deferred work |
 | `TEST_MATRIX.md` | Test cases, results, and milestone commit record |
@@ -47,10 +51,10 @@ To edit bundled data, change `links.json` and run `python3 sync.py` for direct-f
 
 ## Verification
 
-The Playwright runner accepts `--milestone` 1–18. `--milestone N` replays every milestone up to N in both modes and is slow; add `--only-new` to run just milestone N (about 20 seconds for 18). M18-01 to M18-03 are automated (`run_milestone_18`: UTF-16 fixture import, persistence, download, export, host edit, secret stripping, and malformed/oversized negatives) and passed in both modes over five consecutive runs. M18-04 (native launch) is user-confirmed on Windows. N06 (PowerShell 7 installer) was confirmed on Windows; no Windows-only checks remain. The M13 flake was a race after the logo click and is fixed (`click_logo_to_galaxy`); `--repeat N` runs a selection N times and stops at the first failure. See [REFACTOR_PLAN.md](REFACTOR_PLAN.md).
+The Playwright runner (`tests/browser_matrix.py`, with checks in `tests/milestone*.py` and helpers in `tests/helpers.py`) accepts `--milestone` 1–18. Milestones 15–17 have no dedicated checks yet. Run it with `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 18`. `--milestone N` replays every milestone up to N in both modes and is slow; add `--only-new` to run just milestone N (about 20 seconds for 18). M18-01 to M18-03 are automated (`run_milestone_18`: UTF-16 fixture import, persistence, download, export, host edit, secret stripping, and malformed/oversized negatives) and passed in both modes over five consecutive runs. M18-04 (native launch) is user-confirmed on Windows. N06 (PowerShell 7 installer) was confirmed on Windows; no Windows-only checks remain. The M13 flake was a race after the logo click and is fixed (`click_logo_to_galaxy`); `--repeat N` runs a selection N times and stops at the first failure. See [REFACTOR_PLAN.md](REFACTOR_PLAN.md).
 
 ## Next work
 
-The scripts are classic scripts (not modules, so `file://` works) loaded in order by `index.html`: `links-data.js`, `rdp.js`, `storage.js`, `editor.js`, `menu.js`, `render.js`, `app.js`. They share top-level globals; keep the order and add any new script to `APP_SCRIPTS` in `tests/browser_matrix.py`, which copies and syntax-checks them. Cleanup progress is tracked in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): test stabilization and the `app.js` split are done; splitting the test runner remains. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
+The scripts are classic scripts (not modules, so `file://` works) loaded in order by `index.html`: `links-data.js`, `rdp.js`, `storage.js`, `editor.js`, `menu.js`, `render.js`, `app.js`. They share top-level globals; keep the order and add any new script to `APP_SCRIPTS` in `tests/browser_matrix.py`, which copies and syntax-checks them. Cleanup progress is tracked in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): test stabilization, the `app.js` split, and the test runner split are all done. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
 
 No deployment or hosting was performed, and no personal links have been supplied.

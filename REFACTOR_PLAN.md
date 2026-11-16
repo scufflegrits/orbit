@@ -32,7 +32,9 @@ Order moves the pieces with the fewest dependencies first. After each step, load
 
 Per step: move code without editing it, update `index.html` script order, run the gate, update the file table in `HANDOFF.md`, commit with a message naming the step.
 
-## Part 3 — Split the test runner
+## Part 3 — Split the test runner (done 2026-11-15)
+
+Outcome: `browser_matrix.py` (99 lines) keeps the CLI and dispatch; `helpers.py`, `milestones_01_08.py`, `milestones_09_14.py`, and `milestone_18.py` hold the rest. Each module imports only the names it uses. Full matrix passed after the split.
 
 10. Move shared helpers (`check`, `open_editor`, `upload_json`, `download_json`, `upload_rdp`, fixtures) into `tests/helpers.py`.
 11. Move milestone functions into `tests/milestones_01_08.py`, `tests/milestones_09_14.py`, and `tests/milestone_18.py`, with `browser_matrix.py` keeping only the CLI and server setup. Keep `--milestone` and `--only-new` behavior identical.
