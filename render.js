@@ -31,6 +31,34 @@ function updateMapLabelSizes() {
   style.setProperty('--moon-label-fit', labelFit(moons.map(moon => moon.name), 13, 12));
 }
 
+function descriptionNode(className, description) {
+  const node = element('p', className);
+  const pattern = /\[([^\[\]]+)\]\(([^()\s]+)\)/g;
+  let cursor = 0;
+  for (const match of description.matchAll(pattern)) {
+    node.append(document.createTextNode(description.slice(cursor, match.index)));
+    let href = null;
+    try {
+      const url = new URL(match[2]);
+      if (['http:', 'https:'].includes(url.protocol) && url.hostname && !url.username && !url.password) {
+        href = url.href;
+      }
+    } catch { /* Invalid links stay visible as text. */ }
+    if (href) {
+      const link = element('a', 'description-link', match[1]);
+      link.href = href;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      node.append(link);
+    } else {
+      node.append(document.createTextNode(match[0]));
+    }
+    cursor = match.index + match[0].length;
+  }
+  node.append(document.createTextNode(description.slice(cursor)));
+  return node;
+}
+
 function linkNode(link, className) {
   const isRdp = link.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
@@ -157,7 +185,7 @@ function homeGroup(group, index) {
   orbit.append(hub);
   visible.forEach((link, i) => orbit.append(planetNode(link, 'home', points[i], 320, i)));
 
-  card.append(orbit, element('p', 'group-description', group.description));
+  card.append(orbit, descriptionNode('group-description', group.description));
   return card;
 }
 
@@ -259,7 +287,7 @@ function renderDetail(group) {
   const heading = element('div', 'detail-heading');
   heading.append(element('p', 'eyebrow', 'EXPLORE THIS SYSTEM'));
   heading.append(element('h1', '', group.name));
-  heading.append(element('p', 'intro-copy', group.description));
+  heading.append(descriptionNode('intro-copy', group.description));
 
   const stage = element('div', 'detail-stage');
   stage.style.setProperty('--sun-accent', safeColor(group.color));

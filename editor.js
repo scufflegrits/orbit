@@ -296,6 +296,7 @@ function showSunEditor(index) {
   const form = element('form', 'editor-form');
   const name = editorField('Sun name', sun.name);
   const description = editorField('Description', sun.description, 'textarea');
+  description.wrapper.append(element('small', 'editor-hint', 'Use [label](https://example.com) to add a link within the description.'));
   const color = editorField('Color', sun.color, 'color');
   form.append(name.wrapper, description.wrapper, color.wrapper);
   const actions = element('div', 'editor-actions');

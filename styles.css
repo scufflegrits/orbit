@@ -333,6 +333,7 @@ button:focus-visible, a:focus-visible {
   font: calc(13px * var(--font-scale)) 'DM Sans', system-ui, sans-serif;
 }
 .editor-field textarea { min-height: 72px; resize: vertical; }
+.editor-hint { color: var(--subtle); font-size: calc(11px * var(--font-scale)); }
 .editor-field input[type='color'] { width: 86px; padding: 4px; cursor: pointer; }
 .editor-field input:focus, .editor-field textarea:focus, .editor-field select:focus { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
 .editor-field[hidden] { display: none; }
@@ -596,6 +597,8 @@ html[data-theme='auburn'] .detail-stage {
 }
 
 .group-description { margin: -7px 0 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
+.description-link { color: var(--theme-accent); text-decoration: underline; text-underline-offset: 2px; }
+.description-link:hover { color: var(--text); }
 
 .detail-top { display: flex; justify-content: space-between; align-items: center; padding: 30px 0 0; }
 .back-link { color: var(--muted-strong); font-size: calc(13px * var(--font-scale)); text-decoration: none; }

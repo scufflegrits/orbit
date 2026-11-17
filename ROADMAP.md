@@ -224,7 +224,7 @@ Keyboard access to everything the pointer can reach, in small steps. Touch inter
 
 Collected from the user's private notes (`request-observations.md`, not committed). Milestone 19 (keyboard navigation) is complete. Effort is a rough guide: **S** under a day of focused work, **M** a few steps, **L** a milestone of its own. Numbers in brackets are the note numbers.
 
-Progress (2026-11-16): priority 1 is implemented and awaits a Windows registry backup check. Priority 2 is implemented; a focused file-mode browser check passed for the Settings position, reorder counts, and `.rdp` import visibility. Priority 3 is implemented with uniform Galaxy labels, a two-line fit for “Confluence ABC” at the standard size, larger moons, and slightly larger interface text at 1920 pixels; focused visual checks covered 900-pixel Galaxy and Labs layouts and 1920-pixel typography. Priority 4 copies a saved moon to any other planet as an independent entry; a focused cross-sun copy, edit, and reload check passed. The full historical browser matrix is no longer a routine gate for small edits.
+Progress (2026-11-16): priority 1 is implemented and awaits a Windows registry backup check. Priority 2 is implemented; a focused file-mode browser check passed for the Settings position, reorder counts, and `.rdp` import visibility. Priority 3 is implemented with uniform Galaxy labels, a two-line fit for “Confluence ABC” at the standard size, larger moons, and slightly larger interface text at 1920 pixels; focused visual checks covered 900-pixel Galaxy and Labs layouts and 1920-pixel typography. Priority 4 copies a saved moon to any other planet as an independent entry; a focused cross-sun copy, edit, and reload check passed. Priority 5 supports safe inline HTTP(S) links in sun descriptions; a focused Galaxy, System, unsafe-markup, and reload check passed. The full historical browser matrix is no longer a routine gate for small edits.
 
 | Priority | Item | Effort | Notes |
 | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ Progress (2026-11-16): priority 1 is implemented and awaits a Windows registry b
 ### Questions to settle
 
 - **A. Copies or shared moons [4, 5]?** Resolved 2026-11-16: copies are independent. Editing one never changes the others.
-- **B. Descriptions [6, 13]:** should a link replace the whole description line, or sit inside it as text (the proposal above)?
+- **B. Descriptions [6, 13]:** resolved 2026-11-16: links sit inline within description text.
 - **C. `mstsc.exe` arguments [12]:** is the goal to avoid downloading a file, or to pass options a file cannot hold? Imported profile settings would still need the file route.
 - **D. Folder drop [9]:** is it acceptable to run `serve.py` for this, or should it stay a pure browser page where you pick or drop files in the editor (multiple files at once)?
 - **E. Sizing [16]:** resolved 2026-11-16: use one shared size per label level across the whole Galaxy. The user wants every sun at the same size and a two-line “Confluence ABC” to fit a sun.
