@@ -74,6 +74,14 @@ Then choose **Settings → Remote Desktop → Open mstsc.exe**. Clicking a lab p
 
 To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files remain available for manual use.
 
+## Keyboard
+
+Orbit works without a mouse. Press `/` anywhere to jump to **Quick find**, then use Down Arrow to move into the results, Up and Down Arrow to move between them, and Enter to open one.
+
+Tab moves through the page. Focusing a sun shows its planets and focusing a planet shows its moons, each with a visible focus ring. Arrow keys move between suns by position, between sibling planets or moons, down from a planet into its moons, and back up. Enter opens the focused item.
+
+Escape closes the menu first; when the menu is closed it clears Quick find, and after that it returns from a System to the Galaxy. While the menu is open, Tab stays inside it, and closing it returns focus to the cog.
+
 ## Settings and help
 
 Click the cog on the Galaxy or any System to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.

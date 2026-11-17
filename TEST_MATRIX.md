@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–14 and 18 passed; the PowerShell 7 installer check N06 passed on Windows; milestone 19 (keyboard navigation) is in progress. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–14, 18, and 19 passed; the PowerShell 7 installer check N06 passed on Windows; milestone 19 (keyboard navigation) passed. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -214,10 +214,10 @@ Rules:
 | K02 | Both | Open a System, focus a planet, and press Tab. | Its moons appear and receive focus with a visible ring. | Pass — automated. |
 | K03 | Both | Open the menu with the keyboard, then press Tab and Shift+Tab repeatedly. | Focus moves into the menu on open and never leaves it while it is open. | Pass — automated. |
 | K04 | Both | Press Escape with the menu open, then with Quick find filled, then in a System. | Each press closes only the top layer: menu (focus returns to the cog), then Quick find, then the System. | Pass — automated. |
-| K05 | Both | Press `/`, type a query, and use Down and Up Arrow and Enter in the results. | `/` focuses Quick find (not while typing in a field or with the menu open); arrows move between results and back to the field; Enter opens the result. | Not run |
-| K06 | Both | Use arrow keys on suns, planets, and moons. | Arrows move between suns by position, between sibling planets and moons, down into moons, and up to the planet. | Not run |
-| K07 | Both | Read cog → Help. | The keyboard shortcuts are described. | Not run |
-| K08 | Both | Keyboard only: search, open a System, reach a moon, open a destination, open and close the menu, return to the Galaxy. | Every step works with a visible focus indicator throughout. | Not run |
+| K05 | Both | Press `/`, type a query, and use Down and Up Arrow and Enter in the results. | `/` focuses Quick find (not while typing in a field or with the menu open); arrows move between results and back to the field; Enter opens the result. | Pass — automated. |
+| K06 | Both | Use arrow keys on suns, planets, and moons. | Arrows move between suns by position, between sibling planets and moons, down into moons, and up to the planet. | Pass — automated. |
+| K07 | Both | Read cog → Help. | The keyboard shortcuts are described. | Pass — automated. |
+| K08 | Both | Keyboard only: search, open a System, reach a moon, open a destination, open and close the menu, return to the Galaxy. | Every step works with a visible focus indicator throughout. | Pass — automated. |
 
 ## Milestone commit record
 
@@ -242,3 +242,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 13 — Share selected links | 2026-11-15 | S01–S05, U01–U02, and I01–I04 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel editor screenshot inspected. | Milestone 13: Share selected links |
 | 14 — Planet as sun | 2026-11-15 | S01–S05 and C01–C03 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel review screenshot inspected. | Milestone 14: Import planet as sun |
 | 18 — Import saved Remote Desktop profiles | 2026-11-15 | M18-01 to M18-03 automated and passed in both run modes (`--milestone 18 --only-new`, 5 consecutive runs); M18-04 confirmed by the user on Windows. Fixture values were not logged or committed. | Milestone 18: Import saved Remote Desktop profiles |
+| 19 — Keyboard navigation | 2026-11-16 | K01–K08 automated and passed in both run modes; `--milestone 19 --only-new --repeat 5` passed 5 of 5, and the full matrix passed once as the commit gate. Focus screenshots inspected. | Milestone 19: Keyboard navigation |

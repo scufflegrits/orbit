@@ -1,4 +1,5 @@
-// Keyboard handling: menu focus trap and Escape layers. Loaded as a classic
+// Keyboard handling: menu focus trap, Escape layers, Quick find keys, and arrow
+// navigation through suns, planets, and moons. Loaded as a classic
 // script before app.js. Uses shared state from app.js and menu.js (menuOverlay,
 // quickFind, findQuery, app) only when a key is pressed.
 
@@ -33,6 +34,8 @@ function handleEscape(event) {
     closeMenu();
   } else if (quickFind.value || findQuery) {
     event.preventDefault();
+    // Keep keyboard users in the search box when the result they were on disappears.
+    if (document.activeElement.closest('.find-results')) quickFind.focus();
     findQuery = '';
     quickFind.value = '';
     // On the Galaxy the input handler refreshes results; in a System it would leave the System.
@@ -42,8 +45,114 @@ function handleEscape(event) {
   }
 }
 
+function typingInField(target) {
+  return target instanceof HTMLElement &&
+    (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+}
+
+// "/" jumps to Quick find unless the user is typing, a menu is open, or Quick find is hidden.
+function handleSlash(event) {
+  if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return false;
+  if (typingInField(event.target) || !menuOverlay.hidden || topbarSearch.hidden) return false;
+  event.preventDefault();
+  quickFind.focus();
+  quickFind.select();
+  return true;
+}
+
+// Down Arrow leaves Quick find for the results; Up and Down move through them.
+function handleFindArrows(event) {
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return false;
+  const results = [...app.querySelectorAll('.find-item')];
+  if (!results.length) return false;
+  const active = document.activeElement;
+  if (active === quickFind) {
+    if (event.key === 'ArrowUp') return false;
+    event.preventDefault();
+    results[0].focus();
+    return true;
+  }
+  const index = results.indexOf(active);
+  if (index === -1) return false;
+  event.preventDefault();
+  if (event.key === 'ArrowDown') results[Math.min(index + 1, results.length - 1)].focus();
+  else if (index === 0) quickFind.focus();
+  else results[index - 1].focus();
+  return true;
+}
+
+const ARROWS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
+const PLANET_SELECTOR = '.home-satellite, .detail-satellite';
+
+function centerOf(node) {
+  const box = node.getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+
+// The closest sun in the pressed direction; sideways drift counts double so rows and columns stay put.
+function nearestInDirection(from, candidates, [dx, dy]) {
+  const origin = centerOf(from);
+  let best = null;
+  let bestScore = Infinity;
+  for (const node of candidates) {
+    if (node === from) continue;
+    const point = centerOf(node);
+    const along = (point.x - origin.x) * dx + (point.y - origin.y) * dy;
+    if (along <= 8) continue;
+    const across = Math.abs((point.x - origin.x) * dy - (point.y - origin.y) * dx);
+    const score = along + across * 2;
+    if (score < bestScore) { best = node; bestScore = score; }
+  }
+  return best;
+}
+
+function neighbor(list, node, step) {
+  const index = list.indexOf(node);
+  return index === -1 ? null : list[index + step] || null;
+}
+
+function planetTarget(planet, [dx, dy]) {
+  const cluster = planet.closest('.planet-cluster');
+  const container = cluster.parentElement;
+  const planets = [...container.querySelectorAll(':scope > .planet-cluster > :is(.home-satellite, .detail-satellite)')];
+  if (dx) return neighbor(planets, planet, dx);
+  if (dy > 0) return cluster.querySelector('.moon-link');
+  return container.querySelector(':scope > .home-hub');
+}
+
+function moonTarget(moon, [dx, dy]) {
+  const field = moon.closest('.moon-field');
+  if (dx) return neighbor([...field.querySelectorAll('.moon-link')], moon, dx);
+  if (dy < 0) return field.closest('.planet-cluster').querySelector(`:scope > :is(${PLANET_SELECTOR})`);
+  return null;
+}
+
+function handleMapArrows(event) {
+  const direction = ARROWS[event.key];
+  if (!direction || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+  if (!menuOverlay.hidden) return;
+  const active = document.activeElement;
+  let target = null;
+  if (active.classList.contains('home-hub')) {
+    target = nearestInDirection(active, [...app.querySelectorAll('.home-hub')], direction);
+  } else if (active.matches(PLANET_SELECTOR)) {
+    target = planetTarget(active, direction);
+  } else if (active.classList.contains('moon-link')) {
+    target = moonTarget(active, direction);
+  }
+  if (target) {
+    event.preventDefault();
+    target.focus();
+  }
+}
+
 window.addEventListener('keydown', event => {
   if (event.defaultPrevented) return;
-  if (event.key === 'Tab' && !menuOverlay.hidden) trapMenuFocus(event);
-  else if (event.key === 'Escape') handleEscape(event);
+  if (event.key === 'Tab') {
+    if (!menuOverlay.hidden) trapMenuFocus(event);
+  } else if (event.key === 'Escape') {
+    handleEscape(event);
+  } else if (!handleSlash(event) && !handleFindArrows(event)) {
+    handleMapArrows(event);
+  }
 });

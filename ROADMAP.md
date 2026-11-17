@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14 and 18 complete (2026-11-15); milestones 15–17 are implemented, with testing deferred at the user's request. Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the PowerShell 7 installer path is also confirmed.
+Status: milestones 1–14, 18, and 19 complete (2026-11-15 and 2026-11-16); milestones 15–17 are implemented, with testing deferred at the user's request. Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the PowerShell 7 installer path is also confirmed.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -217,6 +217,8 @@ Keyboard access to everything the pointer can reach, in small steps. Touch inter
 6. **Help and docs.** Describe the shortcuts in cog → Help and the README, then add Playwright checks in both run modes.
 
 **Done when:** a user can search, open a System, reach any planet or moon, open a destination, open and close the menu, and return to the Galaxy using only the keyboard, with a visible focus indicator throughout, and the full browser matrix still passes in both run modes.
+
+**Completed 2026-11-16:** all six steps are implemented in `keys.js`, `menu.js`, and `styles.css`, with checks K01–K08 in `tests/milestone_19.py`.
 
 ## Backlog — prioritized observations (2026-11-16)
 

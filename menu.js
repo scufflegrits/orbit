@@ -146,6 +146,11 @@ function showMenuPanel(name) {
     menuContent.append(element('p', '', 'In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.'));
     menuContent.append(element('p', '', 'Your browser may ask before opening the helper. Orbit does not store credentials.'));
     menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
+    menuContent.append(element('h4', 'editor-section-title', 'Keyboard'));
+    menuContent.append(element('p', '', 'Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.'));
+    menuContent.append(element('p', '', 'Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.'));
+    menuContent.append(element('p', '', 'Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.'));
+    menuContent.append(element('p', '', 'Escape closes the menu first, then clears Quick find, then returns from a System to the Galaxy.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
     menuContent.append(element('p', '', 'Your link map runs on this computer, without an account or hosted service.'));
