@@ -28,6 +28,12 @@ function showMenuPanel(name) {
   }
   menuContent.append(element('h3', '', name));
   if (name === 'Settings') {
+    const edit = element('button', 'editor-open', 'Edit links');
+    edit.type = 'button';
+    edit.addEventListener('click', () => showEditor('suns'));
+    menuContent.append(edit);
+    menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
+    if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
     const themeRow = element('label', 'setting-row');
     const themeCopy = element('span', 'setting-copy');
     themeCopy.append(element('strong', '', 'Theme'));
@@ -133,12 +139,6 @@ function showMenuPanel(name) {
     });
     moonRow.append(moonCopy, moonInput);
     menuContent.append(moonRow);
-    const edit = element('button', 'editor-open', 'Edit links');
-    edit.type = 'button';
-    edit.addEventListener('click', () => showEditor('suns'));
-    menuContent.append(edit);
-    menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
-    if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));

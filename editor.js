@@ -60,6 +60,7 @@ function destinationFields(form, destination, onRdpImported) {
     url.wrapper.hidden = select.value !== 'web';
     host.wrapper.hidden = select.value !== 'rdp';
     profileNote.hidden = select.value !== 'rdp';
+    importRdp.hidden = select.value !== 'rdp';
   };
   select.addEventListener('change', update);
   form.append(type, url.wrapper, host.wrapper, profileNote, importRdp);
@@ -121,6 +122,14 @@ function moveEntry(items, index, amount) {
   if (target < 0 || target >= items.length) return false;
   [items[index], items[target]] = [items[target], items[index]];
   return true;
+}
+
+function editorMoveControls(actions, index, count, onMove) {
+  const up = editorButton('Move up', () => onMove(-1));
+  up.disabled = index === 0;
+  const down = editorButton('Move down', () => onMove(1));
+  down.disabled = index === count - 1;
+  actions.append(up, element('span', 'editor-position', `${index + 1} of ${count}`), down);
 }
 
 function editorActions() {
@@ -294,14 +303,10 @@ function showSunEditor(index) {
   save.type = 'submit';
   actions.append(save);
   if (!isNew) {
-    actions.append(editorButton('Move up', () => {
+    editorMoveControls(actions, index, groups.length, amount => {
       const next = copyGroups();
-      if (moveEntry(next, index, -1)) applyEditorChange(next, () => showSunEditor(index - 1));
-    }));
-    actions.append(editorButton('Move down', () => {
-      const next = copyGroups();
-      if (moveEntry(next, index, 1)) applyEditorChange(next, () => showSunEditor(index + 1));
-    }));
+      if (moveEntry(next, index, amount)) applyEditorChange(next, () => showSunEditor(index + amount));
+    });
     actions.append(editorButton('Remove sun', () => {
       if (!window.confirm(`Remove ${sun.name} and all its planets and moons?`)) return;
       const next = copyGroups();
@@ -360,14 +365,12 @@ function showPlanetEditor(sunIndex, planetIndex) {
   save.type = 'submit';
   actions.append(save);
   if (!isNew) {
-    for (const [label, amount] of [['Move up', -1], ['Move down', 1]]) {
-      actions.append(editorButton(label, () => {
-        const next = copyGroups();
-        if (moveEntry(next[sunIndex].links, planetIndex, amount)) {
-          applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex + amount));
-        }
-      }));
-    }
+    editorMoveControls(actions, planetIndex, groups[sunIndex].links.length, amount => {
+      const next = copyGroups();
+      if (moveEntry(next[sunIndex].links, planetIndex, amount)) {
+        applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex + amount));
+      }
+    });
     actions.append(editorButton('Remove planet', () => {
       if (!window.confirm(`Remove ${planet.name} and all its moons?`)) return;
       const next = copyGroups();
@@ -425,14 +428,12 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   save.type = 'submit';
   actions.append(save);
   if (!isNew) {
-    for (const [label, amount] of [['Move up', -1], ['Move down', 1]]) {
-      actions.append(editorButton(label, () => {
-        const next = copyGroups();
-        if (moveEntry(next[sunIndex].links[planetIndex].moons, moonIndex, amount)) {
-          applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex, moonIndex + amount));
-        }
-      }));
-    }
+    editorMoveControls(actions, moonIndex, planet.moons.length, amount => {
+      const next = copyGroups();
+      if (moveEntry(next[sunIndex].links[planetIndex].moons, moonIndex, amount)) {
+        applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex, moonIndex + amount));
+      }
+    });
     actions.append(editorButton('Remove moon', () => {
       if (!window.confirm(`Remove ${moon.name}?`)) return;
       const next = copyGroups();
