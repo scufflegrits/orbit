@@ -82,6 +82,8 @@ ssh -F /dev/null -i /home/sysadmin/.ssh/id_ed25519 -o BatchMode=yes \
   sysadmin@10.31.31.238 whoami
 ```
 
+The drag checks ran in Edge on this VM (DD17, 2026-11-16). To repeat: `git archive --format=zip HEAD`, write the fixture data with `tests/drag_drop.py --phase 2 --write-fixture DIR`, copy the archive and the two fixture files to the guest, expand to `C:\orbit-drag-test` and overwrite `links.json` and `links-data.js` there; start Edge through SSH with `-L 127.0.0.1:9333:127.0.0.1:9333` and `msedge.exe --headless=new --remote-debugging-port=9333 --user-data-dir=C:\orbit-drag-profile about:blank`; then run `tests/drag_drop.py --phase 2 --cdp http://127.0.0.1:9333 --url file:///C:/orbit-drag-test/index.html`. Stop Edge and delete both guest folders afterwards. An interactive (non-headless) Edge pass has not been done.
+
 Windows PowerShell 5.1 and Microsoft Edge are present; Edge is at `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`. Chrome was not found in its usual Program Files path. Python/Node are not verified as real guest runtimes. Copy a clean archive of **tracked** files to a disposable guest folder for Edge file-mode checks, excluding private fixtures and credentials. The drag plan documents the archive/SSH procedure and how to use Edge for focused pointer checks. A guest SSH login cannot restore `s04`; snapshot restoration requires hypervisor access. Windows registry/helper checks B01, B02, and B07 remain pending. They are separate from priority 9. A local draft smoke script was not run or copied to the VM; do not report those cases as passed.
 
 ## Next work
