@@ -236,7 +236,7 @@ Progress (2026-11-16): priority 1 is implemented and awaits a Windows registry b
 | 6 | **Launch with `mstsc.exe` arguments** such as `/v:host` instead of a temporary file [12] | M | The helper could pass `/v:` plus allowed options, with the same validation as today. See question C. |
 | 7 | **Dedicated edit page** to reorganize everything in one view [3] | L | Implemented as a full-screen workspace with the complete tree beside the detail editor. Move up/down, cross-parent moves, and moon copying are available; file-mode check passed. |
 | 8 | **Read `.rdp` files dropped in a folder** [9] | L | Implemented as a browser-local batch import under a chosen sun or planet: pick files or a folder, or drop them. The browser does not watch folders. Drop and invalid-batch browser checks remain. |
-| 9 | **Dynamic movement on the main page** [15] | L | Positions are fixed and CSS-driven today. Real motion needs an animation layer that also respects the animation setting, reduced motion, and the hover and focus reveals. Prototype before committing. |
+| 9 | **Drag-and-drop organization on the Galaxy and Systems** [15] | L | Planning only. Use an explicit Edit mode; Phase 1 moves moons and planets between parents, and Phase 2 reorders suns, planets, and moons. See [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md). |
 
 ### Questions to settle
 
