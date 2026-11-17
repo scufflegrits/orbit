@@ -105,3 +105,99 @@ function showMoveMoon(sunIndex, planetIndex, moonIndex) {
     applyEditorChange(next, () => showMoonEditor(targetSunIndex, targetPlanetIndex, targetMoons.length - 1));
   }, 'editor-primary'));
 }
+
+async function droppedFiles(dataTransfer) {
+  const entries = [...dataTransfer.items].map(item => item.webkitGetAsEntry?.()).filter(Boolean);
+  if (!entries.length) return [...dataTransfer.files];
+  const visit = async entry => {
+    if (entry.isFile) {
+      return [await new Promise((resolve, reject) => entry.file(resolve, reject))];
+    }
+    if (!entry.isDirectory) return [];
+    const reader = entry.createReader();
+    const files = [];
+    while (true) {
+      const children = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+      if (!children.length) break;
+      for (const child of children) files.push(...await visit(child));
+    }
+    return files;
+  };
+  const files = [];
+  for (const entry of entries) files.push(...await visit(entry));
+  return files;
+}
+
+function showRdpBatchImport(kind, sunIndex, planetIndex = null) {
+  const sun = groups[sunIndex];
+  const parent = kind === 'moon' ? sun.links[planetIndex] : sun;
+  const back = kind === 'moon' ? () => showPlanetEditor(sunIndex, planetIndex)
+    : () => showSunEditor(sunIndex);
+  editorHeader('Import .rdp files', back);
+  menuContent.append(element('p', '', `Add ${kind}s under ${sun.name}${kind === 'moon' ? ` → ${parent.name}` : ''}. Existing links stay in place.`));
+  menuContent.append(element('p', '', 'Pick multiple .rdp files or a folder, or drop them here. Orbit reads the files in this browser and excludes password, token, and signature settings.'));
+  const dropZone = element('div', 'rdp-dropzone', 'Drop .rdp files or a folder here');
+  const preview = element('div', 'rdp-batch-preview');
+  const actions = editorActions();
+  const add = editorButton('Add imported links', () => {
+    const next = copyGroups();
+    const target = kind === 'moon' ? next[sunIndex].links[planetIndex].moons : next[sunIndex].links;
+    target.push(...prepared);
+    applyEditorChange(next, back);
+  }, 'editor-primary');
+  add.disabled = true;
+  let prepared = [];
+  let selectionVersion = 0;
+  const prepare = async files => {
+    const version = ++selectionVersion;
+    prepared = [];
+    add.disabled = true;
+    preview.replaceChildren();
+    menuContent.querySelector('.editor-error')?.remove();
+    try {
+      const selected = files.filter(file => /\.rdp$/i.test(file.name));
+      if (!selected.length) throw new Error('Choose at least one .rdp file.');
+      if (selected.length > 100) throw new Error('Choose at most 100 .rdp files at once.');
+      const imported = [];
+      let excluded = 0;
+      for (const file of selected) {
+        let parsed;
+        try { parsed = parseRdpProfile(await readRdpText(file)); }
+        catch (error) { throw new Error(`${file.name}: ${error.message}`); }
+        imported.push({ name: file.name.replace(/\.rdp$/i, '') || 'Remote Desktop',
+          type: 'rdp', host: parsed.host, rdpProfile: parsed.content });
+        excluded += parsed.removed;
+      }
+      if (version !== selectionVersion || !menuContent.contains(dropZone)) return;
+      prepared = imported;
+      preview.append(element('p', '', `${imported.length} ${kind}${imported.length === 1 ? '' : 's'} ready · ${excluded} sensitive settings excluded · ${files.length - selected.length} other files skipped.`));
+      const list = element('ul', 'rdp-batch-list');
+      imported.forEach(item => list.append(element('li', '', `${item.name} → ${item.host}`)));
+      preview.append(list);
+      add.disabled = false;
+    } catch (error) {
+      if (version === selectionVersion && menuContent.contains(dropZone)) {
+        editorError(`RDP import failed: ${error.message}`);
+      }
+    }
+  };
+  const choose = folder => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    if (folder) input.setAttribute('webkitdirectory', '');
+    else { input.multiple = true; input.accept = '.rdp,application/x-rdp'; }
+    input.addEventListener('change', () => { if (input.files.length) prepare([...input.files]); });
+    input.click();
+  };
+  dropZone.addEventListener('dragover', event => event.preventDefault());
+  dropZone.addEventListener('drop', async event => {
+    event.preventDefault();
+    try { await prepare(await droppedFiles(event.dataTransfer)); }
+    catch (error) { editorError(`RDP import failed: ${error.message}`); }
+  });
+  menuContent.append(dropZone);
+  actions.append(editorButton('Choose .rdp files', () => choose(false)));
+  actions.append(editorButton('Choose folder', () => choose(true)));
+  actions.append(add);
+  menuContent.append(preview);
+}

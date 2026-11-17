@@ -163,6 +163,8 @@ Rules:
 | B07 | Windows | Re-run the installer and open a host-only Remote Desktop moon, then a moon with an imported profile. | Host-only launches `mstsc.exe` with `/v:` and `/prompt` without writing a connection file; the imported profile still opens through `/edit` with its settings. | Not run — Windows is required. |
 | B08 | File | Open Edit links at 900 pixels, navigate from the persistent map tree, move a moon to another planet and a planet to another sun, then close and reopen Settings. | The workspace fills the viewport; both moves preserve their destinations and children; the tree updates; Settings returns to its normal panel. | Pass — focused Chromium check and screenshot (2026-11-16). |
 | B09 | Server | Repeat B08 through the local server. | The workspace and cross-parent moves behave the same. | Not run — focused file-mode check covered the shared editor code. |
+| B10 | File | Pick a folder containing two `.rdp` files and an unrelated file, then import two `.rdp` files as moons. | The folder import adds only the two profiles as planets; multi-file import adds both as moons; excluded secrets do not persist. | Pass — focused Chromium check (2026-11-16); file selection order is browser-defined. |
+| B11 | Both | Drop a folder or files into the batch area and include an invalid `.rdp` file in a batch. | Drop reads the files; an invalid profile leaves the current map unchanged and disables Add. | Not run — the negative-case Playwright setup mixed a path and buffer, which the test API rejects. |
 
 ## Pending UI batch checks
 

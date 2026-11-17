@@ -56,6 +56,8 @@ By default, clicking one downloads a `.rdp` connection file with that host. Open
 
 To use a saved connection, open its planet or moon in **Settings → Edit links** and select **Import .rdp file**. For example, open **Labs → lab1 → lab1-server3**, import the saved file, review the computer address, then select **Save moon**. Orbit keeps the file's connection settings with that link for future `.rdp` downloads and native `mstsc.exe` launches. The same control can fill a new planet or moon; its file name becomes the link name if you have not entered one. Editing the computer address later updates the saved profile's target while retaining its other settings. Password, token, and signature fields are excluded; Orbit does not store credentials. Exported Orbit JSON includes the remaining profile settings, so review it before sharing.
 
+To import several saved connections, open a saved sun and choose **Import .rdp files as planets**, or open a saved planet and choose **Import .rdp files as moons**. Pick multiple files, pick a folder, or drop files or a folder into the import area. Review the names and computer addresses, then add the batch. Orbit skips non-`.rdp` files in a folder and stops the batch if any selected `.rdp` file is invalid. The browser reads the chosen files locally; Orbit does not watch the folder for future changes.
+
 To open the Windows client directly from a moon, install the per-user **Orbit launcher** once on the Windows PC where you use Orbit. This opens the built-in `mstsc.exe`; the separate MSRDC app installed by `winget install Microsoft.RemoteDesktopClient` does not register Orbit's launcher. From the project folder, run with Windows PowerShell 5.1:
 
 ```powershell

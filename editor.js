@@ -349,6 +349,7 @@ function showSunEditor(index) {
     const planetActions = editorActions();
     planetActions.append(editorButton('Add planet', () => showPlanetEditor(index, null), 'editor-primary'));
     planetActions.append(editorButton('Import planet', () => importItem('planet', index)));
+    planetActions.append(editorButton('Import .rdp files as planets', () => showRdpBatchImport('planet', index)));
   }
 }
 
@@ -411,6 +412,7 @@ function showPlanetEditor(sunIndex, planetIndex) {
     const moonActions = editorActions();
     moonActions.append(editorButton('Add moon', () => showMoonEditor(sunIndex, planetIndex, null), 'editor-primary'));
     moonActions.append(editorButton('Import moon', () => importItem('moon', sunIndex, planetIndex)));
+    moonActions.append(editorButton('Import .rdp files as moons', () => showRdpBatchImport('moon', sunIndex, planetIndex)));
   }
 }
 
