@@ -18,6 +18,14 @@ function openEditorPage() {
   editorTree.querySelector('button')?.focus();
 }
 
+// Open Edit links on one planet ([sun, planet]) or moon ([sun, planet, moon]).
+function openEditorAt(indices) {
+  openMenu();
+  openEditorPage();
+  if (indices.length === 3) showMoonEditor(...indices);
+  else showPlanetEditor(...indices);
+}
+
 function leaveEditorPage() {
   menuOverlay.querySelector('.menu-sheet').classList.remove('editor-page-mode');
   menuOverlay.querySelector('.menu-top h2').textContent = 'Explore the menu';
@@ -74,11 +82,10 @@ function showMovePlanet(sunIndex, planetIndex) {
   }
   const select = moveTargetField(options);
   editorActions().append(editorButton('Move planet', () => {
-    const targetSunIndex = Number(select.value);
-    const next = copyGroups();
-    const [moved] = next[sunIndex].links.splice(planetIndex, 1);
-    next[targetSunIndex].links.push(moved);
-    applyEditorChange(next, () => showPlanetEditor(targetSunIndex, next[targetSunIndex].links.length - 1));
+    const moved = moveMapItem(groups, { kind: 'planet', sun: sunIndex, planet: planetIndex },
+      { kind: 'sun', sun: Number(select.value) });
+    if (moved.status !== 'moved') return editorError('That planet could not be moved.');
+    applyEditorChange(moved.groups, () => showPlanetEditor(moved.path.sun, moved.path.planet));
   }, 'editor-primary'));
 }
 
@@ -98,11 +105,12 @@ function showMoveMoon(sunIndex, planetIndex, moonIndex) {
   const select = moveTargetField(options);
   editorActions().append(editorButton('Move moon', () => {
     const [targetSunIndex, targetPlanetIndex] = select.value.split(':').map(Number);
-    const next = copyGroups();
-    const [moved] = next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
-    const targetMoons = next[targetSunIndex].links[targetPlanetIndex].moons;
-    targetMoons.push(moved);
-    applyEditorChange(next, () => showMoonEditor(targetSunIndex, targetPlanetIndex, targetMoons.length - 1));
+    const moved = moveMapItem(groups,
+      { kind: 'moon', sun: sunIndex, planet: planetIndex, moon: moonIndex },
+      { kind: 'planet', sun: targetSunIndex, planet: targetPlanetIndex });
+    if (moved.status !== 'moved') return editorError('That moon could not be moved.');
+    applyEditorChange(moved.groups,
+      () => showMoonEditor(moved.path.sun, moved.path.planet, moved.path.moon));
   }, 'editor-primary'));
 }
 

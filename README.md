@@ -76,13 +76,24 @@ Then choose **Settings → Remote Desktop → Open mstsc.exe**. Clicking a lab p
 
 Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` registry key as a uniquely named `.reg` file in `%LOCALAPPDATA%\Orbit` and print its path. If that backup fails, the script stops before changing the registration. To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files and registry backups remain available for manual use.
 
+## Rearrange by dragging
+
+Turn on **Edit mode** in the top bar to rearrange the map with a mouse or pen. It is off after every reload. While it is on, planets and moons do not open, download, or launch Remote Desktop; a sun still opens its System.
+
+- Drag a planet onto another sun to move it there with all its moons.
+- Drag a moon onto another planet. In the Galaxy, pause on another sun to show its planets.
+- In a System, a list of the other suns and planets appears while you drag, because only one sun is on screen.
+- **Undo last drag** reverses the most recent move until the map changes again or the page reloads.
+
+A moved link keeps its name, destination, and any imported `.rdp` profile, and goes to the end of its new parent. The Galaxy shows only the first five planets and four moons, so use a System or **Edit links** for the rest. In Edit mode, a Quick find result opens that planet or moon in Edit links. Dragging needs a mouse or pen; with a keyboard, use the move controls in Edit links. Touch dragging is not supported.
+
 ## Keyboard
 
 Orbit works without a mouse. Press `/` anywhere to jump to **Quick find**, then use Down Arrow to move into the results, Up and Down Arrow to move between them, and Enter to open one.
 
 Tab moves through the page. Focusing a sun shows its planets and focusing a planet shows its moons, each with a visible focus ring. Arrow keys move between suns by position, between sibling planets or moons, down from a planet into its moons, and back up. Enter opens the focused item.
 
-Escape closes the menu first; when the menu is closed it clears Quick find, and after that it returns from a System to the Galaxy. While the menu is open, Tab stays inside it, and closing it returns focus to the cog.
+Escape closes the menu first; when the menu is closed it cancels a drag, then turns Edit mode off, then clears Quick find, and after that it returns from a System to the Galaxy. While the menu is open, Tab stays inside it, and closing it returns focus to the cog.
 
 ## Settings and help
 

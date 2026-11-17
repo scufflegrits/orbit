@@ -59,7 +59,29 @@ function descriptionNode(className, description) {
   return node;
 }
 
-function linkNode(link, className) {
+// Mark a rendered sun, planet, or moon with its array path so Edit mode can
+// find the exact stored item. Names and destinations may repeat; paths do not.
+function tagPath(node, kind, sun, planet, moon) {
+  node.dataset.kind = kind;
+  node.dataset.sun = sun;
+  if (planet !== undefined) node.dataset.planet = planet;
+  if (moon !== undefined) node.dataset.moon = moon;
+  return node;
+}
+
+function linkNode(link, className, path) {
+  const node = destinationNode(link, className);
+  if (path) {
+    tagPath(node, path.length === 3 ? 'moon' : 'planet', ...path);
+    if (editMode) {
+      node.title = `Drag ${link.name} to move it`;
+      node.setAttribute('aria-label', `${link.name}. Links are paused in Edit mode.`);
+    }
+  }
+  return node;
+}
+
+function destinationNode(link, className) {
   const isRdp = link.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
   const node = element(download ? 'button' : 'a', className, link.name);
@@ -114,12 +136,12 @@ function moonSpokes(points, origin, size) {
   return svg;
 }
 
-function planetNode(link, context, point, size, index) {
+function planetNode(link, context, point, size, index, sunIndex) {
   const cluster = element('div', `planet-cluster ${context}-planet-cluster`);
   cluster.style.setProperty('--x', `${point.x / size * 100}%`);
   cluster.style.setProperty('--y', `${point.y / size * 100}%`);
   cluster.style.setProperty('--delay', `${index * (context === 'home' ? 35 : 50)}ms`);
-  cluster.append(linkNode(link, context === 'home' ? 'home-satellite' : 'detail-satellite'));
+  cluster.append(linkNode(link, context === 'home' ? 'home-satellite' : 'detail-satellite', [sunIndex, index]));
 
   if (link.moons.length) {
     const field = element('div', 'moon-field');
@@ -140,7 +162,7 @@ function planetNode(link, context, point, size, index) {
       x: origin.x + position.x, y: origin.y + position.y,
     })), origin, 220));
     visible.forEach((moon, moonIndex) => {
-      const node = linkNode(moon, 'moon-link');
+      const node = linkNode(moon, 'moon-link', [sunIndex, index, moonIndex]);
       node.style.setProperty('--mx', `${positions[moonIndex].x - outX}px`);
       node.style.setProperty('--my', `${positions[moonIndex].y - outY}px`);
       field.append(node);
@@ -151,12 +173,13 @@ function planetNode(link, context, point, size, index) {
   return cluster;
 }
 
-function overflowPlanetNode(link) {
+function overflowPlanetNode(link, sunIndex, planetIndex) {
   const item = element('div', 'overflow-planet');
-  item.append(linkNode(link, 'more-link'));
+  item.append(linkNode(link, 'more-link', [sunIndex, planetIndex]));
   if (link.moons.length) {
     const moons = element('div', 'overflow-moons');
-    link.moons.forEach(moon => moons.append(linkNode(moon, 'overflow-moon-link')));
+    link.moons.forEach((moon, moonIndex) => moons.append(
+      linkNode(moon, 'overflow-moon-link', [sunIndex, planetIndex, moonIndex])));
     item.append(moons);
   }
   return item;
@@ -167,6 +190,7 @@ function homeGroup(group, index) {
   card.style.setProperty('--sun-accent', safeColor(group.color));
   card.style.setProperty('--card-index', index);
   const orbit = element('div', 'home-orbit');
+  orbit.dataset.sun = index;
   const visible = group.links.slice(0, GALAXY_PLANETS);
   const center = 160;
   const radius = 108;
@@ -178,12 +202,13 @@ function homeGroup(group, index) {
   orbit.append(orbitLines(points, center, 320));
   const hub = element('button', 'home-hub');
   hub.type = 'button';
+  tagPath(hub, 'sun', index);
   hub.setAttribute('aria-label', `Open ${group.name} system with ${group.links.length} planets`);
   hub.append(element('span', 'hub-name', group.name));
   hub.append(element('span', 'hub-count', `${group.links.length} PLANETS`));
   hub.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(group.id)}`; });
   orbit.append(hub);
-  visible.forEach((link, i) => orbit.append(planetNode(link, 'home', points[i], 320, i)));
+  visible.forEach((link, i) => orbit.append(planetNode(link, 'home', points[i], 320, i, index)));
 
   card.append(orbit, descriptionNode('group-description', group.description));
   return card;
@@ -193,18 +218,20 @@ function findMatches(query) {
   const needle = query.trim().toLocaleLowerCase();
   if (!needle) return [];
   const matches = [];
-  for (const sun of groups) {
+  for (const [sunIndex, sun] of groups.entries()) {
     if (sun.name.toLocaleLowerCase().includes(needle)) {
       matches.push({ kind: 'Sun', name: sun.name, path: 'Galaxy', id: sun.id });
     }
-    for (const planet of sun.links) {
+    for (const [planetIndex, planet] of sun.links.entries()) {
       if (planet.name.toLocaleLowerCase().includes(needle)) {
-        matches.push({ kind: 'Planet', name: planet.name, path: sun.name, destination: planet });
+        matches.push({ kind: 'Planet', name: planet.name, path: sun.name, destination: planet,
+          indices: [sunIndex, planetIndex] });
       }
-      for (const moon of planet.moons) {
+      for (const [moonIndex, moon] of planet.moons.entries()) {
         if (moon.name.toLocaleLowerCase().includes(needle)) {
           matches.push({ kind: 'Moon', name: moon.name,
-            path: `${sun.name} / ${planet.name}`, destination: moon });
+            path: `${sun.name} / ${planet.name}`, destination: moon,
+            indices: [sunIndex, planetIndex, moonIndex] });
         }
       }
     }
@@ -212,7 +239,22 @@ function findMatches(query) {
   return matches;
 }
 
+// In Edit mode a planet or moon result opens that exact item in Edit links
+// instead of launching it.
+function editFindResult(match) {
+  const node = element('button', 'find-item find-item-edit');
+  node.type = 'button';
+  node.title = `Edit ${match.name} in Edit links`;
+  node.addEventListener('click', () => openEditorAt(match.indices));
+  node.append(element('span', 'find-kind', match.kind));
+  const copy = element('span', 'find-copy');
+  copy.append(element('strong', '', match.name), element('small', '', match.path));
+  node.append(copy, element('span', 'find-arrow find-edit-label', 'Edit'));
+  return node;
+}
+
 function findResult(match) {
+  if (editMode && match.indices) return editFindResult(match);
   const isRdp = match.destination?.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
   const node = element(match.id || download ? 'button' : 'a', 'find-item');
@@ -299,13 +341,17 @@ function renderDetail(group) {
     return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius, angle };
   });
   stage.append(orbitLines(points, center, 640));
-  const hub = element('div', 'detail-hub');
+  const sunIndex = groups.indexOf(group);
+  stage.dataset.sun = sunIndex;
+  const hub = tagPath(element('div', 'detail-hub'), 'sun', sunIndex);
   hub.append(element('span', 'detail-hub-name', group.name));
   hub.append(element('span', 'detail-hub-sub', `${group.links.length} planets`));
   stage.append(hub);
-  visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i)));
+  visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i, sunIndex)));
 
-  const note = element('p', 'detail-note', group.links.some(link => link.type === 'rdp')
+  const note = element('p', 'detail-note', editMode
+    ? 'Edit mode is on. Drag a planet or moon to move it; links stay closed until you turn Edit mode off.'
+    : group.links.some(link => link.type === 'rdp')
     ? rdpLaunchMode === 'client'
       ? 'Select a lab to open Remote Desktop Connection with its target loaded. Your browser may ask to open the helper.'
       : 'Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect.'
@@ -315,7 +361,8 @@ function renderDetail(group) {
     const more = element('section', 'more-links');
     more.append(element('h2', '', 'More planets in this system'));
     const list = element('div', 'more-grid');
-    group.links.slice(visible.length).forEach(link => list.append(overflowPlanetNode(link)));
+    group.links.slice(visible.length).forEach((link, i) =>
+      list.append(overflowPlanetNode(link, sunIndex, visible.length + i)));
     more.append(list);
     app.append(more);
   }
@@ -324,10 +371,12 @@ function renderDetail(group) {
     const section = element('section', 'moon-overflow');
     section.append(element('h2', '', 'More moons'));
     extraMoons.forEach(planet => {
+      const planetIndex = group.links.indexOf(planet);
       const row = element('div', 'moon-overflow-row');
       row.append(element('h3', '', `Around ${planet.name}`));
       const links = element('div', 'moon-overflow-links');
-      planet.moons.slice(VISIBLE_MOONS).forEach(moon => links.append(linkNode(moon, 'overflow-moon-link')));
+      planet.moons.slice(VISIBLE_MOONS).forEach((moon, i) => links.append(
+        linkNode(moon, 'overflow-moon-link', [sunIndex, planetIndex, VISIBLE_MOONS + i])));
       row.append(links);
       section.append(row);
     });
@@ -336,11 +385,15 @@ function renderDetail(group) {
 }
 
 function render() {
+  // A render replaces the nodes a drag is holding, so end the gesture first.
+  cancelDrag();
   updateMapLabelSizes();
   const route = decodeURIComponent(location.hash.slice(1));
   const id = route.startsWith('group/') ? route.slice(6) : null;
   const group = groups.find(item => item.id === id);
   if (group) renderDetail(group);
   else renderHome();
+  editToggle.hidden = false;
+  updateEditBar();
   window.scrollTo({ top: 0, behavior: 'instant' });
 }

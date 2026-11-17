@@ -114,6 +114,7 @@ function saveMap(data) {
   const normalized = validateMap(data);
   localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(normalized));
   groups = normalized.groups;
+  mapRevision++;
   activeMapSource = 'browser';
   countDestinations();
   render();

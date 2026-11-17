@@ -2,7 +2,7 @@
 
 ## Current assignment and branch
 
-Roadmap backlog priority 9 is **drag-and-drop organization**, not orbit animation. The user asked for a thorough, agent-ready plan before code changes and for the work to live outside `main`. The current branch is `feature/drag-drop-organization`, created from `main` at `46112a7`. [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) is the authoritative start-to-finish guide: it specifies the user decisions, source files, interaction rules, two implementation phases, Undo and keyboard behavior, focused tests, Windows VM use, commit sequence, and completion criteria. **No drag-and-drop code has started.** Stay in planning until the user reviews the plan. Do not merge or push to `main` without a separate request.
+Roadmap backlog priority 9 is **drag-and-drop organization**, not orbit animation. The user asked for a thorough, agent-ready plan before code changes and for the work to live outside `main`. The current branch is `feature/drag-drop-organization`, created from `main` at `46112a7`. [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) is the authoritative start-to-finish guide: it specifies the user decisions, source files, interaction rules, two implementation phases, Undo and keyboard behavior, focused tests, Windows VM use, commit sequence, and completion criteria. The user approved the plan on 2026-11-16 and asked for both phases to be built on the branch without stopping between them. **Phase 1 is implemented** (`drag.js`, checks DD01–DD09 in `tests/drag_drop.py --phase 1`). Do not merge or push to `main` without a separate request.
 
 The phase boundary is deliberate: Phase 1 moves planets and moons between parents; Phase 2 reorders suns, planets, and moons, including cross-parent sibling insertion. Each phase gets its own review and commit on the feature branch. An explicit Edit mode toggle is required on both Galaxy and System. The editor tree remains the fallback for hidden items and keyboard access. Touch remains out of scope.
 
@@ -35,6 +35,7 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 | `menu.js` | Settings menu: open/close with focus handling, and the Settings, Help, and About panels |
 | `keys.js` | Keyboard handling: menu focus trap, Escape layers, `/` and arrow keys for Quick find, and arrow navigation through the map |
 | `render.js` | Galaxy and System rendering, planet/moon nodes, Quick find |
+| `drag.js` | Edit mode, the shared move operation, the pointer drag controller, the System destination tray, and drag Undo |
 | `links.json` | Bundled suns, planets, and moons |
 | `links-data.js` | Generated copy of the JSON for direct-file use |
 | `sync.py` | Regenerates `links-data.js` from `links.json` |
@@ -45,6 +46,7 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 | `tests/milestones_09_14.py` | Browser checks for milestones 9–14 and the pending-UI checks |
 | `tests/milestone_18.py` | Browser checks for imported Remote Desktop profiles |
 | `tests/milestone_19.py` | Browser checks for keyboard navigation (K01–K08) |
+| `tests/drag_drop.py` | Focused drag-and-drop checks (`--phase 1\|2`; `--cdp` and `--url` run them in a remote browser such as Edge on the VM) |
 | `README.md` | User instructions |
 | `ROADMAP.md` | Scope, milestones, and deferred work |
 | `DRAG_DROP_PLAN.md` | Full priority-9 execution plan and Windows VM test procedure |
@@ -84,7 +86,7 @@ Windows PowerShell 5.1 and Microsoft Edge are present; Edge is at `C:\Program Fi
 
 Backlog priorities 1–8 were implemented on 2026-11-16. The registry scripts export a preexisting `orbit-rdp` key to a unique `.reg` file in `%LOCALAPPDATA%\Orbit` before changing it; Windows checks B01–B02 are now possible on the test VM but have not run. Editor polish passed focused file-mode check B03. Sizing uses a shared font per Galaxy label level, fits “Confluence ABC” on two lines at Standard, enlarges moons, and scales other interface text at wide desktop widths; focused visual check B04 covered it. Moon copying is independent and passed focused cross-sun check B05. Inline sun-description links use HTTP(S) only and passed focused safe-rendering check B06. Host-only Remote Desktop links now use `mstsc.exe /v:` without a connection file; imported profiles retain their file route; Windows check B07 remains pending. The full-screen edit workspace passed focused file-mode check B08; server check B09 is not run. Batch `.rdp` folder and multi-file import passed focused file-mode check B10; drop and invalid-batch check B11 remain. The historical full matrix was stopped at the user's request after all file-mode checks and server checks through milestone 4 passed. Do not resume a full matrix as a routine gate for these small edits. The user explicitly asked to replace the old full-matrix-per-commit policy; `ROADMAP.md` and `TEST_MATRIX.md` now call for focused checks of changed behavior.
 
-The scripts are classic scripts (not modules, so `file://` works) loaded in order by `index.html`: `links-data.js`, `rdp.js`, `storage.js`, `editor.js`, `editor-page.js`, `menu.js`, `render.js`, `keys.js`, `app.js`. They share top-level globals; keep the order and add any new script to `APP_SCRIPTS` in `tests/helpers.py`, which the fixtures copy and the syntax check reads. Cleanup progress is tracked in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): test stabilization, the `app.js` split, and the test runner split are all done. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
+The scripts are classic scripts (not modules, so `file://` works) loaded in order by `index.html`: `links-data.js`, `rdp.js`, `storage.js`, `editor.js`, `editor-page.js`, `menu.js`, `render.js`, `drag.js`, `keys.js`, `app.js`. They share top-level globals; keep the order and add any new script to `APP_SCRIPTS` in `tests/helpers.py`, which the fixtures copy and the syntax check reads. Cleanup progress is tracked in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): test stabilization, the `app.js` split, and the test runner split are all done. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
 
 The prioritized backlog from the user's private notes is in `ROADMAP.md` ("Backlog — prioritized observations"). Priorities 1–8 are implemented; priority 9 is the planned drag-and-drop organization work in `DRAG_DROP_PLAN.md`. Questions A–E in the roadmap are resolved. The notes file `request-observations.md` is gitignored and private; do not commit or quote it.
 

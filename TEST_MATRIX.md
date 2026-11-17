@@ -235,6 +235,22 @@ Rules:
 | K07 | Both | Read cog → Help. | The keyboard shortcuts are described. | Pass — automated. |
 | K08 | Both | Keyboard only: search, open a System, reach a moon, open a destination, open and close the menu, return to the Galaxy. | Every step works with a visible focus indicator throughout. | Pass — automated. |
 
+## Backlog 9 — Drag-and-drop organization
+
+Run with `/home/sysadmin/.venv/bin/python tests/drag_drop.py --phase 1` (file mode and a temporary local server, synthetic fixture with repeated names, overflow items, and synthetic RDP profiles). Expected maps are built in the test with plain list operations, not with the app's move helper.
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| DD01 | Both | Call the shared move operation directly. | A planet or moon moves to the end of the new parent by path; the current parent is a no-op; wrong kinds and missing paths are invalid; the input is never changed; an RDP profile survives. | Pass — automated (`drag_drop.py`, 2026-11-16). |
+| DD02 | Both | Toggle Edit mode; click, Enter, and Space on planets and moons; use Quick find. | Off after reload; On keeps web links, RDP downloads, and `orbit-rdp:` links closed; a search result opens that exact item in Edit links; a sun still opens its System. | Pass — automated. |
+| DD03 | Both | Press Escape with the menu open, in Edit mode, and with Quick find filled. | Each press closes one layer: menu, then drag, then Edit mode, then Quick find. | Pass — automated. |
+| DD04 | Both | Galaxy: drag a planet with moons to another sun; reload; export. | The stored map, reload, Export JSON, and editor tree match; nothing is saved during pointer movement; no tab or download opens. | Pass — automated. |
+| DD05 | Both | Galaxy: drag a moon to another planet, and to a planet under another sun. | Pausing on the other sun reveals its planets; the source stays visible; the moon is appended. | Pass — automated, animations on. |
+| DD06 | Both | System: drag stage, More planets, More moons, and overflow-planet moons to the stage and the destination tray. | Each exact item moves, including RDP profiles; the tray closes; scroll position and focus are kept. | Pass — automated. |
+| DD07 | Both | Drop on the current parent, outside, and on a wrong kind; cancel by Escape, pointercancel, blur, menu, route change, and Edit mode Off; fail the save; change the map mid-drag. | The stored and in-memory maps are unchanged, overlays are cleared, a readable message appears, and another tab's map is never overwritten. | Pass — automated. |
+| DD08 | Both | Undo last drag. | Only the last drag is reversed; a later edit or another tab's change retires it; the removal Undo record is untouched. | Pass — automated. |
+| DD09 | Both | 900 and 1280 pixels, three themes, four text sizes, reduced motion. | Edit mode controls fit without horizontal scrolling and a drag works in each. | Pass — automated; screenshots inspected at 900 pixels with Extra large text. |
+
 ## Milestone commit record
 
 After the shared checks and the current milestone's rows pass, record the commit here. If any check is blocked, record the reason and the remaining risk before committing.

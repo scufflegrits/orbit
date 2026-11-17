@@ -368,6 +368,192 @@ button:focus-visible, a:focus-visible {
 }
 .editor-error { padding: 10px 12px; border-radius: 9px; background: rgba(245, 167, 200, .12); color: #ffd5e4; }
 
+/* Edit mode: toggle, instruction bar, and drag feedback. Dashed outlines echo
+   the orbit rings and mark items as loose, so state never rests on color alone. */
+.edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 5px 6px 5px 13px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--theme-accent) 8%, transparent);
+  color: var(--muted-strong);
+  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.edit-toggle:hover { border-color: var(--theme-accent); color: var(--text); }
+.edit-toggle-state {
+  min-width: 2.6em;
+  padding: 2px 8px;
+  border: 1px dashed var(--line);
+  border-radius: 11px;
+  color: var(--subtle);
+  text-align: center;
+}
+.edit-toggle[aria-pressed='true'] { border-color: var(--theme-accent); color: var(--text); }
+.edit-toggle[aria-pressed='true'] .edit-toggle-state {
+  border: 1px solid var(--theme-accent);
+  background: var(--theme-accent);
+  color: var(--page-bg);
+}
+
+.edit-bar {
+  position: sticky;
+  z-index: 7;
+  top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 11px 16px;
+  border: 1px dashed var(--theme-accent);
+  border-top: 0;
+  border-radius: 0 0 14px 14px;
+  background: var(--surface);
+  color: var(--muted-strong);
+  font-size: calc(13px * var(--font-scale));
+  line-height: 1.45;
+}
+.edit-bar p { margin: 0; }
+.edit-bar-copy { flex: 1 1 320px; max-width: 62ch; }
+.edit-status { flex: 1 1 100%; order: 3; color: var(--text); font-weight: 600; }
+.edit-status:empty { display: none; }
+.edit-status:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+.edit-status-error { color: #ffd5e4; }
+.edit-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.edit-bar-button {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--theme-accent) 6%, transparent);
+  color: var(--muted-strong);
+  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  cursor: pointer;
+}
+.edit-bar-button:hover { border-color: var(--theme-accent); color: var(--text); }
+#edit-undo { border-color: var(--theme-accent); color: var(--text); }
+
+html[data-edit='on'] :is([data-kind='planet'], [data-kind='moon']) {
+  border-style: dashed;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+html.dragging, html.dragging * { cursor: grabbing !important; user-select: none; }
+.find-edit-label {
+  padding: 3px 9px;
+  border: 1px dashed var(--theme-accent);
+  border-radius: 9px;
+  color: var(--theme-accent);
+  font: 600 calc(11px * var(--font-scale)) 'Space Grotesk', sans-serif;
+}
+
+/* Room above the first row, so moons of a top planet clear the instructions. */
+html[data-edit='on'] .group-grid { margin-top: 104px; }
+
+.no-intro .group-card, .no-intro .detail-planet-cluster, .no-intro .orbit-lines { animation: none; }
+
+.drag-source { opacity: .4; }
+.drop-target {
+  outline: 3px dashed var(--text);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 9px color-mix(in srgb, var(--theme-accent) 30%, transparent);
+}
+.drop-same { outline: 2px dotted var(--subtle); outline-offset: 5px; }
+.drag-preview {
+  position: fixed;
+  z-index: 40;
+  left: 0;
+  top: 0;
+  display: grid;
+  gap: 2px;
+  max-width: 260px;
+  padding: 9px 13px;
+  border: 1px dashed var(--muted);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .45);
+  color: var(--text);
+  font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  pointer-events: none;
+}
+.drag-hint { color: var(--muted); font-weight: 500; font-size: calc(12px * var(--font-scale)); }
+.drag-preview-valid { border: 2px solid var(--theme-accent); }
+.drag-preview-valid .drag-hint { color: var(--text); }
+
+/* Pinned reveals: an active drag keeps its source, and any sun it pauses on,
+   open without hover or focus. */
+.group-card:has(.drag-open) { z-index: 8; }
+.group-card:has(.drag-reveal) { z-index: 9; }
+.home-orbit.drag-open .orbit-lines { opacity: 1; }
+.home-orbit.drag-open .home-planet-cluster {
+  left: var(--x);
+  top: var(--y);
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+.home-orbit.drag-open .home-planet-cluster {
+  /* Visible at once, so a pinned planet can take the pointer or focus immediately. */
+  transition-property: left, top, transform, opacity;
+}
+.planet-cluster.drag-open { z-index: 10; }
+html[data-edit='on'] .planet-cluster.drag-open .moon-field,
+html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-field {
+  opacity: 1;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transition-property: opacity;
+}
+html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-link { pointer-events: auto; }
+.overflow-planet.drag-open .overflow-moons { display: flex; }
+
+.drag-tray {
+  position: fixed;
+  z-index: 25;
+  top: 50%;
+  width: min(270px, 42vw);
+  max-height: min(78vh, 640px);
+  padding: 14px;
+  overflow-y: auto;
+  transform: translateY(-50%);
+  border: 1px dashed var(--theme-accent);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .5);
+  font-size: calc(13px * var(--font-scale));
+}
+.drag-tray-right { right: 14px; }
+.drag-tray-left { left: 14px; }
+.drag-tray h2 { margin: 0 0 10px; font-size: calc(15px * var(--font-scale)); }
+.tray-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--page-bg);
+  color: var(--text);
+  font-weight: 600;
+}
+.tray-name { overflow-wrap: anywhere; }
+.tray-count { flex: none; color: var(--subtle); font-weight: 500; font-size: calc(11px * var(--font-scale)); }
+.tray-row.drop-target { outline-offset: 1px; box-shadow: none; background: color-mix(in srgb, var(--theme-accent) 22%, var(--page-bg)); }
+.tray-row.drop-same { outline-offset: 1px; }
+.tray-head { margin-top: 8px; padding: 8px 12px; border-radius: 10px; color: var(--muted-strong); font-weight: 600; }
+.tray-head::before { content: '+ '; color: var(--theme-accent); }
+.tray-group.open .tray-head::before { content: '\2212  '; }
+.tray-group.open .tray-head { color: var(--text); }
+.tray-list { display: none; padding-left: 12px; }
+.tray-group.open .tray-list { display: block; }
+.tray-empty, .tray-hint { margin: 8px 12px 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
+
 .local-badge, .link-count, .eyebrow, .hub-count, .detail-index {
   font: 700 calc(10px * var(--font-scale)) 'Space Grotesk', sans-serif;
   letter-spacing: .17em;
@@ -667,6 +853,8 @@ html[data-theme='auburn'] .detail-stage {
 .detail-satellite { font-size: max(calc(12px * var(--font-scale)), calc(clamp(12px, .8vw, 15px) * var(--font-scale) * var(--planet-label-fit, 1))); }
 
 .planet-cluster:hover, .planet-cluster:focus-within { z-index: 10; }
+/* The cluster under the pointer wins over one that is only holding focus. */
+.planet-cluster:hover { z-index: 11; }
 
 .moon-field {
   position: absolute;
@@ -811,6 +999,11 @@ code { color: var(--muted-strong); font-family: ui-monospace, monospace; }
   .group-card { flex-basis: calc((100% - 20px) / 2); }
 }
 
+@media (min-width: 681px) and (max-width: 1100px) {
+  /* Leave the room to Quick find and the Edit mode toggle. */
+  .local-badge { display: none; }
+}
+
 @media (max-width: 680px) {
   .menu-sheet { border-radius: 0; }
   .menu-sheet.editor-page-mode { padding: 18px; }
@@ -823,6 +1016,8 @@ code { color: var(--muted-strong); font-family: ui-monospace, monospace; }
   .topbar-right { gap: 0; }
   .settings-trigger { margin-left: 12px; }
   .link-count { display: none; }
+  .edit-toggle { margin-left: 12px; }
+  .edit-bar-actions { margin-left: 0; }
   .local-badge { font-size: calc(9px * var(--font-scale)); }
   .intro-copy { font-size: calc(13px * var(--font-scale)); }
   .find-list { grid-template-columns: 1fr; }
