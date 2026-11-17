@@ -1,8 +1,8 @@
 # Drag-and-drop organization plan
 
-**Status:** Both phases are implemented in `drag.js` on the feature branch and checked by `tests/drag_drop.py --phase 2` (`TEST_MATRIX.md` DD01–DD16). The user approved the plan on 2026-11-16 and asked for both phases to be built without a stop between them. The branch awaits the user's review; it is not merged.
+**Status:** Complete. Both phases were implemented in `drag.js`, checked by `tests/drag_drop.py --phase 2` (`TEST_MATRIX.md` DD01–DD17, including Edge on the Windows VM), and merged into `main` through pull request #1 on 2026-11-17. This file is kept as the design record and for its Windows VM test procedure. Where it differs from the code, the code, README, and `TEST_MATRIX.md` are current.
 
-**Branch:** `feature/drag-drop-organization`, created from `main` at `46112a7`. Do all planning and implementation commits on this branch. Keep `main` untouched; do not merge or push to `main` without a separate user request. Check `git status` before staging: `tests/rdptest01.rdp` is a private, untracked file. Never stage, log, copy to the VM, or commit it.
+**Branch (historical):** the work was done on `feature/drag-drop-organization`, created from `main` at `46112a7`, and merged with a merge commit so the Phase 1 and Phase 2 commits remain separate. `tests/rdptest01.rdp` is a private, untracked file: never stage, log, copy to the VM, or commit it.
 
 **Decisions already made:** This feature organizes the map by dragging; it does not animate orbits. Dragging must work in Galaxy and System views, with the editor tree as fallback. An explicit Edit mode toggle gates dragging. Phase 1 moves planets and moons between parents. Phase 2 adds sibling reordering and insertion while moving between parents. Review and commit each phase separately. Touch gestures are outside scope.
 
@@ -134,4 +134,4 @@ The runner is a deliverable, so those commands will exist only after the corresp
 - Record check IDs, commands, outcomes, and limitations in `TEST_MATRIX.md`. Update `HANDOFF.md` after each implementation phase. Keep the private fixture and VM password out of all outputs.
 - Before each commit, inspect `git diff --check`, `git status`, and focused results. Stage only intended paths. Commit Phase 1 and Phase 2 separately on `feature/drag-drop-organization`; push that branch for review when ready. Never merge it into `main` automatically.
 
-**Done when:** Galaxy and System drag moves, overflow paths, editor fallback, Phase 2 ordering, keyboard parity, Undo, persistence/export, destination suppression, and focused Windows Edge checks pass, or any environment limitation is recorded precisely. The user reviews the feature branch before merge. Until then this remains a plan, and `main` app behavior is unchanged.
+**Done when:** Galaxy and System drag moves, overflow paths, editor fallback, Phase 2 ordering, keyboard parity, Undo, persistence/export, destination suppression, and focused Windows Edge checks pass, or any environment limitation is recorded precisely. The user reviews the feature branch before merge. These criteria were met; see `TEST_MATRIX.md` DD01–DD17 for the recorded limits.
