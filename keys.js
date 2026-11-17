@@ -27,11 +27,19 @@ function trapMenuFocus(event) {
   }
 }
 
-// Escape closes the menu first, then clears Quick find, then leaves a System.
+// Escape closes the menu first, then cancels a drag, then leaves Edit mode,
+// then clears Quick find, then leaves a System.
 function handleEscape(event) {
   if (!menuOverlay.hidden) {
     event.preventDefault();
     closeMenu();
+  } else if (cancelDrag()) {
+    event.preventDefault();
+  } else if (editMode) {
+    event.preventDefault();
+    const inBar = editBar.contains(document.activeElement);
+    setEditMode(false);
+    if (inBar) editToggle.focus();
   } else if (quickFind.value || findQuery) {
     event.preventDefault();
     // Keep keyboard users in the search box when the result they were on disappears.

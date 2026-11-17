@@ -8,6 +8,9 @@ const menuRoot = document.querySelector('#menu-content');
 let menuContent = menuRoot;
 const APP_VERSION = '1.7.0';
 let groups = [];
+// Counts every change to the in-memory map; a drag or drag Undo made against
+// an older revision is refused.
+let mapRevision = 0;
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
 const VISIBLE_MOONS = 4;
@@ -94,7 +97,7 @@ async function init() {
   }
 }
 
-window.addEventListener('hashchange', () => { closeMenu(); render(); });
+window.addEventListener('hashchange', () => { cancelDrag(); closeMenu(); render(); });
 document.querySelector('.brand').addEventListener('click', event => {
   event.preventDefault();
   findQuery = '';

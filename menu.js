@@ -18,6 +18,7 @@ function closeMenu() {
 }
 
 function openMenu() {
+  cancelDrag();
   menuOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   menuContent = menuRoot;
   menuContent.replaceChildren();
@@ -151,11 +152,17 @@ function showMenuPanel(name) {
     menuContent.append(element('p', '', 'In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.'));
     menuContent.append(element('p', '', 'Your browser may ask before opening the helper. Orbit does not store credentials.'));
     menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
+    menuContent.append(element('h4', 'editor-section-title', 'Rearranging by dragging'));
+    menuContent.append(element('p', '', 'Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.'));
+    menuContent.append(element('p', '', 'Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.'));
+    menuContent.append(element('p', '', 'To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.'));
+    menuContent.append(element('p', '', 'In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.'));
+    menuContent.append(element('p', '', 'Links that are not shown on the map, and keyboard-only editing, are covered by Edit links: Move up and Move down set the order, and Move to another sun or planet lets you choose the position. In Edit mode, a Quick find result opens that planet or moon in Edit links.'));
     menuContent.append(element('h4', 'editor-section-title', 'Keyboard'));
     menuContent.append(element('p', '', 'Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.'));
     menuContent.append(element('p', '', 'Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.'));
     menuContent.append(element('p', '', 'Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.'));
-    menuContent.append(element('p', '', 'Escape closes the menu first, then clears Quick find, then returns from a System to the Galaxy.'));
+    menuContent.append(element('p', '', 'Escape closes the menu first, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
     menuContent.append(element('p', '', 'Your link map runs on this computer, without an account or hosted service.'));

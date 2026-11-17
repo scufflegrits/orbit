@@ -259,6 +259,7 @@ function resetMap() {
     localStorage.removeItem(MAP_STORAGE_KEY);
     localStorage.removeItem(UNDO_STORAGE_KEY);
     groups = validateMap(seedData).groups;
+    mapRevision++;
     activeMapSource = 'bundled';
     storageWarning = '';
     countDestinations();

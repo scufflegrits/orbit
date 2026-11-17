@@ -14,6 +14,7 @@
     <script src="editor-page.js" defer></script>
     <script src="menu.js" defer></script>
     <script src="render.js" defer></script>
+    <script src="drag.js" defer></script>
     <script src="keys.js" defer></script>
     <script src="app.js" defer></script>
   </head>
@@ -31,9 +32,20 @@
         <div class="topbar-right">
           <span class="local-badge"><span class="status-dot"></span> LOCAL LINK MAP</span>
           <span id="link-count" class="link-count"></span>
+          <button id="edit-toggle" class="edit-toggle" type="button" aria-pressed="false" title="Turn Edit mode on to rearrange suns, planets, and moons by dragging" hidden>Edit mode <span class="edit-toggle-state" aria-hidden="true">Off</span></button>
           <button id="settings-trigger" class="settings-trigger" type="button" aria-label="Open menu" title="Open menu" hidden>⚙</button>
         </div>
       </header>
+
+      <div id="edit-bar" class="edit-bar" hidden>
+        <p class="edit-bar-copy">Drag a planet onto a sun or a moon onto a planet to move it. Drag onto a sibling to choose Before or After; suns reorder the same way. Links stay closed while Edit mode is on.</p>
+        <p id="edit-status" class="edit-status" role="status" aria-live="polite" tabindex="-1"></p>
+        <div class="edit-bar-actions">
+          <button id="edit-undo" class="edit-bar-button" type="button" hidden>Undo last drag</button>
+          <button id="edit-open-editor" class="edit-bar-button" type="button">Edit links</button>
+          <button id="edit-done" class="edit-bar-button edit-bar-done" type="button">Turn off Edit mode</button>
+        </div>
+      </div>
 
       <main id="app" aria-live="polite"></main>
 

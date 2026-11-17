@@ -18,6 +18,14 @@ function openEditorPage() {
   editorTree.querySelector('button')?.focus();
 }
 
+// Open Edit links on one planet ([sun, planet]) or moon ([sun, planet, moon]).
+function openEditorAt(indices) {
+  openMenu();
+  openEditorPage();
+  if (indices.length === 3) showMoonEditor(...indices);
+  else showPlanetEditor(...indices);
+}
+
 function leaveEditorPage() {
   menuOverlay.querySelector('.menu-sheet').classList.remove('editor-page-mode');
   menuOverlay.querySelector('.menu-top h2').textContent = 'Explore the menu';
@@ -62,6 +70,30 @@ function moveTargetField(options) {
   return select;
 }
 
+// Position within the chosen parent, so keyboard users can insert as well as append.
+function movePositionField(targetSelect, siblingNames) {
+  const field = element('label', 'editor-field');
+  field.append(element('span', '', 'Position'));
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', 'Position');
+  const refresh = () => {
+    select.replaceChildren();
+    const end = element('option', '', 'At the end');
+    end.value = 'end';
+    select.append(end);
+    siblingNames(targetSelect.value).forEach((name, index) => {
+      const option = element('option', '', `Before ${name}`);
+      option.value = index;
+      select.append(option);
+    });
+  };
+  targetSelect.addEventListener('change', refresh);
+  refresh();
+  field.append(select);
+  menuContent.append(field);
+  return select;
+}
+
 function showMovePlanet(sunIndex, planetIndex) {
   const sun = groups[sunIndex];
   const planet = sun.links[planetIndex];
@@ -73,12 +105,14 @@ function showMovePlanet(sunIndex, planetIndex) {
     return;
   }
   const select = moveTargetField(options);
+  const position = movePositionField(select, value => groups[Number(value)].links.map(item => item.name));
   editorActions().append(editorButton('Move planet', () => {
-    const targetSunIndex = Number(select.value);
-    const next = copyGroups();
-    const [moved] = next[sunIndex].links.splice(planetIndex, 1);
-    next[targetSunIndex].links.push(moved);
-    applyEditorChange(next, () => showPlanetEditor(targetSunIndex, next[targetSunIndex].links.length - 1));
+    const sun = Number(select.value);
+    const moved = moveMapItem(groups, { kind: 'planet', sun: sunIndex, planet: planetIndex },
+      position.value === 'end' ? { kind: 'sun', sun }
+        : { kind: 'planet', sun, planet: Number(position.value), place: 'before' });
+    if (moved.status !== 'moved') return editorError('That planet could not be moved.');
+    applyEditorChange(moved.groups, () => showPlanetEditor(moved.path.sun, moved.path.planet));
   }, 'editor-primary'));
 }
 
@@ -96,13 +130,20 @@ function showMoveMoon(sunIndex, planetIndex, moonIndex) {
     return;
   }
   const select = moveTargetField(options);
+  const position = movePositionField(select, value => {
+    const [targetSun, targetPlanet] = value.split(':').map(Number);
+    return groups[targetSun].links[targetPlanet].moons.map(item => item.name);
+  });
   editorActions().append(editorButton('Move moon', () => {
     const [targetSunIndex, targetPlanetIndex] = select.value.split(':').map(Number);
-    const next = copyGroups();
-    const [moved] = next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
-    const targetMoons = next[targetSunIndex].links[targetPlanetIndex].moons;
-    targetMoons.push(moved);
-    applyEditorChange(next, () => showMoonEditor(targetSunIndex, targetPlanetIndex, targetMoons.length - 1));
+    const parent = { sun: targetSunIndex, planet: targetPlanetIndex };
+    const moved = moveMapItem(groups,
+      { kind: 'moon', sun: sunIndex, planet: planetIndex, moon: moonIndex },
+      position.value === 'end' ? { kind: 'planet', ...parent }
+        : { kind: 'moon', ...parent, moon: Number(position.value), place: 'before' });
+    if (moved.status !== 'moved') return editorError('That moon could not be moved.');
+    applyEditorChange(moved.groups,
+      () => showMoonEditor(moved.path.sun, moved.path.planet, moved.path.moon));
   }, 'editor-primary'));
 }
 

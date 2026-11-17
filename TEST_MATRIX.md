@@ -235,6 +235,32 @@ Rules:
 | K07 | Both | Read cog → Help. | The keyboard shortcuts are described. | Pass — automated. |
 | K08 | Both | Keyboard only: search, open a System, reach a moon, open a destination, open and close the menu, return to the Galaxy. | Every step works with a visible focus indicator throughout. | Pass — automated. |
 
+## Backlog 9 — Drag-and-drop organization
+
+Run with `/home/sysadmin/.venv/bin/python tests/drag_drop.py --phase 2` (all rows; `--phase 1` stops after DD09; `--only TEXT` runs the checks whose function name contains TEXT; file mode and a temporary local server, synthetic fixture with repeated names, overflow items, and synthetic RDP profiles). Expected maps are built in the test with plain list operations, not with the app's move helper.
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| DD01 | Both | Call the shared move operation directly. | A planet or moon moves to the end of the new parent by path; the current parent is a no-op; wrong kinds and missing paths are invalid; the input is never changed; an RDP profile survives. | Pass — automated (`drag_drop.py`, 2026-11-16). |
+| DD02 | Both | Toggle Edit mode; click, Enter, and Space on planets and moons; use Quick find. | Off after reload; On keeps web links, RDP downloads, and `orbit-rdp:` links closed; a search result opens that exact item in Edit links; a sun still opens its System. | Pass — automated. |
+| DD03 | Both | Press Escape with the menu open, in Edit mode, and with Quick find filled. | Each press closes one layer: menu, then drag, then Edit mode, then Quick find. | Pass — automated. |
+| DD04 | Both | Galaxy: drag a planet with moons to another sun; reload; export. | The stored map, reload, Export JSON, and editor tree match; nothing is saved during pointer movement; no tab or download opens. | Pass — automated. |
+| DD05 | Both | Galaxy: drag a moon to another planet, and to a planet under another sun. | Pausing on the other sun reveals its planets; the source stays visible; the moon is appended. | Pass — automated, animations on. |
+| DD06 | Both | System: drag stage, More planets, More moons, and overflow-planet moons to the stage and the destination tray. | Each exact item moves, including RDP profiles; the tray closes; scroll position and focus are kept. | Pass — automated. |
+| DD07 | Both | Drop on the current parent, outside, and on a wrong kind; cancel by Escape, pointercancel, blur, menu, route change, and Edit mode Off; fail the save; change the map mid-drag. | The stored and in-memory maps are unchanged, overlays are cleared, a readable message appears, and another tab's map is never overwritten. | Pass — automated. |
+| DD08 | Both | Undo last drag. | Only the last drag is reversed; a later edit or another tab's change retires it; the removal Undo record is untouched. | Pass — automated. |
+| DD09 | Both | 900 and 1280 pixels, three themes, four text sizes, reduced motion. | Edit mode controls fit without horizontal scrolling and a drag works in each. | Pass — automated; screenshots inspected at 900 pixels with Extra large text. |
+
+| DD10 | Both | Call the move operation with a sibling and `before` or `after`. | First-to-last, last-to-first, adjacent, same-array index adjustment, and cross-parent insertion give the expected arrays; a sun keeps its ID and descendants; self-drops and mixed kinds are invalid. | Pass — automated (2026-11-16). |
+| DD11 | Both | Galaxy: drag a sun onto another sun and choose Before or After. | The cards and System index follow the new order; the System address still works; a drop without a choice changes nothing; Undo restores the order. | Pass — automated; choices screenshot inspected. |
+| DD12 | Both | Reorder planets in the Galaxy, on the System stage, through More planets, and through the tray; insert under another sun. | The stored order matches; the Galaxy first-five and System first-eight boundaries follow it. | Pass — automated. |
+| DD13 | Both | Reorder moons on the stage and from More moons; insert beside a moon of another planet on the stage, through the tray, and in the Galaxy. | Pausing on a planet shows its moons; the stored order matches; the first-four boundary follows it. | Pass — automated; choices screenshot inspected. |
+| DD14 | Both | Drop on the current position, press Escape over a choice, and fail the save during a reorder. | The order is unchanged and the choices and markers are cleared. | Pass — automated. |
+| DD15 | Both | Edit links: Move to another sun or planet with a Position. | The item is inserted before the chosen sibling; the editor tree, Export JSON, reload, and Quick find order all follow. | Pass — automated. |
+| DD16 | Both | Reorder a sun, move and insert planets and moons in the Galaxy and a System (stage, More moons, tray), undo one move, then Export JSON and import the file into a clean browser. | The downloaded file equals the expected map: sun IDs in the new order, RDP profiles intact, no item lost or duplicated; importing it reproduces the same stored map. | Pass — automated, real download. |
+
+| DD17 | Windows Edge, file | Run DD01–DD16 in Microsoft Edge 157.0.4341.60 on the Windows 11 test VM: `tests/drag_drop.py --phase 2 --cdp http://127.0.0.1:9333 --url file:///C:/orbit-drag-test/index.html`, against a `git archive` of the Phase 2 commit plus the synthetic fixture, with a fresh Edge profile and the DevTools port forwarded over SSH to loopback only. | Every check passes with real pointer input at 1280 by 900 (DD09 also at 900 pixels). | Pass (2026-11-16). Limits: Edge ran headless, not as an interactive window; Export JSON was read from the bytes the page produced, not from a saved file, and DD04's export step is skipped remotely; server mode was not run on Windows. The guest folder and profile were removed afterwards. |
+
 ## Milestone commit record
 
 After the shared checks and the current milestone's rows pass, record the commit here. If any check is blocked, record the reason and the remaining risk before committing.
@@ -259,3 +285,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 14 — Planet as sun | 2026-11-15 | S01–S05 and C01–C03 passed in both run modes; all earlier milestones passed in the full matrix; 900-pixel review screenshot inspected. | Milestone 14: Import planet as sun |
 | 18 — Import saved Remote Desktop profiles | 2026-11-15 | M18-01 to M18-03 automated and passed in both run modes (`--milestone 18 --only-new`, 5 consecutive runs); M18-04 confirmed by the user on Windows. Fixture values were not logged or committed. | Milestone 18: Import saved Remote Desktop profiles |
 | 19 — Keyboard navigation | 2026-11-16 | K01–K08 automated and passed in both run modes; `--milestone 19 --only-new --repeat 5` passed 5 of 5, and the full matrix passed once as the commit gate. Focus screenshots inspected. | Milestone 19: Keyboard navigation |
+| Backlog 9 — Drag-and-drop | 2026-11-16 | DD01–DD16 passed in Chromium in both run modes and in Edge on the Windows VM (DD17); `--milestone 19 --only-new` passed once as a regression check. Drag, tray, and placement screenshots inspected. The full matrix was not run. | Backlog 9 phase 1; Backlog 9 phase 2 |
