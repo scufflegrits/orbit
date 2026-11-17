@@ -14,6 +14,23 @@ function safeColor(value) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#79d9f8';
 }
 
+function labelFit(names, totalLimit, wordLimit) {
+  const longest = Math.max(1, ...names.map(name => name.length));
+  const word = Math.max(1, ...names.flatMap(name => name.split(/[\s/-]+/).map(part => part.length)));
+  return Math.max(.8, Math.min(1, totalLimit / longest, wordLimit / word));
+}
+
+function updateMapLabelSizes() {
+  // Use one fit per level so every sun in the Galaxy keeps the same type size.
+  // A two-line name such as "Confluence ABC" fits the shared sun size.
+  const planets = groups.flatMap(sun => sun.links.slice(0, SYSTEM_PLANETS));
+  const moons = planets.flatMap(planet => planet.moons.slice(0, VISIBLE_MOONS));
+  const style = document.documentElement.style;
+  style.setProperty('--sun-label-fit', labelFit(groups.map(sun => sun.name), 18, 10));
+  style.setProperty('--planet-label-fit', labelFit(planets.map(planet => planet.name), 17, 12));
+  style.setProperty('--moon-label-fit', labelFit(moons.map(moon => moon.name), 13, 12));
+}
+
 function linkNode(link, className) {
   const isRdp = link.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
@@ -79,7 +96,7 @@ function planetNode(link, context, point, size, index) {
   if (link.moons.length) {
     const field = element('div', 'moon-field');
     const outward = 62;
-    const radius = context === 'home' ? 78 : 88;
+    const radius = context === 'home' ? 98 : 108;
     const outX = Math.cos(point.angle) * outward;
     const outY = Math.sin(point.angle) * outward;
     field.style.setProperty('--out-x', `${outX}px`);
@@ -87,7 +104,7 @@ function planetNode(link, context, point, size, index) {
     const visible = link.moons.slice(0, VISIBLE_MOONS);
     const positions = visible.map((_, moonIndex) => {
       const spread = visible.length === 1 ? 0 : -1 + 2 * moonIndex / (visible.length - 1);
-      const angle = point.angle + spread * Math.PI / 3;
+      const angle = point.angle + spread * Math.PI * 65 / 180;
       return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
     });
     const origin = { x: 110 - outX, y: 110 - outY };
@@ -135,7 +152,6 @@ function homeGroup(group, index) {
   hub.type = 'button';
   hub.setAttribute('aria-label', `Open ${group.name} system with ${group.links.length} planets`);
   hub.append(element('span', 'hub-name', group.name));
-  if (group.name.length > 12) hub.classList.add('long-name');
   hub.append(element('span', 'hub-count', `${group.links.length} PLANETS`));
   hub.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(group.id)}`; });
   orbit.append(hub);
@@ -256,7 +272,6 @@ function renderDetail(group) {
   });
   stage.append(orbitLines(points, center, 640));
   const hub = element('div', 'detail-hub');
-  if (group.name.length > 12) hub.classList.add('long-name');
   hub.append(element('span', 'detail-hub-name', group.name));
   hub.append(element('span', 'detail-hub-sub', `${group.links.length} planets`));
   stage.append(hub);
@@ -293,6 +308,7 @@ function renderDetail(group) {
 }
 
 function render() {
+  updateMapLabelSizes();
   const route = decodeURIComponent(location.hash.slice(1));
   const id = route.startsWith('group/') ? route.slice(6) : null;
   const group = groups.find(item => item.id === id);

@@ -87,6 +87,7 @@ Escape closes the menu first; when the menu is closed it clears Quick find, and 
 Click the cog on the Galaxy or any System to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
 
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
+Circle labels use a shared size for each level across the Galaxy, and long names wrap inside their circles. Moons have larger circles and text; other interface text grows slightly on wide desktop screens.
 
 Settings also includes **Always show moons** and **Edit links**. The editor lets you add, rename, reorder, or remove suns, planets, and moons, and edit their descriptions, colors, website URLs, and Remote Desktop hosts. Changes appear immediately and are stored in this browser. Export JSON for a portable backup, import a JSON file to replace the browser map, or reset to the link data loaded from the project files.
 
