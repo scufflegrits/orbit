@@ -9,7 +9,9 @@ Windows PowerShell 5.1 or PowerShell 7. No administrator rights or MSRDC
 installation are needed. The registered command uses execution-policy bypass
 only for its own process; this script does not change Windows execution policy.
 Running this installer again replaces the per-user protocol command and copied
-helper, leaving Orbit browser settings and generated .rdp files in place.
+helper, leaving Orbit browser settings and generated .rdp files in place. If a
+protocol registration already exists, it is exported to a timestamped .reg
+file in %LOCALAPPDATA%\Orbit before it is changed.
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +37,17 @@ if (-not (Test-Path -LiteralPath $powerShell)) {
 
 $installDir = Join-Path $env:LOCALAPPDATA 'Orbit'
 [System.IO.Directory]::CreateDirectory($installDir) | Out-Null
+$registryPath = 'HKCU\Software\Classes\orbit-rdp'
+if (Test-Path -LiteralPath 'Registry::HKEY_CURRENT_USER\Software\Classes\orbit-rdp') {
+    $backupName = 'orbit-rdp-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' +
+        [guid]::NewGuid().ToString('N').Substring(0, 8) + '.reg'
+    $backupPath = Join-Path $installDir $backupName
+    & reg.exe export $registryPath $backupPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not back up $registryPath. No registration was changed. Check $backupPath."
+    }
+    Write-Host "Existing protocol registration backed up to: $backupPath"
+}
 $launcher = Join-Path $installDir 'OrbitRdpLauncher.ps1'
 Copy-Item -LiteralPath $source -Destination $launcher -Force
 

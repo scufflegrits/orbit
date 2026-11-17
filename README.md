@@ -72,7 +72,7 @@ The installer registers the same PowerShell executable that ran it. Running it a
 
 Then choose **Settings → Remote Desktop → Open mstsc.exe**. Clicking a lab planet or moon asks Windows to open the Orbit launcher, which opens Remote Desktop Connection with the computer prefilled. Click **Connect** in the client. Your browser may ask whether to open the external app. This setting is saved in the browser; **Download .rdp file** remains available in the same menu. The helper stores connection files under `%LOCALAPPDATA%\Orbit\Connections` and stores no credentials.
 
-To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files remain available for manual use.
+Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` registry key as a uniquely named `.reg` file in `%LOCALAPPDATA%\Orbit` and print its path. If that backup fails, the script stops before changing the registration. To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files and registry backups remain available for manual use.
 
 ## Keyboard
 
