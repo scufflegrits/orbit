@@ -1,6 +1,6 @@
 # Drag-and-drop organization plan
 
-**Status:** Phase 1 (move between parents) is implemented in `drag.js` and checked by `tests/drag_drop.py --phase 1`; see `TEST_MATRIX.md` DD01–DD09. Phase 2 (reorder and insert) follows. The user approved the plan on 2026-11-16 and asked for both phases to be built on the feature branch without a stop between them.
+**Status:** Both phases are implemented in `drag.js` on the feature branch and checked by `tests/drag_drop.py --phase 2` (`TEST_MATRIX.md` DD01–DD16). The user approved the plan on 2026-11-16 and asked for both phases to be built without a stop between them. The branch awaits the user's review; it is not merged.
 
 **Branch:** `feature/drag-drop-organization`, created from `main` at `46112a7`. Do all planning and implementation commits on this branch. Keep `main` untouched; do not merge or push to `main` without a separate user request. Check `git status` before staging: `tests/rdptest01.rdp` is a private, untracked file. Never stage, log, copy to the VM, or commit it.
 

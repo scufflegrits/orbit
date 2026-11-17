@@ -664,23 +664,427 @@ def run_layout(page, url, mode):
     print(f"PASS DD09 layout, themes, text size, reduced motion ({mode})")
 
 
+# ---- Phase 2: reorder and insert beside siblings ----
+
+
+def siblings(data, kind, parent):
+    if kind == "sun":
+        return data["groups"]
+    if kind == "planet":
+        return data["groups"][parent[0]]["links"]
+    return data["groups"][parent[0]]["links"][parent[1]]["moons"]
+
+
+def placed(data, kind, source, parent, index):
+    """Remove the item at source and put it at its final index under parent."""
+    result = copy.deepcopy(data)
+    item = siblings(result, kind, source[:-1]).pop(source[-1])
+    siblings(result, kind, parent).insert(index, item)
+    return result
+
+
+def choose(page, sibling, place, release=True):
+    """Move onto a sibling, wait for the Before and After choices, and pick one."""
+    page.mouse.move(*pt(sibling), steps=6)
+    choice = page.locator(f'.drop-choices [data-place="{place}"]')
+    choice.wait_for()
+    page.mouse.move(*pt(choice), steps=3)
+    if release:
+        page.mouse.up()
+
+
+def pause_on(page, locator, reveals):
+    """Hold the pointer on an element until the item it reveals is visible."""
+    page.mouse.move(*pt(locator), steps=6)
+    reveals.wait_for(state="visible")
+    page.wait_for_timeout(100)
+
+
+def export_map(page):
+    """Use Edit links > Export JSON and return the exported file's contents."""
+    if page.locator("#menu-overlay").is_hidden():
+        page.locator("#edit-open-editor" if page.locator("#edit-bar").is_visible() else "#settings-trigger").click()
+        if page.locator(".editor-pane").count() == 0:
+            page.locator('[data-menu-panel="Settings"]').click()
+            page.get_by_role("button", name="Edit links").click()
+    page.evaluate("showSunList()")
+    if not CDP:
+        return download_json(page, "Export JSON")
+    # A remote browser saves downloads on its own disk, so read the file's bytes as they are made.
+    page.evaluate("""() => {
+        const original = URL.createObjectURL;
+        URL.createObjectURL = blob => { window.exportedText = blob.text(); return original.call(URL, blob); };
+    }""")
+    page.get_by_role("button", name="Export JSON", exact=True).click()
+    return json.loads(page.evaluate("window.exportedText"))
+
+
+def run_pure_insertion(page, url, mode):
+    """DD10: the insertion form of the shared move operation."""
+    fresh(page, url)
+    result = page.evaluate("""() => {
+        const before = JSON.stringify(groups);
+        const move = (source, target) => moveMapItem(groups, source, target);
+        const planet = (sun, index, place) => ({ kind: 'planet', sun, planet: index, ...(place ? { place } : {}) });
+        const moon = (sun, p, index, place) => ({ kind: 'moon', sun, planet: p, moon: index, ...(place ? { place } : {}) });
+        const out = {
+            sunLast: move({ kind: 'sun', sun: 0 }, { kind: 'sun', sun: 2, place: 'after' }),
+            sunFirst: move({ kind: 'sun', sun: 2 }, { kind: 'sun', sun: 0, place: 'before' }),
+            adjacentSame: move(planet(0, 0), planet(0, 1, 'before')).status,
+            adjacentSwap: move(planet(0, 0), planet(0, 1, 'after')),
+            laterSameArray: move(planet(0, 1), planet(0, 4, 'after')),
+            earlierSameArray: move(planet(0, 9), planet(0, 0, 'before')),
+            crossPlanet: move(planet(0, 1), planet(1, 1, 'before')),
+            crossMoon: move(moon(0, 0, 5), moon(1, 0, 0, 'after')),
+            moonFirst: move(moon(0, 0, 5), moon(0, 0, 0, 'before')),
+            self: move(planet(0, 1), planet(0, 1, 'before')).status,
+            sunOnSunNoPlace: move({ kind: 'sun', sun: 0 }, { kind: 'sun', sun: 1 }).status,
+            planetBesideMoon: move(planet(0, 1), moon(0, 0, 0, 'before')).status,
+            append: move(planet(0, 1), { kind: 'sun', sun: 1 }),
+        };
+        out.untouched = JSON.stringify(groups) === before;
+        return out;
+    }""")
+
+    def same(key, expected, path):
+        check({"groups": result[key]["groups"]} == expected and result[key]["path"] == path,
+              f"{mode}: insertion case {key}")
+
+    same("sunLast", placed(FIXTURE, "sun", (0,), (), 2), {"kind": "sun", "sun": 2})
+    same("sunFirst", placed(FIXTURE, "sun", (2,), (), 0), {"kind": "sun", "sun": 0})
+    same("adjacentSwap", placed(FIXTURE, "planet", (0, 0), (0,), 1), {"kind": "planet", "sun": 0, "planet": 1})
+    same("laterSameArray", placed(FIXTURE, "planet", (0, 1), (0,), 4), {"kind": "planet", "sun": 0, "planet": 4})
+    same("earlierSameArray", placed(FIXTURE, "planet", (0, 9), (0,), 0), {"kind": "planet", "sun": 0, "planet": 0})
+    same("crossPlanet", placed(FIXTURE, "planet", (0, 1), (1,), 1), {"kind": "planet", "sun": 1, "planet": 1})
+    same("crossMoon", placed(FIXTURE, "moon", (0, 0, 5), (1, 0), 1),
+         {"kind": "moon", "sun": 1, "planet": 0, "moon": 1})
+    same("moonFirst", placed(FIXTURE, "moon", (0, 0, 5), (0, 0), 0),
+         {"kind": "moon", "sun": 0, "planet": 0, "moon": 0})
+    same("append", moved_planet(FIXTURE, 0, 1, 1), {"kind": "planet", "sun": 1, "planet": 2})
+    check(result["sunLast"]["groups"][2]["id"] == "alpha" and len(result["sunLast"]["groups"][2]["links"]) == 10,
+          f"{mode}: a reordered sun keeps its ID and descendants")
+    check(result["adjacentSame"] == "same", f"{mode}: before the next sibling is the same position")
+    check(all(result[key] == "invalid" for key in ("self", "sunOnSunNoPlace", "planetBesideMoon")),
+          f"{mode}: self-drops, suns without a position, and mixed kinds are invalid")
+    check(result["untouched"], f"{mode}: insertion never changes its input")
+    print(f"PASS DD10 pure insertion operation ({mode})")
+
+
+def run_sun_reorder(page, url, mode):
+    """DD11: reorder suns in the Galaxy."""
+    fresh(page, url)
+    edit_on(page)
+    launches = Launches(page)
+    press_and_start(page, pt(node(page, ".home-hub", 0)))
+    choose(page, node(page, ".home-hub", 1), "after", release=False)
+    check("Insert after Beta, position 2 of 3" in page.locator(".drag-preview").inner_text(),
+          f"{mode}: the hint names the insertion position")
+    check(page.locator(".drop-choice").all_inner_texts() == ["Before Beta", "After Beta"],
+          f"{mode}: the placement choices are labeled")
+    page.screenshot(path=str(ARTIFACTS / f"drag-sun-choices-{mode}.png"))
+    page.mouse.up()
+    expected = placed(FIXTURE, "sun", (0,), (), 1)
+    check(stored(page) == expected, f"{mode}: Alpha moved after Beta")
+    check(page.locator(".home-view").count() == 1 and page.evaluate("location.hash") in ("", "#"),
+          f"{mode}: dropping a sun does not open a System")
+    check(page.locator(".hub-name").all_inner_texts() == ["Beta", "Alpha", "Gamma"], f"{mode}: the cards are reordered")
+    check(page.evaluate("document.activeElement.dataset.sun") == "1", f"{mode}: focus follows the moved sun")
+
+    # Dropping on the sibling without choosing changes nothing.
+    press_and_start(page, pt(node(page, ".home-hub", 2)))
+    page.mouse.move(*pt(node(page, ".home-hub", 0)), steps=6)
+    page.locator(".drop-choices").wait_for()
+    page.mouse.move(*pt(page.locator(".drop-choices")))
+    page.mouse.up()
+    check("Choose Before or After" in status(page) and stored(page) == expected,
+          f"{mode}: a drop without a choice changes nothing")
+
+    press_and_start(page, pt(node(page, ".home-hub", 2)))
+    choose(page, node(page, ".home-hub", 0), "before")
+    expected = placed(expected, "sun", (2,), (), 0)
+    check(stored(page) == expected, f"{mode}: the last sun moved to the front")
+    page.locator("#edit-undo").click()
+    check(page.locator(".hub-name").all_inner_texts() == ["Beta", "Alpha", "Gamma"], f"{mode}: Undo restores the sun order")
+    page.evaluate("location.hash = 'group/alpha'")
+    page.locator(".detail-view").wait_for()
+    check("Alpha" in page.locator(".detail-heading h1").inner_text() and
+          "02 / 03" in page.locator(".detail-index").inner_text(),
+          f"{mode}: a reordered sun keeps its System address and shows its new index")
+    launches.none(f"{mode}: reordering suns")
+    print(f"PASS DD11 sun reorder ({mode})")
+
+
+def run_planet_reorder(page, url, mode):
+    """DD12: reorder planets and insert them under another sun."""
+    fresh(page, url)
+    edit_on(page)
+    launches = Launches(page)
+    press_and_start(page, galaxy_planet(page, 0, 0))
+    choose(page, node(page, ".home-satellite", 0, 3), "after")
+    expected = placed(FIXTURE, "planet", (0, 0), (0,), 3)
+    check(stored(page) == expected, f"{mode}: a Galaxy planet moved after a sibling")
+
+    # Under another sun, before a chosen planet: pausing on the sun shows its planets.
+    press_and_start(page, galaxy_planet(page, 0, 0))
+    pause_on(page, node(page, ".home-hub", 1), node(page, ".home-satellite", 1, 1))
+    choose(page, node(page, ".home-satellite", 1, 1), "before", release=False)
+    check("Insert before B2, position 2 of 3" in page.locator(".drag-preview").inner_text(),
+          f"{mode}: cross-sun insertion shows the position")
+    page.mouse.up()
+    expected = placed(expected, "planet", (0, 0), (1,), 1)
+    check(stored(page) == expected, f"{mode}: a planet was inserted before B2 under Beta")
+
+    # In a System the first-eight boundary follows the new order.
+    page.set_viewport_size({"width": 1280, "height": 1500})
+    fresh(page, url)
+    edit_on(page)
+    open_system(page, 0)
+    press_and_start(page, pt(node(page, ".more-link", 0, 9)))
+    choose(page, node(page, ".detail-satellite", 0, 0), "before")
+    expected = placed(FIXTURE, "planet", (0, 9), (0,), 0)
+    check(stored(page) == expected, f"{mode}: an overflow planet moved to the front")
+    check(page.locator(".detail-satellite").all_inner_texts()[:2] == ["Dup", "One"] and
+          page.locator(".more-link").all_inner_texts() == ["Eight", "Nine"],
+          f"{mode}: the eighth planet moved into More planets")
+
+    press_and_start(page, pt(node(page, ".detail-satellite", 0, 2)))
+    choose(page, node(page, ".more-link", 0, 9), "after")
+    expected = placed(expected, "planet", (0, 2), (0,), 9)
+    check(stored(page) == expected, f"{mode}: a stage planet moved to the end through More planets")
+
+    # Through the tray: pause on a sun to list its planets, then choose a side.
+    press_and_start(page, pt(node(page, ".detail-satellite", 0, 0)))
+    row = tray_row(page, "planet", 1, 0)
+    pause_on(page, tray_row(page, "sun", 1), row)
+    choose(page, row, "after")
+    expected = placed(expected, "planet", (0, 0), (1,), 1)
+    check(stored(page) == expected, f"{mode}: a planet was inserted through the tray")
+    launches.none(f"{mode}: reordering planets")
+    page.set_viewport_size({"width": 1280, "height": 900})
+    print(f"PASS DD12 planet reorder and insertion ({mode})")
+
+
+def run_moon_reorder(page, url, mode):
+    """DD13: reorder moons and insert them under another planet."""
+    page.set_viewport_size({"width": 1280, "height": 1500})
+    fresh(page, url)
+    edit_on(page)
+    open_system(page, 0)
+    launches = Launches(page)
+
+    # A More moons entry to the front: pausing on the planet shows its moons.
+    press_and_start(page, pt(node(page, ".moon-overflow .overflow-moon-link", 0, 0, 5)))
+    first = node(page, ".moon-link", 0, 0, 0)
+    pause_on(page, node(page, ".detail-satellite", 0, 0), first)
+    choose(page, first, "before", release=False)
+    page.screenshot(path=str(ARTIFACTS / f"drag-moon-choices-{mode}.png"))
+    page.mouse.up()
+    expected = placed(FIXTURE, "moon", (0, 0, 5), (0, 0), 0)
+    check(stored(page) == expected, f"{mode}: an overflow moon moved to the front")
+    check(page.locator(".moon-overflow-links").first.locator("a, button").all_inner_texts() == ["M4", "M5"],
+          f"{mode}: the fourth moon moved into More moons")
+
+    # Within one planet on the stage.
+    press_and_start(page, system_moon(page, 0, 0, 1))
+    choose(page, node(page, ".moon-link", 0, 0, 3), "after")
+    expected = placed(expected, "moon", (0, 0, 1), (0, 0), 3)
+    check(stored(page) == expected, f"{mode}: a moon moved after a sibling")
+
+    # Beside a moon of another planet on the stage.
+    press_and_start(page, system_moon(page, 0, 0, 0))
+    target = node(page, ".moon-link", 0, 1, 1)
+    pause_on(page, node(page, ".detail-satellite", 0, 1), target)
+    choose(page, target, "before")
+    expected = placed(expected, "moon", (0, 0, 0), (0, 1), 1)
+    check(stored(page) == expected, f"{mode}: a moon was inserted before a moon of another planet")
+
+    # Through the tray: sun, then planet, then a side of one of its moons.
+    press_and_start(page, system_moon(page, 0, 0, 0))
+    head = page.locator(".drag-tray .tray-group").nth(1).locator(".tray-head")
+    planet = tray_row(page, "planet", 1, 0)
+    moon = node(page, '.drag-tray .tray-row[data-kind="moon"]', 1, 0, 0)
+    pause_on(page, head, planet)
+    pause_on(page, planet, moon)
+    choose(page, moon, "after")
+    expected = placed(expected, "moon", (0, 0, 0), (1, 0), 1)
+    check(stored(page) == expected, f"{mode}: a moon was inserted through the tray")
+
+    # Galaxy: another sun, then one of its planets, then beside its moon.
+    page.set_viewport_size({"width": 1280, "height": 900})
+    fresh(page, url)
+    edit_on(page)
+    press_and_start(page, galaxy_moon(page, 0, 1, 0))
+    planet = node(page, ".home-satellite", 1, 0)
+    moon = node(page, ".moon-link", 1, 0, 0)
+    pause_on(page, node(page, ".home-hub", 1), planet)
+    pause_on(page, planet, moon)
+    choose(page, moon, "before")
+    check(stored(page) == placed(FIXTURE, "moon", (0, 1, 0), (1, 0), 0),
+          f"{mode}: a Galaxy moon was inserted before a moon under another sun")
+    launches.none(f"{mode}: reordering moons")
+    print(f"PASS DD13 moon reorder and insertion ({mode})")
+
+
+def run_reorder_rejections(page, url, mode):
+    """DD14: a cancelled or failed insertion leaves the order alone."""
+    fresh(page, url)
+    edit_on(page)
+
+    def unchanged(message):
+        check(stored(page) is None and memory(page) == FIXTURE, f"{mode}: {message} leaves the order unchanged")
+        check(page.locator(".drag-preview, .drop-choices, .insert-before, .insert-after").count() == 0,
+              f"{mode}: {message} clears the placement choices")
+
+    press_and_start(page, galaxy_planet(page, 0, 0))
+    choose(page, node(page, ".home-satellite", 0, 1), "before", release=False)
+    check("Already in this position" in page.locator(".drag-preview").inner_text() and
+          page.locator(".drop-target").count() == 0, f"{mode}: the current position gets no success cue")
+    page.mouse.up()
+    unchanged("dropping on the current position")
+
+    press_and_start(page, galaxy_planet(page, 0, 0))
+    choose(page, node(page, ".home-satellite", 0, 2), "after", release=False)
+    check(node(page, ".home-satellite", 0, 2).evaluate("node => node.classList.contains('insert-after')"),
+          f"{mode}: the sibling carries the insertion marker")
+    page.keyboard.press("Escape")
+    page.mouse.up()
+    unchanged("Escape over a placement choice")
+
+    page.evaluate("""() => {
+        window.realSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = () => { throw new Error('Synthetic storage failure'); };
+    }""")
+    press_and_start(page, pt(node(page, ".home-hub", 0)))
+    choose(page, node(page, ".home-hub", 2), "after")
+    check("could not be saved" in status(page), f"{mode}: a failed reorder reports the error")
+    unchanged("a failed save")
+    page.evaluate("() => { Storage.prototype.setItem = window.realSetItem; }")
+    print(f"PASS DD14 reorder cancellation and save failure ({mode})")
+
+
+def run_editor_positions(page, url, mode):
+    """DD15: keyboard-reachable positions in Edit links; search, tree, reload, export."""
+    fresh(page, url)
+    page.evaluate("openEditorAt([0, 1])")
+    page.get_by_role("button", name="Move to another sun").click()
+    page.get_by_label("Move to").select_option("1")
+    position = page.get_by_label("Position")
+    check(position.locator("option").all_inner_texts() == ["At the end", "Before Dup", "Before B2"],
+          f"{mode}: the editor lists the positions under the chosen sun")
+    position.select_option("1")
+    page.get_by_role("button", name="Move planet", exact=True).click()
+    expected = placed(FIXTURE, "planet", (0, 1), (1,), 1)
+    check(stored(page) == expected, f"{mode}: the editor inserted a planet before B2")
+    check("Sun: Beta" in page.locator(".editor-pane").inner_text(), f"{mode}: the editor follows the moved planet")
+
+    page.evaluate("openEditorAt([0, 0, 0])")
+    page.get_by_role("button", name="Move to another planet").click()
+    page.get_by_label("Move to").select_option("1:0")
+    page.get_by_label("Position").select_option("0")
+    page.get_by_role("button", name="Move moon", exact=True).click()
+    expected = placed(expected, "moon", (0, 0, 0), (1, 0), 0)
+    check(stored(page) == expected, f"{mode}: the editor inserted a moon at the front of another planet")
+
+    tree = page.locator(".editor-tree-item").all_inner_texts()
+    beta = tree.index("Beta · 3 planets")
+    check(tree[beta + 1:beta + 4] == ["Dup · 2 moons", "Dup", "Dup"] and tree[beta + 4] == "Dup · 2 moons",
+          f"{mode}: the editor tree follows the new order")
+    check(export_map(page) == expected, f"{mode}: Export JSON follows the new order")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(memory(page) == expected, f"{mode}: the new order survives a reload")
+    page.locator("#quick-find").fill("M")
+    names = page.locator(".find-item strong").all_inner_texts()
+    flat = [moon["name"] for group in expected["groups"] for planet in group["links"]
+            for item in (planet, *planet["moons"]) for moon in (item,) if "m" in moon["name"].lower()]
+    suns = [group["name"] for group in expected["groups"] if "m" in group["name"].lower()]
+    check([name for name in names if name not in suns] == flat, f"{mode}: Quick find follows the new order")
+    print(f"PASS DD15 editor positions, tree, export, reload, search ({mode})")
+
+
+def run_export_after_moves(page, url, mode):
+    """DD16: Export JSON after a mixed run of drags, and a round trip through Import JSON."""
+    page.set_viewport_size({"width": 1280, "height": 1500})
+    fresh(page, url)
+    edit_on(page)
+    # Galaxy: reorder a sun, move a planet with moons, insert a planet under another sun.
+    press_and_start(page, pt(node(page, ".home-hub", 2)))
+    choose(page, node(page, ".home-hub", 0), "before")
+    expected = placed(FIXTURE, "sun", (2,), (), 0)              # Gamma, Alpha, Beta
+    drag_to(page, galaxy_planet(page, 1, 2), pt(node(page, ".home-hub", 0)))
+    expected = moved_planet(expected, 1, 2, 0)                  # RdpPlanet with its moon to Gamma
+    press_and_start(page, galaxy_planet(page, 1, 1))
+    pause_on(page, node(page, ".home-hub", 2), node(page, ".home-satellite", 2, 0))
+    choose(page, node(page, ".home-satellite", 2, 0), "after")
+    expected = placed(expected, "planet", (1, 1), (2,), 1)      # Dup with RdpMoon between Beta's planets
+    # System: reorder a moon, move an overflow moon through the tray, then undo one more move.
+    open_system(page, 1)
+    press_and_start(page, system_moon(page, 1, 0, 3))
+    choose(page, node(page, ".moon-link", 1, 0, 0), "before")
+    expected = placed(expected, "moon", (1, 0, 3), (1, 0), 0)
+    press_and_start(page, pt(node(page, ".moon-overflow .overflow-moon-link", 1, 0, 5)))
+    head = page.locator(".drag-tray .tray-group").nth(0).locator(".tray-head")
+    row = tray_row(page, "planet", 0, 0)
+    pause_on(page, head, row)
+    page.mouse.move(*pt(row), steps=3)
+    page.mouse.up()
+    expected = moved_moon(expected, 1, 0, 5, 0, 0)              # M6 to RdpPlanet under Gamma
+    press_and_start(page, pt(node(page, ".detail-satellite", 1, 1)))
+    page.mouse.move(*pt(tray_row(page, "sun", 2)), steps=6)
+    page.mouse.up()
+    check(stored(page) == moved_planet(expected, 1, 1, 2), f"{mode}: the move to be undone was applied")
+    page.locator("#edit-undo").click()
+    check(stored(page) == expected and memory(page) == expected, f"{mode}: the mixed run of drags and Undo is stored")
+
+    exported = export_map(page)
+    check(exported == expected, f"{mode}: Export JSON matches the map after the drags")
+    check([group["id"] for group in exported["groups"]] == ["gamma", "alpha", "beta"],
+          f"{mode}: the export keeps sun IDs in the new order")
+    gamma, beta = exported["groups"][0], exported["groups"][2]
+    check(gamma["links"][0]["rdpProfile"] == FIXTURE["groups"][0]["links"][2]["rdpProfile"] and
+          [moon["name"] for moon in gamma["links"][0]["moons"]] == ["RpMoon", "M6"],
+          f"{mode}: the exported RDP planet keeps its profile and gained the moved moon")
+    check(beta["links"][1]["moons"][1] == FIXTURE["groups"][0]["links"][1]["moons"][1],
+          f"{mode}: the exported RDP moon is unchanged inside its moved planet")
+    counts = lambda data: (sum(len(group["links"]) for group in data["groups"]),
+                           sum(len(planet["moons"]) for group in data["groups"] for planet in group["links"]))
+    check(counts(exported) == counts(FIXTURE), f"{mode}: nothing was lost or duplicated")
+
+    # The exported file imports into a clean browser as the same map.
+    fresh(page, url)
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.get_by_role("button", name="Edit links").click()
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import JSON", exact=True).click()
+    chooser.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
+                             "buffer": (json.dumps(exported, indent=2) + "\n").encode()})
+    page.get_by_role("button", name="Apply import").click()
+    check(stored(page) == expected, f"{mode}: the exported file imports as the same map")
+    page.set_viewport_size({"width": 1280, "height": 900})
+    print(f"PASS DD16 export after mixed drags, import round trip ({mode})")
+
+
 PHASE_1 = (run_pure_operation, run_edit_mode, run_galaxy_moves, run_system_moves,
            run_rejections, run_undo, run_layout)
+PHASE_2 = (run_pure_insertion, run_sun_reorder, run_planet_reorder, run_moon_reorder,
+           run_reorder_rejections, run_editor_positions, run_export_after_moves)
 
 
-def run_mode(page, url, mode, phase):
+def run_mode(page, url, mode, phase, only=None):
     page.context.route("https://example.test/**", lambda route: route.fulfill(
         status=200, content_type="text/html", body="<title>Test destination</title>"))
-    for step in PHASE_1:
-        step(page, url, mode)
-    if phase >= 2:
-        raise SystemExit("Phase 2 checks are not implemented yet.")
+    steps = PHASE_1 + (PHASE_2 if phase >= 2 else ())
+    for step in steps:
+        if not only or only in step.__name__:
+            step(page, url, mode)
 
 
 def main():
     global CDP
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase", type=int, choices=(1, 2), required=True)
+    parser.add_argument("--only", help="Run only the checks whose function name contains this text")
     parser.add_argument("--cdp", help="Connect to a running browser at this DevTools address")
     parser.add_argument("--url", help="With --cdp: the page URL of the fixture copy to test")
     parser.add_argument("--write-fixture", metavar="DIR",
@@ -701,7 +1105,7 @@ def main():
             page.set_viewport_size({"width": 1280, "height": 900})
             print(f"Browser: {browser.version}")
             try:
-                run_mode(page, args.url, "remote", args.phase)
+                run_mode(page, args.url, "remote", args.phase, args.only)
             finally:
                 page.close()
             return
@@ -717,7 +1121,7 @@ def main():
                                   ("server", f"http://127.0.0.1:{server.server_port}/index.html")):
                     page = browser.new_page(viewport={"width": 1280, "height": 900})
                     try:
-                        run_mode(page, url, mode, args.phase)
+                        run_mode(page, url, mode, args.phase, args.only)
                     finally:
                         page.close()
             finally:

@@ -83,9 +83,10 @@ Turn on **Edit mode** in the top bar to rearrange the map with a mouse or pen. I
 - Drag a planet onto another sun to move it there with all its moons.
 - Drag a moon onto another planet. In the Galaxy, pause on another sun to show its planets.
 - In a System, a list of the other suns and planets appears while you drag, because only one sun is on screen.
+- To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun in the Galaxy. Choose **Before** or **After**; the hint shows the position the item will take. Pause on a planet to show its moons, or on a tray entry to open it.
 - **Undo last drag** reverses the most recent move until the map changes again or the page reloads.
 
-A moved link keeps its name, destination, and any imported `.rdp` profile, and goes to the end of its new parent. The Galaxy shows only the first five planets and four moons, so use a System or **Edit links** for the rest. In Edit mode, a Quick find result opens that planet or moon in Edit links. Dragging needs a mouse or pen; with a keyboard, use the move controls in Edit links. Touch dragging is not supported.
+A moved link keeps its name, destination, and any imported `.rdp` profile, and goes to the end of its new parent unless you choose a position beside a sibling. Reordering a sun keeps its System address. The Galaxy shows only the first five planets and four moons, so use a System or **Edit links** for the rest. In Edit mode, a Quick find result opens that planet or moon in Edit links. Dragging needs a mouse or pen; with a keyboard, use Edit links: **Move up** and **Move down** set the order, and **Move to another sun** or **Move to another planet** includes a position. Touch dragging is not supported.
 
 ## Keyboard
 

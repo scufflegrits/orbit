@@ -350,7 +350,7 @@ function renderDetail(group) {
   visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i, sunIndex)));
 
   const note = element('p', 'detail-note', editMode
-    ? 'Edit mode is on. Drag a planet or moon to move it; links stay closed until you turn Edit mode off.'
+    ? 'Edit mode is on. Drag a planet or moon to move or reorder it; links stay closed until you turn Edit mode off.'
     : group.links.some(link => link.type === 'rdp')
     ? rdpLaunchMode === 'client'
       ? 'Select a lab to open Remote Desktop Connection with its target loaded. Your browser may ask to open the helper.'

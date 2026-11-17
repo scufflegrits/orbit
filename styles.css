@@ -436,7 +436,7 @@ button:focus-visible, a:focus-visible {
 .edit-bar-button:hover { border-color: var(--theme-accent); color: var(--text); }
 #edit-undo { border-color: var(--theme-accent); color: var(--text); }
 
-html[data-edit='on'] :is([data-kind='planet'], [data-kind='moon']) {
+html[data-edit='on'] :is([data-kind='planet'], [data-kind='moon'], .home-hub) {
   border-style: dashed;
   cursor: grab;
   user-select: none;
@@ -505,9 +505,11 @@ html[data-edit='on'] .planet-cluster.drag-open .moon-field,
 html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-field {
   opacity: 1;
   visibility: visible !important;
-  pointer-events: auto !important;
   transition-property: opacity;
 }
+/* During a drag only the moons themselves take the pointer, so an open moon
+   field never hides a neighbouring planet from the drop. */
+html.dragging .moon-field { pointer-events: none !important; }
 html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-link { pointer-events: auto; }
 .overflow-planet.drag-open .overflow-moons { display: flex; }
 
@@ -546,12 +548,49 @@ html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-link 
 .tray-count { flex: none; color: var(--subtle); font-weight: 500; font-size: calc(11px * var(--font-scale)); }
 .tray-row.drop-target { outline-offset: 1px; box-shadow: none; background: color-mix(in srgb, var(--theme-accent) 22%, var(--page-bg)); }
 .tray-row.drop-same { outline-offset: 1px; }
-.tray-head { margin-top: 8px; padding: 8px 12px; border-radius: 10px; color: var(--muted-strong); font-weight: 600; }
+.tray-head:not(.tray-row) { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; padding: 8px 12px; color: var(--muted-strong); font-weight: 600; }
+.tray-head .tray-name { flex: 1; }
+.tray-row.tray-head { margin-top: 8px; }
 .tray-head::before { content: '+ '; color: var(--theme-accent); }
 .tray-group.open .tray-head::before { content: '\2212  '; }
 .tray-group.open .tray-head { color: var(--text); }
-.tray-list { display: none; padding-left: 12px; }
-.tray-group.open .tray-list { display: block; }
+.tray-list, .tray-sublist { display: none; padding-left: 14px; }
+.tray-group.open .tray-list, .tray-item.open .tray-sublist { display: block; }
+.tray-expandable > .tray-row .tray-name::before { content: '+ '; color: var(--theme-accent); }
+.tray-expandable.open > .tray-row .tray-name::before { content: '\2212  '; }
+.tray-moon { padding: 8px 12px; font-weight: 500; }
+
+/* Before and After choices beside a sibling, and the insertion marker. */
+.drop-choices {
+  position: fixed;
+  z-index: 38;
+  display: grid;
+  gap: 6px;
+  padding: 7px;
+  border: 1px dashed var(--theme-accent);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+}
+.drop-choice {
+  min-width: 150px;
+  max-width: 250px;
+  padding: 11px 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--page-bg);
+  color: var(--text);
+  font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drop-choice.drop-target { outline-offset: 1px; box-shadow: none; background: color-mix(in srgb, var(--theme-accent) 24%, var(--page-bg)); }
+.drop-choice.drop-same { outline-offset: 1px; color: var(--subtle); }
+.insert-before, .insert-after { outline: 2px dashed var(--theme-accent); outline-offset: 5px; }
+.tray-row.insert-before { outline: none; box-shadow: 0 -4px 0 var(--theme-accent); }
+.tray-row.insert-after { outline: none; box-shadow: 0 4px 0 var(--theme-accent); }
 .tray-empty, .tray-hint { margin: 8px 12px 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
 
 .local-badge, .link-count, .eyebrow, .hub-count, .detail-index {

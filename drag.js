@@ -27,29 +27,42 @@ function mapItemAt(list, path) {
   return path.kind === 'moon' ? planet?.moons[path.moon] || null : null;
 }
 
-// Move a planet to the end of another sun, or a moon to the end of another
-// planet. Returns { status: 'moved', groups, path } with a fresh copy, or
-// { status: 'same' } / { status: 'invalid' } without touching anything.
+function samePath(a, b) {
+  return a.kind === b.kind && a.sun === b.sun && a.planet === b.planet && a.moon === b.moon;
+}
+
+// Move one item. A parent target ({ kind: 'sun' } for a planet, { kind:
+// 'planet' } for a moon) appends. A sibling target (same kind as the source,
+// with place: 'before' | 'after') reorders within one parent or inserts under
+// another; suns can only be reordered. Returns { status: 'moved', groups, path }
+// with a fresh copy, or { status: 'same' } / { status: 'invalid' } without
+// touching anything.
 function moveMapItem(list, source, target) {
-  const parentKind = { planet: 'sun', moon: 'planet' }[source.kind];
-  if (!parentKind || target.kind !== parentKind) return { status: 'invalid' };
+  const key = source.kind;
+  const parentKind = { planet: 'sun', moon: 'planet' }[key];
+  const sibling = target.kind === key && (target.place === 'before' || target.place === 'after');
+  if (!['sun', 'planet', 'moon'].includes(key)) return { status: 'invalid' };
+  if (!sibling && (!parentKind || target.kind !== parentKind)) return { status: 'invalid' };
   if (!mapItemAt(list, source) || !mapItemAt(list, target)) return { status: 'invalid' };
-  if (target.sun === source.sun && (parentKind === 'sun' || target.planet === source.planet)) {
-    return { status: 'same' };
-  }
+  if (sibling && samePath(source, target)) return { status: 'invalid' };
   const next = JSON.parse(JSON.stringify(list));
-  if (source.kind === 'planet') {
-    const [moved] = next[source.sun].links.splice(source.planet, 1);
-    const siblings = next[target.sun].links;
-    siblings.push(moved);
-    return { status: 'moved', groups: next,
-      path: { kind: 'planet', sun: target.sun, planet: siblings.length - 1 } };
+  const siblingsAt = path => key === 'sun' ? next
+    : key === 'planet' ? next[path.sun].links : next[path.sun].links[path.planet].moons;
+  const from = siblingsAt(source);
+  const to = siblingsAt(target);
+  let index = sibling ? target[key] + (target.place === 'after' ? 1 : 0) : to.length;
+  if (from === to) {
+    if (!sibling) return { status: 'same' };
+    // Removing the source first shifts every later sibling down by one.
+    if (source[key] < index) index--;
+    if (index === source[key]) return { status: 'same' };
   }
-  const [moved] = next[source.sun].links[source.planet].moons.splice(source.moon, 1);
-  const siblings = next[target.sun].links[target.planet].moons;
-  siblings.push(moved);
-  return { status: 'moved', groups: next,
-    path: { kind: 'moon', sun: target.sun, planet: target.planet, moon: siblings.length - 1 } };
+  const [moved] = from.splice(source[key], 1);
+  to.splice(index, 0, moved);
+  const path = { kind: key, sun: key === 'sun' ? index : target.sun };
+  if (key !== 'sun') path.planet = key === 'planet' ? index : target.planet;
+  if (key === 'moon') path.moon = index;
+  return { status: 'moved', groups: next, path, total: to.length };
 }
 
 // ---- Edit mode ----------------------------------------------------------
@@ -125,15 +138,25 @@ function focusPath(path) {
 
 // ---- Drag gesture -------------------------------------------------------
 
-function sourceLabel() {
-  return `${drag.path.kind} ${drag.item.name}`;
+function nameAt(path) {
+  return mapItemAt(groups, path).name;
 }
 
-function parentName(path) {
-  const parent = path.kind === 'sun' ? groups[path.sun] : groups[path.sun].links[path.planet];
-  return parent.name;
+function counted(count, noun) {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
+function trayRow(className, name, count, kind, ...indices) {
+  const row = element('div', className);
+  if (kind) tagPath(row, kind, ...indices);
+  row.append(element('span', 'tray-name', name));
+  if (count) row.append(element('span', 'tray-count', count));
+  return row;
+}
+
+// Only one sun is on screen in a System, so a drag gets a list of the rest.
+// Planet drag: other suns (drop to append; pause to list their planets).
+// Moon drag: every sun's planets (drop to append; pause to list their moons).
 function buildTray(pointerX) {
   const tray = element('aside', 'drag-tray');
   tray.classList.add(pointerX > window.innerWidth / 2 ? 'drag-tray-left' : 'drag-tray-right');
@@ -141,32 +164,42 @@ function buildTray(pointerX) {
   const forPlanet = drag.path.kind === 'planet';
   tray.append(element('h2', '', forPlanet ? 'Move to another sun' : 'Move to a planet'));
   groups.forEach((sun, sunIndex) => {
-    if (forPlanet) {
-      if (sunIndex === current) return;
-      const row = tagPath(element('div', 'tray-row'), 'sun', sunIndex);
-      row.append(element('span', 'tray-name', sun.name),
-        element('span', 'tray-count', `${sun.links.length} planets`));
-      tray.append(row);
-      return;
-    }
+    if (forPlanet && sunIndex === current) return;
     const group = element('div', 'tray-group');
-    if (sunIndex === current) group.classList.add('open');
-    group.append(element('div', 'tray-head', sunIndex === current ? `${sun.name} (this System)` : sun.name));
+    if (!forPlanet && sunIndex === current) group.classList.add('open');
+    const count = counted(sun.links.length, 'planet');
+    group.append(forPlanet ? trayRow('tray-row tray-head', sun.name, count, 'sun', sunIndex)
+      : trayRow('tray-head', sunIndex === current ? `${sun.name} (this System)` : sun.name, count));
     const list = element('div', 'tray-list');
     sun.links.forEach((planet, planetIndex) => {
-      const row = tagPath(element('div', 'tray-row'), 'planet', sunIndex, planetIndex);
-      row.append(element('span', 'tray-name', planet.name),
-        element('span', 'tray-count', `${planet.moons.length} moons`));
-      list.append(row);
+      const item = element('div', 'tray-item');
+      item.append(trayRow('tray-row', planet.name, forPlanet ? '' : counted(planet.moons.length, 'moon'),
+        'planet', sunIndex, planetIndex));
+      if (!forPlanet && planet.moons.length) {
+        item.classList.add('tray-expandable');
+        const moons = element('div', 'tray-sublist');
+        planet.moons.forEach((moon, moonIndex) => moons.append(
+          trayRow('tray-row tray-moon', moon.name, '', 'moon', sunIndex, planetIndex, moonIndex)));
+        item.append(moons);
+      }
+      list.append(item);
     });
     if (!sun.links.length) list.append(element('p', 'tray-empty', 'No planets yet.'));
     group.append(list);
     tray.append(group);
   });
-  if (!forPlanet) tray.append(element('p', 'tray-hint', 'Pause on a sun to show its planets.'));
+  tray.append(element('p', 'tray-hint', forPlanet
+    ? 'Pause on a sun to place the planet beside one of its planets.'
+    : 'Pause on a sun to show its planets, and on a planet to show its moons.'));
   document.body.append(tray);
   return tray;
 }
+
+const DRAG_HELP = {
+  sun: 'Drop beside another sun',
+  planet: 'Drop on a sun, or beside a planet',
+  moon: 'Drop on a planet, or beside a moon',
+};
 
 function startDrag(event) {
   drag.state = 'dragging';
@@ -175,7 +208,7 @@ function startDrag(event) {
   document.documentElement.classList.add('dragging');
   drag.node.classList.add('drag-source');
   // Keep the source visible without relying on hover or focus.
-  drag.node.closest('.home-orbit')?.classList.add('drag-open');
+  if (drag.path.kind !== 'sun') drag.node.closest('.home-orbit')?.classList.add('drag-open');
   if (drag.path.kind === 'moon') {
     drag.node.closest('.planet-cluster, .overflow-planet')?.classList.add('drag-open');
   }
@@ -183,17 +216,60 @@ function startDrag(event) {
   drag.preview.append(element('strong', '', drag.item.name), element('span', 'drag-hint', ''));
   document.body.append(drag.preview);
   if (app.classList.contains('detail-view')) drag.tray = buildTray(event.clientX);
-  announce(drag.path.kind === 'planet'
-    ? `Moving planet ${drag.item.name}. Drop it on another sun.`
-    : `Moving moon ${drag.item.name}. Drop it on another planet.`);
+  announce(`Moving ${drag.path.kind} ${drag.item.name}. ${DRAG_HELP[drag.path.kind]}.`);
 }
 
-// Phase 1: a planet lands on a sun and a moon lands on a planet.
+// A sibling needs an explicit Before or After, because positions on an orbit
+// do not show array order.
+function showChoices(sibling, path) {
+  if (drag.choices?.sibling === sibling) return;
+  hideChoices();
+  const box = element('div', 'drop-choices');
+  for (const [place, word] of [['before', 'Before'], ['after', 'After']]) {
+    const choice = element('div', 'drop-choice', `${word} ${nameAt(path)}`);
+    choice.dataset.place = place;
+    box.append(choice);
+  }
+  document.body.append(box);
+  const rect = sibling.getBoundingClientRect();
+  const clamp = (value, size, limit) => Math.max(8, Math.min(value, limit - size - 8));
+  box.style.left = `${clamp(rect.left + rect.width / 2 - box.offsetWidth / 2, box.offsetWidth, window.innerWidth)}px`;
+  box.style.top = `${clamp(rect.top + rect.height / 2 - box.offsetHeight / 2, box.offsetHeight, window.innerHeight)}px`;
+  drag.choices = { box, sibling, path };
+}
+
+function hideChoices() {
+  drag.choices?.box.remove();
+  drag.choices = null;
+}
+
+function siblingTarget(choice) {
+  const { sibling } = drag.choices;
+  const path = { ...drag.choices.path, place: choice.dataset.place };
+  const result = moveMapItem(groups, drag.path, path);
+  if (result.status !== 'moved') return { status: result.status === 'same' ? 'same' : 'none', node: choice, path, sibling };
+  const index = result.path[drag.path.kind];
+  return { status: 'valid', node: choice, path, sibling, position: `position ${index + 1} of ${result.total}` };
+}
+
 function resolveTarget(under) {
   if (!under) return { status: 'none' };
-  const want = drag.path.kind === 'planet' ? 'sun' : 'planet';
+  const kind = drag.path.kind;
+  if (drag.choices && under.closest('.drop-choices')) {
+    const choice = under.closest('.drop-choice');
+    return choice ? siblingTarget(choice)
+      : { status: 'choose', node: drag.choices.sibling, path: drag.choices.path };
+  }
   const tagged = under.closest('[data-kind]');
-  let node = tagged?.dataset.kind === want ? tagged : null;
+  let node = tagged;
+  // A whole Galaxy card stands in for its sun when suns are being reordered.
+  if (kind === 'sun') node = under.closest('.group-card')?.querySelector('.home-hub') || null;
+  if (node?.dataset.kind === kind) {
+    const path = pathOf(node);
+    return samePath(path, drag.path) ? { status: 'none' } : { status: 'choose', node, path };
+  }
+  const want = { planet: 'sun', moon: 'planet' }[kind];
+  node = want && tagged?.dataset.kind === want ? tagged : null;
   // The whole orbit stands in for its sun, so a planet does not need a precise drop.
   if (!node && want === 'sun') {
     node = under.closest('.home-orbit, .detail-stage')?.querySelector('.home-hub, .detail-hub') || null;
@@ -206,52 +282,99 @@ function resolveTarget(under) {
 
 function openDwell(node) {
   if (!drag || drag.dwellNode !== node) return;
-  if (node.classList.contains('tray-group')) {
-    for (const other of drag.tray.querySelectorAll('.tray-group.open')) other.classList.remove('open');
+  if (node.matches('.tray-group, .tray-item')) {
+    const scope = node.matches('.tray-group') ? '.tray-group.open' : '.tray-item.open';
+    for (const other of drag.tray.querySelectorAll(scope)) other.classList.remove('open');
     node.classList.add('open');
   } else {
     node.classList.add('drag-open', 'drag-reveal');
   }
+  drag.dwellNode = null;
   refreshDrag();
   // Revealed planets travel outward for a moment; hit-test again once they settle.
   setTimeout(refreshDrag, 450);
 }
 
+// What a pause over this element would open: a tray branch, another sun's
+// planets, or (for a moon) another planet's moons.
+function dwellCandidate(under) {
+  const branch = under.closest('.tray-expandable:not(.open), .tray-group:not(.open)');
+  if (branch || drag.path.kind === 'sun' || under.closest('.drag-tray, .drop-choices')) return branch;
+  const cluster = drag.path.kind === 'moon'
+    ? under.closest('.planet-cluster:not(.drag-open), .overflow-planet:not(.drag-open)') : null;
+  return cluster || under.closest('.home-orbit:not(.drag-open)');
+}
+
 function updateDwell(under) {
-  const node = under?.closest(drag.path.kind === 'moon'
-    ? '.tray-group:not(.open), .home-orbit:not(.drag-open)' : '.tray-group:not(.open)') || null;
-  for (const orbit of app.querySelectorAll('.home-orbit.drag-reveal')) {
-    if (!under || !orbit.contains(under)) orbit.classList.remove('drag-open', 'drag-reveal');
+  // A reveal closes shortly after the pointer leaves it; the gap between a
+  // planet and its moons must not close it.
+  for (const reveal of app.querySelectorAll('.drag-reveal')) {
+    const inside = under && (reveal.contains(under) || under.closest('.drop-choices'));
+    if (inside) {
+      clearTimeout(drag.closing.get(reveal));
+      drag.closing.delete(reveal);
+    } else if (!drag.closing.has(reveal)) {
+      drag.closing.set(reveal, setTimeout(() => {
+        reveal.classList.remove('drag-open', 'drag-reveal');
+        drag?.closing.delete(reveal);
+        refreshDrag();
+      }, DWELL_MS));
+    }
   }
+  const node = under ? dwellCandidate(under) : null;
   if (node === drag.dwellNode) return;
   clearTimeout(drag.dwellTimer);
   drag.dwellNode = node;
   if (node) drag.dwellTimer = setTimeout(() => openDwell(node), DWELL_MS);
 }
 
+function placePreview(x, y) {
+  let left = x + 14;
+  let top = y + 16;
+  if (drag.choices) {
+    // Stay beside the Before and After choices instead of covering them.
+    const box = drag.choices.box.getBoundingClientRect();
+    left = box.right + 10;
+    if (left + drag.preview.offsetWidth > window.innerWidth - 8) left = box.left - drag.preview.offsetWidth - 10;
+    top = box.top;
+  }
+  drag.preview.style.transform = `translate(${left}px, ${top}px)`;
+}
+
 function updateDrag(x, y) {
   drag.x = x;
   drag.y = y;
-  drag.preview.style.transform = `translate(${x + 14}px, ${y + 16}px)`;
   const under = document.elementFromPoint(x, y);
   updateDwell(under);
   const target = resolveTarget(under);
+  if (target.status === 'choose') showChoices(target.node, target.path);
+  else if (!target.sibling) hideChoices();
+  placePreview(x, y);
   const changed = target.node !== drag.target?.node || target.status !== drag.target?.status;
   if (!changed) return;
   drag.target?.node?.classList.remove('drop-target', 'drop-same');
+  drag.target?.sibling?.classList.remove('insert-before', 'insert-after');
   const leftTarget = drag.target?.status === 'valid';
   drag.target = target;
   const hint = drag.preview.querySelector('.drag-hint');
   drag.preview.classList.toggle('drag-preview-valid', target.status === 'valid');
-  if (target.status === 'valid') {
+  if (target.status === 'valid' && target.sibling) {
     target.node.classList.add('drop-target');
-    hint.textContent = `Drop to move to ${parentName(target.path)}`;
-    announce(`Over ${target.path.kind} ${parentName(target.path)}. Release to move ${drag.item.name} here.`);
+    target.sibling.classList.add(`insert-${target.path.place}`);
+    hint.textContent = `Insert ${target.path.place} ${nameAt(target.path)}, ${target.position}`;
+    announce(`Insert ${drag.item.name} ${target.path.place} ${nameAt(target.path)}, ${target.position}. Release to place it.`);
+  } else if (target.status === 'valid') {
+    target.node.classList.add('drop-target');
+    hint.textContent = `Drop to move to ${nameAt(target.path)}`;
+    announce(`Over ${target.path.kind} ${nameAt(target.path)}. Release to move ${drag.item.name} here.`);
   } else if (target.status === 'same') {
     target.node.classList.add('drop-same');
-    hint.textContent = `Already in ${parentName(target.path)}`;
+    hint.textContent = target.sibling ? 'Already in this position' : `Already in ${nameAt(target.path)}`;
+  } else if (target.status === 'choose') {
+    hint.textContent = `Choose Before or After ${nameAt(target.path)}`;
+    announce(`Beside ${target.path.kind} ${nameAt(target.path)}. Choose Before or After.`);
   } else {
-    hint.textContent = drag.path.kind === 'planet' ? 'Drop on another sun' : 'Drop on another planet';
+    hint.textContent = DRAG_HELP[drag.path.kind];
   }
   if (leftTarget && target.status !== 'valid') announce(`No drop target. ${hint.textContent}.`);
 }
@@ -262,15 +385,18 @@ function refreshDrag() {
 
 function endGesture() {
   const gesture = drag;
-  drag = null;
   clearTimeout(gesture.dwellTimer);
+  for (const timer of gesture.closing.values()) clearTimeout(timer);
+  if (gesture.state === 'dragging') hideChoices();
+  drag = null;
   if (gesture.state !== 'dragging') return gesture;
   try { gesture.node.releasePointerCapture(gesture.pointerId); } catch { /* Already released. */ }
   gesture.preview.remove();
   gesture.tray?.remove();
   document.documentElement.classList.remove('dragging');
-  for (const node of document.querySelectorAll('.drag-open, .drag-reveal, .drop-target, .drop-same, .drag-source')) {
-    node.classList.remove('drag-open', 'drag-reveal', 'drop-target', 'drop-same', 'drag-source');
+  const marks = ['drag-open', 'drag-reveal', 'drop-target', 'drop-same', 'drag-source', 'insert-before', 'insert-after'];
+  for (const node of document.querySelectorAll(marks.map(mark => `.${mark}`).join(', '))) {
+    node.classList.remove(...marks);
   }
   // The browser still sends a click after the release; it must not open anything.
   suppressNextClick = true;
@@ -295,7 +421,8 @@ function commitMove(gesture, target) {
   const result = moveMapItem(groups, gesture.path, target.path);
   if (result.status !== 'moved') return announce('That is not a place this item can go. Nothing changed.');
   const previous = groups;
-  const label = `${gesture.path.kind} ${gesture.item.name} to ${parentName(target.path)}`;
+  const where = target.path.place ? `${target.path.place} ${nameAt(target.path)}` : `to ${nameAt(target.path)}`;
+  const label = `${gesture.path.kind} ${gesture.item.name} ${where}`;
   try {
     keepingScroll(() => saveMap({ groups: result.groups }));
   } catch (error) {
@@ -335,8 +462,9 @@ document.addEventListener('pointerdown', event => {
   if (!node || !app.contains(node)) return;
   const path = pathOf(node);
   const item = mapItemAt(groups, path);
-  if (path.kind === 'sun' || !item) return;
-  drag = { state: 'pressed', pointerId: event.pointerId, node, path, item,
+  // The System hub is not a source: there is nothing to reorder it against.
+  if (!item || (path.kind === 'sun' && !node.classList.contains('home-hub'))) return;
+  drag = { state: 'pressed', pointerId: event.pointerId, node, path, item, closing: new Map(),
     revision: mapRevision, token: storageToken(), startX: event.clientX, startY: event.clientY };
 });
 
@@ -356,7 +484,12 @@ document.addEventListener('pointerup', event => {
   const gesture = endGesture();
   if (gesture.state !== 'dragging') return;
   if (target?.status === 'valid') commitMove(gesture, target);
-  else if (target?.status === 'same') announce(`${gesture.item.name} is already in ${parentName(target.path)}. Nothing changed.`);
+  else if (target?.status === 'same') {
+    announce(target.sibling ? `${gesture.item.name} is already in that position. Nothing changed.`
+      : `${gesture.item.name} is already in ${nameAt(target.path)}. Nothing changed.`);
+  } else if (target?.status === 'choose') {
+    announce(`Choose Before or After to place ${gesture.item.name} beside ${nameAt(target.path)}. Nothing changed.`);
+  }
   else announce('That was not a drop target. Nothing changed.');
 });
 
@@ -370,7 +503,8 @@ document.addEventListener('lostpointercapture', event => {
   if (drag?.state === 'dragging' && event.target === drag.node && event.pointerId === drag.pointerId) cancelDrag();
 });
 window.addEventListener('blur', () => cancelDrag('Move cancelled because the window lost focus. Nothing changed.'));
-window.addEventListener('scroll', refreshDrag, { passive: true });
+// Scrolling moves the page under the fixed Before and After choices.
+window.addEventListener('scroll', () => { if (drag?.state === 'dragging') hideChoices(); refreshDrag(); }, { passive: true });
 window.addEventListener('resize', refreshDrag);
 window.addEventListener('storage', updateEditBar);
 

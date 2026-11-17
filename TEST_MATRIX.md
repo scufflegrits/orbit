@@ -237,7 +237,7 @@ Rules:
 
 ## Backlog 9 — Drag-and-drop organization
 
-Run with `/home/sysadmin/.venv/bin/python tests/drag_drop.py --phase 1` (file mode and a temporary local server, synthetic fixture with repeated names, overflow items, and synthetic RDP profiles). Expected maps are built in the test with plain list operations, not with the app's move helper.
+Run with `/home/sysadmin/.venv/bin/python tests/drag_drop.py --phase 2` (all rows; `--phase 1` stops after DD09; `--only TEXT` runs the checks whose function name contains TEXT; file mode and a temporary local server, synthetic fixture with repeated names, overflow items, and synthetic RDP profiles). Expected maps are built in the test with plain list operations, not with the app's move helper.
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
@@ -250,6 +250,14 @@ Run with `/home/sysadmin/.venv/bin/python tests/drag_drop.py --phase 1` (file mo
 | DD07 | Both | Drop on the current parent, outside, and on a wrong kind; cancel by Escape, pointercancel, blur, menu, route change, and Edit mode Off; fail the save; change the map mid-drag. | The stored and in-memory maps are unchanged, overlays are cleared, a readable message appears, and another tab's map is never overwritten. | Pass — automated. |
 | DD08 | Both | Undo last drag. | Only the last drag is reversed; a later edit or another tab's change retires it; the removal Undo record is untouched. | Pass — automated. |
 | DD09 | Both | 900 and 1280 pixels, three themes, four text sizes, reduced motion. | Edit mode controls fit without horizontal scrolling and a drag works in each. | Pass — automated; screenshots inspected at 900 pixels with Extra large text. |
+
+| DD10 | Both | Call the move operation with a sibling and `before` or `after`. | First-to-last, last-to-first, adjacent, same-array index adjustment, and cross-parent insertion give the expected arrays; a sun keeps its ID and descendants; self-drops and mixed kinds are invalid. | Pass — automated (2026-11-16). |
+| DD11 | Both | Galaxy: drag a sun onto another sun and choose Before or After. | The cards and System index follow the new order; the System address still works; a drop without a choice changes nothing; Undo restores the order. | Pass — automated; choices screenshot inspected. |
+| DD12 | Both | Reorder planets in the Galaxy, on the System stage, through More planets, and through the tray; insert under another sun. | The stored order matches; the Galaxy first-five and System first-eight boundaries follow it. | Pass — automated. |
+| DD13 | Both | Reorder moons on the stage and from More moons; insert beside a moon of another planet on the stage, through the tray, and in the Galaxy. | Pausing on a planet shows its moons; the stored order matches; the first-four boundary follows it. | Pass — automated; choices screenshot inspected. |
+| DD14 | Both | Drop on the current position, press Escape over a choice, and fail the save during a reorder. | The order is unchanged and the choices and markers are cleared. | Pass — automated. |
+| DD15 | Both | Edit links: Move to another sun or planet with a Position. | The item is inserted before the chosen sibling; the editor tree, Export JSON, reload, and Quick find order all follow. | Pass — automated. |
+| DD16 | Both | Reorder a sun, move and insert planets and moons in the Galaxy and a System (stage, More moons, tray), undo one move, then Export JSON and import the file into a clean browser. | The downloaded file equals the expected map: sun IDs in the new order, RDP profiles intact, no item lost or duplicated; importing it reproduces the same stored map. | Pass — automated, real download. |
 
 ## Milestone commit record
 
