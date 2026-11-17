@@ -1,6 +1,6 @@
 # Orbit test matrix
 
-Status: milestones 1–14 passed; the PowerShell 7 installer check N06 passed on Windows. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
+Status: milestones 1–14 and 18 passed; the PowerShell 7 installer check N06 passed on Windows; milestone 19 (keyboard navigation) is in progress. This matrix records the checks for each milestone in [ROADMAP.md](ROADMAP.md).
 
 ## Scope and method
 
@@ -10,12 +10,31 @@ Status: milestones 1–14 passed; the PowerShell 7 installer check N06 passed on
 | Browser checks | Use headless Chromium for screenshots, navigation, pointer hover/click, reload, and browser storage checks. Add a small browser automation harness when interaction tests begin. |
 | Data checks | Use focused Node or Python checks for data shape, generated data sync, URL validation, import/export, and persistence logic. |
 | Visual checks | Inspect screenshots at normal and narrower desktop window sizes after animations finish. Record layout or contrast defects as failures. |
-| Scope | Desktop pointer interaction. Keyboard navigation is deferred; touch screens are out of scope. |
+| Scope | Desktop pointer and keyboard interaction (keyboard added in milestone 19); touch screens are out of scope. |
 | Result values | `Not run`, `Pass`, `Fail`, `Blocked`, or `N/A`. Record a brief reason and evidence for failures or blocks. |
 
 Browser tests should use existing tool permissions when available. If a browser check cannot run in this environment, mark it `Blocked` and report the gap; do not request repeated approvals for routine test runs.
 
-## Shared checks — run before every milestone commit
+## Test tiers — what to run, and when
+
+The full matrix replays every milestone in both run modes and takes about four to five minutes, so it is not run on every edit. Use the smallest tier that covers the change. Run commands with `/home/sysadmin/.venv/bin/python tests/browser_matrix.py`.
+
+| Tier | When | Command | Time |
+| --- | --- | --- | --- |
+| Docs only | Roadmap, handoff, notes, or this file | No tests | none |
+| Edit loop | After each edit or feature step | `--milestone N --only-new` (the shared checks plus milestone N, both modes) | about 30 seconds |
+| Commit gate | Once before committing a change to JS, CSS, or HTML; also after a pure code move | `--milestone N` (all milestones up to N, both modes) | about 4–5 minutes |
+| Stability | After fixing a timing-sensitive or flaky check | `--milestone N --only-new --repeat 10` | about 4 minutes |
+| Pre-deployment regression | Before any deployment or release | The full `--milestone N` at the highest milestone with `--repeat 3`, plus the Windows-only checks that need a person (N04, N06, M18-04) | about 15 minutes, plus the manual checks |
+
+Rules:
+
+- Batch related steps into one commit gate. A step that only adds tests or docs does not need one.
+- A commit gate run is a single run. Repeat it only to investigate a failure.
+- When a defect or a flaky check is found, fix or add the test in the same change, so the regression stays covered. Record the finding in the commit message.
+- The shared checks (S01–S05) run in every invocation, including `--only-new`.
+
+## Shared checks — run in every invocation
 
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
@@ -186,6 +205,19 @@ Browser tests should use existing tool permissions when available. If a browser 
 | M18-02 | Both | Download an imported link's `.rdp` file, export the moon, then edit its host and download again. | The downloaded file and moon JSON (`rdpProfile`) retain settings, and `full address` follows the edited host in the saved profile and download. | Pass — automated, both modes. |
 | M18-03 | Both | Import a synthetic profile with password, token, secret, and signature settings; try malformed, missing-address, duplicate-address, bad-host, NUL, oversized, over-launch-limit, and invalid-encoding files. | Secrets are omitted; each invalid file shows an error and leaves the saved map and form host unchanged. | Pass — automated with in-memory fixtures, both modes. |
 | M18-04 | Windows | Reinstall the Orbit helper and open an imported profile in native mode. | `mstsc.exe /edit` opens with the imported settings and correct host; the browser's external-app prompt still works. | Pass — user confirmed the updated helper fixed native profile launch on Windows. |
+
+## Milestone 19 — Keyboard navigation
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| K01 | Both | Focus a Galaxy sun and press Tab. | The sun's planets become focusable in order, then each planet's moons appear and receive focus; the focused item shows a visible ring. | Pass — automated (`milestone_19.py`). |
+| K02 | Both | Open a System, focus a planet, and press Tab. | Its moons appear and receive focus with a visible ring. | Pass — automated. |
+| K03 | Both | Open the menu with the keyboard, then press Tab and Shift+Tab repeatedly. | Focus moves into the menu on open and never leaves it while it is open. | Pass — automated. |
+| K04 | Both | Press Escape with the menu open, then with Quick find filled, then in a System. | Each press closes only the top layer: menu (focus returns to the cog), then Quick find, then the System. | Pass — automated. |
+| K05 | Both | Press `/`, type a query, and use Down and Up Arrow and Enter in the results. | `/` focuses Quick find (not while typing in a field or with the menu open); arrows move between results and back to the field; Enter opens the result. | Not run |
+| K06 | Both | Use arrow keys on suns, planets, and moons. | Arrows move between suns by position, between sibling planets and moons, down into moons, and up to the planet. | Not run |
+| K07 | Both | Read cog → Help. | The keyboard shortcuts are described. | Not run |
+| K08 | Both | Keyboard only: search, open a System, reach a moon, open a destination, open and close the menu, return to the Galaxy. | Every step works with a visible focus indicator throughout. | Not run |
 
 ## Milestone commit record
 

@@ -13,7 +13,7 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 - The editor supports scoped sun/planet/moon JSON sharing and importing a planet as a sun. It can also import local `.rdp` profiles into planet or moon entries, preserving settings while excluding password, token, and signature fields.
 - Labs contains `lab1`–`lab5` and five `lab1` server moons. Their hosts are examples. Remote Desktop destinations download `.rdp` files by default. The Windows helper passes imported profiles to built-in `mstsc.exe`; the user confirmed native profile launch works on Windows after rerunning the installer. Installing MSRDC does not register Orbit's protocol.
 - The installer registers the executable running it: Windows PowerShell 5.1 (`powershell.exe`) or PowerShell 7 (`pwsh.exe`). Running it again overwrites the per-user protocol command and refreshes the helper, so moving from 5.1 to 7 switches future clicks. Settings and README show both commands; the user must re-run the installer if that executable is removed.
-- Keyboard navigation is deferred by the roadmap. Touch interaction is outside its scope.
+- Keyboard navigation is in progress as Milestone 19 (steps 1–2 done: focus reveals moons; menu focus trap and layered Escape; steps 3–6 remain: Quick find keys, arrow navigation, Help text, docs). Touch interaction is outside the roadmap's scope. A prioritized backlog from the user's notes is in `ROADMAP.md`.
 
 ## Files
 
@@ -50,6 +50,8 @@ Open `index.html` directly, or run `python3 serve.py` and open `http://localhost
 To edit bundled data, change `links.json` and run `python3 sync.py` for direct-file mode. The local server reads `links.json` on refresh. Browser overrides continue to take precedence until Reset to file data is used.
 
 ## Verification
+
+The full matrix is slow, so use the tiers in `TEST_MATRIX.md`: `--milestone N --only-new` after each edit, one full `--milestone N` per commit that changes JS, CSS, or HTML, and a full regression with `--repeat 3` plus the manual Windows checks before any deployment.
 
 The Playwright runner (`tests/browser_matrix.py`, with checks in `tests/milestone*.py` and helpers in `tests/helpers.py`) accepts `--milestone` 1–18. Milestones 15–17 have no dedicated checks yet. Run it with `/home/sysadmin/.venv/bin/python tests/browser_matrix.py --milestone 18`. `--milestone N` replays every milestone up to N in both modes and is slow; add `--only-new` to run just milestone N (about 20 seconds for 18). M18-01 to M18-03 are automated (`run_milestone_18`: UTF-16 fixture import, persistence, download, export, host edit, secret stripping, and malformed/oversized negatives) and passed in both modes over five consecutive runs. M18-04 (native launch) is user-confirmed on Windows. N06 (PowerShell 7 installer) was confirmed on Windows; no Windows-only checks remain. The M13 flake was a race after the logo click and is fixed (`click_logo_to_galaxy`); `--repeat N` runs a selection N times and stops at the first failure. See [REFACTOR_PLAN.md](REFACTOR_PLAN.md).
 

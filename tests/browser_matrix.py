@@ -102,7 +102,7 @@ def run_once(args):
                             if not args.only_new or args.milestone == 13:
                                 run_pending_ui(page, url, mode)
                                 run_milestone_13(page, url, mode)
-                        if args.milestone >= 14:
+                        if args.milestone >= 14 and (not args.only_new or args.milestone == 14):
                             run_milestone_14(page, url, mode)
                         if args.milestone >= 18 and (not args.only_new or args.milestone == 18):
                             run_milestone_18(page, url, mode)

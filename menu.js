@@ -2,14 +2,23 @@
 // Loaded as a classic script before app.js. Uses shared state from app.js
 // (menuOverlay, menuContent, preferences, groups) only when called.
 
+let menuOpener = null;
+
 function closeMenu() {
+  if (menuOverlay.hidden) return;
   menuOverlay.hidden = true;
+  // Return focus to whatever opened the menu so keyboard users keep their place.
+  const target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
+  menuOpener = null;
+  target.focus();
 }
 
 function openMenu() {
+  menuOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   menuContent.replaceChildren();
   for (const option of document.querySelectorAll('[data-menu-panel]')) option.classList.remove('active');
   menuOverlay.hidden = false;
+  document.querySelector('[data-menu-panel]').focus();
 }
 
 function showMenuPanel(name) {

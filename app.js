@@ -107,7 +107,4 @@ document.querySelector('#menu-scrim').addEventListener('click', closeMenu);
 for (const option of document.querySelectorAll('[data-menu-panel]')) {
   option.addEventListener('click', () => showMenuPanel(option.dataset.menuPanel));
 }
-window.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && location.hash) location.hash = '';
-});
 init();

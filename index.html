@@ -13,6 +13,7 @@
     <script src="editor.js" defer></script>
     <script src="menu.js" defer></script>
     <script src="render.js" defer></script>
+    <script src="keys.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -42,8 +43,8 @@
     </div>
 
     <div id="menu-overlay" class="menu-overlay" hidden>
-      <button id="menu-scrim" class="menu-scrim" type="button" aria-label="Close menu"></button>
-      <section class="menu-sheet" aria-label="Orbit menu">
+      <button id="menu-scrim" class="menu-scrim" type="button" aria-label="Close menu" tabindex="-1"></button>
+      <section class="menu-sheet" role="dialog" aria-modal="true" aria-label="Orbit menu">
         <div class="menu-top">
           <div>
             <p class="eyebrow">ORBIT</p>

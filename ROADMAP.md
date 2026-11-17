@@ -218,6 +218,30 @@ Keyboard access to everything the pointer can reach, in small steps. Touch inter
 
 **Done when:** a user can search, open a System, reach any planet or moon, open a destination, open and close the menu, and return to the Galaxy using only the keyboard, with a visible focus indicator throughout, and the full browser matrix still passes in both run modes.
 
+## Backlog — prioritized observations (2026-11-16)
+
+Collected from the user's private notes (`request-observations.md`, not committed). Milestone 19 (keyboard navigation) is in progress and comes first. Effort is a rough guide: **S** under a day of focused work, **M** a few steps, **L** a milestone of its own. Numbers in brackets are the note numbers.
+
+| Priority | Item | Effort | Notes |
+| --- | --- | --- | --- |
+| 1 | **Back up registry settings before the PowerShell scripts change them** [10] | S | Safety first: `Install-OrbitRdp.ps1` writes under `HKCU:\Software\Classes\orbit-rdp` and the uninstaller removes it. Export the key to a `.reg` file in the Orbit data folder before any change, and say where it is. |
+| 2 | **Editor polish batch**: hide *Import .rdp file* for website destinations [1]; show *Edit links* at the top of Settings [14]; show the position number (for example "3 of 8") by Move up and Move down [8] | S | The import button is currently always shown because only the URL, host, and note are toggled. |
+| 3 | **Sizing pass**: shorten or shrink long sun names such as "Confluence" [2]; make moons bigger [7]; fix small text at 1920×1080 [11]; size sun, planet, and moon text to the longest label [16] | M | One design change: scale from viewport and from the longest visible label, then re-check themes, font sizes, and the 900-pixel layout. |
+| 4 | **Copy a moon to another planet** [4] | M | Copy is a duplicate, so later edits do not follow it (see question A). |
+| 5 | **Links in sun descriptions** [6, 13] | M | Needs a safe format (for example `[text](https://…)` limited to http and https) rendered by building DOM nodes, never raw HTML, plus an editor field and export support. A sun linking to a page is the same feature. |
+| 6 | **Launch with `mstsc.exe` arguments** such as `/v:host` instead of a temporary file [12] | M | The helper could pass `/v:` plus allowed options, with the same validation as today. See question C. |
+| 7 | **Dedicated edit page** to reorganize everything in one view [3] | L | Replaces the nested sun, planet, and moon menus with one screen: drag or list reordering, copy, move. Best done after items 2 and 4. |
+| 8 | **Read `.rdp` files dropped in a folder** [9] | L | A browser page cannot watch a folder. It would need the optional local server or the Windows helper to read it. See question D. |
+| 9 | **Dynamic movement on the main page** [15] | L | Positions are fixed and CSS-driven today. Real motion needs an animation layer that also respects the animation setting, reduced motion, and the hover and focus reveals. Prototype before committing. |
+
+### Questions to settle
+
+- **A. Copies or shared moons [4, 5]?** Today each moon is its own entry, so editing one never changes the others. Proposed: keep copies independent. Shared moons would need linked entries and a clear way to unlink.
+- **B. Descriptions [6, 13]:** should a link replace the whole description line, or sit inside it as text (the proposal above)?
+- **C. `mstsc.exe` arguments [12]:** is the goal to avoid downloading a file, or to pass options a file cannot hold? Imported profile settings would still need the file route.
+- **D. Folder drop [9]:** is it acceptable to run `serve.py` for this, or should it stay a pure browser page where you pick or drop files in the editor (multiple files at once)?
+- **E. Sizing [16]:** equal sizing could make short labels look oversized. Should it apply per sun or across the whole Galaxy?
+
 ## Delivery approach
 
 Implement and review one milestone at a time. Update `README.md` and sample data when behavior or the data format changes. Verify direct-file and local-server modes, pointer navigation, desktop window sizes, and reduced-motion behavior for each affected milestone. Commit each completed milestone separately after its checks pass, with a message naming the milestone. Touch interaction is outside this roadmap.

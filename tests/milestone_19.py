@@ -70,4 +70,54 @@ def run_milestone_19(page, url, mode):
     check(state["outline"], f"{mode}: focused System moon shows a focus ring")
     page.wait_for_timeout(1200)
     page.screenshot(path=str(ARTIFACTS / f"milestone19-system-focus-{mode}.png"))
+
+    check_menu_keys(page, url, mode)
     print(f"PASS milestone 19 ({mode})")
+
+
+def in_menu(page):
+    return page.evaluate("!!document.activeElement.closest('.menu-sheet')")
+
+
+def active_id(page):
+    return page.evaluate("document.activeElement.id")
+
+
+def check_menu_keys(page, url, mode):
+    """Step 2: menu focus, Tab trap, and Escape layers."""
+    reset_map(page, url)
+    page.locator("#settings-trigger").focus()
+    page.keyboard.press("Enter")
+    page.locator("#menu-overlay").wait_for(state="visible")
+    check(in_menu(page), f"{mode}: opening the menu moves focus into it")
+    page.keyboard.press("Enter")  # first option is Settings
+    page.locator("#menu-content select").first.wait_for()
+    for direction, key in (("forward", "Tab"), ("backward", "Shift+Tab")):
+        stayed = True
+        for _ in range(30):
+            page.keyboard.press(key)
+            stayed = stayed and in_menu(page)
+        check(stayed, f"{mode}: {direction} Tab never leaves the open menu")
+    page.keyboard.press("Escape")
+    check(page.locator("#menu-overlay").is_hidden(), f"{mode}: Escape closes the menu")
+    check(active_id(page) == "settings-trigger", f"{mode}: closing the menu returns focus to the cog")
+
+    # Escape order inside a System: menu, then Quick find, then back to the Galaxy.
+    page.locator(".home-hub").first.focus()
+    page.keyboard.press("Enter")
+    page.locator(".detail-view").wait_for()
+    page.locator("#settings-trigger").focus()
+    page.keyboard.press("Enter")
+    page.keyboard.press("Escape")
+    check(page.locator(".detail-view").count() == 1 and page.locator("#menu-overlay").is_hidden(),
+          f"{mode}: Escape with the menu open closes only the menu")
+    page.keyboard.press("Escape")
+    page.locator(".detail-view").wait_for(state="detached")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator(".home-hub").count() == 9, f"{mode}: Escape in a System returns to the Galaxy")
+
+    page.locator("#quick-find").fill("Engadget")
+    check(page.locator(".find-item").count() > 0, f"{mode}: Quick find shows results")
+    page.keyboard.press("Escape")
+    check(page.locator("#quick-find").input_value() == "" and page.locator(".home-hub").count() == 9,
+          f"{mode}: Escape clears Quick find and restores the Galaxy")
