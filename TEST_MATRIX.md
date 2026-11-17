@@ -158,6 +158,7 @@ Rules:
 | B02 | Windows | Run the uninstaller with an existing registration. | A second `.reg` file is written and reported before the key and copied launcher are removed. | Not run — Windows is required. |
 | B03 | File | Open Settings, then the Labs sun, `lab1` planet, and `lab1-server3` moon in Edit links; change the destination type. | Edit links is first in Settings; positions read 9 of 9, 1 of 5, and 3 of 5; Import `.rdp` appears only for Remote Desktop. | Pass — focused Chromium check (2026-11-16). |
 | B04 | File | Inspect the Galaxy at 900 and 1920 pixels with “Confluence ABC” as a sun name; inspect Labs at 900 pixels with extra-large text. | Sun labels share one size and the phrase fits on two lines at Standard; larger moons clear the System heading and remain readable. | Pass — focused Chromium layout checks and screenshots (2026-11-16); final Galaxy sun size uses the verified 900-pixel fit at both widths. |
+| B05 | File | Copy the `lab1-server1` moon from Labs to Tech → Engadget, edit the copy, and reload. | The copied destination matches the saved source; editing it leaves the original unchanged; the copy survives reload. | Pass — focused Chromium check (2026-11-16). |
 
 ## Pending UI batch checks
 

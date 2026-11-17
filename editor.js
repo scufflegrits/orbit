@@ -410,6 +410,39 @@ function showPlanetEditor(sunIndex, planetIndex) {
   }
 }
 
+function showCopyMoon(sunIndex, planetIndex, moonIndex) {
+  const sourceSun = groups[sunIndex];
+  const sourcePlanet = sourceSun.links[planetIndex];
+  const moon = sourcePlanet.moons[moonIndex];
+  const back = () => showMoonEditor(sunIndex, planetIndex, moonIndex);
+  editorHeader(`Copy ${moon.name}`, back);
+  menuContent.append(element('p', '', `From ${sourceSun.name} sun → ${sourcePlanet.name} planet`));
+  menuContent.append(element('p', '', 'This copies the saved moon as an independent link. Later edits to either moon will not change the other.'));
+  const target = element('label', 'editor-field');
+  target.append(element('span', '', 'Copy to planet'));
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', 'Copy to planet');
+  groups.forEach((sun, targetSunIndex) => sun.links.forEach((planet, targetPlanetIndex) => {
+    if (targetSunIndex === sunIndex && targetPlanetIndex === planetIndex) return;
+    const option = element('option', '', `${sun.name} → ${planet.name}`);
+    option.value = `${targetSunIndex}:${targetPlanetIndex}`;
+    select.append(option);
+  }));
+  if (!select.options.length) {
+    menuContent.append(element('p', '', 'Add another planet before copying this moon.'));
+    return;
+  }
+  target.append(select);
+  menuContent.append(target);
+  editorActions().append(editorButton('Copy to selected planet', () => {
+    const [targetSunIndex, targetPlanetIndex] = select.value.split(':').map(Number);
+    const next = copyGroups();
+    const targetMoons = next[targetSunIndex].links[targetPlanetIndex].moons;
+    targetMoons.push(JSON.parse(JSON.stringify(moon)));
+    applyEditorChange(next, () => showMoonEditor(targetSunIndex, targetPlanetIndex, targetMoons.length - 1));
+  }, 'editor-primary'));
+}
+
 function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   const isNew = moonIndex === null;
   const planet = groups[sunIndex].links[planetIndex];
@@ -456,7 +489,11 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
       isNew ? next[sunIndex].links[planetIndex].moons.length - 1 : moonIndex));
   });
   menuContent.append(form);
-  if (!isNew) editorActions().append(editorButton('Export moon', () => exportItem('moon', moon)));
+  if (!isNew) {
+    const extraActions = editorActions();
+    extraActions.append(editorButton('Copy moon', () => showCopyMoon(sunIndex, planetIndex, moonIndex)));
+    extraActions.append(editorButton('Export moon', () => exportItem('moon', moon)));
+  }
 }
 
 function showEditor(level) {
