@@ -17,22 +17,22 @@ Browser tests should use existing tool permissions when available. If a browser 
 
 ## Test tiers — what to run, and when
 
-The full matrix replays every milestone in both run modes and takes about four to five minutes, so it is not run on every edit. Use the smallest tier that covers the change. Run commands with `/home/sysadmin/.venv/bin/python tests/browser_matrix.py`.
+The full matrix replays every milestone in both run modes and takes about four to five minutes. Run only checks that cover changed behavior and its direct dependencies. Use `/home/sysadmin/.venv/bin/python tests/browser_matrix.py` for milestones that have relevant automated checks.
 
 | Tier | When | Command | Time |
 | --- | --- | --- | --- |
 | Docs only | Roadmap, handoff, notes, or this file | No tests | none |
-| Edit loop | After each edit or feature step | `--milestone N --only-new` (the shared checks plus milestone N, both modes) | about 30 seconds |
-| Commit gate | Once before committing a change to JS, CSS, or HTML; also after a pure code move | `--milestone N` (all milestones up to N, both modes) | about 4–5 minutes |
-| Stability | After fixing a timing-sensitive or flaky check | `--milestone N --only-new --repeat 10` | about 4 minutes |
-| Pre-deployment regression | Before any deployment or release | The full `--milestone N` at the highest milestone with `--repeat 3`, plus the Windows-only checks that need a person (N04, N06, M18-04) | about 15 minutes, plus the manual checks |
+| Small feature or UI edit | After a related batch of edits | Inspect or run the specific affected behavior; `--milestone N --only-new` only when its checks cover the change | Usually under a minute |
+| Shared or structural change | When a change can affect multiple features or script loading | Run the relevant affected milestones; use the full matrix only if the impact spans the app | Depends on scope |
+| Stability | After a timing failure or flaky check | Repeat only the failing or affected check enough to assess the fix | Depends on risk |
+| Release or deployment | Before a release or deployment | One full run at the highest milestone, plus applicable manual Windows checks | About 4–5 minutes, plus manual checks |
 
 Rules:
 
-- Batch related steps into one commit gate. A step that only adds tests or docs does not need one.
-- A commit gate run is a single run. Repeat it only to investigate a failure.
+- Batch related steps and check their changed behavior once before committing. Documentation-only edits need no tests.
+- Do not rerun historical milestones merely because a JS, CSS, or HTML file changed.
 - When a defect or a flaky check is found, fix or add the test in the same change, so the regression stays covered. Record the finding in the commit message.
-- The shared checks (S01–S05) run in every invocation, including `--only-new`.
+- The current runner includes shared checks (S01–S05) in every invocation, including `--only-new`; choose an invocation only when that cost is justified by the change.
 
 ## Shared checks — run in every invocation
 
@@ -149,6 +149,14 @@ Rules:
 | N04 | Windows | Install the per-user helper; click a moon and use Connect. | The browser opens Remote Desktop Connection with that moon's host prefilled. | Pass — user confirmed native launch works on Windows 11 after installing the helper. |
 | N05 | Both | Switch between download and native modes in Settings. | Native mode shows the Orbit helper install commands for Windows PowerShell 5.1 and PowerShell 7, and distinguishes built-in `mstsc.exe` from MSRDC; download mode hides setup guidance. | Pass |
 | N06 | Windows | Run the installer using `pwsh.exe` 7. | The registered protocol command points to that PowerShell 7 executable and opens `mstsc.exe`. | Pass — user confirmed on Windows 11 (2026-11-15): installer registered PowerShell 7.7 `pwsh.exe`, the protocol command pointed to it, and Remote Desktop Connection opened with the host populated. |
+
+## Backlog follow-up — registry backup and editor polish
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| B01 | Windows | Re-run the installer with an existing `orbit-rdp` registration. | A new `.reg` file under `%LOCALAPPDATA%\Orbit` contains the previous key, its path is printed, and the registration is updated. | Not run — Windows is required. |
+| B02 | Windows | Run the uninstaller with an existing registration. | A second `.reg` file is written and reported before the key and copied launcher are removed. | Not run — Windows is required. |
+| B03 | File | Open Settings, then the Labs sun, `lab1` planet, and `lab1-server3` moon in Edit links; change the destination type. | Edit links is first in Settings; positions read 9 of 9, 1 of 5, and 3 of 5; Import `.rdp` appears only for Remote Desktop. | Pass — focused Chromium check (2026-11-16). |
 
 ## Pending UI batch checks
 

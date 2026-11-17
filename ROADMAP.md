@@ -222,7 +222,9 @@ Keyboard access to everything the pointer can reach, in small steps. Touch inter
 
 ## Backlog — prioritized observations (2026-11-16)
 
-Collected from the user's private notes (`request-observations.md`, not committed). Milestone 19 (keyboard navigation) is in progress and comes first. Effort is a rough guide: **S** under a day of focused work, **M** a few steps, **L** a milestone of its own. Numbers in brackets are the note numbers.
+Collected from the user's private notes (`request-observations.md`, not committed). Milestone 19 (keyboard navigation) is complete. Effort is a rough guide: **S** under a day of focused work, **M** a few steps, **L** a milestone of its own. Numbers in brackets are the note numbers.
+
+Progress (2026-11-16): priority 1 is implemented and awaits a Windows registry backup check. Priority 2 is implemented; a focused file-mode browser check passed for the Settings position, reorder counts, and `.rdp` import visibility. The full historical browser matrix is no longer a routine gate for small edits.
 
 | Priority | Item | Effort | Notes |
 | --- | --- | --- | --- |
@@ -246,4 +248,4 @@ Collected from the user's private notes (`request-observations.md`, not committe
 
 ## Delivery approach
 
-Implement and review one milestone at a time. Update `README.md` and sample data when behavior or the data format changes. Verify direct-file and local-server modes, pointer navigation, desktop window sizes, and reduced-motion behavior for each affected milestone. Commit each completed milestone separately after its checks pass, with a message naming the milestone. Touch interaction is outside this roadmap.
+Implement and review one milestone at a time. Update `README.md` and sample data when behavior or the data format changes. Check the behavior changed by the milestone and its direct dependencies; use file and server modes only when both are relevant. Inspect affected pointer, keyboard, window-size, or reduced-motion behavior as appropriate. Do not replay unrelated milestones after a small edit or as a routine commit gate. Reserve the full browser matrix for shared architectural changes, a release or deployment, or an explicit request. Repeat checks only to investigate a concrete failure or timing risk. Commit each completed milestone separately after its focused checks pass, with a message naming the milestone. Touch interaction is outside this roadmap.
