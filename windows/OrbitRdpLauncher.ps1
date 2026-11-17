@@ -5,10 +5,11 @@ Opens built-in mstsc.exe with an Orbit Remote Desktop target prefilled.
 .DESCRIPTION
 Receives orbit-rdp://computer[:port]/ from the browser, with an optional
 profile containing connection settings imported from a local .rdp file.
-Validates the host and profile, writes the connection under
-%LOCALAPPDATA%\Orbit\Connections, and opens it with mstsc.exe /edit.
-The user reviews the target and clicks Connect. Passwords, tokens, and
-signatures are not accepted in imported profiles.
+Validates the host and opens host-only links with mstsc.exe /v and /prompt,
+without creating a connection file. Imported profiles are validated, written
+under %LOCALAPPDATA%\Orbit\Connections, and opened with mstsc.exe /edit so
+their settings can be reviewed. Passwords, tokens, and signatures are not
+accepted in imported profiles.
 #>
 
 param(
@@ -43,6 +44,13 @@ try {
             throw 'The Remote Desktop port is invalid.'
         }
         $address += ':' + $request.Port
+    }
+
+    $mstsc = Join-Path $env:SystemRoot 'System32\mstsc.exe'
+    if (-not $request.Query) {
+        # /v opens a host-only target without leaving a temporary .rdp file.
+        Start-Process -FilePath $mstsc -ArgumentList @("/v:$address", '/prompt')
+        return
     }
 
     $connectionDir = Join-Path $env:LOCALAPPDATA 'Orbit\Connections'
@@ -96,7 +104,6 @@ try {
     $encoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($connectionFile, $content, $encoding)
 
-    $mstsc = Join-Path $env:SystemRoot 'System32\mstsc.exe'
     $fileArgument = '"' + $connectionFile + '"'
     # /edit opens Remote Desktop Connection with the file loaded before Connect.
     Start-Process -FilePath $mstsc -ArgumentList @('/edit', $fileArgument)

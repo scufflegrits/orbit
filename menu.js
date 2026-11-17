@@ -98,7 +98,7 @@ function showMenuPanel(name) {
     rdpSetup.append(element('code', '', 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\windows\\Install-OrbitRdp.ps1'));
     rdpSetup.append(element('p', '', 'If only PowerShell 7 is available, run:'));
     rdpSetup.append(element('code', '', 'pwsh.exe -NoProfile -ExecutionPolicy Bypass -File .\\windows\\Install-OrbitRdp.ps1'));
-    rdpSetup.append(element('p', '', 'If you installed the helper before importing .rdp profiles was added, run the installer again to update the helper.'));
+    rdpSetup.append(element('p', '', 'Run the installer again after updating Orbit to refresh the helper. Host-only links open with mstsc.exe /v without a connection file; imported profiles still use a file.'));
     const updateRdpSetup = () => { rdpSetup.hidden = rdpSelect.value !== 'client'; };
     updateRdpSetup();
     rdpSelect.addEventListener('change', () => {

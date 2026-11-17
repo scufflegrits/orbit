@@ -160,6 +160,7 @@ Rules:
 | B04 | File | Inspect the Galaxy at 900 and 1920 pixels with “Confluence ABC” as a sun name; inspect Labs at 900 pixels with extra-large text. | Sun labels share one size and the phrase fits on two lines at Standard; larger moons clear the System heading and remain readable. | Pass — focused Chromium layout checks and screenshots (2026-11-16); final Galaxy sun size uses the verified 900-pixel fit at both widths. |
 | B05 | File | Copy the `lab1-server1` moon from Labs to Tech → Engadget, edit the copy, and reload. | The copied destination matches the saved source; editing it leaves the original unchanged; the copy survives reload. | Pass — focused Chromium check (2026-11-16). |
 | B06 | File | Save an inline HTTPS link and unsafe markup in a sun description; view Galaxy and System, then reload. | The HTTPS link opens in a new tab with `noopener noreferrer`; unsupported markup remains text; the description persists. | Pass — focused Chromium check (2026-11-16). |
+| B07 | Windows | Re-run the installer and open a host-only Remote Desktop moon, then a moon with an imported profile. | Host-only launches `mstsc.exe` with `/v:` and `/prompt` without writing a connection file; the imported profile still opens through `/edit` with its settings. | Not run — Windows is required. |
 
 ## Pending UI batch checks
 
