@@ -106,6 +106,7 @@ function applyEditorChange(nextGroups, showNext, options = {}) {
     if (options.clearUndo) localStorage.removeItem(UNDO_STORAGE_KEY);
     storageWarning = '';
     showNext();
+    renderEditorTree();
   } catch (error) {
     if (options.undoRecord) {
       try {
@@ -269,7 +270,7 @@ function resetMap() {
 }
 
 function showSunList() {
-  editorHeader('Edit links', () => showMenuPanel('Settings'));
+  editorHeader('Edit links', () => editorTree ? leaveEditorPage() : showMenuPanel('Settings'));
   menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Import JSON replaces the Galaxy; item imports add links. Changes are saved in this browser.'));
   menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
   const list = element('div', 'editor-list');
@@ -287,6 +288,7 @@ function showSunList() {
   actions.append(editorButton('Import sun', () => importItem('sun')));
   actions.append(editorButton('Import planet as sun', () => importItem('sun', null, null, 'planet')));
   actions.append(editorButton('Reset to file data', resetMap));
+  renderEditorTree();
 }
 
 function showSunEditor(index) {
@@ -372,6 +374,7 @@ function showPlanetEditor(sunIndex, planetIndex) {
         applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex + amount));
       }
     });
+    actions.append(editorButton('Move to another sun', () => showMovePlanet(sunIndex, planetIndex)));
     actions.append(editorButton('Remove planet', () => {
       if (!window.confirm(`Remove ${planet.name} and all its moons?`)) return;
       const next = copyGroups();
@@ -468,6 +471,7 @@ function showMoonEditor(sunIndex, planetIndex, moonIndex) {
         applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex, moonIndex + amount));
       }
     });
+    actions.append(editorButton('Move to another planet', () => showMoveMoon(sunIndex, planetIndex, moonIndex)));
     actions.append(editorButton('Remove moon', () => {
       if (!window.confirm(`Remove ${moon.name}?`)) return;
       const next = copyGroups();

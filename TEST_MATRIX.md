@@ -161,6 +161,8 @@ Rules:
 | B05 | File | Copy the `lab1-server1` moon from Labs to Tech → Engadget, edit the copy, and reload. | The copied destination matches the saved source; editing it leaves the original unchanged; the copy survives reload. | Pass — focused Chromium check (2026-11-16). |
 | B06 | File | Save an inline HTTPS link and unsafe markup in a sun description; view Galaxy and System, then reload. | The HTTPS link opens in a new tab with `noopener noreferrer`; unsupported markup remains text; the description persists. | Pass — focused Chromium check (2026-11-16). |
 | B07 | Windows | Re-run the installer and open a host-only Remote Desktop moon, then a moon with an imported profile. | Host-only launches `mstsc.exe` with `/v:` and `/prompt` without writing a connection file; the imported profile still opens through `/edit` with its settings. | Not run — Windows is required. |
+| B08 | File | Open Edit links at 900 pixels, navigate from the persistent map tree, move a moon to another planet and a planet to another sun, then close and reopen Settings. | The workspace fills the viewport; both moves preserve their destinations and children; the tree updates; Settings returns to its normal panel. | Pass — focused Chromium check and screenshot (2026-11-16). |
+| B09 | Server | Repeat B08 through the local server. | The workspace and cross-parent moves behave the same. | Not run — focused file-mode check covered the shared editor code. |
 
 ## Pending UI batch checks
 

@@ -6,6 +6,10 @@ let menuOpener = null;
 
 function closeMenu() {
   if (menuOverlay.hidden) return;
+  menuOverlay.querySelector('.menu-sheet').classList.remove('editor-page-mode');
+  menuOverlay.querySelector('.menu-top h2').textContent = 'Explore the menu';
+  menuContent = menuRoot;
+  editorTree = null;
   menuOverlay.hidden = true;
   // Return focus to whatever opened the menu so keyboard users keep their place.
   const target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
@@ -15,6 +19,7 @@ function closeMenu() {
 
 function openMenu() {
   menuOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  menuContent = menuRoot;
   menuContent.replaceChildren();
   for (const option of document.querySelectorAll('[data-menu-panel]')) option.classList.remove('active');
   menuOverlay.hidden = false;
@@ -30,7 +35,7 @@ function showMenuPanel(name) {
   if (name === 'Settings') {
     const edit = element('button', 'editor-open', 'Edit links');
     edit.type = 'button';
-    edit.addEventListener('click', () => showEditor('suns'));
+    edit.addEventListener('click', openEditorPage);
     menuContent.append(edit);
     menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
     if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
