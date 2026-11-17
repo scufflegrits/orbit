@@ -32,11 +32,12 @@ from milestones_09_14 import (
     run_pending_ui,
 )
 from milestone_18 import run_milestone_18
+from milestone_19 import run_milestone_19
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--milestone", type=int, choices=range(1, 19), required=True)
+    parser.add_argument("--milestone", type=int, choices=range(1, 20), required=True)
     parser.add_argument("--only-new", action="store_true", help="Run only the selected milestone")
     parser.add_argument("--repeat", type=int, default=1,
                         help="Run the selection this many times; stop at the first failure")
@@ -105,6 +106,8 @@ def run_once(args):
                             run_milestone_14(page, url, mode)
                         if args.milestone >= 18 and (not args.only_new or args.milestone == 18):
                             run_milestone_18(page, url, mode)
+                        if args.milestone >= 19 and (not args.only_new or args.milestone == 19):
+                            run_milestone_19(page, url, mode)
                     finally:
                         page.close()
             finally:

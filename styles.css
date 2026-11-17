@@ -559,6 +559,13 @@ html[data-theme='auburn'] .detail-stage {
   transition-delay: var(--delay);
 }
 
+.home-orbit:has(:focus-visible) .home-planet-cluster {
+  /* Keyboard focus only: visibility must change at once so Tab can land on a planet
+     right after its sun. A mouse press also focuses the sun, and showing planets
+     instantly then would put them over the sun before the click finishes. */
+  transition-property: left, top, transform, opacity;
+}
+
 .home-orbit:hover .home-planet-cluster, .home-orbit:focus-within .home-planet-cluster {
   left: var(--x);
   top: var(--y);
@@ -636,7 +643,7 @@ html[data-theme='auburn'] .detail-stage {
 
 .detail-satellite { font-size: calc(clamp(9px, 1.5vw, 12px) * var(--font-scale)); }
 
-.planet-cluster:hover { z-index: 10; }
+.planet-cluster:hover, .planet-cluster:focus-within { z-index: 10; }
 
 .moon-field {
   position: absolute;
@@ -659,12 +666,23 @@ html[data-moons='always'] .planet-cluster .moon-field {
   visibility: visible;
 }
 
-.planet-cluster:hover .moon-field {
+.planet-cluster:focus-within .moon-field {
+  opacity: 1;
+  visibility: visible;
+}
+
+.planet-cluster:has(:focus-visible) .moon-field {
+  transition-property: opacity;
+}
+
+.planet-cluster:hover .moon-field,
+.planet-cluster:focus-within .moon-field {
   pointer-events: auto;
 }
 
 html[data-moons='always'] .planet-cluster .moon-field { pointer-events: none; }
-html[data-moons='always'] .planet-cluster:hover .moon-field { pointer-events: auto; }
+html[data-moons='always'] .planet-cluster:hover .moon-field,
+html[data-moons='always'] .planet-cluster:focus-within .moon-field { pointer-events: auto; }
 .home-orbit:not(:hover):not(:focus-within) .moon-field {
   visibility: hidden !important;
   pointer-events: none !important;

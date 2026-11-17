@@ -92,7 +92,7 @@ The earlier improvement notes used a few terms loosely. The Galaxy already shows
 
 ## Later — Keyboard navigation
 
-Add keyboard access to the sun → planet → moon interaction and the settings panels, including visible focus, focus management, and Escape behavior. Existing browser-native keyboard behavior can remain, but new keyboard interactions are outside the current milestones.
+Scheduled as Milestone 19.
 
 ## Milestone 6 — Alabama theme refresh
 
@@ -204,6 +204,19 @@ Add keyboard access to the sun → planet → moon interaction and the settings 
 - Include profile settings in Orbit JSON export/import and document what to review before sharing.
 
 **Done when:** A custom `.rdp` file can populate an existing lab moon, survive reload and JSON export/import, and open with its settings in download and native modes. Completed 2026-11-15: browser checks are automated (`tests/browser_matrix.py --milestone 18 --only-new`) and native launch was confirmed on Windows.
+
+## Milestone 19 — Keyboard navigation
+
+Keyboard access to everything the pointer can reach, in small steps. Touch interaction stays out of scope.
+
+1. **Focus reveals moons.** Focusing a planet (Galaxy or System) shows its moons the way hover does, so every planet and moon is reachable with Tab and has a visible focus ring.
+2. **Menu focus.** Opening the cog menu moves focus into it, Tab and Shift+Tab stay inside while it is open, and closing it returns focus to the cog.
+3. **Escape layers.** Escape closes the menu first; otherwise it clears a non-empty Quick find; otherwise it returns from a System to the Galaxy.
+4. **Quick find.** `/` focuses Quick find (ignored while typing in a field or when the menu is open). Down Arrow moves from the field into the results, Up and Down move between results, and Up from the first result returns to the field. Enter opens the focused result.
+5. **Arrow keys in the map.** On the Galaxy, arrows move between suns by position. On a planet, Left and Right move between sibling planets and Down enters its moons. On a moon, Left and Right move between sibling moons and Up returns to its planet. Enter and Space keep their native behavior.
+6. **Help and docs.** Describe the shortcuts in cog → Help and the README, then add Playwright checks in both run modes.
+
+**Done when:** a user can search, open a System, reach any planet or moon, open a destination, open and close the menu, and return to the Galaxy using only the keyboard, with a visible focus indicator throughout, and the full browser matrix still passes in both run modes.
 
 ## Delivery approach
 
