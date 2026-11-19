@@ -154,6 +154,8 @@ function layoutMoonField(field) {
   // How far the highest moon rises above the sun's center (Galaxy only).
   const lift = Math.sin(angle) * Math.max(108, 71 + planet / 2);
   field.dataset.rise = Math.round(Math.max(...positions.map(point => -(lift + point.y))) + moon / 2);
+  // How far the lowest moon reaches below its planet's center (System only).
+  field.dataset.drop = Math.round(Math.max(...positions.map(point => point.y)) + moon / 2);
   // The field is the hover area joining the planet to its moons. It is clipped
   // to the outline around them, so it never covers a neighbouring planet.
   const hull = circleHull([{ x: 0, y: 0, r: planet / 2 },
@@ -189,6 +191,15 @@ function layoutOrbits() {
     .map(field => Number(field.dataset.rise));
   const extra = Math.max(0, ...fans) - 242;
   document.documentElement.style.setProperty('--galaxy-fan-room', `${Math.max(0, Math.ceil(extra))}px`);
+  // In a System, a fan on a lower planet can hang past the bottom of the stage;
+  // push the note below it down so the moons never cover its text.
+  const stage = app.querySelector('.detail-stage');
+  const note = app.querySelector('.detail-note');
+  if (stage && note) {
+    const overhang = Math.max(0, ...[...stage.querySelectorAll('.moon-field')].map(field =>
+      field.closest('.planet-cluster').offsetTop + Number(field.dataset.drop) - stage.offsetHeight));
+    note.style.marginTop = overhang > 0 ? `${Math.ceil(overhang + 12)}px` : '';
+  }
 }
 
 let orbitResizeFrame = 0;

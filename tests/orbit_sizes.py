@@ -1,16 +1,21 @@
 """Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06).
 
 Run with: /home/sysadmin/.venv/bin/python tests/orbit_sizes.py
+   or, in a remote browser such as Edge on the Windows VM:
+       python tests/orbit_sizes.py --cdp http://127.0.0.1:9333 --url file:///C:/path/index.html
+   (write the fixture data for that copy with --write-fixture DIR)
 
 Uses a synthetic fixture with long planet and moon names, a planet with six
 moons plus overflow, and the smallest supported screen (1920x1080). Runs in
 file mode and against a temporary local server.
 """
 
+import argparse
 import json
 import tempfile
 from functools import partial
 from http.server import ThreadingHTTPServer
+from pathlib import Path
 from threading import Thread
 
 from playwright.sync_api import sync_playwright
@@ -142,6 +147,11 @@ def run_mode(page, url, mode):
     six, five, four = reach(0), reach(1), reach(3)
     check(six > four + 20 and five > four + 20,
           f"{mode}: five and six moons sit farther out than four ({six:.0f}, {five:.0f}, {four:.0f})")
+    # The lower planet's fan (still hovered) clears the note under the stage.
+    lowest = max(box["y"] + box["height"] for box in
+                 (moon.bounding_box() for moon in node(page, ".moon-link", 0, 3).all()))
+    note_top = page.locator(".detail-note").bounding_box()["y"]
+    check(lowest <= note_top, f"{mode}: lower moons clear the System note ({lowest:.0f} <= {note_top:.0f})")
     page.screenshot(path=str(ARTIFACTS / f"orbit-sizes-system-{mode}.png"))
     print(f"PASS OS05 more distance for more than four moons ({mode})")
 
@@ -152,7 +162,30 @@ def run_mode(page, url, mode):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cdp", help="Connect to a running browser at this DevTools address")
+    parser.add_argument("--url", help="With --cdp: the page URL of the fixture copy to test")
+    parser.add_argument("--write-fixture", metavar="DIR",
+                        help="Only write the synthetic fixture data files into DIR and exit")
+    args = parser.parse_args()
+    if args.write_fixture:
+        target = Path(args.write_fixture)
+        (target / "links.json").write_text(json.dumps(FIXTURE))
+        (target / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(FIXTURE) + ";\n")
+        return
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    if args.cdp:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.connect_over_cdp(args.cdp)
+            page = browser.contexts[0].new_page()
+            page.set_viewport_size(VIEWPORT)
+            print(f"Browser: {browser.version}")
+            try:
+                run_mode(page, args.url, "remote")
+            finally:
+                page.close()
+        print("PASS orbit sizes")
+        return
     with sync_playwright() as playwright, tempfile.TemporaryDirectory() as directory:
         fixture = write_fixture(directory, FIXTURE)
         server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(fixture)))
