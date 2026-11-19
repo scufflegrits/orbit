@@ -451,8 +451,9 @@ html.dragging, html.dragging * { cursor: grabbing !important; user-select: none;
   font: 600 calc(11px * var(--font-scale)) 'Space Grotesk', sans-serif;
 }
 
-/* Room above the first row, so moons of a top planet clear the instructions. */
-html[data-edit='on'] .group-grid { margin-top: 104px; }
+/* Room above the first row, so moons of a top planet clear the top bar and
+   the Edit mode instructions; layoutOrbits adds more for a long fan. */
+html[data-edit='on'] .group-grid { margin-top: calc(104px + var(--galaxy-fan-room, 0px)); }
 
 .no-intro .group-card, .no-intro .detail-planet-cluster, .no-intro .orbit-lines { animation: none; }
 
@@ -490,8 +491,8 @@ html[data-edit='on'] .group-grid { margin-top: 104px; }
 .group-card:has(.drag-reveal) { z-index: 9; }
 .home-orbit.drag-open .orbit-lines { opacity: 1; }
 .home-orbit.drag-open .home-planet-cluster {
-  left: var(--x);
-  top: var(--y);
+  left: var(--px);
+  top: var(--py);
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, -50%) scale(1);
@@ -676,7 +677,7 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; }
   flex-wrap: wrap;
   justify-content: center;
   gap: 13px 20px;
-  margin: 40px auto 65px;
+  margin: calc(40px + var(--galaxy-fan-room, 0px)) auto 65px;
 }
 
 .group-card {
@@ -701,10 +702,13 @@ html[data-theme='auburn'] .detail-stage {
 }
 
 .home-orbit {
+  /* A planet grown to fit its label moves out so it still clears the sun, and
+     the orbit takes extra room above and below so it never covers the text. */
+  --orbit-reach: max(108px, calc(71px + var(--home-planet-size, 72px) / 2));
   position: relative;
   width: min(320px, 100%);
   aspect-ratio: 1;
-  margin: 0 auto;
+  margin: max(0px, calc(var(--orbit-reach) + var(--home-planet-size, 72px) / 2 + 16px - 160px)) auto;
   isolation: isolate;
 }
 
@@ -794,10 +798,12 @@ html[data-theme='auburn'] .detail-stage {
 }
 
 .home-planet-cluster {
+  --px: calc(50% + var(--cos) * var(--orbit-reach));
+  --py: calc(50% + var(--sin) * var(--orbit-reach));
   left: 50%;
   top: 50%;
-  width: 72px;
-  height: 72px;
+  width: var(--home-planet-size, 72px);
+  height: var(--home-planet-size, 72px);
   opacity: 0;
   visibility: hidden;
   transform: translate(-50%, -50%) scale(.38);
@@ -814,8 +820,8 @@ html[data-theme='auburn'] .detail-stage {
 }
 
 .home-orbit:hover .home-planet-cluster, .home-orbit:focus-within .home-planet-cluster {
-  left: var(--x);
-  top: var(--y);
+  left: var(--px);
+  top: var(--py);
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, -50%) scale(1);
@@ -882,8 +888,8 @@ html[data-theme='auburn'] .detail-stage {
   z-index: 2;
   left: var(--x);
   top: var(--y);
-  width: clamp(70px, 16vw, 100px);
-  height: clamp(70px, 16vw, 100px);
+  width: var(--detail-planet-size, clamp(70px, 16vw, 100px));
+  height: var(--detail-planet-size, clamp(70px, 16vw, 100px));
   transform: translate(-50%, -50%);
   animation: pop-in .45s cubic-bezier(.2,.8,.2,1) both;
   animation-delay: var(--delay);
@@ -900,8 +906,6 @@ html[data-theme='auburn'] .detail-stage {
   z-index: 3;
   left: calc(50% + var(--out-x));
   top: calc(50% + var(--out-y));
-  width: 220px;
-  height: 220px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   opacity: 0;
@@ -957,8 +961,8 @@ html[data-moons='always'] .planet-cluster:focus-within .moon-field { pointer-eve
   z-index: 2;
   left: calc(50% + var(--mx));
   top: calc(50% + var(--my));
-  width: 72px;
-  height: 72px;
+  width: var(--moon-size, 72px);
+  height: var(--moon-size, 72px);
   padding: 4px;
   font-size: max(calc(10px * var(--font-scale)), calc(clamp(10px, .62vw, 12px) * var(--font-scale) * var(--moon-label-fit, 1)));
   transform: translate(-50%, -50%);
@@ -983,9 +987,9 @@ html[data-moons='always'] .planet-cluster:focus-within .moon-field { pointer-eve
 .more-links { max-width: 680px; margin: -25px auto 75px; text-align: center; }
 .more-links h2 { font-size: calc(18px * var(--font-scale)); }
 .more-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-.more-link { --accent: var(--theme-accent); width: 90px; height: 90px; }
+.more-link { --accent: var(--theme-accent); width: var(--more-planet-size, 90px); height: var(--more-planet-size, 90px); }
 
-.overflow-planet { position: relative; width: 90px; }
+.overflow-planet { position: relative; width: var(--more-planet-size, 90px); }
 .overflow-moons {
   position: absolute;
   z-index: 10;
@@ -1005,7 +1009,7 @@ html[data-moons='always'] .planet-cluster:focus-within .moon-field { pointer-eve
 }
 .overflow-planet:hover .overflow-moons,
 html[data-moons='always'] .overflow-planet .overflow-moons { display: flex; }
-.overflow-moon-link { --accent: var(--theme-accent); width: 76px; height: 76px; font-size: max(calc(10px * var(--font-scale)), calc(clamp(10px, .62vw, 12px) * var(--font-scale) * var(--moon-label-fit, 1))); }
+.overflow-moon-link { --accent: var(--theme-accent); width: var(--overflow-moon-size, 76px); height: var(--overflow-moon-size, 76px); font-size: max(calc(10px * var(--font-scale)), calc(clamp(10px, .62vw, 12px) * var(--font-scale) * var(--moon-label-fit, 1))); }
 .moon-overflow { max-width: 720px; margin: 0 auto 75px; text-align: center; }
 .moon-overflow h2 { font-size: calc(19px * var(--font-scale)); }
 .moon-overflow-row { margin-top: 22px; }

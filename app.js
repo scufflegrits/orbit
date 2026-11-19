@@ -6,14 +6,14 @@ const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuRoot = document.querySelector('#menu-content');
 let menuContent = menuRoot;
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 let groups = [];
 // Counts every change to the in-memory map; a drag or drag Undo made against
 // an older revision is refused.
 let mapRevision = 0;
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
-const VISIBLE_MOONS = 4;
+const VISIBLE_MOONS = 6;
 const MAP_STORAGE_KEY = 'orbit:map:v1';
 const UNDO_STORAGE_KEY = 'orbit:undo-removal:v1';
 let animationsEnabled = readBooleanPreference('orbit:animations', true);

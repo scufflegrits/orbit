@@ -42,7 +42,7 @@ Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` 
 }
 ```
 
-The `moons` array is optional. Hover over a planet to reveal its moons; clicking the planet still opens its own destination. The Galaxy previews up to five planets per sun. A System shows up to eight planets around its sun and lists additional planets below. Up to four moons appear around a hovered planet; any extras are listed in the System.
+The `moons` array is optional. Hover over a planet to reveal its moons; clicking the planet still opens its own destination. The Galaxy previews up to five planets per sun. A System shows up to eight planets around its sun and lists additional planets below. Up to six moons appear around a hovered planet, fanned farther out when there are more than four; any extras are listed in the System. Planet and moon circles grow to fit their longest name without splitting a word, and every planet in a view shares one size. A name too long even for the largest circle gets smaller text instead. Orbit is laid out for screens 1920×1080 and larger.
 
 Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
 

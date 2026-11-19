@@ -102,7 +102,7 @@ def run_milestone_2_fixtures(page):
         data = json.loads((ROOT / "links.json").read_text())
         data["groups"][0]["links"][0]["moons"] = [
             {"name": f"Moon {i}", "url": f"https://example.com/moon/{i}"}
-            for i in range(7)
+            for i in range(9)
         ]
         data["groups"][0]["links"].extend([
             {"name": f"Extra {i}", "url": f"https://example.com/extra/{i}"}
@@ -123,12 +123,12 @@ def run_milestone_2_fixtures(page):
                 check(page.locator(".overflow-planet").count() == 2,
                       f"{mode}: System lists remaining planets")
                 check(page.locator(".moon-overflow .overflow-moon-link").count() == 3,
-                      f"{mode}: System lists moons beyond the first four")
+                      f"{mode}: System lists moons beyond the first six")
                 planet = page.locator(".detail-planet-cluster").first
                 planet.locator(".detail-satellite").hover()
                 page.wait_for_timeout(350)
-                check(planet.locator(".moon-link:visible").count() == 4,
-                      f"{mode}: System shows first four moons around planet")
+                check(planet.locator(".moon-link:visible").count() == 6,
+                      f"{mode}: System shows first six moons around planet")
                 page.screenshot(path=str(ARTIFACTS / f"milestone2-overflow-{mode}.png"),
                                 full_page=True)
             legacy = json.loads((ROOT / "links.json").read_text())

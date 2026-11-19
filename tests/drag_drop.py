@@ -45,17 +45,19 @@ def sun(sun_id, name, links):
 
 
 # Duplicate names, a planet beyond the first eight, moons beyond the first
-# four, an overflow planet whose fifth moon is rendered twice, and RDP items.
+# six, an overflow planet whose seventh moon is rendered twice, and RDP items.
 FIXTURE = {"groups": [
     sun("alpha", "Alpha", [
         web("One", "one", [web("Dup", "dup-moon-a"), web("M2", "m2"), web("M3", "m3"),
-                           web("M4", "m4"), web("M5", "m5"), web("M6", "m6")]),
+                           web("M4", "m4"), web("M5", "m5"), web("M6", "m6"),
+                           web("M7", "m7"), web("M8", "m8")]),
         web("Dup", "dup-planet-a", [web("Dup", "dup-moon-b"), rdp("RdpMoon", "moon-host.example")]),
         rdp("RdpPlanet", "lab-host.example", [web("RpMoon", "rp-moon")]),
         web("Four", "four", []), web("Five", "five", []), web("Six", "six", []),
         web("Seven", "seven", []), web("Eight", "eight", []),
         web("Nine", "nine", [web("N1", "n1"), web("N2", "n2"), web("N3", "n3"),
-                             web("N4", "n4"), web("N5", "n5")]),
+                             web("N4", "n4"), web("N5", "n5"), web("N6", "n6"),
+                             web("N7", "n7")]),
         web("Dup", "dup-planet-c", []),
     ]),
     sun("beta", "Beta", [web("Dup", "dup-planet-b", [web("Dup", "dup-moon-c")]), web("B2", "b2", [])]),
@@ -426,7 +428,7 @@ def run_system_moves(page, url, mode):
     check(stored(page) == expected, f"{mode}: an RDP moon moved to a planet under another sun")
 
     # Overflow sources keep the scroll position.
-    more_moon = node(page, ".moon-overflow .overflow-moon-link", 0, 7, 4)
+    more_moon = node(page, ".moon-overflow .overflow-moon-link", 0, 7, 6)
     more_moon.scroll_into_view_if_needed()
     scroll = page.evaluate("scrollY")
     check(scroll > 0, f"{mode}: the overflow lists are below the fold")
@@ -435,7 +437,7 @@ def run_system_moves(page, url, mode):
     row.wait_for(state="visible")
     page.mouse.move(*pt(row), steps=6)
     page.mouse.up()
-    expected = moved_moon(expected, 0, 7, 4, 0, 3)
+    expected = moved_moon(expected, 0, 7, 6, 0, 3)
     check(stored(page) == expected, f"{mode}: a More moons entry moved to another planet")
     check(abs(page.evaluate("scrollY") - scroll) < 150, f"{mode}: the page stays near the drop, not at the top")
 
@@ -449,12 +451,12 @@ def run_system_moves(page, url, mode):
     expected = moved_planet(expected, 0, 8, 1)
     check(stored(page) == expected, f"{mode}: the last overflow planet named Dup moved to Beta")
 
-    # A moon listed under an overflow planet; its fifth moon is rendered twice.
+    # A moon listed under an overflow planet; its seventh moon is rendered twice.
     fresh(page, url)
     edit_on(page)
     open_system(page, 0)
-    check(node(page, ".moon-overflow .overflow-moon-link", 0, 8, 4).count() == 1 and
-          node(page, ".overflow-moons .overflow-moon-link", 0, 8, 4).count() == 1,
+    check(node(page, ".moon-overflow .overflow-moon-link", 0, 8, 6).count() == 1 and
+          node(page, ".overflow-moons .overflow-moon-link", 0, 8, 6).count() == 1,
           f"{mode}: a moon rendered twice carries the same path")
     planet = node(page, ".more-link", 0, 8)
     planet.scroll_into_view_if_needed()
@@ -873,16 +875,16 @@ def run_moon_reorder(page, url, mode):
     launches = Launches(page)
 
     # A More moons entry to the front: pausing on the planet shows its moons.
-    press_and_start(page, pt(node(page, ".moon-overflow .overflow-moon-link", 0, 0, 5)))
+    press_and_start(page, pt(node(page, ".moon-overflow .overflow-moon-link", 0, 0, 6)))
     first = node(page, ".moon-link", 0, 0, 0)
     pause_on(page, node(page, ".detail-satellite", 0, 0), first)
     choose(page, first, "before", release=False)
     page.screenshot(path=str(ARTIFACTS / f"drag-moon-choices-{mode}.png"))
     page.mouse.up()
-    expected = placed(FIXTURE, "moon", (0, 0, 5), (0, 0), 0)
+    expected = placed(FIXTURE, "moon", (0, 0, 6), (0, 0), 0)
     check(stored(page) == expected, f"{mode}: an overflow moon moved to the front")
-    check(page.locator(".moon-overflow-links").first.locator("a, button").all_inner_texts() == ["M4", "M5"],
-          f"{mode}: the fourth moon moved into More moons")
+    check(page.locator(".moon-overflow-links").first.locator("a, button").all_inner_texts() == ["M6", "M8"],
+          f"{mode}: the sixth moon moved into More moons")
 
     # Within one planet on the stage.
     press_and_start(page, system_moon(page, 0, 0, 1))
@@ -1022,13 +1024,14 @@ def run_export_after_moves(page, url, mode):
     press_and_start(page, system_moon(page, 1, 0, 3))
     choose(page, node(page, ".moon-link", 1, 0, 0), "before")
     expected = placed(expected, "moon", (1, 0, 3), (1, 0), 0)
-    press_and_start(page, pt(node(page, ".moon-overflow .overflow-moon-link", 1, 0, 5)))
+    moved_name = expected["groups"][1]["links"][0]["moons"][6]["name"]
+    press_and_start(page, pt(node(page, ".moon-overflow .overflow-moon-link", 1, 0, 6)))
     head = page.locator(".drag-tray .tray-group").nth(0).locator(".tray-head")
     row = tray_row(page, "planet", 0, 0)
     pause_on(page, head, row)
     page.mouse.move(*pt(row), steps=3)
     page.mouse.up()
-    expected = moved_moon(expected, 1, 0, 5, 0, 0)              # M6 to RdpPlanet under Gamma
+    expected = moved_moon(expected, 1, 0, 6, 0, 0)              # a More moons entry to RdpPlanet under Gamma
     press_and_start(page, pt(node(page, ".detail-satellite", 1, 1)))
     page.mouse.move(*pt(tray_row(page, "sun", 2)), steps=6)
     page.mouse.up()
@@ -1042,7 +1045,7 @@ def run_export_after_moves(page, url, mode):
           f"{mode}: the export keeps sun IDs in the new order")
     gamma, beta = exported["groups"][0], exported["groups"][2]
     check(gamma["links"][0]["rdpProfile"] == FIXTURE["groups"][0]["links"][2]["rdpProfile"] and
-          [moon["name"] for moon in gamma["links"][0]["moons"]] == ["RpMoon", "M6"],
+          [moon["name"] for moon in gamma["links"][0]["moons"]] == ["RpMoon", moved_name],
           f"{mode}: the exported RDP planet keeps its profile and gained the moved moon")
     check(beta["links"][1]["moons"][1] == FIXTURE["groups"][0]["links"][1]["moons"][1],
           f"{mode}: the exported RDP moon is unchanged inside its moved planet")

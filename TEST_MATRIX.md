@@ -261,6 +261,19 @@ Run with `/home/sysadmin/.venv/bin/python tests/drag_drop.py --phase 2` (all row
 
 | DD17 | Windows Edge, file | Run DD01–DD16 in Microsoft Edge 157.0.4341.60 on the Windows 11 test VM: `tests/drag_drop.py --phase 2 --cdp http://127.0.0.1:9333 --url file:///C:/orbit-drag-test/index.html`, against a `git archive` of the Phase 2 commit plus the synthetic fixture, with a fresh Edge profile and the DevTools port forwarded over SSH to loopback only. | Every check passes with real pointer input at 1280 by 900 (DD09 also at 900 pixels). | Pass (2026-11-16). Limits: Edge ran headless, not as an interactive window; Export JSON was read from the bytes the page produced, not from a saved file, and DD04's export step is skipped remotely; server mode was not run on Windows. The guest folder and profile were removed afterwards. |
 
+## Planet and moon sizing — six moons
+
+Run with `/home/sysadmin/.venv/bin/python tests/orbit_sizes.py` (file mode and a temporary local server, 1920×1080, synthetic fixture with long names, a planet with eight moons, and planets with five and four moons). The drag-and-drop suite and the full matrix also cover this change, because they assume the visible-moon limit.
+
+| ID | Mode | Check | Pass condition | Result |
+| --- | --- | --- | --- | --- |
+| OS01 | Both | Show a Galaxy sun whose planets are named "Basic Confluence", "International", "Documentation Hub", and "Telecommunications". | No word is split across lines; every Galaxy planet has the same, larger size. | Pass — automated (`orbit_sizes.py`, 2026-11-17). |
+| OS02 | Both | Hover a planet with eight moons. | Six moons orbit and are visible; no moon label splits a word. | Pass — automated. |
+| OS03 | Both | Hover that planet when it is the top planet of a first-row sun. | The highest moon stays on screen. | Pass — automated. |
+| OS04 | Both | Move from that planet straight to its neighbour. | The neighbour's moons appear and the first planet's moons hide. | Pass — automated. |
+| OS05 | Both | In the System, compare planets with six, five, and four moons. | Five and six moons sit at least 20 px farther out than four; System planet labels stay whole. | Pass — automated. |
+| OS06 | Both | Read More moons for the eight-moon planet. | The seventh and eighth moons are listed. | Pass — automated. |
+
 ## Milestone commit record
 
 After the shared checks and the current milestone's rows pass, record the commit here. If any check is blocked, record the reason and the remaining risk before committing.
@@ -286,3 +299,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | 18 — Import saved Remote Desktop profiles | 2026-11-15 | M18-01 to M18-03 automated and passed in both run modes (`--milestone 18 --only-new`, 5 consecutive runs); M18-04 confirmed by the user on Windows. Fixture values were not logged or committed. | Milestone 18: Import saved Remote Desktop profiles |
 | 19 — Keyboard navigation | 2026-11-16 | K01–K08 automated and passed in both run modes; `--milestone 19 --only-new --repeat 5` passed 5 of 5, and the full matrix passed once as the commit gate. Focus screenshots inspected. | Milestone 19: Keyboard navigation |
 | Backlog 9 — Drag-and-drop | 2026-11-16 | DD01–DD16 passed in Chromium in both run modes and in Edge on the Windows VM (DD17); `--milestone 19 --only-new` passed once as a regression check. Drag, tray, and placement screenshots inspected. The full matrix was not run. | Backlog 9 phase 1; Backlog 9 phase 2 (merged to `main` by pull request #1, 2026-11-17) |
+| Planet sizing and six moons | 2026-11-17 | OS01–OS06 passed in both run modes; the full matrix (`--milestone 19`) and `drag_drop.py --phase 2` passed in Chromium. Milestone 2, 10, and 11 checks and the drag-and-drop fixture were updated for six visible moons and the 20px sun label. Not run in Edge on the VM. Galaxy and System screenshots inspected at 1920×1080. | Size planets and moons to their labels; show six moons |

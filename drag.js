@@ -232,9 +232,26 @@ function showChoices(sibling, path) {
   }
   document.body.append(box);
   const rect = sibling.getBoundingClientRect();
+  let x = rect.left + rect.width / 2;
+  let y = rect.top + rect.height / 2;
+  // Moons in an orbit sit close together, so a box centered on one would cover
+  // its neighbours. Open it outward from the planet instead, still overlapping
+  // the moon so the pointer reaches it without leaving the moon first.
+  const planet = path.kind === 'moon' &&
+    sibling.closest('.planet-cluster')?.querySelector(':scope > :is(.home-satellite, .detail-satellite)');
+  if (planet) {
+    const from = planet.getBoundingClientRect();
+    const dx = x - (from.left + from.width / 2);
+    const dy = y - (from.top + from.height / 2);
+    const length = Math.hypot(dx, dy) || 1;
+    const shift = rect.width * .15 +
+      Math.abs(dx / length) * box.offsetWidth / 2 + Math.abs(dy / length) * box.offsetHeight / 2;
+    x += dx / length * shift;
+    y += dy / length * shift;
+  }
   const clamp = (value, size, limit) => Math.max(8, Math.min(value, limit - size - 8));
-  box.style.left = `${clamp(rect.left + rect.width / 2 - box.offsetWidth / 2, box.offsetWidth, window.innerWidth)}px`;
-  box.style.top = `${clamp(rect.top + rect.height / 2 - box.offsetHeight / 2, box.offsetHeight, window.innerHeight)}px`;
+  box.style.left = `${clamp(x - box.offsetWidth / 2, box.offsetWidth, window.innerWidth)}px`;
+  box.style.top = `${clamp(y - box.offsetHeight / 2, box.offsetHeight, window.innerHeight)}px`;
   drag.choices = { box, sibling, path };
 }
 

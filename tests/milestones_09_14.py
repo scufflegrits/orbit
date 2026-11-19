@@ -142,7 +142,7 @@ def run_milestone_10(page, url, mode):
                       f"{mode}: {theme} {size} sun label fits")
             hub_size = page.locator(".home-hub").first.locator(".hub-name").evaluate(
                 "el => parseFloat(getComputedStyle(el).fontSize)")
-            check(abs(hub_size - 25 * scale) < 0.2,
+            check(abs(hub_size - 20 * scale) < 0.2,
                   f"{mode}: {theme} {size} sun text scales")
             search = page.get_by_role("searchbox", name="Quick find")
             search.fill("Investor.gov")
@@ -205,9 +205,9 @@ def run_milestone_11(page, url, mode):
           f"{mode}: five lab planets visible")
     lab1 = page.locator(".detail-planet-cluster").filter(has_text="lab1")
     lab1.locator(".detail-satellite").hover()
-    check(lab1.locator(".moon-link:visible").count() == 4 and
-          page.locator(".moon-overflow .overflow-moon-link").count() == 1,
-          f"{mode}: first four server moons orbit and fifth appears in overflow")
+    check(lab1.locator(".moon-link:visible").count() == 5 and
+          page.locator(".moon-overflow .overflow-moon-link").count() == 0,
+          f"{mode}: all five server moons orbit, none in overflow")
     with page.expect_download() as download_info:
         lab1.locator(".moon-link").first.click()
     download = download_info.value
@@ -215,10 +215,11 @@ def run_milestone_11(page, url, mode):
     check(Path(download.path()).read_text() ==
           "full address:s:lab1-server1\nprompt for credentials:i:1\n",
           f"{mode}: RDP file targets selected server without stored credentials")
+    lab1.locator(".detail-satellite").hover()
     with page.expect_download() as download_info:
-        page.locator(".moon-overflow .overflow-moon-link").click()
+        lab1.locator(".moon-link").nth(4).click()
     check(download_info.value.suggested_filename == "lab1-server5.rdp",
-          f"{mode}: overflow server downloads")
+          f"{mode}: fifth server downloads")
     page.set_viewport_size({"width": 900, "height": 900})
     page.screenshot(path=str(ARTIFACTS / f"milestone11-labs-{mode}-900.png"), full_page=True)
     page.set_viewport_size({"width": 1280, "height": 900})
@@ -286,8 +287,8 @@ def run_milestone_12(page, url, mode):
     lab1.locator(".detail-satellite").hover()
     check(lab1.locator(".moon-link").first.get_attribute("href") ==
           "orbit-rdp://lab1-server1/", f"{mode}: lab moon opens native URI")
-    check(page.locator(".moon-overflow .overflow-moon-link").get_attribute("href") ==
-          "orbit-rdp://lab1-server5/", f"{mode}: overflow moon opens native URI")
+    check(lab1.locator(".moon-link").nth(4).get_attribute("href") ==
+          "orbit-rdp://lab1-server5/", f"{mode}: fifth moon opens native URI")
     page.locator(".back-link").click()
     page.get_by_role("searchbox", name="Quick find").fill("lab1-server1")
     check(page.locator(".find-item").get_attribute("href") == "orbit-rdp://lab1-server1/",
