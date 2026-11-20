@@ -19,6 +19,9 @@ function paletteCommands() {
     ...routines.map((routine, index) => ({ label: `Run routine: ${routine.name}`,
       run: () => editMode ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
     { label: 'Edit routines', run: () => { openMenu(); openEditorPage(); showRoutines(); } },
+    { label: 'Add a link', run: () => showQuickAdd('') },
+    ...loadWorkspaces().filter(item => item.id !== activeWorkspace).map(item => ({
+      label: `Switch to workspace: ${item.name}`, run: () => switchWorkspace(item.id) })),
   ];
 }
 
@@ -28,6 +31,8 @@ function paletteEntries(query) {
     words.every(word => command.label.toLocaleLowerCase().includes(word)));
   const matches = query.trim() ? findMatches(query).slice(0, 40) : [];
   const entries = commands.map(command => ({ kind: 'Command', label: command.label, run: command.run }));
+  const address = typedAddress(query);
+  if (address) entries.unshift({ kind: 'Command', label: `Add ${address}`, run: () => showQuickAdd(address) });
   for (const match of matches) {
     entries.push({ kind: match.kind, label: match.name, detail: match.why || match.path, match, run: () => runMatch(match) });
     // A planet with moons can also be opened together with them.

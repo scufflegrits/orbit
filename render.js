@@ -274,7 +274,7 @@ function linkNode(link, className, path) {
 function siteIcon(link) {
   if (!showSiteIcons || link.type === 'rdp') return null;
   let origin;
-  try { origin = new URL(link.url).origin; } catch { return null; }
+  try { origin = new URL(link.url.replace(PLACEHOLDER, 'x')).origin; } catch { return null; }
   const image = document.createElement('img');
   image.className = 'site-icon';
   image.alt = '';
@@ -290,11 +290,19 @@ function siteIcon(link) {
 function destinationNode(link, className, path) {
   const isRdp = link.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
-  const node = element(download ? 'button' : 'a', className, link.name);
+  // A link with {placeholders} asks for their values before it opens.
+  const template = !isRdp && templateNames(link.url).length > 0;
+  const node = element(download || template ? 'button' : 'a', className, link.name);
   if (path) node.dataset.destination = path.join(':');
   const icon = siteIcon(link);
   if (icon) node.prepend(icon);
-  if (download) {
+  if (template) {
+    node.type = 'button';
+    node.dataset.template = 'true';
+    node.addEventListener('click', () => askForVariables(link));
+    node.title = `Open ${link.name} (asks for ${templateNames(link.url).join(', ')})`;
+    node.setAttribute('aria-label', node.title);
+  } else if (download) {
     node.type = 'button';
     node.addEventListener('click', () => downloadRdp(link));
     node.title = `Download Remote Desktop connection for ${link.name}`;
@@ -310,6 +318,7 @@ function destinationNode(link, className, path) {
     node.title = `Open ${link.name} in a new tab`;
     node.setAttribute('aria-label', node.title);
   }
+  if (link.note) node.title = `${node.title}\n${link.note}`;
   return node;
 }
 
@@ -483,6 +492,7 @@ function searchEntries() {
     if (item) {
       list.push({ kind: 'address', text: addressText(item).toLocaleLowerCase(), weight: .6 });
       if (item.tags?.length) list.push({ kind: 'tag', text: item.tags.join(' '), weight: .8 });
+      if (item.note) list.push({ kind: 'note', text: item.note.toLocaleLowerCase(), weight: .5 });
     }
     return list.map(field => ({ ...field, words: searchWords(field.text) }));
   };
@@ -541,6 +551,7 @@ function findMatches(query) {
     if (!reasons.has('name')) {
       if (reasons.has('address')) match.why = `Address: ${addressText(entry.match.destination)}`;
       else if (reasons.has('tag')) match.why = 'Matched a tag';
+      else if (reasons.has('note')) match.why = 'Matched the note';
     }
     scored.push({ match, order });
   });
@@ -552,6 +563,7 @@ function findCopy(match) {
   const copy = element('span', 'find-copy');
   copy.append(element('strong', '', `${match.icon ? `${match.icon} ` : ''}${match.name}`), element('small', '', match.path));
   if (match.why) copy.append(element('small', 'find-why', match.why));
+  if (match.destination?.note) copy.append(element('small', 'find-note', match.destination.note));
   if (match.tags?.length) copy.append(tagChips(match.tags));
   return copy;
 }
@@ -578,10 +590,15 @@ function findResult(match) {
   if (editMode && match.indices) return editFindResult(match);
   const isRdp = match.destination?.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
-  const node = element(match.id || download ? 'button' : 'a', 'find-item');
+  const template = match.destination && !isRdp && templateNames(match.destination.url).length > 0;
+  const node = element(match.id || download || template ? 'button' : 'a', 'find-item');
   if (match.id) {
     node.type = 'button';
     node.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(match.id)}`; });
+  } else if (template) {
+    node.type = 'button';
+    node.dataset.template = 'true';
+    node.addEventListener('click', () => askForVariables(match.destination));
   } else if (download) {
     node.type = 'button';
     node.addEventListener('click', () => downloadRdp(match.destination));
@@ -723,6 +740,7 @@ function listLink(item, path, sun) {
   const node = destinationNode(item, 'list-link', path);
   node.dataset.editPath = path.join(':');
   if (isFavorite(item, sun)) node.append(element('span', 'list-favorite', ' ★'));
+  if (item.note) node.append(element('span', 'list-note-text', ` — ${item.note}`));
   if (item.tags?.length) node.append(tagChips(item.tags));
   return node;
 }
@@ -749,18 +767,30 @@ function renderHome() {
     results.hidden = !active;
     if (!active) return;
     const matches = findMatches(findQuery);
+    const address = typedAddress(findQuery);
     results.replaceChildren(element('p', 'find-summary', `${matches.length} result${matches.length === 1 ? '' : 's'} for “${findQuery.trim()}”`));
+    if (address) results.append(quickAddResult(address));
     if (matches.length) {
       const list = element('div', 'find-list');
       matches.forEach(match => list.append(findRow(match)));
       results.append(list);
-    } else {
+    } else if (!address) {
       results.append(element('p', 'find-empty', 'No matching suns, planets, or moons. Try another name, an address, or #tag.'));
     }
   };
   quickFind.oninput = updateFind;
   app.append(results);
   if (bar) app.append(bar);
+  if (!groups.length) {
+    const empty = element('section', 'empty-galaxy');
+    empty.append(element('h1', '', `${workspaceName()} is empty`));
+    empty.append(element('p', '', 'Add a sun in Edit links, paste a web address into Quick find, or import a map or a link pack.'));
+    const open = element('button', 'editor-primary', 'Open Edit links');
+    open.type = 'button';
+    open.addEventListener('click', () => { openMenu(); openEditorPage(); });
+    empty.append(open);
+    app.append(empty);
+  }
   app.append(grid);
   updateFind();
 }

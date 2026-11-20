@@ -180,6 +180,12 @@ function showMenuPanel(name) {
         savePreference('orbit:site-icons', checked);
         render();
       }));
+    menuContent.append(settingToggle('Backup reminders', 'Suggest a backup (Export JSON) after 20 changes or 14 days without one',
+      readBooleanPreference('orbit:backup-reminders', true), checked => {
+        savePreference('orbit:backup-reminders', checked);
+        showBackupReminder();
+      }));
+    menuContent.append(workspaceSettings());
     menuContent.append(teamSettings());
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
@@ -194,7 +200,10 @@ function showMenuPanel(name) {
     menuContent.append(element('p', '', 'Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.'));
     menuContent.append(element('p', '', 'The ☰ button in the top bar switches the Galaxy between orbits and a compact list.'));
     menuContent.append(element('p', '', 'Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing browser bookmarks. Import JSON merges by default and never changes what is already in your map.'));
-    menuContent.append(element('p', '', 'A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links.'));
+    menuContent.append(element('p', '', 'A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.'));
+    menuContent.append(element('p', '', 'Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.'));
+    menuContent.append(element('p', '', 'A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.'));
+    menuContent.append(element('p', '', 'Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.'));
     menuContent.append(element('h4', 'editor-section-title', 'Rearranging by dragging'));
     menuContent.append(element('p', '', 'Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.'));
     menuContent.append(element('p', '', 'Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.'));

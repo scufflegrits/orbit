@@ -56,8 +56,17 @@ async function readRdpText(file) {
   return new TextDecoder(encoding, { fatal: true }).decode(bytes);
 }
 
+// The settings a Remote Desktop link opens with: its preset (with its own
+// computer), else its imported profile, else none.
+function effectiveRdpProfile(destination) {
+  const preset = destination.rdpPreset && typeof rdpPresets !== 'undefined'
+    ? rdpPresets.find(item => item.id === destination.rdpPreset) : null;
+  if (preset) return `full address:s:${destination.host}\r\n${preset.settings ? `${preset.settings}\r\n` : ''}`;
+  return destination.rdpProfile || null;
+}
+
 function downloadRdp(destination) {
-  const content = destination.rdpProfile ||
+  const content = effectiveRdpProfile(destination) ||
     `full address:s:${destination.host}\r\nprompt for credentials:i:1\r\n`;
   const blob = new Blob([content], { type: 'application/x-rdp' });
   const url = URL.createObjectURL(blob);
@@ -71,8 +80,9 @@ function downloadRdp(destination) {
 }
 
 function rdpLaunchUrl(destination) {
-  if (!destination.rdpProfile) return `orbit-rdp://${destination.host}/`;
-  const bytes = new TextEncoder().encode(destination.rdpProfile);
+  const profileText = effectiveRdpProfile(destination);
+  if (!profileText) return `orbit-rdp://${destination.host}/`;
+  const bytes = new TextEncoder().encode(profileText);
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   const profile = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

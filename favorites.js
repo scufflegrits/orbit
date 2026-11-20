@@ -110,6 +110,7 @@ function setFavorite(path, on) {
 
 // Open one destination the way its circle on the map would.
 function openDestination(item) {
+  if (item.type !== 'rdp' && templateNames(item.url).length) return askForVariables(item);
   if (item.type === 'rdp') {
     if (rdpLaunchMode === 'download') downloadRdp(item);
     else window.location.href = rdpLaunchUrl(item);
@@ -125,15 +126,20 @@ function openDestination(item) {
 // more than one tab would open (`question(count)` words it); `extra` is added
 // to the notice.
 function openLinks(items, label, { confirm = true, question = null, extra = '' } = {}) {
-  const web = items.filter(item => item.type !== 'rdp');
-  const skipped = items.length - web.length;
-  const note = `${skipped ? ` ${counted(skipped, 'Remote Desktop link')} left out.` : ''}${extra}`;
+  // Links with {placeholders} use the values entered last; without one they wait.
+  const remembered = loadVariables();
+  const filled = item => templateNames(item.url).every(name => remembered[name]);
+  const all = items.filter(item => item.type !== 'rdp');
+  const web = all.filter(filled).map(item => ({ item, url: fillTemplate(item.url, remembered) }));
+  const skipped = items.length - all.length;
+  const unfilled = all.length - web.length;
+  const note = `${skipped ? ` ${counted(skipped, 'Remote Desktop link')} left out.` : ''}${unfilled ? ` ${counted(unfilled, 'link')} with {placeholders} left out until you open ${unfilled === 1 ? 'it' : 'them'} once.` : ''}${extra}`;
   if (!web.length) return showOpenAllNotice(`${label} has no website links to open.${note}`);
   const ask = question ? question(web.length) : `Open ${web.length} tabs for ${label}?`;
   if (confirm && web.length > 1 && !window.confirm(ask)) return null;
   let blocked = 0;
-  for (const item of web) {
-    const opened = window.open(item.url, '_blank');
+  for (const { item, url } of web) {
+    const opened = window.open(url, '_blank');
     if (opened) {
       opened.opener = null;
       noteOpened(item);
@@ -159,6 +165,18 @@ function openAllFavorites() {
   return openLinks(favoriteItems().map(entry => entry.item), 'your favorites');
 }
 
+// Banners (routine offers, backup reminders, team updates) sit above the map.
+function noticeArea() {
+  let area = document.querySelector('#notice-area');
+  if (!area) {
+    area = element('section', 'notice-area');
+    area.id = 'notice-area';
+    area.setAttribute('aria-label', 'Notices');
+    document.querySelector('.app-shell').insertBefore(area, app);
+  }
+  return area;
+}
+
 function showOpenAllNotice(message, isError = false) {
   let notice = document.querySelector('#open-all-notice');
   if (!notice) {
@@ -180,7 +198,8 @@ function showOpenAllNotice(message, isError = false) {
 function trackDestinationClicks(event) {
   if (event.type === 'auxclick' && event.button !== 1) return;
   const node = event.target instanceof Element ? event.target.closest('[data-destination]') : null;
-  if (!node || event.defaultPrevented) return;
+  // A link with placeholders is recorded when its form is submitted instead.
+  if (!node || event.defaultPrevented || node.dataset.template) return;
   const path = node.dataset.destination.split(':').map(Number);
   noteOpened(itemAt(path));
 }

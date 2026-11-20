@@ -36,6 +36,25 @@ function destinationFields(form, destination, onRdpImported) {
   let rdpProfile = destination.rdpProfile || null;
   const profileNote = element('p', 'data-source', rdpProfile
     ? 'Custom .rdp settings are saved with this link.' : 'No custom .rdp settings are saved.');
+  // Connection settings: none, this link's imported settings, or a preset.
+  const settingsField = element('label', 'editor-field');
+  settingsField.append(element('span', '', 'Connection settings'));
+  const settingsSelect = document.createElement('select');
+  settingsSelect.setAttribute('aria-label', 'Connection settings');
+  settingsField.append(settingsSelect);
+  const fillSettings = selected => {
+    settingsSelect.replaceChildren();
+    const add = (value, label) => {
+      const option = element('option', '', label);
+      option.value = value;
+      settingsSelect.append(option);
+    };
+    add('none', 'None (just the computer)');
+    if (rdpProfile) add('own', 'Imported .rdp settings');
+    rdpPresets.forEach(preset => add(`preset:${preset.id}`, `Preset: ${preset.name}`));
+    settingsSelect.value = [...settingsSelect.options].some(option => option.value === selected) ? selected : 'none';
+  };
+  fillSettings(destination.rdpPreset ? `preset:${destination.rdpPreset}` : rdpProfile ? 'own' : 'none');
   const importRdp = editorButton('Import .rdp file', () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -47,6 +66,7 @@ function destinationFields(form, destination, onRdpImported) {
         select.value = 'rdp';
         host.input.value = parsed.host;
         rdpProfile = parsed.content;
+        fillSettings('own');
         profileNote.textContent = `${parsed.settings} connection settings imported. ${parsed.removed ? `${parsed.removed} password, token, or signature settings excluded. ` : ''}Save this link to keep the profile.`;
         update();
         onRdpImported?.(input.files[0]);
@@ -61,8 +81,14 @@ function destinationFields(form, destination, onRdpImported) {
     host.wrapper.hidden = select.value !== 'rdp';
     profileNote.hidden = select.value !== 'rdp';
     importRdp.hidden = select.value !== 'rdp';
+    settingsField.hidden = select.value !== 'rdp';
   };
   select.addEventListener('change', update);
+  const note = editorField('Note', destination.note || '', 'textarea');
+  note.input.setAttribute('aria-label', 'Note');
+  note.input.maxLength = 500;
+  note.input.placeholder = 'Optional: what this link is for, or a hint such as which account to use';
+  note.wrapper.append(element('small', 'editor-hint', 'Shown on hover and in search. Never put passwords here; notes are plain text in your browser and in exports.'));
   const tags = editorField('Tags', (destination.tags || []).join(', '));
   tags.input.placeholder = 'For example: prod, windows';
   tags.input.setAttribute('aria-label', 'Tags');
@@ -72,15 +98,21 @@ function destinationFields(form, destination, onRdpImported) {
   favoriteInput.type = 'checkbox';
   favoriteInput.checked = destination.favorite === true;
   favorite.append(favoriteInput, element('span', '', 'Favorite (shown at the top of the Galaxy)'));
-  form.append(type, url.wrapper, host.wrapper, profileNote, importRdp, tags.wrapper, favorite);
+  url.wrapper.append(element('small', 'editor-hint', 'Use {name} for a part that changes, such as https://jira.example.com/browse/{ticket}; Orbit asks for it when you open the link.'));
+  form.append(type, url.wrapper, host.wrapper, settingsField, profileNote, importRdp, note.wrapper, tags.wrapper, favorite);
   update();
   return () => {
     const extras = {
       ...(tags.input.value.trim() ? { tags: tags.input.value } : {}),
       ...(favoriteInput.checked ? { favorite: true } : {}),
+      ...(note.input.value.trim() ? { note: note.input.value } : {}),
     };
+    const choice = settingsSelect.value;
+    // "None" drops imported settings; a preset keeps them for switching back.
+    const keepProfile = rdpProfile && choice !== 'none' ? { rdpProfile } : {};
+    const preset = choice.startsWith('preset:') ? { rdpPreset: choice.slice(7) } : {};
     return select.value === 'rdp'
-      ? { type: 'rdp', host: host.input.value.trim(), ...(rdpProfile ? { rdpProfile } : {}), ...extras }
+      ? { type: 'rdp', host: host.input.value.trim(), ...keepProfile, ...preset, ...extras }
       : { url: url.input.value.trim(), ...extras };
   };
 }
@@ -134,8 +166,9 @@ function applyEditorChange(nextGroups, showNext, options = {}) {
       previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
       localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(options.undoRecord));
     }
-    saveMap({ groups: nextGroups, ...(options.routines !== undefined ? { routines: options.routines } : {}) },
-      options.label || 'Edit links change');
+    saveMap({ groups: nextGroups, ...(options.routines !== undefined ? { routines: options.routines } : {}),
+      ...(options.rdpPresets !== undefined ? { rdpPresets: options.rdpPresets } : {}) },
+    options.label || 'Edit links change');
     if (options.clearUndo) localStorage.removeItem(UNDO_STORAGE_KEY);
     storageWarning = '';
     showNext();
@@ -186,7 +219,9 @@ function downloadJson(data, filename) {
 
 // The team map is never exported with the personal map.
 function exportMap() {
-  downloadJson({ groups: personalGroups(groups), ...(routines.length ? { routines } : {}) }, 'orbit-links.json');
+  downloadJson({ groups: personalGroups(groups), ...(routines.length ? { routines } : {}),
+    ...(rdpPresets.length ? { rdpPresets } : {}) }, 'orbit-links.json');
+  noteBackupMade();
 }
 
 function exportItem(kind, item) {
@@ -223,18 +258,20 @@ function showImportReview(data, options = {}) {
   const { added, skipped } = merged;
   const newRoutines = mergeRoutines(routines, data.routines || []);
   const addedRoutines = newRoutines.length - routines.length;
-  menuContent.append(element('p', 'import-merge-summary', `Merge adds ${counted(added.suns, 'sun')}, ${counted(added.planets, 'planet')}, and ${counted(added.moons, 'moon')}${addedRoutines ? ` and ${counted(addedRoutines, 'routine')}` : ''}; ${counted(skipped.planets + skipped.moons, 'link')} already in your map ${skipped.planets + skipped.moons === 1 ? 'is' : 'are'} skipped. Nothing in your map changes.`));
+  const newPresets = mergeRoutines(rdpPresets, data.rdpPresets || []);
+  const addedPresets = newPresets.length - rdpPresets.length;
+  menuContent.append(element('p', 'import-merge-summary', `Merge adds ${counted(added.suns, 'sun')}, ${counted(added.planets, 'planet')}, and ${counted(added.moons, 'moon')}${addedRoutines ? ` and ${counted(addedRoutines, 'routine')}` : ''}${addedPresets ? ` and ${counted(addedPresets, 'Remote Desktop preset')}` : ''}; ${counted(skipped.planets + skipped.moons, 'link')} already in your map ${skipped.planets + skipped.moons === 1 ? 'is' : 'are'} skipped. Nothing in your map changes.`));
   const actions = editorActions();
   const merge = editorButton('Merge into my map', () =>
     applyEditorChange([...groups.filter(sun => sun.team), ...merged.groups], showSunList,
-      { label: options.label || 'Merged an imported map', routines: newRoutines }), 'editor-primary');
-  merge.disabled = !(added.suns + added.planets + added.moons + addedRoutines);
+      { label: options.label || 'Merged an imported map', routines: newRoutines, rdpPresets: newPresets }), 'editor-primary');
+  merge.disabled = !(added.suns + added.planets + added.moons + addedRoutines + addedPresets);
   actions.append(merge);
   if (options.replace !== false) {
     menuContent.append(element('p', 'editor-hint', 'Replace my map swaps your whole map for the file. Version history keeps the current map, so you can restore it.'));
     actions.append(editorButton('Replace my map', () =>
       applyEditorChange(data.groups, showSunList,
-        { clearUndo: true, label: 'Replaced the map with an import', routines: data.routines || [] })));
+        { clearUndo: true, label: 'Replaced the map with an import', routines: data.routines || [], rdpPresets: data.rdpPresets || [] })));
   }
   actions.append(editorButton('Cancel', showSunList));
 }
@@ -307,11 +344,12 @@ function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind
 function resetMap() {
   if (!window.confirm('Replace browser edits with the link data loaded from the project files?')) return;
   try {
-    recordHistory(personalGroups(groups), 'Reset to file data', routines);
+    recordHistory(personalGroups(groups), 'Reset to file data', routines, rdpPresets);
     localStorage.removeItem(MAP_STORAGE_KEY);
     localStorage.removeItem(UNDO_STORAGE_KEY);
     groups = [...visibleTeamGroups(), ...validateMap(seedData).groups];
     routines = validateMap(seedData).routines || [];
+    rdpPresets = validateMap(seedData).rdpPresets || [];
     mapRevision++;
     activeMapSource = 'bundled';
     storageWarning = '';
@@ -347,9 +385,15 @@ function showSunList() {
   actions.append(editorButton('Import sun', () => importItem('sun')));
   actions.append(editorButton('Import planet as sun', () => importItem('sun', null, null, 'planet')));
   actions.append(editorButton('Reset to file data', resetMap));
+  const due = backupDue();
+  if (due) menuContent.insertBefore(backupReminder(due), menuContent.querySelector('.editor-list'));
   menuContent.append(element('h4', 'editor-section-title', 'Tools'));
   const tools = editorActions();
+  tools.append(editorButton('Add a link', () => showQuickAdd('')));
   tools.append(editorButton('Routines', showRoutines));
+  tools.append(editorButton('RDP presets', showPresets));
+  tools.append(editorButton('Share favorites', shareFavorites));
+  tools.append(editorButton('Import link pack', showPackImport));
   tools.append(editorButton('History', showHistory));
   tools.append(editorButton('Find duplicates', showDuplicates));
   tools.append(editorButton('Check links', showLinkCheck));

@@ -7,7 +7,7 @@ const menuOverlay = document.querySelector('#menu-overlay');
 const menuRoot = document.querySelector('#menu-content');
 const viewToggle = document.querySelector('#view-toggle');
 let menuContent = menuRoot;
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 let groups = [];
 // Named link lists saved with the map (see routines.js).
 let routines = [];
@@ -17,8 +17,12 @@ let mapRevision = 0;
 const GALAXY_PLANETS = 5;
 const SYSTEM_PLANETS = 8;
 const VISIBLE_MOONS = 6;
-const MAP_STORAGE_KEY = 'orbit:map:v1';
-const UNDO_STORAGE_KEY = 'orbit:undo-removal:v1';
+// Storage keys of the active workspace; Main keeps the original keys.
+let MAP_STORAGE_KEY = workspaceKey('orbit:map:v1');
+let UNDO_STORAGE_KEY = workspaceKey('orbit:undo-removal:v1');
+let HISTORY_STORAGE_KEY = workspaceKey('orbit:history:v1');
+// Named Remote Desktop settings saved with the map (see presets.js).
+let rdpPresets = [];
 let animationsEnabled = readBooleanPreference('orbit:animations', true);
 let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
 let activeTheme = readThemePreference();
@@ -109,12 +113,16 @@ async function init() {
     seedData = validateMap(data);
     const browserMap = loadBrowserMap();
     await loadTeamMap();
-    groups = [...visibleTeamGroups(), ...(browserMap || seedData).groups];
-    routines = (browserMap || seedData).routines || [];
+    const startMap = browserMap || (activeWorkspace === 'main' ? seedData : { groups: [] });
+    groups = [...visibleTeamGroups(), ...startMap.groups];
+    routines = startMap.routines || [];
+    rdpPresets = startMap.rdpPresets || [];
     activeMapSource = browserMap ? 'browser' : 'bundled';
     countDestinations();
     render();
     offerDueRoutines();
+    checkTeamUpdates();
+    showBackupReminder();
   } catch (error) {
     app.className = 'error-view';
     app.replaceChildren(element('h1', '', 'Could not load your links.'));
@@ -139,4 +147,5 @@ for (const option of document.querySelectorAll('[data-menu-panel]')) {
   option.addEventListener('click', () => showMenuPanel(option.dataset.menuPanel));
 }
 updateViewToggle();
+updateWorkspaceSwitch();
 init();

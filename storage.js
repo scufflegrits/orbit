@@ -73,7 +73,21 @@ function destinationExtras(value, label) {
   const tags = validTags(value.tags, label);
   if (tags.length) extras.tags = tags;
   if (value.favorite === true) extras.favorite = true;
+  const note = String(value.note ?? '').trim();
+  if (note.length > 500) throw new Error(`${label} has a note longer than 500 characters.`);
+  if (note) extras.note = note;
   return extras;
+}
+
+// Placeholders such as {ticket} in a web address, filled in when the link opens.
+const PLACEHOLDER = /\{([A-Za-z0-9_-]{1,30})\}/g;
+
+function templateNames(url) {
+  return [...new Set([...String(url || '').matchAll(PLACEHOLDER)].map(match => match[1]))];
+}
+
+function fillTemplate(url, values) {
+  return url.replace(PLACEHOLDER, (_, name) => encodeURIComponent(values[name] ?? ''));
 }
 
 function validDestination(value, label) {
@@ -83,13 +97,19 @@ function validDestination(value, label) {
   const extras = destinationExtras(value, label);
   if (value.type === 'rdp') {
     const host = validRdpHost(String(value.host || '').trim(), label);
-    if (value.rdpProfile === undefined) return { name, type: 'rdp', host, ...extras };
-    return { name, type: 'rdp', host, rdpProfile: parseRdpProfile(value.rdpProfile, host).content, ...extras };
+    const preset = value.rdpPreset ? { rdpPreset: String(value.rdpPreset) } : {};
+    if (value.rdpProfile === undefined) return { name, type: 'rdp', host, ...preset, ...extras };
+    return { name, type: 'rdp', host, rdpProfile: parseRdpProfile(value.rdpProfile, host).content, ...preset, ...extras };
   }
   if (value.type !== undefined && value.type !== 'web') throw new Error(`${label} has an unsupported destination type.`);
   const url = String(value.url || '').trim();
+  const names = templateNames(url);
+  if (names.length > 5) throw new Error(`${label} can have at most five {placeholders}.`);
+  // Check the address with sample values in place of its placeholders.
+  const sample = url.replace(PLACEHOLDER, 'x');
   try {
-    const parsed = new URL(url);
+    if (/[{}]/.test(sample)) throw new Error('unmatched brace');
+    const parsed = new URL(sample);
     if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) {
       throw new Error('unsupported URL');
     }
@@ -158,7 +178,55 @@ function validateMap(data) {
     return { id, name, description: String(group.description || ''), color, ...(icon ? { icon } : {}), links };
   });
   const routines = validRoutines(data.routines);
-  return routines.length ? { groups: normalized, routines } : { groups: normalized };
+  const rdpPresets = validRdpPresets(data.rdpPresets);
+  // A link that names a preset the map does not have simply has no preset.
+  const presetIds = new Set(rdpPresets.map(preset => preset.id));
+  for (const sun of normalized) {
+    for (const item of sun.links.flatMap(planet => [planet, ...planet.moons])) {
+      if (item.rdpPreset && !presetIds.has(item.rdpPreset)) delete item.rdpPreset;
+    }
+  }
+  const map = { groups: normalized };
+  if (routines.length) map.routines = routines;
+  if (rdpPresets.length) map.rdpPresets = rdpPresets;
+  return map;
+}
+
+// Remote Desktop presets: named connection settings without a computer
+// address or any credential.
+function validRdpPresets(value) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error('Remote Desktop presets need to be a list.');
+  const used = new Set();
+  const names = new Set();
+  return value.map((preset, index) => {
+    const name = String(preset?.name || '').trim();
+    if (!name || name.length > 60) throw new Error(`Remote Desktop preset ${index + 1} needs a name of up to 60 characters.`);
+    if (names.has(name.toLocaleLowerCase())) throw new Error(`There is already a preset named ${name}.`);
+    names.add(name.toLocaleLowerCase());
+    const settings = presetSettings(preset.settings, name);
+    const id = preset.id && !used.has(String(preset.id)) ? String(preset.id) : uniqueSunId(name, used);
+    used.add(id);
+    return { id, name, settings };
+  });
+}
+
+// Settings rows without the computer address; secrets are refused.
+function presetSettings(text, name) {
+  const rows = [];
+  for (const line of String(text || '').replace(/^\uFEFF/, '').split(/\r\n|\n|\r/)) {
+    if (!line.trim()) continue;
+    const match = /^([^:]+):([sib]):(.*)$/i.exec(line.trim());
+    if (!match || !/^[a-z0-9 _.-]+$/i.test(match[1])) throw new Error(`${name} has an invalid setting line: ${line.trim()}`);
+    const key = match[1].toLowerCase();
+    if (/(?:password|passwd|token|secret|signature|signscope)/i.test(key)) {
+      throw new Error(`${name} cannot keep ${match[1]}; Orbit never stores credentials.`);
+    }
+    if (key === 'full address') continue;
+    rows.push(line.trim());
+  }
+  if (rows.length > 100) throw new Error(`${name} has too many settings.`);
+  return rows.join('\r\n');
 }
 
 // A routine is a named list of links, remembered by destination key so it
@@ -203,7 +271,7 @@ function validRoutines(value) {
 
 // ---- Version history ----------------------------------------------------
 
-const HISTORY_STORAGE_KEY = 'orbit:history:v1';
+// HISTORY_STORAGE_KEY is set in app.js for the active workspace.
 const HISTORY_LIMIT = 20;
 
 function loadHistory() {
@@ -217,9 +285,10 @@ function loadHistory() {
 
 // Keep the map as it was before a change. When storage is full, drop the
 // oldest versions; a failure here never blocks the change itself.
-function recordHistory(previousGroups, label, previousRoutines = []) {
+function recordHistory(previousGroups, label, previousRoutines = [], previousPresets = []) {
   const entry = { time: Date.now(), label: String(label || 'Change'), groups: previousGroups };
   if (previousRoutines.length) entry.routines = previousRoutines;
+  if (previousPresets.length) entry.rdpPresets = previousPresets;
   const list = [entry, ...loadHistory()].slice(0, HISTORY_LIMIT);
   while (list.length) {
     try {
@@ -249,19 +318,21 @@ function personalGroups(list) {
 // Save the personal part of a map. The map as it was is kept in version
 // history under `label`; pass label false to skip that (a history restore
 // records its own entry).
-// Routines are kept unless `data.routines` replaces them.
+// Routines and presets are kept unless `data` replaces them.
 function saveMap(data, label = 'Change') {
   const normalized = validateMap({ groups: personalGroups(data.groups),
-    routines: data.routines !== undefined ? data.routines : routines });
+    routines: data.routines !== undefined ? data.routines : routines,
+    rdpPresets: data.rdpPresets !== undefined ? data.rdpPresets : rdpPresets });
   const previous = personalGroups(groups);
   const previousRoutines = routines;
   localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(normalized));
-  if (label !== false && JSON.stringify([previous, previousRoutines]) !==
-      JSON.stringify([normalized.groups, normalized.routines || []])) {
-    recordHistory(previous, label, previousRoutines);
-  }
+  const changed = JSON.stringify([previous, previousRoutines, rdpPresets]) !==
+    JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
+  if (label !== false && changed) recordHistory(previous, label, previousRoutines, rdpPresets);
+  if (changed) countChangeForBackup();
   groups = [...visibleTeamGroups(), ...normalized.groups];
   routines = normalized.routines || [];
+  rdpPresets = normalized.rdpPresets || [];
   mapRevision++;
   activeMapSource = 'browser';
   countDestinations();

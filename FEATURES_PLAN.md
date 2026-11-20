@@ -170,3 +170,63 @@
 - [x] Prove a check can fail by breaking the feature.
 - [x] Run every suite locally, then in Edge on the VM (headless, both modes).
 - [x] Docs (README, Help, HANDOFF, TEST_MATRIX, ROADMAP), version 2.1.0, commit and push.
+
+# Batch 3 — notes, variables, quick add, workspaces, sharing, backups, team updates, RDP presets (2026-11-20)
+
+**Status:** Complete (2026-11-20, version 2.2.0); tested in Chromium and headless Edge on the VM, both run modes. Ideas 2, 3, 4, 6, 7, 8, 9, and 10 from the 2026-11-20 list (renumbered 19–26 here). Same ground rules as above.
+
+## 19. Notes on links
+
+- [x] Optional `note` on planets and moons (plain text, up to 500 characters), edited in a Note field.
+- [x] Shown in the link's tooltip, Quick find and palette results, and the list view; Quick find matches it.
+- [x] Never treated as a place for passwords: the editor hint says so.
+
+## 20. Link variables
+
+- [x] A web address may contain up to five `{name}` placeholders (letters, digits, `_`, `-`), for example `https://jira.example.com/browse/{ticket}`. Validation fills each with a sample value before checking the address.
+- [x] Opening such a link (map, list, Quick find, palette, quick bar) shows a small form with one field per placeholder, filled with the last values used (`orbit:variables:v1`); Open fills them in (URL-encoded) and opens the tab.
+- [x] Open all and routines use the last values; a link with a missing value is skipped and counted.
+- [x] The link check skips links with placeholders; site icons use the address's origin.
+
+## 21. Quick add
+
+- [x] Quick find: when the text is a web address, the first result is "Add this link".
+- [x] Command palette: "Add a link" (and "Add <address>" when the text is one).
+- [x] An Add a link screen in Edit links: address, name (suggested from the site), and "Add to" listing every personal sun (as a planet) and every personal planet (as a moon). "Paste from clipboard" fills the address when the browser allows it.
+
+## 22. Workspaces
+
+- [x] Separate personal maps such as Work and Home, each with its own suns, favorites, routines, history, and undo. The first workspace ("Main") keeps today's storage keys, so nothing moves.
+- [x] Settings → Workspaces: switch, add (start empty, copy this workspace, or start from the bundled map), rename, and remove (not Main).
+- [x] A workspace menu in the top bar when there is more than one, and "Switch to workspace: <name>" in the palette.
+- [x] The team map, theme, and other preferences are shared by all workspaces; Export JSON exports the current one.
+
+## 23. Shareable link packs
+
+- [x] Share a routine (Routines → Share) or your favorites (Edit links tools → Share favorites) as a pack: a small `orbit-pack-v1` JSON file with the links (name, destination, tags, notes; never passwords) and, for a routine, its name and schedule.
+- [x] Edit links → Import link pack: choose a file or paste the text; review; add the links as a new sun named after the pack (links already on the map are not added again); optionally also add the routine.
+
+## 24. Backup reminders
+
+- [x] Count saved changes and days since the last Export JSON, per workspace (`orbit:backup:v1`).
+- [x] After 20 changes or 14 days with at least one change, the Galaxy and the Edit links start screen show "Back up your map" with Export JSON and Remind me later (three days).
+- [x] A Settings switch turns reminders off; exporting resets the count.
+
+## 25. Team map updates
+
+- [x] Remember which team links this browser has seen (`orbit:team-seen:v1`). The first load records them quietly.
+- [x] When the team map gains or loses links, a banner says "Team map updated: n new, m removed" with Show what's new (a list with links and paths) and Dismiss (records the current set).
+
+## 26. Remote Desktop presets
+
+- [x] Named presets of connection settings (no computer address, no passwords), saved with the map as `rdpPresets` and exported with it.
+- [x] Edit links → RDP presets: add, edit, remove; build settings with common choices (full screen or a window size, all monitors, clipboard, drives) or edit the settings text, or start from an `.rdp` file.
+- [x] A Remote Desktop planet or moon chooses its connection settings: none, its own imported settings, or a preset. Downloads and `mstsc.exe` launches use the preset with the link's own computer.
+- [x] Apply RDP settings to moons can apply a preset to several links.
+
+## Testing and finish
+
+- [x] `tests/features.py`: F19–F26, one group per item, file and server mode.
+- [x] Prove a check can fail by breaking a feature.
+- [x] Run every suite locally, then in Edge on the VM (both modes).
+- [x] Docs (README, Help, HANDOFF, TEST_MATRIX, ROADMAP, README-distribute), version 2.2.0, commit and push.

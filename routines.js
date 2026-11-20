@@ -105,7 +105,7 @@ function offerDueRoutines() {
     row.append(open, later);
     banner.append(row);
   }
-  document.querySelector('.app-shell').prepend(banner);
+  noticeArea().prepend(banner);
 }
 
 // A page left open overnight offers the routine when it is looked at again.
@@ -135,6 +135,7 @@ function showRoutines() {
     copy.append(element('small', '', `${counted(items.length, 'link')}${missing ? ` (${missing} no longer on the map)` : ''} · ${scheduleText(routine.schedule)}`));
     row.append(copy);
     row.append(editorButton('Open', () => runRoutine(routine)));
+    row.append(editorButton('Share', () => shareRoutine(routine)));
     row.append(editorButton('Edit', () => showRoutineEditor(index)));
     list.append(row);
   });

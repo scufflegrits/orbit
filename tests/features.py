@@ -1,4 +1,4 @@
-"""Browser checks for the feature batches of 2026-11-19 and -20 (F01–F18; there is no F05).
+"""Browser checks for the feature batches of 2026-11-19 and -20 (F01–F26; there is no F05).
 
 Run with: /home/sysadmin/.venv/bin/python tests/features.py [--only NAME]
    or, in a remote browser such as Edge on the Windows VM:
@@ -880,9 +880,363 @@ def f18_arrival(ctx):
     print(f"PASS F18 routine offers ({mode})")
 
 
+# ---- Batch 3 helpers (in the page, `next[0]` is the team sun Ops) ------------------------------------------------------------
+
+def save_map_js(page, script, label="test setup"):
+    """Change the map in the page with JavaScript (`next` is a copy of the groups)."""
+    page.evaluate(f"""() => {{ const next = copyGroups(); {script}; saveMap({{ groups: next }}, '{label}'); }}""")
+
+
+def capture_download(page, action_js):
+    """Run JavaScript that downloads JSON and return the data instead of a file."""
+    return page.evaluate(f"""() => {{ let data; const save = downloadJson;
+      downloadJson = value => {{ data = value; }}; try {{ {action_js}; }} finally {{ downloadJson = save; }} return data; }}""")
+
+
+# ---- F19 Notes ------------------------------------------------------------------
+
+def f19_notes(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    open_editor(page)
+    tree(page, "editor-tree-planet", "Status").click()
+    check(page.get_by_label("Note", exact=True).get_attribute("maxlength") == "500", f"{mode}: notes are limited to 500 characters")
+    page.get_by_label("Note", exact=True).fill("Use the ops account")
+    page.get_by_role("button", name="Save planet").click()
+    check(stored(page)[0]["links"][1]["note"] == "Use the ops account", f"{mode}: the note is saved")
+    close_menu(page)
+    title = page.locator('.home-satellite[data-sun="1"][data-planet="1"]').get_attribute("title")
+    check(title.endswith("\nUse the ops account"), f"{mode}: the tooltip shows the note ({title!r})")
+    check(search(page, "ops account") == ["Status"] and page.locator(".find-why").inner_text() == "Matched the note"
+          and page.locator(".find-note").inner_text() == "Use the ops account", f"{mode}: Quick find matches and shows notes")
+    search(page, "")
+    page.locator("#view-toggle").click()
+    check("Use the ops account" in page.locator(".list-link").filter(has_text="Status").first.inner_text(),
+          f"{mode}: the list view shows notes")
+    page.locator("#view-toggle").click()
+    page.evaluate("() => { try { validDestination({ name: 'x', url: 'https://x.example/', note: 'n'.repeat(501) }, 'X'); window.__noteError = ''; } catch (e) { window.__noteError = e.message; } }")
+    check("longer than 500" in page.evaluate("window.__noteError"), f"{mode}: a longer note is refused")
+    print(f"PASS F19 notes ({mode})")
+
+
+# ---- F20 Link variables ---------------------------------------------------------
+
+def f20_variables(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    save_map_js(page, "next[1].links[1].moons.push({ name: 'Ticket', url: 'https://jira.example.test/browse/{ticket}?env={env}' })")
+    # Open all leaves the link out until it has values.
+    page.goto(ctx.url.split("#")[0] + "#group/alpha")
+    page.locator(".open-all-row").wait_for()
+    urls = popups(page, lambda: page.get_by_role("button", name="Status + 2 moons").click())
+    notice = page.locator("#open-all-notice").inner_text()
+    check("1 link with {placeholders} left out" in notice, f"{mode}: Open all waits for values ({notice})")
+    page.locator(".back-link").click()
+    page.locator(".home-hub").first.wait_for()
+    search(page, "ticket")
+    result = page.locator(".find-item").filter(has_text="Ticket").first
+    check(result.get_attribute("href") is None, f"{mode}: a placeholder link is not a plain link")
+    result.click()
+    dialog = page.locator(".variable-form")
+    check(dialog.is_visible() and page.evaluate("document.activeElement.getAttribute('aria-label')") == "ticket",
+          f"{mode}: the form asks for the first value")
+    page.get_by_label("ticket", exact=True).fill("ABC 12")
+    page.get_by_label("env", exact=True).fill("prod")
+    check(page.locator(".variable-preview").inner_text() == "https://jira.example.test/browse/ABC%2012?env=prod",
+          f"{mode}: the preview fills and encodes the values")
+    urls = popups(page, lambda: dialog.get_by_role("button", name="Open").click())
+    check(urls == ["https://jira.example.test/browse/ABC%2012?env=prod"], f"{mode}: Open opens the filled address ({urls})")
+    check(page.locator(".variable-form").count() == 0, f"{mode}: the form closes")
+    search(page, "")
+    check("Ticket" in page.locator(".quick-chip").all_inner_texts(), f"{mode}: the link is recorded as recent")
+    page.locator(".quick-chip").filter(has_text="Ticket").click()
+    check(page.get_by_label("ticket", exact=True).input_value() == "ABC 12", f"{mode}: the last values are remembered")
+    urls = popups(page, lambda: page.keyboard.press("Escape"))
+    check(not urls and page.locator(".variable-form").count() == 0 and page.locator(".home-hub").first.is_visible(),
+          f"{mode}: Escape cancels without opening")
+    page.goto(ctx.url.split("#")[0] + "#group/alpha")
+    page.locator(".open-all-row").wait_for()
+    urls = popups(page, lambda: page.get_by_role("button", name="Status + 2 moons").click())
+    notice = page.locator("#open-all-notice").inner_text()
+    check("placeholders" not in notice and (len(urls) == 3 or "blocked" in notice), f"{mode}: with values, Open all includes it ({notice})")
+    if "https://jira.example.test/browse/ABC%2012?env=prod" not in urls and len(urls) == 3:
+        check(False, f"{mode}: Open all uses the remembered values ({urls})")
+    # A brace without a name is refused.
+    open_editor(page)
+    tree(page, "editor-tree-moon", "Ticket").click()
+    page.locator(".editor-pane input[type='url']").fill("https://jira.example.test/{ticket")
+    page.get_by_role("button", name="Save moon").click()
+    check("http or https URL" in page.locator(".editor-error").inner_text(), f"{mode}: an unmatched brace is refused")
+    close_menu(page)
+    print(f"PASS F20 link variables ({mode})")
+
+
+# ---- F21 Quick add --------------------------------------------------------------
+
+def f21_quick_add(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    page.locator("#quick-find").fill("https://news.example.test/today")
+    card = page.locator(".find-add")
+    check(card.is_visible() and "https://news.example.test/today" in card.inner_text(), f"{mode}: an address offers Add this link")
+    card.click()
+    check(page.get_by_label("Address", exact=True).input_value() == "https://news.example.test/today" and
+          page.get_by_label("Name", exact=True).input_value() == "News", f"{mode}: the form is prefilled")
+    options = page.get_by_label("Add to", exact=True).locator("option").all_inner_texts()
+    check("Beta (as a planet)" in options and "Alpha → Docs Portal (as a moon)" in options and
+          not any(option.startswith("Ops") for option in options), f"{mode}: personal suns and planets are offered ({options})")
+    page.get_by_label("Add to", exact=True).select_option(label="Beta (as a planet)")
+    page.get_by_role("button", name="Add link").click()
+    check(stored(page)[1]["links"][-1] == {"name": "News", "url": "https://news.example.test/today", "moons": []},
+          f"{mode}: a planet is added")
+    check("Edit News" in page.locator(".editor-pane").inner_text(), f"{mode}: the new planet opens in the editor")
+    close_menu(page)
+    page.locator("#quick-find").fill("")
+    page.keyboard.press("Control+k")
+    page.keyboard.type("www.weather.example.test")
+    check(page.locator(".palette-option strong").first.inner_text() == "Add https://www.weather.example.test",
+          f"{mode}: the palette offers to add an address")
+    page.keyboard.press("Enter")
+    page.get_by_label("Add to", exact=True).select_option(label="Alpha → Docs Portal (as a moon)")
+    page.get_by_label("Name", exact=True).fill("Weather")
+    page.get_by_role("button", name="Add link").click()
+    check(stored(page)[0]["links"][0]["moons"][-1] == {"name": "Weather", "url": "https://www.weather.example.test"},
+          f"{mode}: a moon is added")
+    close_menu(page)
+    page.keyboard.press("Control+k")
+    page.keyboard.type("add a link")
+    page.keyboard.press("Enter")
+    check(page.get_by_label("Address", exact=True).input_value() == "" and
+          page.evaluate("document.activeElement.getAttribute('aria-label')") == "Address", f"{mode}: Add a link starts empty")
+    close_menu(page)
+    print(f"PASS F21 quick add ({mode})")
+
+
+# ---- F22 Workspaces -------------------------------------------------------------
+
+def open_settings(page):
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+
+
+def add_workspace(page, name, start):
+    open_settings(page)
+    page.get_by_label("New workspace name", exact=True).fill(name)
+    page.get_by_label("Start the new workspace with", exact=True).select_option(label=start)
+    page.get_by_role("button", name="Add workspace").click()
+    close_menu(page)
+
+
+def f22_workspaces(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    check(page.locator("#workspace-switch").count() == 0, f"{mode}: no workspace menu with one workspace")
+    add_workspace(page, "Home", "An empty map")
+    check(page.locator(".hub-name").all_inner_texts() == ["Ops"], f"{mode}: an empty workspace shows only the team map")
+    switch = page.locator("#workspace-switch")
+    check(switch.locator("option").all_inner_texts() == ["Main", "Home"] and switch.input_value() == "home",
+          f"{mode}: the top bar switches workspaces")
+    check(json.loads(page.evaluate("localStorage.getItem('orbit:map:v1:home')")) == {"groups": []},
+          f"{mode}: the workspace has its own storage")
+    switch.select_option(label="Main")
+    check(page.locator(".hub-name").all_inner_texts() == ["Ops", "Alpha", "Beta"], f"{mode}: Main is unchanged")
+    add_workspace(page, "Work", "A copy of this workspace")
+    check(page.locator(".hub-name").all_inner_texts() == ["Ops", "Alpha", "Beta"], f"{mode}: a copy starts with this map")
+    save_map_js(page, "next[2].links.pop()", "work change")
+    check(len(json.loads(page.evaluate("localStorage.getItem('orbit:map:v1:work')"))["groups"][1]["links"]) == 1,
+          f"{mode}: changes stay in this workspace")
+    page.keyboard.press("Control+k")
+    page.keyboard.type("switch to workspace: main")
+    page.keyboard.press("Enter")
+    check(page.locator("#workspace-switch").input_value() == "main" and
+          page.locator(".home-hub").count() == 3 and len(stored(page) or ctx.data["groups"]) == 2,
+          f"{mode}: the palette switches, and Main kept both Beta planets")
+    check(page.locator('.home-hub[data-sun="2"] .hub-count').inner_text() == "2 PLANETS", f"{mode}: Main's Beta still has 2 planets")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator("#workspace-switch").input_value() == "main", f"{mode}: the open workspace is remembered")
+    open_settings(page)
+    page.locator(".workspace-row").filter(has_text="Home").get_by_role("button", name="Rename").click()
+    page.get_by_label("New workspace name", exact=True).wait_for()
+    names = page.locator("#workspace-switch option").all_inner_texts()
+    check(names == ["Main", "Home", "Work"], f"{mode}: rename needs an answer; the test accepts the default ({names})")
+    page.locator(".workspace-row").filter(has_text="Work").get_by_role("button", name="Remove").click()
+    check(page.evaluate("localStorage.getItem('orbit:map:v1:work')") is None and
+          page.locator("#workspace-switch option").all_inner_texts() == ["Main", "Home"], f"{mode}: a workspace can be removed")
+    check(page.locator(".workspace-row").filter(has_text="Main").get_by_role("button", name="Remove").count() == 0,
+          f"{mode}: Main cannot be removed")
+    close_menu(page)
+    print(f"PASS F22 workspaces ({mode})")
+
+
+# ---- F23 Link packs -------------------------------------------------------------
+
+def f23_link_packs(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    page.evaluate("""() => saveMap({ groups: copyGroups(), routines: [{ name: 'Morning',
+      links: [{ key: destinationKey(groups[1].links[0].moons[0]), name: 'Guide' },
+              { key: destinationKey(groups[1].links[1]), name: 'Status' }],
+      schedule: { time: '08:00', days: [1, 2, 3, 4, 5] } }] }, 'test')""")
+    open_editor(page)
+    page.get_by_role("button", name="Routines", exact=True).click()
+    pack = capture_download(page, "document.querySelector('.routine-row').querySelectorAll('button')[1].click()")
+    check(pack["format"] == "orbit-pack-v1" and [link["name"] for link in pack["links"]] == ["Guide", "Status"]
+          and pack["routine"] == {"name": "Morning", "schedule": {"time": "08:00", "days": [1, 2, 3, 4, 5]}}
+          and "moons" not in pack["links"][1], f"{mode}: Share exports the routine as a pack ({pack})")
+    page.locator(".editor-header .editor-back").click()
+    page.get_by_role("button", name="Share favorites").click()
+    check("no favorites" in page.locator(".editor-error").inner_text(), f"{mode}: sharing no favorites explains why")
+    # Someone else's pack, with one link that is new here.
+    pack["links"].append({"name": "Calendar", "url": "https://calendar.example.test/"})
+    page.get_by_role("button", name="Import link pack").click()
+    page.get_by_label("Pack text", exact=True).fill(json.dumps(pack))
+    page.get_by_role("button", name="Review pasted pack").click()
+    summary = page.locator(".import-merge-summary").inner_text()
+    check(summary == "3 links: 1 new link to add, 2 already on your map.", f"{mode}: the review counts new links ({summary})")
+    page.get_by_role("button", name="Add to my map").click()
+    after = json.loads(saved_map(page))
+    check(after["groups"][-1]["name"] == "Morning" and [link["name"] for link in after["groups"][-1]["links"]] == ["Calendar"],
+          f"{mode}: only the new link is added, in a new sun")
+    check([routine["name"] for routine in after["routines"]] == ["Morning", "Morning 2"] and
+          len(after["routines"][1]["links"]) == 3, f"{mode}: the routine is added under a free name")
+    page.get_by_role("button", name="Import link pack").click()
+    page.get_by_label("Pack text", exact=True).fill('{"format": "something-else"}')
+    page.get_by_role("button", name="Review pasted pack").click()
+    check("not an Orbit link pack" in page.locator(".editor-error").inner_text(), f"{mode}: other files are refused")
+    close_menu(page)
+    print(f"PASS F23 link packs ({mode})")
+
+
+# ---- F24 Backup reminders -------------------------------------------------------
+
+def set_backup(page, entry):
+    page.evaluate("entry => localStorage.setItem('orbit:backup:v1', JSON.stringify({ main: entry }))", entry)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+
+
+def f24_backups(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    check(page.locator("#backup-reminder").count() == 0, f"{mode}: no reminder without changes")
+    now = page.evaluate("Date.now()")
+    set_backup(page, {"changes": 19, "since": now})
+    check(page.locator("#backup-reminder").count() == 0, f"{mode}: 19 changes are not enough")
+    save_map_js(page, "next[1].links.pop()", "a change")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    reminder = page.locator("#backup-reminder")
+    check(reminder.is_visible() and "20 changes since your last export" in reminder.inner_text(), f"{mode}: 20 changes remind")
+    page.get_by_role("button", name="Remind me later").click()
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator("#backup-reminder").count() == 0, f"{mode}: Remind me later waits")
+    set_backup(page, {"changes": 1, "since": now - 15 * 86400000})
+    check("1 change since your last export, 15 days ago" in page.locator("#backup-reminder").inner_text(),
+          f"{mode}: 14 days remind too")
+    exported = capture_download(page, "document.querySelector('#backup-reminder .routine-offer-open').click()")
+    check([sun["name"] for sun in exported["groups"]] == ["Alpha", "Beta"] and page.locator("#backup-reminder").count() == 0,
+          f"{mode}: Back up now exports and closes the reminder")
+    state = json.loads(page.evaluate("localStorage.getItem('orbit:backup:v1')"))["main"]
+    check(state["changes"] == 0 and state["lastExport"] >= now, f"{mode}: exporting resets the count")
+    set_backup(page, {"changes": 25, "since": now})
+    open_editor(page)
+    check(page.locator(".editor-pane .backup-reminder").count() == 1, f"{mode}: Edit links shows the reminder too")
+    close_menu(page)
+    open_settings(page)
+    page.get_by_label("Backup reminders", exact=True).uncheck()
+    close_menu(page)
+    check(page.locator("#backup-reminder").count() == 0, f"{mode}: reminders can be turned off")
+    print(f"PASS F24 backup reminders ({mode})")
+
+
+# ---- F25 Team map updates -------------------------------------------------------
+
+def f25_team_updates(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    seen = json.loads(page.evaluate("localStorage.getItem('orbit:team-seen:v1')"))
+    check([entry["name"] for entry in seen] == ["Runbook", "Pager"] and page.locator("#team-updates").count() == 0,
+          f"{mode}: the first load records the team map quietly")
+    # Pretend this browser saw a different team map last time.
+    page.evaluate("""() => localStorage.setItem('orbit:team-seen:v1', JSON.stringify([
+      { key: 'https://runbook.example.test', name: 'Runbook' }, { key: 'https://old.example.test', name: 'Old page' }]))""")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    box = page.locator("#team-updates")
+    check(box.locator(".routine-offer-copy").inner_text() == "Team map updated: 1 new, 1 removed.", f"{mode}: changes are reported")
+    check(box.locator(".team-update-list").is_hidden(), f"{mode}: details start closed")
+    box.get_by_role("button", name="Show what’s new").click()
+    check(box.locator(".team-update-link").inner_text() == "Pager" and "in Ops → Runbook" in box.inner_text()
+          and "Old page" in box.inner_text(), f"{mode}: the list shows new and removed links")
+    urls = popups(page, lambda: box.locator(".team-update-link").click())
+    check(urls and urls[0].rstrip("/") == "https://pager.example.test", f"{mode}: a new link opens from the list")
+    box.get_by_role("button", name="Dismiss").click()
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator("#team-updates").count() == 0, f"{mode}: Dismiss records the current team map")
+    print(f"PASS F25 team map updates ({mode})")
+
+
+# ---- F26 Remote Desktop presets ---------------------------------------------------
+
+def f26_presets(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    open_editor(page)
+    page.get_by_role("button", name="RDP presets").click()
+    page.get_by_role("button", name="New preset").click()
+    page.get_by_label("Preset name", exact=True).fill("Big screen")
+    page.get_by_label("Display", exact=True).select_option(label="Full screen")
+    page.get_by_label("Use all monitors", exact=True).check()
+    check(page.get_by_label("Settings", exact=True).input_value() == "screen mode id:i:2\nuse multimon:i:1",
+          f"{mode}: choices write the settings")
+    page.get_by_label("Settings", exact=True).fill("screen mode id:i:2\nuse multimon:i:1\npassword 51:b:SECRET")
+    page.get_by_role("button", name="Add preset").click()
+    check("never stores credentials" in page.locator(".editor-error").inner_text(), f"{mode}: passwords are refused")
+    page.get_by_label("Settings", exact=True).fill("screen mode id:i:2\nuse multimon:i:1\nfull address:s:ignored")
+    page.get_by_role("button", name="Add preset").click()
+    presets = json.loads(saved_map(page))["rdpPresets"]
+    check(presets == [{"id": "big-screen", "name": "Big screen", "settings": "screen mode id:i:2\r\nuse multimon:i:1"}],
+          f"{mode}: the preset is saved without an address ({presets})")
+    # One moon chooses it; then the planet applies it to the rest.
+    tree(page, "editor-tree-moon", "lab-box-server3").click()
+    page.get_by_label("Connection settings", exact=True).select_option(label="Preset: Big screen")
+    page.get_by_role("button", name="Save moon").click()
+    check(stored(page)[0]["links"][2]["moons"][0].get("rdpPreset") == "big-screen", f"{mode}: a link chooses a preset")
+    profile = page.evaluate("effectiveRdpProfile(groups[1].links[2].moons[0])")
+    check(profile == "full address:s:lab-box-server3\r\nscreen mode id:i:2\r\nuse multimon:i:1\r\n",
+          f"{mode}: the link opens with the preset and its own computer ({profile!r})")
+    check(page.evaluate("rdpLaunchUrl(groups[1].links[2].moons[0])").startswith("orbit-rdp://lab-box-server3/?profile="),
+          f"{mode}: the mstsc.exe launch carries the preset")
+    tree(page, "editor-tree-planet", "Lab Box").click()
+    page.get_by_role("button", name="Apply RDP settings to moons").click()
+    page.get_by_label("Settings from", exact=True).select_option(label="Preset: Big screen")
+    page.get_by_role("button", name="Apply to selected links").click()
+    lab = stored(page)[0]["links"][2]
+    check(all(item.get("rdpPreset") == "big-screen" for item in (lab, *lab["moons"])) and lab["moons"][1].get("rdpProfile"),
+          f"{mode}: a preset applies to several links and keeps their own settings for later")
+    # Removing the preset leaves the links without it.
+    page.locator(".editor-header .editor-back").click()
+    page.locator(".editor-header .editor-back").click()
+    page.get_by_role("button", name="RDP presets").click()
+    check("used by 3 links" in page.locator(".editor-pane").inner_text(), f"{mode}: the list counts its links")
+    page.get_by_role("button", name="Edit", exact=True).click()
+    page.get_by_role("button", name="Remove preset").click()
+    after = json.loads(saved_map(page))
+    check("rdpPresets" not in after and not any("rdpPreset" in item for item in [after["groups"][0]["links"][2], *after["groups"][0]["links"][2]["moons"]]),
+          f"{mode}: removing a preset clears it from links")
+    check(page.evaluate("effectiveRdpProfile(groups[1].links[2].moons[1])").startswith("full address:s:lab-box-server4:3390"),
+          f"{mode}: a link falls back to its own imported settings")
+    close_menu(page)
+    print(f"PASS F26 Remote Desktop presets ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
-          f16_open_all_favorites, f17_routines, f18_arrival)
+          f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
+          f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets)
 
 
 def run_checks(make_ctx, only):

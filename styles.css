@@ -1341,3 +1341,42 @@ html[data-animations='off'] *::after {
 .routine-choice { margin: 3px 0; }
 .routine-choice[hidden] { display: none; }
 .routine-row .editor-button { flex: none; }
+
+/* ---- Batch 3 (2026-11-20) ------------------------------------------------ */
+
+.notice-area { display: grid; gap: 8px; width: min(1100px, 100%); margin: 14px auto 0; }
+.notice-area:empty { display: none; }
+.notice-area .routine-banner { margin: 0; }
+.team-update-list { flex-basis: 100%; color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
+.team-update-list ul { margin: 4px 0 8px; padding-left: 18px; }
+.team-update-link { padding: 0; border: 0; background: none; color: var(--theme-accent); font: inherit; text-decoration: underline; cursor: pointer; }
+
+.workspace-switch {
+  max-width: 160px;
+  min-height: 34px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--theme-accent) 8%, var(--surface));
+  color: var(--text);
+  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  cursor: pointer;
+}
+.workspace-add { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 6px; }
+.workspace-add select { min-height: 38px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--page-bg); color: var(--text); }
+.workspace-row .editor-button { flex: none; }
+.workspace-hint { color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
+
+.variable-form { gap: 10px; }
+.variable-title { margin: 0; color: var(--text); font: 600 calc(18px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.variable-address, .variable-preview { margin: 0; color: var(--muted); font: 500 calc(12px * var(--font-scale)) ui-monospace, monospace; overflow-wrap: anywhere; }
+.variable-preview { color: var(--theme-accent); }
+
+.find-add { width: min(760px, 100%); margin: 0 0 10px; border-style: dashed; }
+.find-note { color: var(--muted-strong) !important; font-style: italic; }
+.list-note-text { color: var(--subtle); font-weight: 500; font-size: calc(11px * var(--font-scale)); }
+
+.empty-galaxy { display: grid; justify-items: center; gap: 10px; margin: 80px auto; text-align: center; color: var(--muted); }
+.empty-galaxy h1 { margin: 0; color: var(--text); font: 600 calc(28px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.empty-galaxy .editor-primary { padding: 8px 16px; border-radius: 10px; font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif; cursor: pointer; }
+.preset-settings { min-height: 120px; font-family: ui-monospace, monospace; }

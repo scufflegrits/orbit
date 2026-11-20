@@ -158,7 +158,7 @@ function handleMapArrows(event) {
 window.addEventListener('keydown', event => {
   if (event.defaultPrevented) return;
   // The command palette takes every key while it is open.
-  if (handlePaletteKey(event) || palette) return;
+  if (handlePaletteKey(event) || palette || variableDialog) return;
   if (handlePaletteShortcut(event)) return;
   if (event.key === 'Tab') {
     if (!menuOverlay.hidden) trapMenuFocus(event);

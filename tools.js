@@ -87,7 +87,8 @@ function showHistory() {
     row.append(copy, editorButton('Restore', () => {
       if (!window.confirm(`Restore the map from ${new Date(entry.time).toLocaleString()}?`)) return;
       applyEditorChange([...groups.filter(sun => sun.team), ...entry.groups], showHistory,
-        { label: `Restored the version from ${new Date(entry.time).toLocaleString()}`, routines: entry.routines || [] });
+        { label: `Restored the version from ${new Date(entry.time).toLocaleString()}`, routines: entry.routines || [],
+          rdpPresets: entry.rdpPresets || [] });
     }));
     list.append(row);
   });
@@ -146,7 +147,8 @@ function webLinksByUrl() {
   groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
     [[planet, [sunIndex, planetIndex]], ...planet.moons.map((moon, moonIndex) => [moon, [sunIndex, planetIndex, moonIndex]])]
       .forEach(([item, path]) => {
-        if (item.type === 'rdp') return;
+        // Remote Desktop links and links with {placeholders} are not checked.
+        if (item.type === 'rdp' || templateNames(item.url).length) return;
         if (!byUrl.has(item.url)) byUrl.set(item.url, []);
         byUrl.get(item.url).push({ item, path });
       });
@@ -338,6 +340,11 @@ function showBulkRdp(sunIndex, planetIndex) {
     option.value = String(index);
     source.append(option);
   });
+  rdpPresets.forEach(preset => {
+    const option = element('option', '', `Preset: ${preset.name}`);
+    option.value = `preset:${preset.id}`;
+    source.append(option);
+  });
   sourceField.append(source);
   const preview = element('div', 'rdp-bulk-preview');
   const chooseFile = editorButton('Choose .rdp file', () => {
@@ -359,10 +366,16 @@ function showBulkRdp(sunIndex, planetIndex) {
     const chosen = targets.filter((_, index) => boxes[index].checked);
     if (!profile || !chosen.length) return;
     const next = copyGroups();
+    const preset = source.value.startsWith('preset:') ? source.value.slice(7) : null;
     for (const target of chosen) {
       const item = target.path.length === 3
         ? next[target.path[0]].links[target.path[1]].moons[target.path[2]] : next[target.path[0]].links[target.path[1]];
-      item.rdpProfile = parseRdpProfile(profile, item.host).content;
+      // A preset is linked by name; other settings are copied in.
+      if (preset) item.rdpPreset = preset;
+      else {
+        item.rdpProfile = parseRdpProfile(profile, item.host).content;
+        delete item.rdpPreset;
+      }
     }
     applyEditorChange(next, back, { label: `Applied RDP settings to ${counted(chosen.length, 'link')} in ${planet.name}` });
   }, 'editor-primary');
@@ -382,6 +395,9 @@ function showBulkRdp(sunIndex, planetIndex) {
       profile = null;
       preview.replaceChildren(element('p', 'data-source', 'Choose an .rdp file to see its settings.'));
       apply.disabled = true;
+    } else if (source.value.startsWith('preset:')) {
+      const preset = rdpPresets.find(item => item.id === source.value.slice(7));
+      setProfile(`full address:s:example\r\n${preset.settings}`, `the ${preset.name} preset`);
     } else {
       setProfile(targets[Number(source.value)].item.rdpProfile, `${targets[Number(source.value)].item.name}`);
     }
