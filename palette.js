@@ -15,6 +15,10 @@ function paletteCommands() {
       run: () => setGalaxyView(galaxyView === 'list' ? 'orbits' : 'list') },
     { label: 'Return to Galaxy', run: () => { location.hash = ''; } },
     { label: 'Clear recent links', run: () => { clearRecent(); render(); } },
+    ...(favoriteItems().length > 1 && !editMode ? [{ label: 'Open all favorites', run: openAllFavorites }] : []),
+    ...routines.map((routine, index) => ({ label: `Run routine: ${routine.name}`,
+      run: () => editMode ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
+    { label: 'Edit routines', run: () => { openMenu(); openEditorPage(); showRoutines(); } },
   ];
 }
 

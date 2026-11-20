@@ -7,8 +7,10 @@ const menuOverlay = document.querySelector('#menu-overlay');
 const menuRoot = document.querySelector('#menu-content');
 const viewToggle = document.querySelector('#view-toggle');
 let menuContent = menuRoot;
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 let groups = [];
+// Named link lists saved with the map (see routines.js).
+let routines = [];
 // Counts every change to the in-memory map; a drag or drag Undo made against
 // an older revision is refused.
 let mapRevision = 0;
@@ -108,9 +110,11 @@ async function init() {
     const browserMap = loadBrowserMap();
     await loadTeamMap();
     groups = [...visibleTeamGroups(), ...(browserMap || seedData).groups];
+    routines = (browserMap || seedData).routines || [];
     activeMapSource = browserMap ? 'browser' : 'bundled';
     countDestinations();
     render();
+    offerDueRoutines();
   } catch (error) {
     app.className = 'error-view';
     app.replaceChildren(element('h1', '', 'Could not load your links.'));

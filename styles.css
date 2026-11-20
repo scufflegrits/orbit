@@ -1290,3 +1290,54 @@ html[data-animations='off'] *::after {
 .rdp-bulk-settings { margin: 4px 0 12px; padding-left: 20px; color: var(--muted-strong); font: 500 calc(12px * var(--font-scale)) ui-monospace, monospace; }
 .team-source { color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
 .team-settings { display: grid; gap: 6px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--text); }
+
+/* ---- Routines (2026-11-20) ---------------------------------------------- */
+
+.routine-chip { border-color: color-mix(in srgb, var(--theme-accent) 55%, var(--line)); }
+.routine-chip::before { content: '▶ '; color: var(--theme-accent); font-size: .85em; }
+.quick-open-all {
+  padding: 6px 13px;
+  border: 1px dashed var(--theme-accent);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--theme-accent);
+  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  cursor: pointer;
+}
+.quick-open-all:hover, .quick-open-all:focus-visible { background: color-mix(in srgb, var(--theme-accent) 14%, transparent); color: var(--text); }
+
+.routine-banner { display: grid; gap: 8px; width: min(1100px, 100%); margin: 14px auto 0; }
+.routine-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--theme-accent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--theme-accent) 10%, var(--surface));
+}
+.routine-offer-copy { flex: 1; margin: 0; color: var(--text); font: 600 calc(14px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.routine-offer-open, .routine-offer-dismiss {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted-strong);
+  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  cursor: pointer;
+}
+.routine-offer-open { border-color: var(--theme-accent); background: color-mix(in srgb, var(--theme-accent) 22%, transparent); color: var(--text); }
+.routine-offer-open:hover, .routine-offer-dismiss:hover { border-color: var(--theme-accent); color: var(--text); }
+
+.routine-schedule { display: grid; gap: 8px; margin: 4px 0 8px 27px; }
+.routine-schedule[hidden] { display: none; }
+.routine-schedule .editor-field { max-width: 160px; }
+.routine-days { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.routine-day { margin: 0; }
+.routine-choices { display: grid; gap: 10px; max-height: 46vh; overflow-y: auto; padding-right: 6px; }
+.routine-sun { margin: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.routine-sun legend { padding: 0 6px; color: var(--text); font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.routine-choice { margin: 3px 0; }
+.routine-choice[hidden] { display: none; }
+.routine-row .editor-button { flex: none; }

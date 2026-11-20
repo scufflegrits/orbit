@@ -120,17 +120,17 @@ function openDestination(item) {
   noteOpened(item);
 }
 
-// Open a planet and its web moons in new tabs. Remote Desktop links are left
-// out: each one would need its own download or helper prompt.
-function openAll(sunIndex, planetIndex) {
-  const planet = groups[sunIndex]?.links[planetIndex];
-  if (!planet) return null;
-  const items = [planet, ...planet.moons];
+// Open a list of links in new tabs. Remote Desktop links are left out: each
+// one would need its own download or helper prompt. `confirm` asks first when
+// more than one tab would open (`question(count)` words it); `extra` is added
+// to the notice.
+function openLinks(items, label, { confirm = true, question = null, extra = '' } = {}) {
   const web = items.filter(item => item.type !== 'rdp');
   const skipped = items.length - web.length;
-  const note = skipped ? ` ${counted(skipped, 'Remote Desktop link')} left out.` : '';
-  if (!web.length) return showOpenAllNotice(`${planet.name} has no website links to open.${note}`);
-  if (web.length > 1 && !window.confirm(`Open ${web.length} tabs for ${planet.name} and its moons?`)) return null;
+  const note = `${skipped ? ` ${counted(skipped, 'Remote Desktop link')} left out.` : ''}${extra}`;
+  if (!web.length) return showOpenAllNotice(`${label} has no website links to open.${note}`);
+  const ask = question ? question(web.length) : `Open ${web.length} tabs for ${label}?`;
+  if (confirm && web.length > 1 && !window.confirm(ask)) return null;
   let blocked = 0;
   for (const item of web) {
     const opened = window.open(item.url, '_blank');
@@ -143,8 +143,20 @@ function openAll(sunIndex, planetIndex) {
   }
   const message = blocked
     ? `Your browser blocked ${counted(blocked, 'tab')}. Allow pop-ups for Orbit in the browser's address bar, then try again.${note}`
-    : `Opened ${counted(web.length, 'tab')} for ${planet.name}.${note}`;
+    : `Opened ${counted(web.length, 'tab')} for ${label}.${note}`;
   return showOpenAllNotice(message, blocked > 0);
+}
+
+// A planet with all its moons.
+function openAll(sunIndex, planetIndex) {
+  const planet = groups[sunIndex]?.links[planetIndex];
+  if (!planet) return null;
+  return openLinks([planet, ...planet.moons], planet.name,
+    { question: count => `Open ${count} tabs for ${planet.name} and its moons?` });
+}
+
+function openAllFavorites() {
+  return openLinks(favoriteItems().map(entry => entry.item), 'your favorites');
 }
 
 function showOpenAllNotice(message, isError = false) {

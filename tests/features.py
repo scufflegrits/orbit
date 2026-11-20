@@ -1,4 +1,4 @@
-"""Browser checks for the 2026-11-19 feature batch (F01–F15; there is no F05).
+"""Browser checks for the feature batches of 2026-11-19 and -20 (F01–F18; there is no F05).
 
 Run with: /home/sysadmin/.venv/bin/python tests/features.py [--only NAME]
    or, in a remote browser such as Edge on the Windows VM:
@@ -652,9 +652,11 @@ def f14_icons(ctx):
     # The local test site has a favicon; the example sites answer 404.
     check(page.locator('.home-satellite[data-sun="1"][data-planet="0"] .site-icon').count() == 1,
           f"{mode}: an icon that loads stays")
+    # A site that refuses the request at once (a closed local port).
+    page.evaluate("""() => { const node = destinationNode({ name: 'Closed', url: 'http://127.0.0.1:9/' }, 'probe-link');
+      node.id = 'icon-probe'; document.body.append(node); }""")
     try:
-        page.wait_for_function("!document.querySelector('.home-satellite[data-sun=\"1\"][data-planet=\"1\"] .site-icon')",
-                               timeout=10000)
+        page.wait_for_function("!document.querySelector('#icon-probe .site-icon')", timeout=10000)
         removed = True
     except Exception:  # noqa: BLE001 - reported by the check below
         removed = False
@@ -703,8 +705,184 @@ def f15_list(ctx):
     print(f"PASS F15 list view ({mode})")
 
 
+# ---- F16 Open all favorites ------------------------------------------------
+
+def f16_open_all_favorites(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    for name in ("Guide", "Status"):
+        search(page, name.lower())
+        page.locator(".find-row").filter(has_text=name).first.locator(".favorite-toggle").click()
+    search(page, "")
+    button = page.locator(".quick-open-all")
+    check(button.inner_text() == "Open all (2)", f"{mode}: the Favorites row offers Open all")
+    urls = popups(page, button.click)
+    notice = page.locator("#open-all-notice").inner_text()
+    check(urls and (notice == "Opened 2 tabs for your favorites." or "blocked 1 tab" in notice),
+          f"{mode}: Open all opens every favorite or reports blocked tabs ({urls}, {notice})")
+    page.keyboard.press("Control+k")
+    page.keyboard.type("open all fav")
+    check(page.locator(".palette-option strong").first.inner_text() == "Open all favorites", f"{mode}: the palette offers it")
+    page.keyboard.press("Escape")
+    page.locator("#edit-toggle").click()
+    check(page.locator(".quick-open-all").count() == 0, f"{mode}: Open all is hidden in Edit mode")
+    page.locator("#edit-toggle").click()
+    print(f"PASS F16 open all favorites ({mode})")
+
+
+# ---- F17 Routines ----------------------------------------------------------
+
+def make_routine(page, name, labels):
+    if page.get_by_role("button", name="New routine").count() == 0:
+        page.get_by_role("button", name="Routines", exact=True).click()
+    page.get_by_role("button", name="New routine").click()
+    page.get_by_label("Routine name", exact=True).fill(name)
+    for label in labels:
+        page.locator(".routine-choice").filter(has_text=label).first.locator("input").check()
+    page.get_by_role("button", name="Add routine").click()
+
+
+def f17_routines(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    open_editor(page)
+    make_routine(page, "Morning", ["Docs Portal → Guide", "Lab Box (Remote", "Runbook", "Wiki"])
+    saved = json.loads(saved_map(page))["routines"]
+    check([routine["name"] for routine in saved] == ["Morning"] and len(saved[0]["links"]) == 4,
+          f"{mode}: the routine is saved with the map ({saved})")
+    check([link["name"] for link in saved[0]["links"]] == ["Runbook", "Guide", "Lab Box", "Wiki"],
+          f"{mode}: links follow the map order ({[link['name'] for link in saved[0]['links']]})")
+    rows = page.locator(".routine-row small").all_inner_texts()
+    check(rows == ["4 links · No schedule"], f"{mode}: the list summarizes it ({rows})")
+    # A name already used is refused.
+    make_routine(page, "morning", ["Wiki"])
+    check("already a routine named" in page.locator(".editor-error").inner_text(), f"{mode}: names are unique")
+    # Renaming and moving a link keeps the routine working.
+    tree(page, "editor-tree-moon", "Guide").click()
+    page.get_by_label("Moon name", exact=True).fill("User Guide")
+    page.get_by_role("button", name="Save moon").click()
+    tree(page, "editor-tree-planet", "Wiki").click()
+    page.get_by_role("button", name="Remove planet").click()
+    page.locator(".editor-header .editor-back").click()
+    page.get_by_role("button", name="Routines", exact=True).click()
+    rows = page.locator(".routine-row small").all_inner_texts()
+    check(rows == ["3 links (1 no longer on the map) · No schedule"], f"{mode}: renames survive and removals are counted ({rows})")
+    close_menu(page)
+    # The quick bar runs it without asking: web links open, Remote Desktop is left out.
+    chip = page.locator(".routine-chip")
+    check(page.locator(".quick-label").first.inner_text() == "Routines" and chip.inner_text() == "Morning",
+          f"{mode}: the quick bar has a Routines row")
+    urls = popups(page, chip.click)
+    notice = page.locator("#open-all-notice").inner_text()
+    check(urls and ("Opened 2 tabs for Morning." in notice or "blocked 1 tab" in notice) and
+          "1 Remote Desktop link left out" in notice and "1 link in this routine is no longer on the map" in notice,
+          f"{mode}: the routine opens its links ({urls}, {notice})")
+    # The palette, Edit mode, and history know about it.
+    page.keyboard.press("Control+k")
+    page.keyboard.type("run routine")
+    check(page.locator(".palette-option strong").first.inner_text() == "Run routine: Morning", f"{mode}: the palette lists it")
+    page.keyboard.press("Escape")
+    page.locator("#edit-toggle").click()
+    page.locator(".routine-chip").click()
+    check("Edit Morning" in page.locator(".editor-pane").inner_text(), f"{mode}: in Edit mode the chip opens the editor")
+    check(page.locator(".routine-choice input:checked").count() == 3, f"{mode}: the editor shows the chosen links")
+    page.locator(".editor-header .editor-back").click()
+    page.locator(".editor-header .editor-back").click()
+    page.get_by_role("button", name="History", exact=True).click()
+    check("Before: Added routine Morning" in page.locator(".history-row strong").all_inner_texts(), f"{mode}: history records it")
+    close_menu(page)
+    page.locator("#edit-toggle").click()
+    # Export includes routines; merge adds new names only.
+    exported = page.evaluate("""() => { let data; const save = downloadJson;
+      downloadJson = value => { data = value; }; exportMap(); downloadJson = save; return data; }""")
+    check([routine["name"] for routine in exported.get("routines", [])] == ["Morning"], f"{mode}: Export JSON includes routines")
+    incoming = {"groups": [], "routines": [
+        {"name": "MORNING", "links": [{"key": "https://wiki.example.test", "name": "Wiki"}]},
+        {"name": "Evening", "links": [{"key": "https://status.example.test", "name": "Status"}],
+         "schedule": {"time": "18:00", "days": [1, 2, 3, 4, 5]}}]}
+    open_editor(page)
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import JSON", exact=True).click()
+    chooser.value.set_files({"name": "routines.json", "mimeType": "application/json", "buffer": json.dumps(incoming).encode()})
+    page.wait_for_selector(".import-merge-summary, .editor-error")
+    check("and 1 routine" in page.locator(".import-merge-summary").inner_text(), f"{mode}: the review counts the new routine")
+    page.get_by_role("button", name="Merge into my map").click()
+    saved = json.loads(saved_map(page))["routines"]
+    check([routine["name"] for routine in saved] == ["Morning", "Evening"] and saved[1]["schedule"]["time"] == "18:00",
+          f"{mode}: merge adds Evening and keeps Morning ({[routine['name'] for routine in saved]})")
+    page.get_by_role("button", name="Routines", exact=True).click()
+    page.locator(".routine-row").filter(has_text="Evening").get_by_role("button", name="Edit").click()
+    page.get_by_role("button", name="Remove routine").click()
+    check([routine["name"] for routine in json.loads(saved_map(page))["routines"]] == ["Morning"], f"{mode}: a routine can be removed")
+    close_menu(page)
+    print(f"PASS F17 routines ({mode})")
+
+
+# ---- F18 Offer routines on arrival ------------------------------------------------
+
+def set_routines(page, routines):
+    page.evaluate("""list => { saveMap({ groups: copyGroups(), routines: list }, 'test routines');
+      localStorage.removeItem('orbit:routine-offered:v1'); }""", routines)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    page.wait_for_timeout(200)
+
+
+def f18_arrival(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    now = page.evaluate("[new Date().getDay(), new Date().getHours() * 60 + new Date().getMinutes()]")
+    links = [{"key": "https://status.example.test", "name": "Status"}, {"key": "https://wiki.example.test", "name": "Wiki"}]
+    every_day = list(range(7))
+    set_routines(page, [{"name": "Morning", "links": links, "schedule": {"time": "00:00", "days": every_day}}])
+    banner = page.locator("#routine-banner")
+    check(banner.is_visible() and banner.locator(".routine-offer-copy").inner_text() == "Time for Morning: 2 links.",
+          f"{mode}: a due routine is offered")
+    page.get_by_role("button", name="Not today").click()
+    check(banner.count() == 0, f"{mode}: Not today closes the offer")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator("#routine-banner").count() == 0, f"{mode}: it is not offered again today")
+    set_routines(page, [{"name": "Morning", "links": links, "schedule": {"time": "00:00", "days": every_day}}])
+    urls = popups(page, lambda: page.get_by_role("button", name="Open Morning").click())
+    notice = page.locator("#open-all-notice").inner_text()
+    check(urls and ("Opened 2 tabs for Morning." in notice or "blocked 1 tab" in notice), f"{mode}: Open opens the routine ({urls})")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator("#routine-banner").count() == 0, f"{mode}: an opened routine is not offered again today")
+    tomorrow = (now[0] + 1) % 7
+    set_routines(page, [{"name": "Other day", "links": links, "schedule": {"time": "00:00", "days": [tomorrow]}}])
+    check(page.locator("#routine-banner").count() == 0, f"{mode}: a routine for another day waits")
+    if now[1] < 23 * 60 + 59:
+        set_routines(page, [{"name": "Late", "links": links, "schedule": {"time": "23:59", "days": every_day}}])
+        check(page.locator("#routine-banner").count() == 0, f"{mode}: a routine waits for its time")
+    set_routines(page, [{"name": "A", "links": links[:1], "schedule": {"time": "00:00", "days": every_day}},
+                        {"name": "B", "links": links[1:], "schedule": {"time": "00:00", "days": every_day}},
+                        {"name": "Unscheduled", "links": links}])
+    check(page.locator(".routine-offer").count() == 2, f"{mode}: due routines share the banner; unscheduled ones are not offered")
+    page.locator("#edit-toggle").click()
+    check(page.locator("#routine-banner").count() == 0, f"{mode}: Edit mode hides the offer")
+    page.locator("#edit-toggle").click()
+    check(page.locator(".routine-offer").count() == 2, f"{mode}: it returns when Edit mode is off")
+    # The editor saves a schedule.
+    open_editor(page)
+    page.get_by_role("button", name="Routines", exact=True).click()
+    page.locator(".routine-row").filter(has_text="Unscheduled").get_by_role("button", name="Edit").click()
+    page.get_by_label("Offer this routine when Orbit opens", exact=True).check()
+    page.get_by_label("Offer from", exact=True).fill("07:30")
+    page.get_by_label("Sat", exact=True).check()
+    page.get_by_role("button", name="Save routine").click()
+    saved = [routine for routine in json.loads(saved_map(page))["routines"] if routine["name"] == "Unscheduled"][0]
+    check(saved["schedule"] == {"time": "07:30", "days": [1, 2, 3, 4, 5, 6]}, f"{mode}: the schedule is saved ({saved})")
+    check("Offered at 07:30, Mon, Tue, Wed, Thu, Fri, Sat" in page.locator(".editor-pane").inner_text(),
+          f"{mode}: the list describes the schedule")
+    close_menu(page)
+    print(f"PASS F18 routine offers ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
-          f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list)
+          f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
+          f16_open_all_favorites, f17_routines, f18_arrival)
 
 
 def run_checks(make_ctx, only):

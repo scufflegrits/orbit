@@ -134,7 +134,8 @@ function applyEditorChange(nextGroups, showNext, options = {}) {
       previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
       localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(options.undoRecord));
     }
-    saveMap({ groups: nextGroups }, options.label || 'Edit links change');
+    saveMap({ groups: nextGroups, ...(options.routines !== undefined ? { routines: options.routines } : {}) },
+      options.label || 'Edit links change');
     if (options.clearUndo) localStorage.removeItem(UNDO_STORAGE_KEY);
     storageWarning = '';
     showNext();
@@ -185,7 +186,7 @@ function downloadJson(data, filename) {
 
 // The team map is never exported with the personal map.
 function exportMap() {
-  downloadJson({ groups: personalGroups(groups) }, 'orbit-links.json');
+  downloadJson({ groups: personalGroups(groups), ...(routines.length ? { routines } : {}) }, 'orbit-links.json');
 }
 
 function exportItem(kind, item) {
@@ -220,17 +221,20 @@ function showImportReview(data, options = {}) {
   menuContent.append(element('p', '', `The file has ${counted(data.groups.length, 'sun')} · ${counted(planetCount, 'planet')} · ${counted(moonCount, 'moon')}.`));
   const merged = mergeMaps(personalGroups(groups), data.groups);
   const { added, skipped } = merged;
-  menuContent.append(element('p', 'import-merge-summary', `Merge adds ${counted(added.suns, 'sun')}, ${counted(added.planets, 'planet')}, and ${counted(added.moons, 'moon')}; ${counted(skipped.planets + skipped.moons, 'link')} already in your map ${skipped.planets + skipped.moons === 1 ? 'is' : 'are'} skipped. Nothing in your map changes.`));
+  const newRoutines = mergeRoutines(routines, data.routines || []);
+  const addedRoutines = newRoutines.length - routines.length;
+  menuContent.append(element('p', 'import-merge-summary', `Merge adds ${counted(added.suns, 'sun')}, ${counted(added.planets, 'planet')}, and ${counted(added.moons, 'moon')}${addedRoutines ? ` and ${counted(addedRoutines, 'routine')}` : ''}; ${counted(skipped.planets + skipped.moons, 'link')} already in your map ${skipped.planets + skipped.moons === 1 ? 'is' : 'are'} skipped. Nothing in your map changes.`));
   const actions = editorActions();
   const merge = editorButton('Merge into my map', () =>
     applyEditorChange([...groups.filter(sun => sun.team), ...merged.groups], showSunList,
-      { label: options.label || 'Merged an imported map' }), 'editor-primary');
-  merge.disabled = !(added.suns + added.planets + added.moons);
+      { label: options.label || 'Merged an imported map', routines: newRoutines }), 'editor-primary');
+  merge.disabled = !(added.suns + added.planets + added.moons + addedRoutines);
   actions.append(merge);
   if (options.replace !== false) {
     menuContent.append(element('p', 'editor-hint', 'Replace my map swaps your whole map for the file. Version history keeps the current map, so you can restore it.'));
     actions.append(editorButton('Replace my map', () =>
-      applyEditorChange(data.groups, showSunList, { clearUndo: true, label: 'Replaced the map with an import' })));
+      applyEditorChange(data.groups, showSunList,
+        { clearUndo: true, label: 'Replaced the map with an import', routines: data.routines || [] })));
   }
   actions.append(editorButton('Cancel', showSunList));
 }
@@ -303,10 +307,11 @@ function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind
 function resetMap() {
   if (!window.confirm('Replace browser edits with the link data loaded from the project files?')) return;
   try {
-    recordHistory(personalGroups(groups), 'Reset to file data');
+    recordHistory(personalGroups(groups), 'Reset to file data', routines);
     localStorage.removeItem(MAP_STORAGE_KEY);
     localStorage.removeItem(UNDO_STORAGE_KEY);
     groups = [...visibleTeamGroups(), ...validateMap(seedData).groups];
+    routines = validateMap(seedData).routines || [];
     mapRevision++;
     activeMapSource = 'bundled';
     storageWarning = '';
@@ -344,6 +349,7 @@ function showSunList() {
   actions.append(editorButton('Reset to file data', resetMap));
   menuContent.append(element('h4', 'editor-section-title', 'Tools'));
   const tools = editorActions();
+  tools.append(editorButton('Routines', showRoutines));
   tools.append(editorButton('History', showHistory));
   tools.append(editorButton('Find duplicates', showDuplicates));
   tools.append(editorButton('Check links', showLinkCheck));

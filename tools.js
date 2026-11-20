@@ -87,7 +87,7 @@ function showHistory() {
     row.append(copy, editorButton('Restore', () => {
       if (!window.confirm(`Restore the map from ${new Date(entry.time).toLocaleString()}?`)) return;
       applyEditorChange([...groups.filter(sun => sun.team), ...entry.groups], showHistory,
-        { label: `Restored the version from ${new Date(entry.time).toLocaleString()}` });
+        { label: `Restored the version from ${new Date(entry.time).toLocaleString()}`, routines: entry.routines || [] });
     }));
     list.append(row);
   });

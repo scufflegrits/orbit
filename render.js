@@ -633,19 +633,45 @@ function quickChip(entry) {
   return node;
 }
 
+// A routine chip opens the routine; in Edit mode it opens the routine editor.
+function routineChip(routine, index) {
+  const { items } = routineItems(routine);
+  const chip = element('button', 'quick-chip routine-chip', routine.name);
+  chip.type = 'button';
+  chip.title = `Open the ${routine.name} routine (${counted(items.length, 'link')})`;
+  chip.addEventListener('click', () => {
+    if (editMode) {
+      openMenu();
+      openEditorPage();
+      showRoutineEditor(index);
+    } else {
+      runRoutine(routine);
+    }
+  });
+  return chip;
+}
+
 function quickBar() {
   if (!showQuickBar) return null;
   const favorites = favoriteItems();
   const recent = recentItems();
-  if (!favorites.length && !recent.length) return null;
+  if (!favorites.length && !recent.length && !routines.length) return null;
   const bar = element('section', 'quick-bar');
-  bar.setAttribute('aria-label', 'Favorites and recent links');
-  for (const [label, list] of [['Favorites', favorites], ['Recent', recent]]) {
+  bar.setAttribute('aria-label', 'Routines, favorites, and recent links');
+  for (const [label, list] of [['Routines', routines], ['Favorites', favorites], ['Recent', recent]]) {
     if (!list.length) continue;
     const row = element('div', 'quick-row');
     row.append(element('h2', 'quick-label', label));
     const chips = element('div', 'quick-chips');
-    list.forEach(entry => chips.append(quickChip(entry)));
+    if (label === 'Routines') list.forEach((routine, index) => chips.append(routineChip(routine, index)));
+    else list.forEach(entry => chips.append(quickChip(entry)));
+    if (label === 'Favorites' && list.length > 1 && !editMode) {
+      const all = element('button', 'quick-open-all', `Open all (${list.length})`);
+      all.type = 'button';
+      all.title = 'Open every favorite in new tabs';
+      all.addEventListener('click', openAllFavorites);
+      chips.append(all);
+    }
     row.append(chips);
     bar.append(row);
   }

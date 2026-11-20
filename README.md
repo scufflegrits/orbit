@@ -1,6 +1,6 @@
 # Orbit
 
-A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination. Your favorite and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list.
+A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination. Your routines, favorites, and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list. Set Orbit as your startup page and a [routine](#start-your-day-with-orbit) opens your morning sites in one click.
 
 To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planets, and moons; see [Rearrange by dragging](#rearrange-by-dragging).
 
@@ -82,7 +82,7 @@ Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` r
 
 **Quick find** matches every word you type against a link's name, the sun and planet it sits in, its web address or computer name, and its tags. The sun or planet a link sits in only narrows a search, so “tech reviews” finds the Reviews moons in Tech, while “tech” alone finds the Tech sun. Short forms work: “lab1 s3” finds `lab1-server3`. A word that matches nothing exactly also finds near misses, so “engadgte” still finds Engadget. Type `#tag` or `tag:name` to see only links with that tag. Better matches come first; a result found by its address says so.
 
-**Favorites and recent links** appear in a row above the Galaxy. Star a planet or moon in Quick find results, or tick **Favorite** in its editor. The last ten links you opened are listed under Recent. Turn the row off, or clear Recent, in Settings.
+**Favorites and recent links** appear in a row above the Galaxy. Star a planet or moon in Quick find results, or tick **Favorite** in its editor; **Open all** at the end of the row opens every favorite at once. The last ten links you opened are listed under Recent. Turn the row off, or clear Recent, in Settings.
 
 **Command palette:** press `Ctrl+K` (`Cmd+K` on a Mac) from any view. Type to search links and commands such as **Turn on Edit mode**, **Edit links**, or **Show the Galaxy as a list**, then press Enter to open the highlighted entry straight away. Up and Down Arrow (and Page Up and Page Down) move; Escape closes it.
 
@@ -92,9 +92,23 @@ Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` r
 
 **Icons:** give a sun an icon (one or two characters, such as an emoji) in its editor; it appears above the sun's name. **Show site icons** in Settings adds each website's own icon to its planets and moons. It is off by default because it loads `/favicon.ico` from every site on your map; when off, Orbit contacts no site until you open it.
 
+## Start your day with Orbit
+
+A **routine** is a named set of links you open together, such as the sites you start every morning with. Create one in **Settings → Edit links → Routines → New routine**: name it, tick its planets and moons (team links work too), and save. It appears as a chip in the Routines row above the Galaxy; one click opens all its websites in new tabs. Remote Desktop links in a routine are left out when it opens. The command palette lists **Run routine: <name>**.
+
+Routines remember links by their address, so renaming or moving a link on the map keeps the routine working; a link you remove is skipped and counted. Routines are saved with your map: Export JSON includes them, Import JSON merges routines with new names, and History restores them.
+
+Tick **Offer this routine when Orbit opens** to give a routine a time and days (weekdays by default). When Orbit opens on one of those days at or after that time, a banner offers **Open <routine>** or **Not today**. Browsers open tabs only after a click, so Orbit asks instead of opening them by itself, and it asks once a day.
+
+To make this your morning start:
+
+1. Make Orbit your browser's startup page. In Edge: **Settings → Start, home, and new tabs → When Edge starts → Open these pages**, and add Orbit's address (`file:///C:/path/to/orbit/index.html`, or `http://localhost:8000` with `serve.py`). In Chrome: **Settings → On startup → Open a specific page or set of pages**.
+2. Open a routine once and allow pop-ups for Orbit when the browser asks (the blocked pop-up icon at the right of the address bar). Until then, the browser opens only the first tab and Orbit says how many were blocked.
+
 ## Edit links tools
 
-- **History** keeps the map as it was before each of your last 20 changes in this browser (edits, drags, imports, restores, and resets), with what changed. **Restore** brings a version back as a new change, so it can be undone too.
+- **Routines** lists your routines with Open, Edit, and Remove; see [Start your day with Orbit](#start-your-day-with-orbit).
+- **History** keeps the map (and its routines) as it was before each of your last 20 changes in this browser (edits, drags, imports, restores, and resets), with what changed. **Restore** brings a version back as a new change, so it can be undone too.
 - **Find duplicates** lists links that point to the same address or computer, with where each one is. An item's editor also notes when its destination exists elsewhere. A copy you made on purpose is fine.
 - **Check links** asks each website on your map whether it answers and lists the ones that do not, with Edit buttons. It needs `python3 serve.py`, because a page opened from a file cannot contact other sites. Remote Desktop links are not checked.
 - **Import bookmarks** reads a bookmarks file exported from Chrome, Edge, or Firefox (HTML). Each folder becomes a sun, its links become planets, and each subfolder becomes a planet (its first link) with the rest of its links as moons. Bars such as “Bookmarks bar” are unwrapped. Only web links are kept, and the result is merged, never replacing your map.

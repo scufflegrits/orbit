@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14, 18, and 19 complete (2026-11-15 and 2026-11-16); milestones 15–17 are implemented and their checks passed on 2026-11-19 (Chromium and Edge, both run modes). Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the PowerShell 7 installer path is also confirmed. A feature batch (recent and favorites, open all, smarter Quick find, command palette, bulk RDP settings, tags, link check, version history, duplicates, merge import, read-only team map, bookmark import, icons, and list view) was added on 2026-11-19; see [FEATURES_PLAN.md](FEATURES_PLAN.md).
+Status: milestones 1–14, 18, and 19 complete (2026-11-15 and 2026-11-16); milestones 15–17 are implemented and their checks passed on 2026-11-19 (Chromium and Edge, both run modes). Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the PowerShell 7 installer path is also confirmed. A feature batch (recent and favorites, open all, smarter Quick find, command palette, bulk RDP settings, tags, link check, version history, duplicates, merge import, read-only team map, bookmark import, icons, and list view) was added on 2026-11-19, and routines with arrival offers and Open all favorites on 2026-11-20; see [FEATURES_PLAN.md](FEATURES_PLAN.md).
 
 The editor is part of the local browser app; it does not require hosting or an account.
 

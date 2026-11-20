@@ -157,7 +157,48 @@ function validateMap(data) {
     const icon = validSunIcon(group.icon, name);
     return { id, name, description: String(group.description || ''), color, ...(icon ? { icon } : {}), links };
   });
-  return { groups: normalized };
+  const routines = validRoutines(data.routines);
+  return routines.length ? { groups: normalized, routines } : { groups: normalized };
+}
+
+// A routine is a named list of links, remembered by destination key so it
+// survives moves and renames, with an optional schedule for the arrival offer.
+function validRoutines(value) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error('Routines need to be a list.');
+  const used = new Set();
+  const names = new Set();
+  return value.map((routine, index) => {
+    if (!routine || typeof routine !== 'object') throw new Error(`Routine ${index + 1} is invalid.`);
+    const name = String(routine.name || '').trim();
+    if (!name || name.length > 60) throw new Error(`Routine ${index + 1} needs a name of up to 60 characters.`);
+    if (names.has(name.toLocaleLowerCase())) throw new Error(`There is already a routine named ${name}.`);
+    names.add(name.toLocaleLowerCase());
+    if (!Array.isArray(routine.links)) throw new Error(`${name} needs a links list.`);
+    const keys = new Set();
+    const links = [];
+    for (const link of routine.links) {
+      const key = String(link?.key || '').trim();
+      if (!key || key.length > 2000) throw new Error(`${name} has an invalid link.`);
+      if (keys.has(key)) continue;
+      keys.add(key);
+      links.push({ key, name: String(link.name || '').trim().slice(0, 200) || key });
+    }
+    if (links.length > 100) throw new Error(`${name} can have at most 100 links.`);
+    const id = routine.id && !used.has(String(routine.id)) ? String(routine.id) : uniqueSunId(name, used);
+    used.add(id);
+    const result = { id, name, links };
+    if (routine.schedule) {
+      const time = String(routine.schedule.time || '');
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error(`${name} needs a time such as 08:00.`);
+      const days = [...new Set((routine.schedule.days || []).map(Number))].sort();
+      if (!days.length || days.some(day => !Number.isInteger(day) || day < 0 || day > 6)) {
+        throw new Error(`${name} needs at least one day for its schedule.`);
+      }
+      result.schedule = { time, days };
+    }
+    return result;
+  });
 }
 
 // ---- Version history ----------------------------------------------------
@@ -176,8 +217,9 @@ function loadHistory() {
 
 // Keep the map as it was before a change. When storage is full, drop the
 // oldest versions; a failure here never blocks the change itself.
-function recordHistory(previousGroups, label) {
+function recordHistory(previousGroups, label, previousRoutines = []) {
   const entry = { time: Date.now(), label: String(label || 'Change'), groups: previousGroups };
+  if (previousRoutines.length) entry.routines = previousRoutines;
   const list = [entry, ...loadHistory()].slice(0, HISTORY_LIMIT);
   while (list.length) {
     try {
@@ -207,14 +249,19 @@ function personalGroups(list) {
 // Save the personal part of a map. The map as it was is kept in version
 // history under `label`; pass label false to skip that (a history restore
 // records its own entry).
+// Routines are kept unless `data.routines` replaces them.
 function saveMap(data, label = 'Change') {
-  const normalized = validateMap({ groups: personalGroups(data.groups) });
+  const normalized = validateMap({ groups: personalGroups(data.groups),
+    routines: data.routines !== undefined ? data.routines : routines });
   const previous = personalGroups(groups);
+  const previousRoutines = routines;
   localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(normalized));
-  if (label !== false && JSON.stringify(previous) !== JSON.stringify(normalized.groups)) {
-    recordHistory(previous, label);
+  if (label !== false && JSON.stringify([previous, previousRoutines]) !==
+      JSON.stringify([normalized.groups, normalized.routines || []])) {
+    recordHistory(previous, label, previousRoutines);
   }
   groups = [...visibleTeamGroups(), ...normalized.groups];
+  routines = normalized.routines || [];
   mapRevision++;
   activeMapSource = 'browser';
   countDestinations();

@@ -106,6 +106,8 @@ function setEditMode(on) {
   editBar.hidden = !on;
   announce('');
   if (!app.classList.contains('error-view')) keepingScroll(render);
+  // The arrival offer waits until Edit mode is off.
+  offerDueRoutines();
 }
 
 function pathOf(node) {

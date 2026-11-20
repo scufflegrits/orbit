@@ -139,3 +139,34 @@
 - [x] Docs: README (user-facing features), Help text, HANDOFF (architecture, files, open items), TEST_MATRIX (F01–F15 rows and commit record), ROADMAP status, README-distribute if `serve.py`/`sync.py` options change.
 - [x] Version 2.0.0.
 - [x] Commit and push to `main`.
+
+# Batch 2 — morning routines (2026-11-20)
+
+**Status:** Complete (2026-11-20, version 2.1.0); tested in Chromium and headless Edge on the VM, both run modes. Orbit as a startup page: open a set of everyday links with one click. Same rules as above (works from `file://` and `serve.py`, nothing contacts other services, browsers only open tabs after a click).
+
+## 16. Open all favorites
+
+- [x] An "Open all" button at the end of the Favorites row in the quick bar, with the count.
+- [x] A command palette entry "Open all favorites".
+- [x] It shares the Open all behavior: confirm above one tab, Remote Desktop links left out with a count, blocked tabs reported.
+
+## 17. Named routines
+
+- [x] A routine is a name plus an ordered list of links (planets or moons, team links included), stored with the map as `routines` beside `groups`: kept by every save, in version history, in Export JSON, and in Import JSON (merge adds routines with new names; replace takes the file's).
+- [x] Links are remembered by destination, so moving or renaming them on the map keeps the routine working; links that no longer exist are skipped and counted.
+- [x] Edit links → Routines: list with Open, Edit, and Remove; a form with a name, a checklist of every planet and moon grouped by sun (with a filter), and an optional schedule (item 18).
+- [x] A "Routines" row in the quick bar with one chip per routine; the command palette lists "Run routine: <name>". In Edit mode a routine chip opens it in Edit links.
+
+## 18. Offer routines on arrival
+
+- [x] A routine can have a schedule: a time and days of the week (weekdays by default).
+- [x] When Orbit loads on a scheduled day at or after that time, a banner offers "Open <routine> (n links)" with Open and Not today. Browsers need that click to open tabs.
+- [x] Once opened or dismissed, the banner does not return that day (`orbit:routine-offered:v1`). More than one due routine share the banner.
+- [x] Help and README explain using Orbit as the browser's startup page and allowing pop-ups.
+
+## Testing and finish
+
+- [x] `tests/features.py`: F16 (open all favorites), F17 (routines: create, reorder by map, rename-proof, run, missing link, export and merge import, Edit mode, palette), F18 (arrival banner: due, not yet, other day, Open, Not today, once a day).
+- [x] Prove a check can fail by breaking the feature.
+- [x] Run every suite locally, then in Edge on the VM (headless, both modes).
+- [x] Docs (README, Help, HANDOFF, TEST_MATRIX, ROADMAP), version 2.1.0, commit and push.
