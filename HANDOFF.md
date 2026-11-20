@@ -1,104 +1,134 @@
 # Orbit handoff
 
-## Current assignment and workflow
+Last updated 2026-11-20, at version 2.2.0 (commit `cd8cc49`).
 
-The latest assignments, the 2026-11-19 feature batch (2.0.0) the 2026-11-20 routines batch (2.1.0), and batch 3 (2.2.0: notes, placeholders, quick add, workspaces, link packs, backup reminders, team updates, RDP presets; all in [FEATURES_PLAN.md](FEATURES_PLAN.md)) are complete and on `main`. Earlier, backlog priority 9 (**drag-and-drop organization**) was built on `feature/drag-drop-organization` in two phases from [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) and merged through pull request #1 (merge commit `b244f04`, 2026-11-17). No new assignment has been given; check with the user before starting one. For each change the user expects the whole cycle without being asked step by step: local tests, Edge on the Windows VM, fix, update the docs, then commit and push. On 2026-11-17 the user asked for all work to go directly on `main`: every branch was merged and deleted, and future commits go straight to `main` unless the user asks for a branch. The GitHub remote is named `main` (not `origin`), so push with `git push main main`. Commit or push only when the user asks.
+## Status
 
-Feature batch (2026-11-19, version 2.0.0): the user asked for ideas 1–4 and 6–15 from a feature list, tracked with checkboxes in [FEATURES_PLAN.md](FEATURES_PLAN.md) (all ticked). Idea 5 (lab reachability) and touchscreen dragging were declined. How it fits together:
+All assigned work is complete and on `main`. There is no open assignment and no failing or pending test; check with the user before starting new work.
 
-- **Team map** (`team.js`): team suns sit at the front of the same `groups` array, marked `team: true` with ids prefixed `team:`. `saveMap` strips them (`personalGroups`) before validating and storing, so every editor and drag path keeps using combined indices. `moveMapItem` refuses any path in a team sun; the drag controller, tray, Move/Copy targets, and editor screens (`showTeamSun`/`showTeamItem` in `tools.js`) treat them as read-only. Team favorites are a preference (`orbit:team-favorites`, destination keys); hidden team suns are `orbit:team-hidden`. Server mode fetches `/team.json` (`serve.py --team`); file mode reads `window.ORBIT_TEAM_DATA` from an optional `team-data.js` (`sync.py --team`, gitignored).
-- **Version history**: `saveMap(data, label)` records the previous personal map in `orbit:history:v1` (last 20, oldest dropped if storage is full, skipped when nothing changed). Pass a label for every save; `false` skips recording. Reset records too.
-- **Destination keys** (`destinationKey` in `storage.js`): normalized URL or `rdp:host[:port]`; used by recent links, duplicates, merge import, and link-check results.
-- **Recent, favorites, open all** (`favorites.js`): rendered destinations carry `data-destination="sun:planet[:moon]"`; a bubble-phase click listener records recents (the Edit mode guard stops clicks first). Quick-bar chips and list links carry `data-edit-path` so the Edit mode guard in `drag.js` opens them in Edit links. Shift+click on a planet opens it with its web moons; browsers other than Playwright's Chromium block all but the first tab until pop-ups are allowed, and Orbit reports how many were blocked.
-- **Search** (`findMatches` in `render.js`): every word must match; words that match nothing exactly get typo tolerance; path matches only narrow; `#tag`/`tag:` filter. **Palette** is `palette.js` (Ctrl/Cmd+K; first in the Escape order).
-- **Editor tools** (`tools.js`): merge import (`mergeMaps`, also used by bookmark import), History, duplicates, link check (`POST /api/check-links` in `serve.py`, guarded by same-origin Host/Origin, JSON type, and an `X-Orbit-Check` header), bookmark import, bulk RDP settings.
-- **Routines** (`routines.js`, 2.1.0): `routines` sits beside `groups` in the map (validated by `validRoutines`, unique names, links as `{key, name}` destination keys, optional `schedule: {time, days}`). `saveMap` keeps the current routines unless `data.routines` is given; `applyEditorChange(..., { routines })` passes them; history entries store them; Export includes them; Import merges new names (`mergeRoutines`) or replaces. `openLinks` in `favorites.js` is the shared opener (Open all, favorites, routines). The arrival banner (`offerDueRoutines`) runs after `init`, when Edit mode turns off, and when the tab becomes visible; `orbit:routine-offered:v1` records the day a routine was opened or dismissed.
-- **Batch 3** (2.2.0): `variables.js` (the `{placeholder}` form, `orbit:variables:v1`, and Quick add), `workspaces.js` (workspaces and backup reminders), `sharing.js` (link packs and team-map update notices, `orbit:team-seen:v1`), `presets.js` (RDP preset screens). Workspaces: `MAP_STORAGE_KEY`, `UNDO_STORAGE_KEY`, and `HISTORY_STORAGE_KEY` are `let` in `app.js`, built by `workspaceKey()`; Main keeps the original keys, others add `:<id>`. `effectiveRdpProfile` in `rdp.js` resolves a link's preset. Banners go in `noticeArea()` (before `#app`). Placeholder links render as buttons with `data-template` and are recorded as recent when their form opens them. In tests, a page's `copyGroups()` puts team suns first.
-- **Schema additions** (optional, dropped when empty): planet/moon `tags` and `favorite`, sun `icon`, planet/moon `note` and `rdpPreset`, web URLs with `{placeholders}`, top-level `routines` and `rdpPresets`. **Settings**: quick bar, Galaxy view (`orbit:galaxy-view`), site icons (off by default; favicons load from each site).
+| Release | Date | What it added | Plan |
+| --- | --- | --- | --- |
+| Milestones 1–19, backlog 1–9 | to 2026-11-17 | Galaxy and System views, editor, Remote Desktop links and Windows helper, keyboard navigation, sizing, drag-and-drop | [ROADMAP.md](ROADMAP.md), [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) |
+| 2.0.0 | 2026-11-19 | Recent links and favorites, open all, smarter Quick find, Ctrl/Cmd+K palette, bulk RDP settings, tags, link check, version history, duplicate finder, merge import, read-only team map, bookmark import, site icons, list view | [FEATURES_PLAN.md](FEATURES_PLAN.md) |
+| 2.1.0 | 2026-11-20 | Open all favorites, named routines, routine offers when Orbit opens | FEATURES_PLAN.md |
+| 2.2.0 | 2026-11-20 | Notes, `{placeholder}` links, quick add, workspaces, link packs, backup reminders, team map update notices, RDP presets | FEATURES_PLAN.md |
 
-How drag-and-drop works, for the next change: every rendered sun, planet, and moon carries its array path in `data-kind`, `data-sun`, `data-planet`, and `data-moon` (`tagPath` in `render.js`). `moveMapItem` in `drag.js` is the one pure move operation; the drag controller and the editor's Move forms both call it. A parent target appends; a sibling target with `place: 'before' | 'after'` reorders or inserts. A gesture records `mapRevision` (bumped by `saveMap` and Reset) and the stored map text, and refuses to commit if either changed. Drag Undo is in memory only and is retired by any later `mapRevision` change. Clicks on planets and moons are blocked in the capture phase while Edit mode is on. In a test, do not compute a tray row's position before the drag starts: the tray exists only during a drag.
+Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and touchscreen dragging.
+
+## How the user wants work done
+
+- **The change cycle, unprompted:** local tests → Edge on the Windows VM → fix what fails → update the docs → commit and push. Do not ask before each step.
+- **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`.
+- **Plans** for multi-part work go in a Markdown file with `[ ]` checkboxes, ticked as items land; testing may wait until every item is built.
+- **Tests are focused**, not full-matrix: check changed behavior and its direct dependencies (see [TEST_MATRIX.md](TEST_MATRIX.md)). Run the full matrix only for app-wide changes, a release, or an explicit request.
+
+## Private material — never commit, copy, print, or quote
+
+- `tests/rdptest01.rdp` — the user's connection data. Keep it untracked and off the VM.
+- `request-observations.md` — gitignored private notes.
+- The VM's password. Use the SSH key only.
+- Never expose Edge's remote-debugging port on a public VM interface; tunnel it over SSH.
 
 ## Project intent
 
-Orbit is a local webpage for frequently visited links. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets (destinations); hovering over a planet reveals its moons (nested destinations). Clicking a sun opens its System, and clicking a planet or moon opens its URL in a new tab. Hosting and accounts are not required.
+Orbit is a local webpage for frequently visited links; no hosting or accounts. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets (destinations); hovering over a planet reveals its moons (nested destinations). Clicking a sun opens its System; clicking a planet or moon opens its link in a new tab, or downloads/launches a Remote Desktop connection. The smallest supported screen is 1920×1080. No personal links have been supplied; the bundled map is sample data (nine suns, 45 planets, 61 moons).
 
-## Current state
+## Run and edit
 
-- Milestones 1–19 and backlog priorities 1–9 are complete and every check in [TEST_MATRIX.md](TEST_MATRIX.md) has run, including the Windows checks (B01, B02, B07) and milestones 15–17 (2026-11-19). The 2026-11-19 feature batch adds favorites and recent links, open all, smarter Quick find, a command palette, bulk RDP settings, tags, a link check, version history, a duplicate finder, merge import, a read-only team map, bookmark import, icons, and a list view (F01–F15; see the feature batch notes above). See [ROADMAP.md](ROADMAP.md).
-- The bundled data contains nine sample suns, 45 planets, and 61 moons. Five planets can appear around each Galaxy sun; eight appear around a System sun; six moons can appear around a planet. Overflow lists keep additional destinations reachable.
-- The cog, Quick find, the list-view toggle, and Edit mode appear on the Galaxy and System views; Ctrl/Cmd+K opens the command palette anywhere. Quick find from a System returns to Galaxy results. The home view omits the large intro block; navigation guidance is in Help. The cog panel enters from the right.
-- Themes are named Default, Red, and Blue. Settings also includes Animations, Always show moons, font size, Remote Desktop mode, and the local link editor.
-- The editor supports scoped sun/planet/moon JSON sharing and importing a planet as a sun. It can also import local `.rdp` profiles into planet or moon entries, preserving settings while excluding password, token, and signature fields.
-- Labs contains `lab1`–`lab5` and five `lab1` server moons. Their hosts are examples. Remote Desktop destinations download `.rdp` files by default. The Windows helper passes imported profiles to built-in `mstsc.exe`; the user confirmed native profile launch works on Windows after rerunning the installer. Installing MSRDC does not register Orbit's protocol.
-- The installer registers the executable running it: Windows PowerShell 5.1 (`powershell.exe`) or PowerShell 7 (`pwsh.exe`). Running it again overwrites the per-user protocol command and refreshes the helper, so moving from 5.1 to 7 switches future clicks. Settings and README show both commands; the user must re-run the installer if that executable is removed.
-- Keyboard navigation (Milestone 19) is complete and documented in Help and the README. `/` focuses Quick find, and Down and Up Arrow move through its results. Tab reaches every sun, planet, and moon with a visible focus ring; focusing a planet reveals its moons (keyboard focus shows planets and moons immediately via `:has(:focus-visible)`, while mouse presses keep the animated reveal so clicks still land on the sun). Arrow keys move between suns by position, between sibling planets or moons, down into moons, and back up. The menu takes focus when opened, traps Tab, and returns focus to its opener. Escape closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then leaves a System. Touch interaction remains out of scope.
-- Planet and moon sizing (2026-11-17): up to six moons orbit a planet (`VISIBLE_MOONS` in `app.js`); extras go to More moons. `fitOrbitSizes` in `render.js` measures every label with a canvas and grows each level's circle (Galaxy planets, System planets, moons, More planets, overflow moons) until no word splits, up to a per-level max; past the max, only that label's text shrinks (to 60% at most). Sizes are shared across the whole map and set as CSS variables (`--home-planet-size`, `--detail-planet-size`, `--moon-size`, `--more-planet-size`, `--overflow-moon-size`). `layoutMoonField` places the moons: five or six moons get a 150° fan and a longer reach, and the hover field is clipped to the outline around the planet and its moons so it never covers a neighbouring planet. Galaxy planets that grow move outward to clear the sun, and the Galaxy adds top room (`--galaxy-fan-room`) when a first-row fan would reach the top bar; in a System, the note under the stage moves down when a lower planet's fan would cover it. In Edit mode, the Before/After box for an orbiting moon opens outward from its planet so it does not cover the next moon. The smallest supported screen is 1920×1080. Checks: `tests/orbit_sizes.py` (OS01–OS06; OS07 is the same run in Edge on the VM, passed 2026-11-19).
-- Drag-and-drop organization (backlog 9) is complete. An **Edit mode** toggle in the top bar (Off after every reload) pauses planet and moon links. A mouse or pen can then move a planet to another sun or a moon to another planet, and reorder or insert suns, planets, and moons by choosing Before or After beside a sibling. A System shows a destination tray during a drag. **Undo last drag** reverses one move. Edit links → Move to another sun/planet has a Position field for keyboard users. See README "Rearrange by dragging" and `TEST_MATRIX.md` DD01–DD17.
+- Open `index.html` directly (file mode), or run `python3 serve.py` and open `http://localhost:8000` (server mode). `serve.py` binds to `127.0.0.1:8000`; `--port` changes the port and `--team PATH` serves a team map at `/team.json`.
+- The editor saves to the current browser's storage. Export JSON backs a map up; Import JSON merges or replaces. The browser never writes `links.json`.
+- To change the bundled map, edit `links.json` and run `python3 sync.py` (regenerates `links-data.js` for file mode). `sync.py --team PATH` writes the gitignored `team-data.js`; `--no-team` removes it. A map saved in the browser takes precedence until **Reset to file data**.
 
-## Files
+## Code layout
+
+Classic scripts (not modules, so `file://` works), sharing top-level globals and loaded by `index.html` in this order:
+
+`links-data.js`, optional `team-data.js`, `rdp.js`, `storage.js`, `team.js`, `favorites.js`, `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `variables.js`, `workspaces.js`, `sharing.js`, `presets.js`, `menu.js`, `render.js`, `drag.js`, `palette.js`, `keys.js`, `app.js`.
+
+Keep that order. A new script also goes in `APP_SCRIPTS` in `tests/helpers.py`, which the test fixtures copy and the syntax check reads.
 
 | File | Purpose |
 | --- | --- |
 | `index.html` | Page shell and script loading |
-| `styles.css` | Layout, animations, responsive rules, and themes |
-| `app.js` | Shared DOM handles, state and constants, destination count, undo, event wiring, and `init` |
-| `rdp.js` | Remote Desktop host validation, `.rdp` parsing, download, and protocol URLs |
-| `storage.js` | Preferences, destination and map validation, browser map and undo storage |
-| `editor.js` | Sun, planet, and moon editors, JSON import/export, reset |
-| `editor-page.js` | Full-screen editor workspace, persistent map tree, and cross-parent moves |
-| `menu.js` | Settings menu: open/close with focus handling, and the Settings, Help, and About panels |
-| `keys.js` | Keyboard handling: menu focus trap, Escape layers, `/` and arrow keys for Quick find, and arrow navigation through the map |
-| `render.js` | Galaxy and System rendering, planet/moon nodes, Quick find |
-| `team.js` | Read-only team map: loading, hidden team suns, copy helper |
-| `favorites.js` | Recent links, favorites, opening a planet with its moons, and recent-link tracking |
-| `tools.js` | Edit links tools: merge import, history, duplicates, link check, bookmark import, bulk RDP settings, team screens |
-| `palette.js` | Command palette (Ctrl/Cmd+K) |
-| `variables.js` | Link placeholders and Quick add |
+| `styles.css` | Layout, animations, responsive rules, themes (Default, Red, Blue) |
+| `app.js` | Shared state and constants (`APP_VERSION`, storage keys), destination count, undo, event wiring, `init` |
+| `rdp.js` | Remote Desktop host validation, `.rdp` parsing, download, protocol URLs, `effectiveRdpProfile` (applies a preset) |
+| `storage.js` | Preferences, map validation, `saveMap`, history, `destinationKey`, placeholder helpers |
+| `team.js` | Read-only team map: loading, hidden team suns, `plainCopy` |
+| `favorites.js` | Recent links, favorites, `openLinks` (the shared opener), `noticeArea` banners |
+| `editor.js` | Sun, planet, and moon editors; JSON import/export; reset |
+| `editor-page.js` | Full-screen editor workspace, map tree, cross-parent moves |
+| `tools.js` | Merge import, History, duplicates, link check, bookmark import, bulk RDP settings, team screens |
+| `routines.js` | Routines: running, merging, the arrival offer, editor screens |
+| `variables.js` | The placeholder form and Quick add |
 | `workspaces.js` | Workspaces and backup reminders |
 | `sharing.js` | Link packs and team map update notices |
-| `presets.js` | Remote Desktop presets |
-| `routines.js` | Routines: running, merging, the arrival offer, and the Edit links screens |
-| `FEATURES_PLAN.md` | The 2026-11-19 feature batch plan with its checklist |
-| `drag.js` | Edit mode, the shared move operation, the pointer drag controller, the System destination tray, and drag Undo |
-| `links.json` | Bundled suns, planets, and moons |
-| `links-data.js` | Generated copy of the JSON for direct-file use |
-| `sync.py` | Regenerates `links-data.js` from `links.json`; `--team PATH` writes `team-data.js`, `--no-team` removes it |
-| `serve.py` | Optional local server bound to `127.0.0.1:8000` (`--port`, `--team PATH`), with `POST /api/check-links` |
-| `tests/browser_matrix.py` | Test runner CLI (`--milestone`, `--only-new`, `--repeat`) and per-mode dispatch |
-| `tests/helpers.py` | Shared constants (`ROOT`, `ARTIFACTS`, `APP_SCRIPTS`), fixtures, and page helpers |
-| `tests/milestones_01_08.py` | Browser checks for milestones 1–8 |
-| `tests/milestones_09_14.py` | Browser checks for milestones 9–14 and the pending-UI checks |
-| `tests/milestone_18.py` | Browser checks for imported Remote Desktop profiles |
-| `tests/milestone_19.py` | Browser checks for keyboard navigation (K01–K08) |
-| `tests/drag_drop.py` | Focused drag-and-drop checks (`--phase 1\|2`; `--cdp` and `--url` run them in a remote browser such as Edge on the VM) |
-| `tests/orbit_sizes.py` | Planet and moon sizing, the six-moon fan, and hover handoff at 1920×1080 (OS01–OS06; `--cdp`, `--url`, and `--write-fixture` work as in `drag_drop.py`) |
-| `tests/features.py` | Feature batch checks F01–F26 (no F05); file mode and serve.py's handler with `--team`, a local test site for the link check; `--cdp`/`--url`/`--target`/`--server-mode` for Edge and `--write-fixture DIR --target URL` for the VM copy |
-| `tests/pending_checks.py` | Deferred browser checks B09, B11, and milestones 15–17 on the bundled data (`--only`, `--cdp`, `--url`) |
-| `README.md` | User instructions |
-| `ROADMAP.md` | Scope, milestones, and deferred work |
-| `DRAG_DROP_PLAN.md` | The priority-9 plan as built (design record) and the Windows VM test procedure |
-| `TEST_MATRIX.md` | Test cases, results, and milestone commit record |
-| `windows/Install-OrbitRdp.ps1` | Per-user Windows protocol registration |
-| `windows/OrbitRdpLauncher.ps1` | Validates a target and opens Remote Desktop Connection |
-| `windows/Uninstall-OrbitRdp.ps1` | Removes the per-user protocol registration |
+| `presets.js` | Remote Desktop preset screens |
+| `menu.js` | Cog menu: Settings, Help, About |
+| `render.js` | Galaxy, System, and list rendering; `fitOrbitSizes`; Quick find (`findMatches`) |
+| `drag.js` | Edit mode, `moveMapItem`, the pointer drag controller, the System tray, drag Undo |
+| `palette.js` | Command palette (Ctrl/Cmd+K) |
+| `keys.js` | Menu focus trap, the Escape order, `/` and arrow-key navigation |
+| `links.json` / `links-data.js` | Bundled map, and its generated copy for file mode |
+| `serve.py` / `sync.py` | Local server (with `POST /api/check-links`) / data generator |
+| `windows/*.ps1` | Per-user `orbit-rdp://` protocol install, launcher, uninstall |
 
-## Run and edit
+Other docs: [README.md](README.md) (user guide), [README-distribute.md](README-distribute.md), [ROADMAP.md](ROADMAP.md), [TEST_MATRIX.md](TEST_MATRIX.md), [FEATURES_PLAN.md](FEATURES_PLAN.md), [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md), [REFACTOR_PLAN.md](REFACTOR_PLAN.md) (done), [RDP_SIGNING.md](RDP_SIGNING.md).
 
-Open `index.html` directly, or run `python3 serve.py` and open `http://localhost:8000`. The editor stores changes in the current browser; use Export JSON to back them up and Import JSON to move them between run modes. The browser editor does not write `links.json`.
+## Things to know before changing code
 
-To edit bundled data, change `links.json` and run `python3 sync.py` for direct-file mode. The local server reads `links.json` on refresh. Browser overrides continue to take precedence until Reset to file data is used.
+**Map schema.** `{ groups: [sun…], routines?, rdpPresets? }`. A sun has `id`, `name`, `description`, `color`, `links` (planets), optional `icon`. A planet or moon is a web link (`url`) or Remote Desktop link (`type: 'rdp'`, `host`, optional profile), with optional `tags`, `favorite`, `note`, `rdpPreset`; planets have `moons`. Optional fields are dropped when empty. Web URLs may contain up to five `{placeholders}` (`PLACEHOLDER`, `templateNames`, `fillTemplate`). Routines are `{id, name, links: [{key, name}], schedule?: {time, days}}`; presets are `{id, name, settings}` (`.rdp` lines, never passwords).
 
-## Verification
+**Saving.** Every change goes through `saveMap(data, label)` (editors call `applyEditorChange(next, after, { label, routines?, rdpPresets? })`). It strips team suns, validates, stores, records the previous map in version history (last 20; `label === false` skips), keeps routines and presets unless given, bumps `mapRevision`, and counts a change for the backup reminder.
 
-Use the scope-based tiers in `TEST_MATRIX.md`: check changed behavior and its direct dependencies after a related batch of edits. A full matrix is reserved for changes with app-wide impact, a release or deployment, or an explicit request; it is not a routine commit gate. Repeat tests only for a concrete failure or timing risk.
+**Team map.** Team suns sit at the front of the same `groups` array, marked `team: true` with ids prefixed `team:`, so every path index is a combined index. Editors, drag, Move/Copy targets, and Quick add skip or refuse them. In tests, a page's `copyGroups()` therefore has the team sun at index 0 when a team map is loaded.
 
-The Playwright runner (`tests/browser_matrix.py`, with checks in `tests/milestone*.py` and helpers in `tests/helpers.py`) accepts `--milestone` 1–19. Milestones 15–17 are covered by `tests/pending_checks.py`, and the feature batch by `tests/features.py`. `--milestone N` replays every milestone up to N in both modes and is slow; `--only-new` runs just milestone N plus shared checks. M18-01 to M18-03 are automated (`run_milestone_18`: UTF-16 fixture import, persistence, download, export, host edit, secret stripping, and malformed/oversized negatives) and passed in both modes over five consecutive runs. M18-04 (native launch) and N06 (PowerShell 7 installer) were confirmed on Windows. Backlog registry checks B01–B02 passed on the Windows VM (2026-11-19). The M13 flake was a race after the logo click and is fixed (`click_logo_to_galaxy`); `--repeat N` runs a selection N times and stops at the first failure. See [REFACTOR_PLAN.md](REFACTOR_PLAN.md).
+**Destination keys.** `destinationKey(item)` is a normalized URL or `rdp:host[:port]`. Recents, favorites of team links, routines, duplicates, merge import, link packs, link-check results, and team update notices all match on it; `pathsForKey` finds an item's current position.
 
-M19 results (2026-11-16): K01–K08 are automated in `tests/milestone_19.py` and passed in both modes; `--milestone 19 --only-new --repeat 5` passed 5 of 5 and the full matrix passed once as the commit gate. Two async-render races were found and fixed in tests while writing them: leaving a System runs the render in a later `hashchange`, so tests must wait for `.detail-view` to detach and `.home-hub` to appear before reading or pressing keys. When a defect or flake is found, fix or add the test in the same change. For drag work, the plan calls for a separate focused `tests/drag_drop.py` runner rather than replaying milestone 19.
+**Workspaces.** `MAP_STORAGE_KEY`, `UNDO_STORAGE_KEY`, and `HISTORY_STORAGE_KEY` are `let` in `app.js`, built by `workspaceKey()`. Main keeps the original keys (so pre-2.2 maps stay put); other workspaces append `:<id>`. Preferences and the team map are shared across workspaces.
+
+**Opening links.** `openLinks(items, label, options)` is the one opener for Open all, favorites, and routines. Browsers other than Playwright's Chromium (including Edge) allow only the first tab until pop-ups are allowed for the site; Orbit reports the blocked count. Remote Desktop links are never opened in bulk. Placeholder links reuse their last values, or are skipped and counted.
+
+**Banners.** Routine offers, backup reminders, team updates, and open-all reports go in `noticeArea()`, inserted before `#app`.
+
+**Drag-and-drop.** Rendered nodes carry their array path in `data-kind`, `data-sun`, `data-planet`, `data-moon` (`tagPath`). `moveMapItem` is the one pure move; a parent target appends, a sibling target with `place: 'before' | 'after'` inserts. A gesture refuses to commit if `mapRevision` or the stored map changed underneath it. Clicks on links are blocked in the capture phase while Edit mode is on. The System tray exists only during a drag.
+
+**Sizing.** `fitOrbitSizes` measures labels with a canvas and grows each level's circle until no word splits, up to a per-level max, then shrinks only that label (to 60% at most). Sizes are shared map-wide as CSS variables. Up to six moons orbit a planet (`VISIBLE_MOONS`); `layoutMoonField` fans them and clips the hover field.
+
+**Keyboard.** Escape order: palette, then menu, then drag, then Edit mode, then Quick find, then leaving a System.
+
+**Server security.** `POST /api/check-links` requires a same-origin Host/Origin, a JSON body, and an `X-Orbit-Check: 1` header.
+
+## Tests
+
+Local tests use Python Playwright with its Chromium. Each runner checks file mode and server mode.
+
+| Runner | Covers | Last local result |
+| --- | --- | --- |
+| `tests/browser_matrix.py` | Milestones 1–14, 18, 19 (`--milestone N`, `--only-new`, `--repeat N`) | 39 passed |
+| `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
+| `tests/orbit_sizes.py` | OS01–OS06 at 1920×1080 | 13 passed |
+| `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
+| `tests/features.py` | F01–F26, no F05 | all passed |
+
+`drag_drop.py`, `orbit_sizes.py`, `pending_checks.py`, and `features.py` accept `--cdp URL` and `--url PAGE` to drive a remote browser; `features.py` also takes `--target`, `--server-mode`, and `--write-fixture DIR`, and the drag and sizing runners take `--write-fixture DIR`.
+
+Known quirks:
+
+- Playwright's Chromium does not load images while a route is registered, so F14 removes routes first.
+- Downloads in a remote browser can't be read; the tests capture `downloadJson` calls instead.
+- Dialogs are answered by one global handler; add a message to `DISMISS_NEXT` to cancel one.
+- Leaving a System renders in a later `hashchange`; wait for `.detail-view` to detach before pressing keys.
+- All `file://` pages share one localStorage, so reload after clearing it; a hash-only `goto` keeps the old in-memory map.
+- In file mode without a team map, the console shows one harmless "file not found" for `team-data.js`.
+
+When a defect or flake is found, fix or add the test in the same change, and mutate the code once to prove a new check can fail.
 
 ## Windows 11 test VM
 
-The user provided a disposable Windows 11 VM, `win11-lab-test` at `10.31.31.238`, with account `sysadmin`, full project-testing control, and baseline snapshot `s04`. The user confirmed it is currently at `s04`. Never record or print its supplied password. Key-only SSH was installed and verified from this host with `/home/sysadmin/.ssh/id_ed25519`. Use `-F /dev/null` because the local system SSH config has a permission error. The verified host key is in `/tmp/orbit-win11-known_hosts`; if that temporary file disappears, verify the fingerprint before accepting a new key.
+`win11-lab-test` at `10.31.31.238`, account `sysadmin`, Edge 157, Windows PowerShell 5.1. Disposable; the user gave full control. Remote Desktop was enabled at the user's request (2026-11-19) and is left on, so the VM no longer matches its baseline snapshot `s04`. Restoring a snapshot needs hypervisor access.
+
+SSH with the key (`-F /dev/null` works around a permission error in the local SSH config). The verified host key is in `/tmp/orbit-win11-known_hosts`; if that file is gone, verify the fingerprint before accepting a new key.
 
 ```sh
 ssh -F /dev/null -i /home/sysadmin/.ssh/id_ed25519 -o BatchMode=yes \
@@ -107,25 +137,31 @@ ssh -F /dev/null -i /home/sysadmin/.ssh/id_ed25519 -o BatchMode=yes \
   sysadmin@10.31.31.238 whoami
 ```
 
-The drag checks ran in Edge on this VM (DD17, 2026-11-16). To repeat: `git archive --format=zip HEAD`, write the fixture data with `tests/drag_drop.py --phase 2 --write-fixture DIR`, copy the archive and the two fixture files to the guest, expand to `C:\orbit-drag-test` and overwrite `links.json` and `links-data.js` there; start Edge through SSH with `-L 127.0.0.1:9333:127.0.0.1:9333` and `msedge.exe --headless=new --remote-debugging-port=9333 --user-data-dir=C:\orbit-drag-profile about:blank`; then run `tests/drag_drop.py --phase 2 --cdp http://127.0.0.1:9333 --url file:///C:/orbit-drag-test/index.html`. Stop Edge and delete both guest folders afterwards. The sizing checks ran the same way (OS07, 2026-11-19): write their fixture with `tests/orbit_sizes.py --write-fixture DIR`, expand a second copy to `C:\orbit-size-test`, add `--window-size=1920,1080` to the Edge command, and run `tests/orbit_sizes.py --cdp http://127.0.0.1:9333 --url file:///C:/orbit-size-test/index.html`. Copy PowerShell steps to the guest as a `.ps1` file; inline PowerShell loses its quoting over SSH. Stop Edge (`Stop-Process`) and wait a few seconds before deleting the profile, or its files are still locked. Server mode on Windows (2026-11-19): serve the fixtures from this host on loopback and add `-R 127.0.0.1:PORT:127.0.0.1:PORT` to the same SSH command, then pass `--url http://127.0.0.1:PORT/index.html`. `tests/pending_checks.py` uses the bundled data, so a plain copy of the tracked files is enough. B01, B02, and B07 ran as a PowerShell 5.1 script on the guest: install, change the registered command, re-install, open `orbit-rdp://` host-only and profile links with `Start-Process` and read the `mstsc.exe` command lines, then uninstall; the script refused to start if an `orbit-rdp` key or `%LOCALAPPDATA%\Orbit` already existed and removed both afterwards. Windows Edge shows a classic 15 px scrollbar, so compare positions with `document.documentElement.clientWidth`, not the window width. Remote Desktop is enabled on the VM (2026-11-19, at the user's request; Network Level Authentication on, the built-in firewall rules on for all profiles, network category Public), so snapshot `s04` no longer matches. For a visible-window pass, the user signs in over Remote Desktop and leaves the session open; `query user` shows it. SSH cannot open windows on that desktop, so start Edge with a one-off scheduled task whose principal uses `-LogonType Interactive` (same Edge flags without `--headless`), then tunnel 9333 as before. A screen capture from such a task (`CopyFromScreen`) came back pure white even while Edge rendered, so rely on Playwright screenshots and ask the user what the desktop shows. All `file://` pages share one localStorage, so reload after clearing it; a hash-only `goto` keeps the old in-memory map.
+**Headless Edge run:**
 
-Windows PowerShell 5.1 and Microsoft Edge are present; Edge is at `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`. Chrome was not found in its usual Program Files path. Python/Node are not verified as real guest runtimes. Copy a clean archive of **tracked** files to a disposable guest folder for Edge file-mode checks, excluding private fixtures and credentials. The drag plan documents the archive/SSH procedure and how to use Edge for focused pointer checks. A guest SSH login cannot restore `s04`; snapshot restoration requires hypervisor access. Windows registry/helper checks B01, B02, and B07 remain pending. They are separate from priority 9. A local draft smoke script was not run or copied to the VM; do not report those cases as passed.
+1. Build a clean archive of tracked files only (`git archive --format=zip HEAD`) and write any fixture the runner needs (`--write-fixture DIR`).
+2. Copy them to the guest and expand to a test folder such as `C:\orbit-drag-test`, overwriting `links.json` and `links-data.js` with the fixture.
+3. Start Edge over SSH with `-L 127.0.0.1:9333:127.0.0.1:9333`: `msedge.exe --headless=new --remote-debugging-port=9333 --user-data-dir=C:\orbit-drag-profile about:blank` (add `--window-size=1920,1080` for sizing). Edge is at `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
+4. Run the runner with `--cdp http://127.0.0.1:9333 --url file:///C:/<folder>/index.html`.
+5. For server mode, serve the fixture from this host on loopback, add `-R 127.0.0.1:PORT:127.0.0.1:PORT` (8771–8775 have been used), and pass `--url http://127.0.0.1:PORT/index.html`.
+6. Clean up: `Stop-Process` Edge, wait a few seconds for the profile to unlock, then delete the profile and test folders.
 
-## Next work
+**Visible-window run:** the user signs in over Remote Desktop and leaves the session open (`query user` shows it). SSH cannot open windows on that desktop, so start Edge (same flags, no `--headless`) through a one-off scheduled task whose principal uses `-LogonType Interactive`, then tunnel 9333 as above. Screen captures from such a task come back white; use Playwright screenshots and ask the user what they see.
 
-Backlog priorities 1–8 were implemented on 2026-11-16, and priority 9 (drag-and-drop) was merged on 2026-11-17. The registry scripts export a preexisting `orbit-rdp` key to a unique `.reg` file in `%LOCALAPPDATA%\Orbit` before changing it; Windows checks B01–B02 passed on the VM (2026-11-19). Editor polish passed focused file-mode check B03. Sizing uses a shared font per Galaxy label level, fits “Confluence ABC” on two lines at Standard, enlarges moons, and scales other interface text at wide desktop widths; focused visual check B04 covered it. Moon copying is independent and passed focused cross-sun check B05. Inline sun-description links use HTTP(S) only and passed focused safe-rendering check B06. Host-only Remote Desktop links now use `mstsc.exe /v:` without a connection file; imported profiles retain their file route; Windows check B07 passed, including with Edge's prompt in a visible session. The full-screen edit workspace passed B08 and, in server mode, B09. Batch `.rdp` folder and multi-file import passed B10; drop and invalid-batch check B11 passed (2026-11-19). The historical full matrix was stopped at the user's request after all file-mode checks and server checks through milestone 4 passed. Do not resume a full matrix as a routine gate for these small edits. The user explicitly asked to replace the old full-matrix-per-commit policy; `ROADMAP.md` and `TEST_MATRIX.md` now call for focused checks of changed behavior.
+Tips:
 
-The scripts are classic scripts (not modules, so `file://` works) loaded in order by `index.html`: `links-data.js`, the optional `team-data.js`, `rdp.js`, `storage.js`, `team.js`, `favorites.js`, `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `variables.js`, `workspaces.js`, `sharing.js`, `presets.js`, `menu.js`, `render.js`, `drag.js`, `palette.js`, `keys.js`, `app.js`. They share top-level globals; keep the order and add any new script to `APP_SCRIPTS` in `tests/helpers.py`, which the fixtures copy and the syntax check reads. Cleanup progress is tracked in [REFACTOR_PLAN.md](REFACTOR_PLAN.md): test stabilization, the `app.js` split, and the test runner split are all done. `tests/rdptest01.rdp` is user connection data: keep it untracked and do not print its values.
+- Run PowerShell as copied `.ps1` files; inline PowerShell loses its quoting over SSH.
+- Windows Edge has a 15 px scrollbar, so compare positions against `document.documentElement.clientWidth`.
+- When killing local helpers, use `pgrep`/`pkill` with a `[x]`-style bracket pattern so the command doesn't match its own shell.
 
-The prioritized backlog from the user's private notes is in `ROADMAP.md` ("Backlog — prioritized observations"). Priorities 1–9 are implemented; priority 9 is drag-and-drop organization (`DRAG_DROP_PLAN.md`). Nothing further is prioritized there; the 2026-11-19 feature batch came from a separate list in this conversation and is recorded in `FEATURES_PLAN.md`. Questions A–E in the roadmap are resolved. The notes file `request-observations.md` is gitignored and private; do not commit or quote it.
+Windows-only checks B01, B02 (protocol install and re-install), and B07 (host-only and profile launches through `mstsc.exe`) passed in a PowerShell 5.1 script on the guest. That script refuses to start if an `orbit-rdp` key or `%LOCALAPPDATA%\Orbit` already exists, and it removes both afterwards.
 
-The optional `tests/rdptest01.rdp` fixture is still untracked and must stay that way. Python caches are ignored through `.gitignore`.
+## Remote Desktop notes
 
-Open follow-ups, none blocking:
+- Remote Desktop links download `.rdp` files by default. The optional Windows helper (`windows/Install-OrbitRdp.ps1`) registers `orbit-rdp://` per user for the PowerShell that runs it (5.1 or 7); re-running it switches the registration. Host-only links use `mstsc.exe /v:`; imported profiles go through a temporary `.rdp` file.
+- Imported `.rdp` profiles keep their settings but drop password, token, and signature fields. Presets follow the same rule.
+- Installing MSRDC does not register Orbit's protocol.
 
-- Every check in `TEST_MATRIX.md` has now run (2026-11-19). B01, B02, and B07 passed on the VM; B09, B11, and milestones 15–17 passed in `tests/pending_checks.py` in Chromium and in Edge, in both run modes.
-- The visible-window Edge pass is done (2026-11-19): every browser suite passed in a normal Edge window in the user's Remote Desktop session, and B07 passed with the real Edge prompt and Remote Desktop window. No open test items remain.
-- Touchscreen dragging is not planned (decided 2026-11-19).
-- Feature batch (2026-11-19): `tests/features.py` passed in Chromium (file and server) and headless Edge 157 on the VM (file, and server through the SSH tunnel). On 2026-11-20 every suite (`features.py`, `pending_checks.py`, `orbit_sizes.py`, `drag_drop.py --phase 2`) also passed in a visible Edge window in the user's Remote Desktop session, in both modes, and the user confirmed Open all by hand: one tab plus a blocked notice, then all three tabs after allowing pop-ups for the site. In file mode without a team map, the console shows one harmless "file not found" for `team-data.js`. Playwright's Chromium does not load images while a route is registered, so F14 removes routes first.
+## Open follow-ups
 
-No deployment or hosting was performed, and no personal links have been supplied.
+None blocking. Batch 3 (2.2.0) passed in headless Edge in both modes but has not had a visible-window Edge pass; earlier batches have. No deployment or hosting has been done.
