@@ -27,8 +27,9 @@ function trapMenuFocus(event) {
   }
 }
 
-// Escape closes the menu first, then cancels a drag, then leaves Edit mode,
-// then clears Quick find, then leaves a System.
+// Escape closes the command palette (handled in palette.js), then the menu,
+// then cancels a drag, then leaves Edit mode, then clears Quick find, then
+// leaves a System.
 function handleEscape(event) {
   if (!menuOverlay.hidden) {
     event.preventDefault();
@@ -156,6 +157,9 @@ function handleMapArrows(event) {
 
 window.addEventListener('keydown', event => {
   if (event.defaultPrevented) return;
+  // The command palette takes every key while it is open.
+  if (handlePaletteKey(event) || palette) return;
+  if (handlePaletteShortcut(event)) return;
   if (event.key === 'Tab') {
     if (!menuOverlay.hidden) trapMenuFocus(event);
   } else if (event.key === 'Escape') {

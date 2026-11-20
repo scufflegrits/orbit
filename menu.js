@@ -145,13 +145,55 @@ function showMenuPanel(name) {
     });
     moonRow.append(moonCopy, moonInput);
     menuContent.append(moonRow);
+    menuContent.append(settingToggle('Show favorites and recent', 'A row of your favorite and recently opened links above the Galaxy',
+      showQuickBar, checked => {
+        showQuickBar = checked;
+        savePreference('orbit:quick-bar', checked);
+        render();
+      }));
+    const recentActions = element('div', 'editor-actions');
+    const clear = editorButton('Clear recent links', () => {
+      clearRecent();
+      render();
+      clear.textContent = 'Recent links cleared';
+    });
+    recentActions.append(clear);
+    menuContent.append(recentActions);
+    const viewRow = element('label', 'setting-row');
+    const viewCopy = element('span', 'setting-copy');
+    viewCopy.append(element('strong', '', 'Galaxy view'));
+    viewCopy.append(element('small', '', 'Orbits, or a compact list of every sun, planet, and moon'));
+    const viewSelect = document.createElement('select');
+    viewSelect.setAttribute('aria-label', 'Galaxy view');
+    for (const [value, label] of [['orbits', 'Orbits'], ['list', 'List']]) {
+      const option = element('option', '', label);
+      option.value = value;
+      viewSelect.append(option);
+    }
+    viewSelect.value = galaxyView;
+    viewSelect.addEventListener('change', () => setGalaxyView(viewSelect.value));
+    viewRow.append(viewCopy, viewSelect);
+    menuContent.append(viewRow);
+    menuContent.append(settingToggle('Show site icons', 'Loads each website’s own icon from that site (its /favicon.ico). Off keeps Orbit from contacting sites until you open them.',
+      showSiteIcons, checked => {
+        showSiteIcons = checked;
+        savePreference('orbit:site-icons', checked);
+        render();
+      }));
+    menuContent.append(teamSettings());
   } else if (name === 'Help') {
     menuContent.append(element('p', '', 'Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
     menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.'));
     menuContent.append(element('p', '', 'In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.'));
     menuContent.append(element('p', '', 'Your browser may ask before opening the helper. Orbit does not store credentials.'));
-    menuContent.append(element('p', '', 'Use Quick find in the Galaxy to search any sun, planet, or moon by name.'));
+    menuContent.append(element('p', '', 'Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.'));
+    menuContent.append(element('p', '', 'Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.'));
+    menuContent.append(element('p', '', 'Favorites and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links.'));
+    menuContent.append(element('p', '', 'Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.'));
+    menuContent.append(element('p', '', 'The ☰ button in the top bar switches the Galaxy between orbits and a compact list.'));
+    menuContent.append(element('p', '', 'Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing browser bookmarks. Import JSON merges by default and never changes what is already in your map.'));
+    menuContent.append(element('p', '', 'A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links.'));
     menuContent.append(element('h4', 'editor-section-title', 'Rearranging by dragging'));
     menuContent.append(element('p', '', 'Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.'));
     menuContent.append(element('p', '', 'Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.'));
@@ -163,9 +205,46 @@ function showMenuPanel(name) {
     menuContent.append(element('p', '', 'Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.'));
     menuContent.append(element('p', '', 'Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.'));
     menuContent.append(element('p', '', 'Escape closes the menu first, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.'));
+    menuContent.append(element('p', '', 'Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));
     menuContent.append(element('p', '', 'Your link map runs on this computer, without an account or hosted service.'));
     menuContent.append(element('p', '', `Version ${APP_VERSION}`));
   }
+}
+
+function settingToggle(title, hint, checked, onChange) {
+  const row = element('label', 'setting-row');
+  const copy = element('span', 'setting-copy');
+  copy.append(element('strong', '', title), element('small', '', hint));
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.checked = checked;
+  input.setAttribute('aria-label', title);
+  input.addEventListener('change', () => onChange(input.checked));
+  row.append(copy, input);
+  return row;
+}
+
+// Where the team map comes from, and any team suns hidden from this Galaxy.
+function teamSettings() {
+  const section = element('div', 'team-settings');
+  section.append(element('strong', '', 'Team map'));
+  if (teamError) section.append(element('p', 'editor-error', teamError));
+  if (!teamGroups.length) {
+    if (!teamError) section.append(element('p', 'team-source', 'No team map is set up. Start Orbit with python3 serve.py --team PATH, or run python3 sync.py --team PATH for file use.'));
+    return section;
+  }
+  section.append(element('p', 'team-source', `${counted(teamGroups.length, 'team sun')} from ${teamSource}. Team suns are read-only and never saved with your map.`));
+  const hidden = hiddenTeamSuns();
+  teamGroups.filter(sun => hidden.has(sun.id)).forEach(sun => {
+    const row = element('div', 'editor-list-row');
+    row.append(element('span', '', `${sun.name} (hidden)`));
+    row.append(editorButton('Show', () => {
+      setTeamSunHidden(sun.id, false);
+      showMenuPanel('Settings');
+    }));
+    section.append(row);
+  });
+  return section;
 }

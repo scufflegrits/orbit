@@ -304,7 +304,7 @@ def run_milestone_4(page, url, mode):
         page.get_by_role("button", name="Import JSON").click()
     chooser_info.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
                                   "buffer": exported})
-    page.get_by_role("button", name="Apply import").click()
+    page.get_by_role("button", name="Replace my map").click()
     check(page.locator(".editor-list-row").count() == 10,
           f"{mode}: import restores exported map")
     check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons.length") == 2,
@@ -526,7 +526,7 @@ def run_milestone_7(page, url, mode):
         page.get_by_role("button", name="Import JSON").click()
     chooser_info.value.set_files({"name": "search.json", "mimeType": "application/json",
                                   "buffer": json.dumps(imported).encode()})
-    page.get_by_role("button", name="Apply import").click()
+    page.get_by_role("button", name="Replace my map").click()
     page.locator("#menu-close").click()
     check(page.locator(".find-item").count() == 0,
           f"{mode}: old search result disappears after import")
@@ -603,7 +603,7 @@ def run_milestone_8(page, url, mode):
         page.get_by_role("button", name="Import JSON").click()
     chooser_info.value.set_files({"name": "source.json", "mimeType": "application/json",
                                   "buffer": json.dumps(imported).encode()})
-    page.get_by_role("button", name="Apply import").click()
+    page.get_by_role("button", name="Replace my map").click()
     check("Browser edits" in page.locator(".data-source").inner_text(),
           f"{mode}: import uses browser source")
     page.once("dialog", lambda dialog: dialog.accept())

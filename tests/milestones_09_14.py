@@ -438,7 +438,7 @@ def run_milestone_13(page, url, mode):
     page.get_by_role("button", name="Reset to file data").click()
     check(page.evaluate("groups.length") == 9, f"{mode}: reset removes scoped imports")
     upload_json(page, "Import JSON", full_file)
-    page.get_by_role("button", name="Apply import").click()
+    page.get_by_role("button", name="Replace my map").click()
     check(page.evaluate("groups.length") == 10, f"{mode}: full import restores scoped imports")
     print(f"PASS milestone 13 ({mode})")
 

@@ -45,6 +45,8 @@ function moveMapItem(list, source, target) {
   if (!sibling && (!parentKind || target.kind !== parentKind)) return { status: 'invalid' };
   if (!mapItemAt(list, source) || !mapItemAt(list, target)) return { status: 'invalid' };
   if (sibling && samePath(source, target)) return { status: 'invalid' };
+  // The team map is read-only: nothing moves out of, into, or around it.
+  if (list[source.sun]?.team || list[target.sun]?.team) return { status: 'invalid' };
   const next = JSON.parse(JSON.stringify(list));
   const siblingsAt = path => key === 'sun' ? next
     : key === 'planet' ? next[path.sun].links : next[path.sun].links[path.planet].moons;
@@ -142,10 +144,6 @@ function nameAt(path) {
   return mapItemAt(groups, path).name;
 }
 
-function counted(count, noun) {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
 function trayRow(className, name, count, kind, ...indices) {
   const row = element('div', className);
   if (kind) tagPath(row, kind, ...indices);
@@ -164,7 +162,7 @@ function buildTray(pointerX) {
   const forPlanet = drag.path.kind === 'planet';
   tray.append(element('h2', '', forPlanet ? 'Move to another sun' : 'Move to a planet'));
   groups.forEach((sun, sunIndex) => {
-    if (forPlanet && sunIndex === current) return;
+    if ((forPlanet && sunIndex === current) || sun.team) return;
     const group = element('div', 'tray-group');
     if (!forPlanet && sunIndex === current) group.classList.add('open');
     const count = counted(sun.links.length, 'planet');
@@ -278,6 +276,7 @@ function resolveTarget(under) {
       : { status: 'choose', node: drag.choices.sibling, path: drag.choices.path };
   }
   const tagged = under.closest('[data-kind]');
+  if (tagged && groups[Number(tagged.dataset.sun)]?.team) return { status: 'none' };
   let node = tagged;
   // A whole Galaxy card stands in for its sun when suns are being reordered.
   if (kind === 'sun') node = under.closest('.group-card')?.querySelector('.home-hub') || null;
@@ -441,7 +440,7 @@ function commitMove(gesture, target) {
   const where = target.path.place ? `${target.path.place} ${nameAt(target.path)}` : `to ${nameAt(target.path)}`;
   const label = `${gesture.path.kind} ${gesture.item.name} ${where}`;
   try {
-    keepingScroll(() => saveMap({ groups: result.groups }));
+    keepingScroll(() => saveMap({ groups: result.groups }, `Moved ${label}`));
   } catch (error) {
     return announce(`The move could not be saved, so nothing changed. ${error.message}`, true);
   }
@@ -459,7 +458,7 @@ function undoDrag() {
     return announce('The link map has changed since that drag, so it can no longer be undone.', true);
   }
   try {
-    keepingScroll(() => saveMap({ groups: record.groups }));
+    keepingScroll(() => saveMap({ groups: record.groups }, `Undid the move of ${record.label}`));
   } catch (error) {
     return announce(`Undo could not be saved, so nothing changed. ${error.message}`, true);
   }
@@ -478,6 +477,10 @@ document.addEventListener('pointerdown', event => {
   const node = event.target instanceof Element ? event.target.closest('[data-kind]') : null;
   if (!node || !app.contains(node)) return;
   const path = pathOf(node);
+  if (groups[path.sun]?.team) {
+    announce('Team suns are read-only. Copy an item to your map in Edit links to rearrange it.');
+    return;
+  }
   const item = mapItemAt(groups, path);
   // The System hub is not a source: there is nothing to reorder it against.
   if (!item || (path.kind === 'sun' && !node.classList.contains('home-hub'))) return;
@@ -533,6 +536,14 @@ function guardActivation(event) {
     return;
   }
   if (!editMode || !(event.target instanceof Element)) return;
+  // Favorites, recent links, and list links open their item in Edit links.
+  const shortcut = event.target.closest('[data-edit-path]');
+  if (shortcut && app.contains(shortcut)) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.type === 'click') openEditorAt(shortcut.dataset.editPath.split(':').map(Number));
+    return;
+  }
   const node = event.target.closest('[data-kind="planet"], [data-kind="moon"]');
   if (!node || !app.contains(node)) return;
   event.preventDefault();

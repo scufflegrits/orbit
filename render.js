@@ -10,9 +10,9 @@ function element(tag, className, text) {
   return node;
 }
 
-// "1 moon", "2 moons", "0 moons".
-function counted(amount, word) {
-  return `${amount} ${word}${amount === 1 ? '' : 's'}`;
+// "1 moon", "2 moons", "0 moons"; pass the plural when it is not word + s.
+function counted(amount, word, plural = `${word}s`) {
+  return `${amount} ${amount === 1 ? word : plural}`;
 }
 
 function safeColor(value) {
@@ -55,7 +55,8 @@ const measureContext = document.createElement('canvas').getContext('2d');
 
 // Lay the words out the way the browser will (greedy wrapping, centered) and
 // check that no word is wider than the circle and every line sits inside it.
-function labelFits(name, diameter, padding, lineHeight, measure) {
+// `extra` is room above the text for a site icon.
+function labelFits(name, diameter, padding, lineHeight, measure, extra = 0) {
   const width = diameter - padding * 2;
   const space = measure(' ');
   const lines = [];
@@ -67,9 +68,9 @@ function labelFits(name, diameter, padding, lineHeight, measure) {
     else lines.push(wordWidth);
   }
   const radius = diameter / 2 - 3;
-  const half = lines.length * lineHeight / 2;
+  const half = (lines.length * lineHeight + extra) / 2;
   return lines.every((lineWidth, line) => {
-    const y = Math.abs((line + .5) * lineHeight - half);
+    const y = Math.abs(extra + (line + .5) * lineHeight - half);
     return y < radius && lineWidth / 2 <= Math.sqrt(radius * radius - y * y);
   });
 }
@@ -94,15 +95,19 @@ function fitOrbitSizes() {
     const padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.borderLeftWidth) || 0);
     const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2;
     const names = [...new Set(level.names().map(item => item.name))];
+    const extra = showSiteIcons ? SITE_ICON_ROOM : 0;
     let size = Math.round(base);
-    while (size < level.max && !names.every(name => labelFits(name, size, padding, lineHeight, measure))) size += 2;
+    while (size < level.max && !names.every(name => labelFits(name, size, padding, lineHeight, measure, extra))) size += 2;
     orbitSizes[key] = Math.min(size, level.max);
     root.setProperty(level.variable, `${orbitSizes[key]}px`);
-    shrinkLongLabels(level.selector, orbitSizes[key], style, padding);
+    shrinkLongLabels(level.selector, orbitSizes[key], style, padding, extra);
   }
 }
 
-function shrinkLongLabels(selector, size, style, padding) {
+// A site icon (16px) and its gap take this much room above a label.
+const SITE_ICON_ROOM = 19;
+
+function shrinkLongLabels(selector, size, style, padding, extra = 0) {
   const fontSize = parseFloat(style.fontSize);
   const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
   for (const node of app.querySelectorAll(selector)) {
@@ -112,7 +117,7 @@ function shrinkLongLabels(selector, size, style, padding) {
       const scale = step / 20;
       measureContext.font = `${style.fontWeight} ${fontSize * scale}px ${style.fontFamily}`;
       const measure = text => measureContext.measureText(text).width;
-      if (step === 12 || labelFits(node.textContent, size, padding, lineHeight * scale, measure)) {
+      if (step === 12 || labelFits(node.textContent, size, padding, lineHeight * scale, measure, extra)) {
         if (scale < 1) node.style.fontSize = `${(fontSize * scale).toFixed(2)}px`;
         break;
       }
@@ -254,7 +259,7 @@ function tagPath(node, kind, sun, planet, moon) {
 }
 
 function linkNode(link, className, path) {
-  const node = destinationNode(link, className);
+  const node = destinationNode(link, className, path);
   if (path) {
     tagPath(node, path.length === 3 ? 'moon' : 'planet', ...path);
     if (editMode) {
@@ -265,10 +270,30 @@ function linkNode(link, className, path) {
   return node;
 }
 
-function destinationNode(link, className) {
+// The site's own icon, when Show site icons is on. Hidden if it fails to load.
+function siteIcon(link) {
+  if (!showSiteIcons || link.type === 'rdp') return null;
+  let origin;
+  try { origin = new URL(link.url).origin; } catch { return null; }
+  const image = document.createElement('img');
+  image.className = 'site-icon';
+  image.alt = '';
+  image.loading = 'lazy';
+  image.referrerPolicy = 'no-referrer';
+  image.src = `${origin}/favicon.ico`;
+  image.addEventListener('error', () => image.remove());
+  return image;
+}
+
+// path ([sun, planet] or [sun, planet, moon]) lets Orbit record the link as
+// recent when it is opened.
+function destinationNode(link, className, path) {
   const isRdp = link.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
   const node = element(download ? 'button' : 'a', className, link.name);
+  if (path) node.dataset.destination = path.join(':');
+  const icon = siteIcon(link);
+  if (icon) node.prepend(icon);
   if (download) {
     node.type = 'button';
     node.addEventListener('click', () => downloadRdp(link));
@@ -372,9 +397,14 @@ function homeGroup(group, index) {
   const hub = element('button', 'home-hub');
   hub.type = 'button';
   tagPath(hub, 'sun', index);
-  hub.setAttribute('aria-label', `Open ${group.name} system with ${counted(group.links.length, 'planet')}`);
+  hub.setAttribute('aria-label', `Open ${group.team ? 'team ' : ''}${group.name} system with ${counted(group.links.length, 'planet')}`);
+  if (group.icon) hub.append(element('span', 'hub-icon', group.icon));
   hub.append(element('span', 'hub-name', group.name));
   hub.append(element('span', 'hub-count', counted(group.links.length, 'planet').toUpperCase()));
+  if (group.team) {
+    card.classList.add('team-card');
+    hub.append(element('span', 'team-mark', 'TEAM'));
+  }
   hub.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(group.id)}`; });
   orbit.append(hub);
   visible.forEach((link, i) => orbit.append(planetNode(link, 'home', points[i], 320, i, index)));
@@ -383,29 +413,153 @@ function homeGroup(group, index) {
   return card;
 }
 
-function findMatches(query) {
-  const needle = query.trim().toLocaleLowerCase();
-  if (!needle) return [];
-  const matches = [];
-  for (const [sunIndex, sun] of groups.entries()) {
-    if (sun.name.toLocaleLowerCase().includes(needle)) {
-      matches.push({ kind: 'Sun', name: sun.name, path: 'Galaxy', id: sun.id });
+// ---- Quick find ---------------------------------------------------------
+
+// Edits between two words, where swapping two neighbouring letters counts as
+// one edit ("engadgte" is one edit from "engadget"). Stops early past `limit`.
+function editDistance(a, b, limit) {
+  if (Math.abs(a.length - b.length) > limit) return limit + 1;
+  let before = [];
+  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) current[j] = Math.min(current[j], before[j - 2] + 1);
+      best = Math.min(best, current[j]);
     }
-    for (const [planetIndex, planet] of sun.links.entries()) {
-      if (planet.name.toLocaleLowerCase().includes(needle)) {
-        matches.push({ kind: 'Planet', name: planet.name, path: sun.name, destination: planet,
-          indices: [sunIndex, planetIndex] });
-      }
-      for (const [moonIndex, moon] of planet.moons.entries()) {
-        if (moon.name.toLocaleLowerCase().includes(needle)) {
-          matches.push({ kind: 'Moon', name: moon.name,
-            path: `${sun.name} / ${planet.name}`, destination: moon,
-            indices: [sunIndex, planetIndex, moonIndex] });
-        }
-      }
+    if (best > limit) return limit + 1;
+    before = previous;
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+const SHORT_FORM = /^([a-z]+)(\d+)$/;
+
+// How well one query word matches one field: 0 when it does not. `loose`
+// allows typo matches; `anywhere` allows short words inside other words.
+function wordQuality(token, text, words, loose, anywhere) {
+  let best = 0;
+  for (const word of words) {
+    if (word === token) return 1;
+    if (word.startsWith(token)) best = Math.max(best, .85);
+    else if (token.length >= 3 && word.includes(token)) best = Math.max(best, .6);
+    const short = SHORT_FORM.exec(token);
+    const long = SHORT_FORM.exec(word);
+    if (short && long && short[2] === long[2] && long[1].startsWith(short[1])) best = Math.max(best, .55);
+    if (loose && !best && token.length >= 5) {
+      const limit = token.length >= 9 ? 2 : 1;
+      if (editDistance(token, word, limit) <= limit) best = Math.max(best, .4);
     }
   }
-  return matches;
+  // Names match any part ("ve" in "the verge"); other fields need 3+ letters,
+  // which also lets "verge.com" match an address.
+  if (!best && (anywhere || token.length >= 3) && text.includes(token)) best = .5;
+  return best;
+}
+
+function searchWords(text) {
+  return text.toLocaleLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+}
+
+function addressText(item) {
+  if (item.type === 'rdp') return item.host;
+  try {
+    const url = new URL(item.url);
+    return `${url.hostname}${url.pathname === '/' ? '' : url.pathname}`;
+  } catch {
+    return item.url || '';
+  }
+}
+
+// Every sun, planet, and moon with the text Quick find can match.
+function searchEntries() {
+  const entries = [];
+  const fields = (name, path, item) => {
+    const list = [{ kind: 'name', text: name.toLocaleLowerCase(), weight: 1, anywhere: true }];
+    if (path) list.push({ kind: 'path', text: path.toLocaleLowerCase(), weight: .7 });
+    if (item) {
+      list.push({ kind: 'address', text: addressText(item).toLocaleLowerCase(), weight: .6 });
+      if (item.tags?.length) list.push({ kind: 'tag', text: item.tags.join(' '), weight: .8 });
+    }
+    return list.map(field => ({ ...field, words: searchWords(field.text) }));
+  };
+  groups.forEach((sun, sunIndex) => {
+    entries.push({ match: { kind: 'Sun', name: sun.name, path: sun.team ? 'Team Galaxy' : 'Galaxy', id: sun.id, icon: sun.icon },
+      tags: [], fields: fields(sun.name) });
+    sun.links.forEach((planet, planetIndex) => {
+      entries.push({ match: { kind: 'Planet', name: planet.name, path: sun.name, destination: planet,
+        indices: [sunIndex, planetIndex], tags: planet.tags || [] },
+      tags: planet.tags || [], fields: fields(planet.name, sun.name, planet) });
+      planet.moons.forEach((moon, moonIndex) => {
+        entries.push({ match: { kind: 'Moon', name: moon.name, path: `${sun.name} / ${planet.name}`, destination: moon,
+          indices: [sunIndex, planetIndex, moonIndex], tags: moon.tags || [] },
+        tags: moon.tags || [], fields: fields(moon.name, `${sun.name} ${planet.name}`, moon) });
+      });
+    });
+  });
+  return entries;
+}
+
+// Every word must match somewhere: the name, the sun and planet it sits in,
+// its address, or its tags. "#tag" or "tag:name" keeps only items with that
+// tag. Typo-tolerant matching is used only for words that match nothing
+// exactly, so a correct word never pulls in near misses.
+function findMatches(query) {
+  const raw = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const tagFilters = raw.flatMap(word => {
+    const tag = /^#(.+)$/.exec(word) || /^tag:(.+)$/.exec(word);
+    return tag ? [tag[1]] : [];
+  });
+  const tokens = raw.filter(word => !/^#.+$/.test(word) && !/^tag:.+$/.test(word));
+  if (!tokens.length && !tagFilters.length) return [];
+  const entries = searchEntries().filter(entry => tagFilters.every(tag => entry.tags.includes(tag)));
+  const strictHits = new Set(tokens.filter(token => entries.some(entry =>
+    entry.fields.some(field => wordQuality(token, field.text, field.words, false, field.anywhere)))));
+  const scored = [];
+  entries.forEach((entry, order) => {
+    let score = 0;
+    const reasons = new Set();
+    for (const token of tokens) {
+      let best = 0;
+      let bestKind = '';
+      for (const field of entry.fields) {
+        const quality = wordQuality(token, field.text, field.words, !strictHits.has(token), field.anywhere) * field.weight;
+        if (quality > best) { best = quality; bestKind = field.kind; }
+      }
+      if (!best) return;
+      score += best;
+      reasons.add(bestKind);
+    }
+    // Where an item sits only narrows a search ("tech reviews"); typing a
+    // sun's name should not list everything inside it.
+    if (tokens.length && ![...reasons].some(kind => kind !== 'path')) return;
+    if (!tokens.length) score = 1;
+    const match = { ...entry.match, score };
+    if (!reasons.has('name')) {
+      if (reasons.has('address')) match.why = `Address: ${addressText(entry.match.destination)}`;
+      else if (reasons.has('tag')) match.why = 'Matched a tag';
+    }
+    scored.push({ match, order });
+  });
+  scored.sort((a, b) => b.match.score - a.match.score || a.order - b.order);
+  return scored.map(item => item.match);
+}
+
+function findCopy(match) {
+  const copy = element('span', 'find-copy');
+  copy.append(element('strong', '', `${match.icon ? `${match.icon} ` : ''}${match.name}`), element('small', '', match.path));
+  if (match.why) copy.append(element('small', 'find-why', match.why));
+  if (match.tags?.length) copy.append(tagChips(match.tags));
+  return copy;
+}
+
+function tagChips(tags) {
+  const list = element('span', 'tag-chips');
+  tags.forEach(tag => list.append(element('span', 'tag-chip', `#${tag}`)));
+  return list;
 }
 
 // In Edit mode a planet or moon result opens that exact item in Edit links
@@ -415,10 +569,8 @@ function editFindResult(match) {
   node.type = 'button';
   node.title = `Edit ${match.name} in Edit links`;
   node.addEventListener('click', () => openEditorAt(match.indices));
-  node.append(element('span', 'find-kind', match.kind));
-  const copy = element('span', 'find-copy');
-  copy.append(element('strong', '', match.name), element('small', '', match.path));
-  node.append(copy, element('span', 'find-arrow find-edit-label', 'Edit'));
+  node.append(element('span', 'find-kind', match.kind), findCopy(match));
+  node.append(element('span', 'find-arrow find-edit-label', 'Edit'));
   return node;
 }
 
@@ -442,10 +594,110 @@ function findResult(match) {
     node.target = '_blank';
     node.rel = 'noopener noreferrer';
   }
-  node.append(element('span', 'find-kind', match.kind));
-  const copy = element('span', 'find-copy');
-  copy.append(element('strong', '', match.name), element('small', '', match.path));
-  node.append(copy, element('span', 'find-arrow', match.id ? '→' : download ? '↓' : '↗'));
+  if (match.indices) node.dataset.destination = match.indices.join(':');
+  node.append(element('span', 'find-kind', match.kind), findCopy(match));
+  node.append(element('span', 'find-arrow', match.id ? '→' : download ? '↓' : '↗'));
+  return node;
+}
+
+// A result with a star beside it for planets and moons.
+function findRow(match) {
+  const result = findResult(match);
+  if (!match.indices) return result;
+  const row = element('div', 'find-row');
+  const sun = groups[match.indices[0]];
+  const on = isFavorite(match.destination, sun);
+  const star = element('button', `favorite-toggle${on ? ' is-favorite' : ''}`, on ? '★' : '☆');
+  star.type = 'button';
+  star.setAttribute('aria-pressed', String(on));
+  star.setAttribute('aria-label', `${on ? 'Remove' : 'Add'} ${match.name} ${on ? 'from' : 'to'} favorites`);
+  star.title = star.getAttribute('aria-label');
+  star.addEventListener('click', () => {
+    setFavorite(match.indices, !on);
+    // The Galaxy re-renders; keep the keyboard user on this result's star.
+    app.querySelector(`.find-row [data-star="${match.indices.join(':')}"]`)?.focus();
+  });
+  star.dataset.star = match.indices.join(':');
+  row.append(result, star);
+  return row;
+}
+
+// ---- Galaxy -------------------------------------------------------------
+
+// A chip that opens a destination like its circle does. In Edit mode the
+// guard in drag.js opens it in Edit links instead.
+function quickChip(entry) {
+  const node = destinationNode(entry.item, 'quick-chip', entry.path);
+  node.dataset.editPath = entry.path.join(':');
+  node.title = `${node.title} (${entry.path.length === 3 ? 'moon' : 'planet'} in ${groups[entry.path[0]].name})`;
+  return node;
+}
+
+function quickBar() {
+  if (!showQuickBar) return null;
+  const favorites = favoriteItems();
+  const recent = recentItems();
+  if (!favorites.length && !recent.length) return null;
+  const bar = element('section', 'quick-bar');
+  bar.setAttribute('aria-label', 'Favorites and recent links');
+  for (const [label, list] of [['Favorites', favorites], ['Recent', recent]]) {
+    if (!list.length) continue;
+    const row = element('div', 'quick-row');
+    row.append(element('h2', 'quick-label', label));
+    const chips = element('div', 'quick-chips');
+    list.forEach(entry => chips.append(quickChip(entry)));
+    row.append(chips);
+    bar.append(row);
+  }
+  return bar;
+}
+
+// The dense alternative to the orbits: every sun with its planets and moons.
+function galaxyList() {
+  const list = element('div', 'galaxy-list');
+  if (editMode) {
+    list.append(element('p', 'list-note', 'Dragging works in the Orbits view. Use Edit links, or switch back to Orbits, to rearrange.'));
+  }
+  groups.forEach((sun, sunIndex) => {
+    const section = element('details', 'list-sun');
+    section.open = true;
+    section.style.setProperty('--sun-accent', safeColor(sun.color));
+    const summary = element('summary', 'list-sun-head');
+    summary.append(element('span', 'list-sun-name', `${sun.icon ? `${sun.icon} ` : ''}${sun.name}`));
+    summary.append(element('span', 'list-count', counted(sun.links.length, 'planet')));
+    if (sun.team) summary.append(element('span', 'team-mark', 'TEAM'));
+    const open = element('a', 'list-open', 'Open System');
+    open.href = `#group/${encodeURIComponent(sun.id)}`;
+    summary.append(open);
+    section.append(summary);
+    if (sun.description) section.append(descriptionNode('list-description', sun.description));
+    const planets = element('ul', 'list-planets');
+    sun.links.forEach((planet, planetIndex) => {
+      const row = element('li', 'list-planet');
+      row.append(listLink(planet, [sunIndex, planetIndex], sun));
+      if (planet.moons.length) {
+        const moons = element('ul', 'list-moons');
+        planet.moons.forEach((moon, moonIndex) => {
+          const item = element('li', 'list-moon');
+          item.append(listLink(moon, [sunIndex, planetIndex, moonIndex], sun));
+          moons.append(item);
+        });
+        row.append(moons);
+      }
+      planets.append(row);
+    });
+    if (!sun.links.length) planets.append(element('li', 'list-empty', 'No planets yet.'));
+    section.append(planets);
+    list.append(section);
+  });
+  return list;
+}
+
+function listLink(item, path, sun) {
+  const node = destinationNode(item, 'list-link', path);
+  node.dataset.editPath = path.join(':');
+  if (isFavorite(item, sun)) node.append(element('span', 'list-favorite', ' ★'));
+  if (item.tags?.length) node.append(tagChips(item.tags));
   return node;
 }
 
@@ -457,27 +709,52 @@ function renderHome() {
   quickFind.value = findQuery;
   const results = element('section', 'find-results');
   results.setAttribute('aria-live', 'polite');
-  const grid = element('div', 'group-grid');
-  groups.forEach((group, index) => grid.append(homeGroup(group, index)));
+  const listView = galaxyView === 'list';
+  if (listView) app.classList.add('list-view');
+  const grid = listView ? galaxyList() : element('div', 'group-grid');
+  if (!listView) groups.forEach((group, index) => grid.append(homeGroup(group, index)));
+  const bar = quickBar();
   const updateFind = () => {
     findQuery = quickFind.value;
     const active = Boolean(findQuery.trim());
     grid.hidden = active;
+    const currentBar = app.querySelector(':scope > .quick-bar');
+    if (currentBar) currentBar.hidden = active;
     results.hidden = !active;
     if (!active) return;
     const matches = findMatches(findQuery);
     results.replaceChildren(element('p', 'find-summary', `${matches.length} result${matches.length === 1 ? '' : 's'} for “${findQuery.trim()}”`));
     if (matches.length) {
       const list = element('div', 'find-list');
-      matches.forEach(match => list.append(findResult(match)));
+      matches.forEach(match => list.append(findRow(match)));
       results.append(list);
     } else {
-      results.append(element('p', 'find-empty', 'No matching suns, planets, or moons. Try another name.'));
+      results.append(element('p', 'find-empty', 'No matching suns, planets, or moons. Try another name, an address, or #tag.'));
     }
   };
   quickFind.oninput = updateFind;
-  app.append(results, grid);
+  app.append(results);
+  if (bar) app.append(bar);
+  app.append(grid);
   updateFind();
+}
+
+// In a System: open a planet together with all of its moons.
+function openAllActions(group, sunIndex) {
+  if (editMode) return null;
+  const planets = group.links.map((planet, planetIndex) => ({ planet, planetIndex }))
+    .filter(({ planet }) => planet.moons.length);
+  if (!planets.length) return null;
+  const row = element('div', 'open-all-row');
+  row.append(element('span', 'open-all-label', 'Open a planet with all its moons:'));
+  planets.forEach(({ planet, planetIndex }) => {
+    const button = element('button', 'open-all-button', `${planet.name} + ${counted(planet.moons.length, 'moon')}`);
+    button.type = 'button';
+    button.title = `Open ${planet.name} and its moons in new tabs (Shift+click a planet does the same)`;
+    button.addEventListener('click', () => openAll(sunIndex, planetIndex));
+    row.append(button);
+  });
+  return row;
 }
 
 function renderDetail(group) {
@@ -513,8 +790,10 @@ function renderDetail(group) {
   const sunIndex = groups.indexOf(group);
   stage.dataset.sun = sunIndex;
   const hub = tagPath(element('div', 'detail-hub'), 'sun', sunIndex);
+  if (group.icon) hub.append(element('span', 'hub-icon', group.icon));
   hub.append(element('span', 'detail-hub-name', group.name));
   hub.append(element('span', 'detail-hub-sub', counted(group.links.length, 'planet')));
+  if (group.team) hub.append(element('span', 'team-mark', 'TEAM'));
   stage.append(hub);
   visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i, sunIndex)));
 
@@ -526,6 +805,8 @@ function renderDetail(group) {
       : 'Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect.'
     : 'Select a planet to open its destination in a new tab.');
   app.append(top, heading, stage, note);
+  const openAllRow = openAllActions(group, sunIndex);
+  if (openAllRow) app.append(openAllRow);
   if (group.links.length > visible.length) {
     const more = element('section', 'more-links');
     more.append(element('h2', '', 'More planets in this system'));

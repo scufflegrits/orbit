@@ -4,6 +4,16 @@
 
 Roadmap backlog priority 9, **drag-and-drop organization**, is complete and merged. It was built on `feature/drag-drop-organization` in two phases from the approved [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) and merged into `main` through pull request #1 (merge commit `b244f04`, 2026-11-17). Phase 1 and Phase 2 remain separate commits in the history. No new assignment has been given; check with the user before starting one. On 2026-11-17 the user asked for all work to go directly on `main`: every branch was merged and deleted, and future commits go straight to `main` unless the user asks for a branch. The GitHub remote is named `main` (not `origin`), so push with `git push main main`. Commit or push only when the user asks.
 
+Feature batch (2026-11-19, version 2.0.0): the user asked for ideas 1–4 and 6–15 from a feature list, tracked with checkboxes in [FEATURES_PLAN.md](FEATURES_PLAN.md) (all ticked). Idea 5 (lab reachability) and touchscreen dragging were declined. How it fits together:
+
+- **Team map** (`team.js`): team suns sit at the front of the same `groups` array, marked `team: true` with ids prefixed `team:`. `saveMap` strips them (`personalGroups`) before validating and storing, so every editor and drag path keeps using combined indices. `moveMapItem` refuses any path in a team sun; the drag controller, tray, Move/Copy targets, and editor screens (`showTeamSun`/`showTeamItem` in `tools.js`) treat them as read-only. Team favorites are a preference (`orbit:team-favorites`, destination keys); hidden team suns are `orbit:team-hidden`. Server mode fetches `/team.json` (`serve.py --team`); file mode reads `window.ORBIT_TEAM_DATA` from an optional `team-data.js` (`sync.py --team`, gitignored).
+- **Version history**: `saveMap(data, label)` records the previous personal map in `orbit:history:v1` (last 20, oldest dropped if storage is full, skipped when nothing changed). Pass a label for every save; `false` skips recording. Reset records too.
+- **Destination keys** (`destinationKey` in `storage.js`): normalized URL or `rdp:host[:port]`; used by recent links, duplicates, merge import, and link-check results.
+- **Recent, favorites, open all** (`favorites.js`): rendered destinations carry `data-destination="sun:planet[:moon]"`; a bubble-phase click listener records recents (the Edit mode guard stops clicks first). Quick-bar chips and list links carry `data-edit-path` so the Edit mode guard in `drag.js` opens them in Edit links. Shift+click on a planet opens it with its web moons; browsers other than Playwright's Chromium block all but the first tab until pop-ups are allowed, and Orbit reports how many were blocked.
+- **Search** (`findMatches` in `render.js`): every word must match; words that match nothing exactly get typo tolerance; path matches only narrow; `#tag`/`tag:` filter. **Palette** is `palette.js` (Ctrl/Cmd+K; first in the Escape order).
+- **Editor tools** (`tools.js`): merge import (`mergeMaps`, also used by bookmark import), History, duplicates, link check (`POST /api/check-links` in `serve.py`, guarded by same-origin Host/Origin, JSON type, and an `X-Orbit-Check` header), bookmark import, bulk RDP settings.
+- **Schema additions** (optional, dropped when empty): planet/moon `tags` and `favorite`, sun `icon`. **Settings**: quick bar, Galaxy view (`orbit:galaxy-view`), site icons (off by default; favicons load from each site).
+
 How drag-and-drop works, for the next change: every rendered sun, planet, and moon carries its array path in `data-kind`, `data-sun`, `data-planet`, and `data-moon` (`tagPath` in `render.js`). `moveMapItem` in `drag.js` is the one pure move operation; the drag controller and the editor's Move forms both call it. A parent target appends; a sibling target with `place: 'before' | 'after'` reorders or inserts. A gesture records `mapRevision` (bumped by `saveMap` and Reset) and the stored map text, and refuses to commit if either changed. Drag Undo is in memory only and is retired by any later `mapRevision` change. Clicks on planets and moons are blocked in the capture phase while Edit mode is on. In a test, do not compute a tray row's position before the drag starts: the tray exists only during a drag.
 
 ## Project intent
@@ -37,11 +47,16 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 | `menu.js` | Settings menu: open/close with focus handling, and the Settings, Help, and About panels |
 | `keys.js` | Keyboard handling: menu focus trap, Escape layers, `/` and arrow keys for Quick find, and arrow navigation through the map |
 | `render.js` | Galaxy and System rendering, planet/moon nodes, Quick find |
+| `team.js` | Read-only team map: loading, hidden team suns, copy helper |
+| `favorites.js` | Recent links, favorites, opening a planet with its moons, and recent-link tracking |
+| `tools.js` | Edit links tools: merge import, history, duplicates, link check, bookmark import, bulk RDP settings, team screens |
+| `palette.js` | Command palette (Ctrl/Cmd+K) |
+| `FEATURES_PLAN.md` | The 2026-11-19 feature batch plan with its checklist |
 | `drag.js` | Edit mode, the shared move operation, the pointer drag controller, the System destination tray, and drag Undo |
 | `links.json` | Bundled suns, planets, and moons |
 | `links-data.js` | Generated copy of the JSON for direct-file use |
-| `sync.py` | Regenerates `links-data.js` from `links.json` |
-| `serve.py` | Optional local server bound to `127.0.0.1:8000` |
+| `sync.py` | Regenerates `links-data.js` from `links.json`; `--team PATH` writes `team-data.js`, `--no-team` removes it |
+| `serve.py` | Optional local server bound to `127.0.0.1:8000` (`--port`, `--team PATH`), with `POST /api/check-links` |
 | `tests/browser_matrix.py` | Test runner CLI (`--milestone`, `--only-new`, `--repeat`) and per-mode dispatch |
 | `tests/helpers.py` | Shared constants (`ROOT`, `ARTIFACTS`, `APP_SCRIPTS`), fixtures, and page helpers |
 | `tests/milestones_01_08.py` | Browser checks for milestones 1–8 |
@@ -50,6 +65,7 @@ Orbit is a local webpage for frequently visited links. The Galaxy shows suns (gr
 | `tests/milestone_19.py` | Browser checks for keyboard navigation (K01–K08) |
 | `tests/drag_drop.py` | Focused drag-and-drop checks (`--phase 1\|2`; `--cdp` and `--url` run them in a remote browser such as Edge on the VM) |
 | `tests/orbit_sizes.py` | Planet and moon sizing, the six-moon fan, and hover handoff at 1920×1080 (OS01–OS06; `--cdp`, `--url`, and `--write-fixture` work as in `drag_drop.py`) |
+| `tests/features.py` | Feature batch checks F01–F15 (no F05); file mode and serve.py's handler with `--team`, a local test site for the link check; `--cdp`/`--url`/`--target`/`--server-mode` for Edge and `--write-fixture DIR --target URL` for the VM copy |
 | `tests/pending_checks.py` | Deferred browser checks B09, B11, and milestones 15–17 on the bundled data (`--only`, `--cdp`, `--url`) |
 | `README.md` | User instructions |
 | `ROADMAP.md` | Scope, milestones, and deferred work |
@@ -103,5 +119,6 @@ Open follow-ups, none blocking:
 - Every check in `TEST_MATRIX.md` has now run (2026-11-19). B01, B02, and B07 passed on the VM; B09, B11, and milestones 15–17 passed in `tests/pending_checks.py` in Chromium and in Edge, in both run modes.
 - The visible-window Edge pass is done (2026-11-19): every browser suite passed in a normal Edge window in the user's Remote Desktop session, and B07 passed with the real Edge prompt and Remote Desktop window. No open test items remain.
 - Touchscreen dragging is not planned (decided 2026-11-19).
+- Feature batch (2026-11-19): `tests/features.py` passed in Chromium (file and server) and headless Edge 157 on the VM (file, and server through the SSH tunnel). Not done: a visible-window Edge pass for the new features. In file mode without a team map, the console shows one harmless "file not found" for `team-data.js`. Playwright's Chromium does not load images while a route is registered, so F14 removes routes first.
 
 No deployment or hosting was performed, and no personal links have been supplied.

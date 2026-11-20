@@ -13,6 +13,7 @@ list operations, independently of the app's own move helper.
 import argparse
 import copy
 import json
+import re
 import tempfile
 from functools import partial
 from http.server import ThreadingHTTPServer
@@ -997,10 +998,14 @@ def run_editor_positions(page, url, mode):
     check(memory(page) == expected, f"{mode}: the new order survives a reload")
     page.locator("#quick-find").fill("M")
     names = page.locator(".find-item strong").all_inner_texts()
-    flat = [moon["name"] for group in expected["groups"] for planet in group["links"]
-            for item in (planet, *planet["moons"]) for moon in (item,) if "m" in moon["name"].lower()]
-    suns = [group["name"] for group in expected["groups"] if "m" in group["name"].lower()]
-    check([name for name in names if name not in suns] == flat, f"{mode}: Quick find follows the new order")
+    # Better matches come first; among equally good ones (a word starting with
+    # "m"), results follow the map order.
+    starts = re.compile(r"(^|[^a-z0-9])m")
+    flat = [item["name"] for group in expected["groups"] for planet in group["links"]
+            for item in (planet, *planet["moons"]) if starts.search(item["name"].lower())]
+    suns = [group["name"] for group in expected["groups"]]
+    check([name for name in names if name not in suns and starts.search(name.lower())] == flat,
+          f"{mode}: Quick find follows the new order")
     print(f"PASS DD15 editor positions, tree, export, reload, search ({mode})")
 
 
@@ -1062,7 +1067,7 @@ def run_export_after_moves(page, url, mode):
         page.get_by_role("button", name="Import JSON", exact=True).click()
     chooser.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
                              "buffer": (json.dumps(exported, indent=2) + "\n").encode()})
-    page.get_by_role("button", name="Apply import").click()
+    page.get_by_role("button", name="Replace my map").click()
     check(stored(page) == expected, f"{mode}: the exported file imports as the same map")
     page.set_viewport_size({"width": 1280, "height": 900})
     print(f"PASS DD16 export after mixed drags, import round trip ({mode})")

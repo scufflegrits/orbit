@@ -39,20 +39,33 @@ function renderEditorTree() {
   if (!editorTree) return;
   editorTree.replaceChildren(element('h3', '', 'Galaxy'));
   groups.forEach((sun, sunIndex) => {
-    const sunButton = editorButton(`${sun.name} · ${counted(sun.links.length, 'planet')}`,
+    const sunButton = editorButton(`${sun.icon ? `${sun.icon} ` : ''}${sun.name} · ${counted(sun.links.length, 'planet')}${sun.team ? ' · team' : ''}`,
       () => showSunEditor(sunIndex), 'editor-tree-item editor-tree-sun');
     editorTree.append(sunButton);
     sun.links.forEach((planet, planetIndex) => {
       const planetButton = editorButton(`${planet.name} · ${counted(planet.moons.length, 'moon')}`,
         () => showPlanetEditor(sunIndex, planetIndex), 'editor-tree-item editor-tree-planet');
+      decorateTreeItem(planetButton, planet);
       editorTree.append(planetButton);
       planet.moons.forEach((moon, moonIndex) => {
         const moonButton = editorButton(moon.name,
           () => showMoonEditor(sunIndex, planetIndex, moonIndex), 'editor-tree-item editor-tree-moon');
+        decorateTreeItem(moonButton, moon);
         editorTree.append(moonButton);
       });
     });
   });
+}
+
+// Tags, and a warning mark for a link the last Check links found broken.
+function decorateTreeItem(button, item) {
+  const result = linkCheckResults.get(destinationKey(item));
+  if (result && !result.ok) {
+    button.classList.add('editor-tree-broken');
+    button.prepend(element('span', 'broken-mark', '⚠ '));
+    button.title = `Last check: ${result.status ? `HTTP ${result.status}` : result.error}`;
+  }
+  if (item.tags?.length) button.append(tagChips(item.tags));
 }
 
 function moveTargetField(options) {
@@ -99,7 +112,7 @@ function showMovePlanet(sunIndex, planetIndex) {
   const planet = sun.links[planetIndex];
   editorHeader(`Move ${planet.name}`, () => showPlanetEditor(sunIndex, planetIndex));
   menuContent.append(element('p', '', `From ${sun.name} sun. Its moons move with it.`));
-  const options = groups.flatMap((target, index) => index === sunIndex ? [] : [[String(index), target.name]]);
+  const options = groups.flatMap((target, index) => index === sunIndex || target.team ? [] : [[String(index), target.name]]);
   if (!options.length) {
     menuContent.append(element('p', '', 'Add another sun before moving this planet.'));
     return;
@@ -112,7 +125,8 @@ function showMovePlanet(sunIndex, planetIndex) {
       position.value === 'end' ? { kind: 'sun', sun }
         : { kind: 'planet', sun, planet: Number(position.value), place: 'before' });
     if (moved.status !== 'moved') return editorError('That planet could not be moved.');
-    applyEditorChange(moved.groups, () => showPlanetEditor(moved.path.sun, moved.path.planet));
+    applyEditorChange(moved.groups, () => showPlanetEditor(moved.path.sun, moved.path.planet),
+      { label: `Moved planet ${planet.name} to ${groups[sun].name}` });
   }, 'editor-primary'));
 }
 
@@ -123,7 +137,7 @@ function showMoveMoon(sunIndex, planetIndex, moonIndex) {
   editorHeader(`Move ${moon.name}`, () => showMoonEditor(sunIndex, planetIndex, moonIndex));
   menuContent.append(element('p', '', `From ${sun.name} sun → ${planet.name} planet.`));
   const options = groups.flatMap((targetSun, targetSunIndex) => targetSun.links.flatMap(
-    (targetPlanet, targetPlanetIndex) => targetSunIndex === sunIndex && targetPlanetIndex === planetIndex
+    (targetPlanet, targetPlanetIndex) => (targetSunIndex === sunIndex && targetPlanetIndex === planetIndex) || targetSun.team
       ? [] : [[`${targetSunIndex}:${targetPlanetIndex}`, `${targetSun.name} → ${targetPlanet.name}`]]));
   if (!options.length) {
     menuContent.append(element('p', '', 'Add another planet before moving this moon.'));
@@ -143,7 +157,8 @@ function showMoveMoon(sunIndex, planetIndex, moonIndex) {
         : { kind: 'moon', ...parent, moon: Number(position.value), place: 'before' });
     if (moved.status !== 'moved') return editorError('That moon could not be moved.');
     applyEditorChange(moved.groups,
-      () => showMoonEditor(moved.path.sun, moved.path.planet, moved.path.moon));
+      () => showMoonEditor(moved.path.sun, moved.path.planet, moved.path.moon),
+      { label: `Moved moon ${moon.name}` });
   }, 'editor-primary'));
 }
 
@@ -184,7 +199,7 @@ function showRdpBatchImport(kind, sunIndex, planetIndex = null) {
     const next = copyGroups();
     const target = kind === 'moon' ? next[sunIndex].links[planetIndex].moons : next[sunIndex].links;
     target.push(...prepared);
-    applyEditorChange(next, back);
+    applyEditorChange(next, back, { label: `Imported ${counted(prepared.length, kind)} from .rdp files` });
   }, 'editor-primary');
   add.disabled = true;
   let prepared = [];

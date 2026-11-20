@@ -5,8 +5,9 @@ const topbarSearch = document.querySelector('#topbar-search');
 const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuRoot = document.querySelector('#menu-content');
+const viewToggle = document.querySelector('#view-toggle');
 let menuContent = menuRoot;
-const APP_VERSION = '1.9.2';
+const APP_VERSION = '2.0.0';
 let groups = [];
 // Counts every change to the in-memory map; a drag or drag Undo made against
 // an older revision is refused.
@@ -21,6 +22,9 @@ let alwaysShowMoons = readBooleanPreference('orbit:always-show-moons', false);
 let activeTheme = readThemePreference();
 let activeFontSize = readFontSizePreference();
 let rdpLaunchMode = readRdpLaunchPreference();
+let showQuickBar = readBooleanPreference('orbit:quick-bar', true);
+let showSiteIcons = readBooleanPreference('orbit:site-icons', false);
+let galaxyView = readGalaxyViewPreference();
 let seedData = null;
 let storageWarning = '';
 let findQuery = '';
@@ -34,6 +38,23 @@ function countDestinations() {
   const destinations = groups.reduce((total, group) => total + group.links.reduce(
     (sum, link) => sum + 1 + link.moons.length, 0), 0);
   count.textContent = `${counted(destinations, 'link')} · ${counted(groups.length, 'sun')}`.toUpperCase();
+}
+
+// The Galaxy as orbits or as a list; the System view is the same in both.
+function setGalaxyView(view) {
+  galaxyView = view === 'list' ? 'list' : 'orbits';
+  savePreference('orbit:galaxy-view', galaxyView);
+  updateViewToggle();
+  if (location.hash && location.hash !== '#') location.hash = '';
+  else render();
+}
+
+function updateViewToggle() {
+  const list = galaxyView === 'list';
+  viewToggle.setAttribute('aria-pressed', String(list));
+  viewToggle.title = list ? 'Show the Galaxy as orbits' : 'Show the Galaxy as a list';
+  viewToggle.setAttribute('aria-label', viewToggle.title);
+  viewToggle.textContent = list ? '◎' : '☰';
 }
 
 function dataSourceLabel() {
@@ -64,7 +85,7 @@ function undoRemoval() {
         planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
       }
     }
-    saveMap({ groups: next });
+    saveMap({ groups: next }, `Undid removal of ${record.label}`);
     localStorage.removeItem(UNDO_STORAGE_KEY);
     showSunList();
   } catch (error) {
@@ -85,7 +106,8 @@ async function init() {
     if (!data) throw new Error('Run `python3 sync.py` to generate links-data.js.');
     seedData = validateMap(data);
     const browserMap = loadBrowserMap();
-    groups = (browserMap || seedData).groups;
+    await loadTeamMap();
+    groups = [...visibleTeamGroups(), ...(browserMap || seedData).groups];
     activeMapSource = browserMap ? 'browser' : 'bundled';
     countDestinations();
     render();
@@ -106,9 +128,11 @@ document.querySelector('.brand').addEventListener('click', event => {
   else render();
 });
 settingsTrigger.addEventListener('click', openMenu);
+viewToggle.addEventListener('click', () => setGalaxyView(galaxyView === 'list' ? 'orbits' : 'list'));
 document.querySelector('#menu-close').addEventListener('click', closeMenu);
 document.querySelector('#menu-scrim').addEventListener('click', closeMenu);
 for (const option of document.querySelectorAll('[data-menu-panel]')) {
   option.addEventListener('click', () => showMenuPanel(option.dataset.menuPanel));
 }
+updateViewToggle();
 init();

@@ -20,13 +20,13 @@ These steps make a `.zip` of Orbit that you can give to someone who does not use
 | Included | Why |
 | --- | --- |
 | `index.html`, `styles.css` | The page |
-| `rdp.js`, `storage.js`, `editor.js`, `editor-page.js`, `menu.js`, `render.js`, `drag.js`, `keys.js`, `app.js` | The app scripts that `index.html` loads |
+| `rdp.js`, `storage.js`, `team.js`, `favorites.js`, `editor.js`, `editor-page.js`, `tools.js`, `menu.js`, `render.js`, `drag.js`, `palette.js`, `keys.js`, `app.js` | The app scripts that `index.html` loads |
 | `links.json`, `links-data.js` | The sample link map, and the generated copy used when `index.html` is opened directly |
-| `serve.py`, `sync.py` | The optional local server, and the script that regenerates `links-data.js` |
+| `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates `links-data.js` (and `team-data.js` with `--team`) |
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
 | `README.md`, `RDP_SIGNING.md` | Instructions for the person using Orbit |
 
-Left out: `tests/`, `HANDOFF.md`, `ROADMAP.md`, `DRAG_DROP_PLAN.md`, `REFACTOR_PLAN.md`, `TEST_MATRIX.md`, `.gitignore`, and `.gitconfig`.
+Left out: `tests/`, `HANDOFF.md`, `ROADMAP.md`, `DRAG_DROP_PLAN.md`, `FEATURES_PLAN.md`, `REFACTOR_PLAN.md`, `TEST_MATRIX.md`, `.gitignore`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped.
 
 The zip is built from the last commit, never from your working folder. Files you have not committed are left out, including private ones such as `tests/rdptest01.rdp`. Commit any change you want to ship before you build.
 
@@ -50,7 +50,7 @@ VERSION=$(sed -n "s/^const APP_VERSION = '\(.*\)';/\1/p" app.js)
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" HEAD -- \
   index.html styles.css links.json links-data.js \
-  rdp.js storage.js editor.js editor-page.js menu.js render.js drag.js keys.js app.js \
+  rdp.js storage.js team.js favorites.js editor.js editor-page.js tools.js menu.js render.js drag.js palette.js keys.js app.js \
   serve.py sync.py windows README.md RDP_SIGNING.md
 ```
 
@@ -61,13 +61,13 @@ $Version = (Select-String -Path app.js -Pattern "APP_VERSION = '(.+)'").Matches[
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" HEAD -- `
   index.html styles.css links.json links-data.js `
-  rdp.js storage.js editor.js editor-page.js menu.js render.js drag.js keys.js app.js `
+  rdp.js storage.js team.js favorites.js editor.js editor-page.js tools.js menu.js render.js drag.js palette.js keys.js app.js `
   serve.py sync.py windows README.md RDP_SIGNING.md
 ```
 
 The zip is written to an `orbit-dist` folder beside the project, so it never ends up inside the repository.
 
-**When a script is added or renamed:** the file list above must match the `<script>` tags in `index.html`. Compare the two before each release, because a missing script stops the page from loading.
+**When a script is added or renamed:** the file list above must match the `<script>` tags in `index.html` (except the optional `team-data.js`, which is never shipped). Compare the two before each release, because a missing script stops the page from loading.
 
 ## 3. Check the zip
 
