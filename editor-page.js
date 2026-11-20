@@ -39,11 +39,11 @@ function renderEditorTree() {
   if (!editorTree) return;
   editorTree.replaceChildren(element('h3', '', 'Galaxy'));
   groups.forEach((sun, sunIndex) => {
-    const sunButton = editorButton(`${sun.name} · ${sun.links.length} planets`,
+    const sunButton = editorButton(`${sun.name} · ${counted(sun.links.length, 'planet')}`,
       () => showSunEditor(sunIndex), 'editor-tree-item editor-tree-sun');
     editorTree.append(sunButton);
     sun.links.forEach((planet, planetIndex) => {
-      const planetButton = editorButton(`${planet.name} · ${planet.moons.length} moons`,
+      const planetButton = editorButton(`${planet.name} · ${counted(planet.moons.length, 'moon')}`,
         () => showPlanetEditor(sunIndex, planetIndex), 'editor-tree-item editor-tree-planet');
       editorTree.append(planetButton);
       planet.moons.forEach((moon, moonIndex) => {

@@ -10,6 +10,11 @@ function element(tag, className, text) {
   return node;
 }
 
+// "1 moon", "2 moons", "0 moons".
+function counted(amount, word) {
+  return `${amount} ${word}${amount === 1 ? '' : 's'}`;
+}
+
 function safeColor(value) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#79d9f8';
 }
@@ -332,7 +337,7 @@ function planetNode(link, context, point, size, index, sunIndex) {
     link.moons.slice(0, VISIBLE_MOONS).forEach((moon, moonIndex) =>
       field.append(linkNode(moon, 'moon-link', [sunIndex, index, moonIndex])));
     cluster.append(field);
-    cluster.append(element('span', 'moon-badge', `${link.moons.length} moon${link.moons.length === 1 ? '' : 's'}`));
+    cluster.append(element('span', 'moon-badge', counted(link.moons.length, 'moon')));
   }
   return cluster;
 }
@@ -367,9 +372,9 @@ function homeGroup(group, index) {
   const hub = element('button', 'home-hub');
   hub.type = 'button';
   tagPath(hub, 'sun', index);
-  hub.setAttribute('aria-label', `Open ${group.name} system with ${group.links.length} planets`);
+  hub.setAttribute('aria-label', `Open ${group.name} system with ${counted(group.links.length, 'planet')}`);
   hub.append(element('span', 'hub-name', group.name));
-  hub.append(element('span', 'hub-count', `${group.links.length} PLANETS`));
+  hub.append(element('span', 'hub-count', counted(group.links.length, 'planet').toUpperCase()));
   hub.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(group.id)}`; });
   orbit.append(hub);
   visible.forEach((link, i) => orbit.append(planetNode(link, 'home', points[i], 320, i, index)));
@@ -509,7 +514,7 @@ function renderDetail(group) {
   stage.dataset.sun = sunIndex;
   const hub = tagPath(element('div', 'detail-hub'), 'sun', sunIndex);
   hub.append(element('span', 'detail-hub-name', group.name));
-  hub.append(element('span', 'detail-hub-sub', `${group.links.length} planets`));
+  hub.append(element('span', 'detail-hub-sub', counted(group.links.length, 'planet')));
   stage.append(hub);
   visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i, sunIndex)));
 

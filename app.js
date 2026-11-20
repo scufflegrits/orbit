@@ -6,7 +6,7 @@ const quickFind = document.querySelector('#quick-find');
 const menuOverlay = document.querySelector('#menu-overlay');
 const menuRoot = document.querySelector('#menu-content');
 let menuContent = menuRoot;
-const APP_VERSION = '1.9.1';
+const APP_VERSION = '1.9.2';
 let groups = [];
 // Counts every change to the in-memory map; a drag or drag Undo made against
 // an older revision is refused.
@@ -33,7 +33,7 @@ document.documentElement.dataset.fontSize = activeFontSize;
 function countDestinations() {
   const destinations = groups.reduce((total, group) => total + group.links.reduce(
     (sum, link) => sum + 1 + link.moons.length, 0), 0);
-  count.textContent = `${destinations} LINKS · ${groups.length} SUNS`;
+  count.textContent = `${counted(destinations, 'link')} · ${counted(groups.length, 'sun')}`.toUpperCase();
 }
 
 function dataSourceLabel() {

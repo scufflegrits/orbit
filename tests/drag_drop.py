@@ -377,7 +377,7 @@ def run_galaxy_moves(page, url, mode):
         page.get_by_role("button", name="Edit links").click()
         check(download_json(page, "Export JSON") == expected, f"{mode}: Export JSON matches the moved map")
         tree = page.locator(".editor-tree-item").all_inner_texts()
-        check(tree.index("M2") > tree.index("B2 · 1 moons"), f"{mode}: the editor tree shows the moved moon under B2")
+        check(tree.index("M2") > tree.index("B2 · 1 moon"), f"{mode}: the editor tree shows the moved moon under B2")
     print(f"PASS DD04-DD05 Galaxy moves, reload, export ({mode})")
 
 

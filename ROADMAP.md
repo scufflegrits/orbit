@@ -1,6 +1,6 @@
 # Orbit roadmap
 
-Status: milestones 1–14, 18, and 19 complete (2026-11-15 and 2026-11-16); milestones 15–17 are implemented, with testing deferred at the user's request. Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the PowerShell 7 installer path is also confirmed.
+Status: milestones 1–14, 18, and 19 complete (2026-11-15 and 2026-11-16); milestones 15–17 are implemented and their checks passed on 2026-11-19 (Chromium and Edge, both run modes). Native `mstsc.exe` launch for host-only and imported-profile links is confirmed on Windows 11; the PowerShell 7 installer path is also confirmed.
 
 The editor is part of the local browser app; it does not require hosting or an account.
 
@@ -177,7 +177,7 @@ Scheduled as Milestone 19.
 - Open the cog menu as a full-height panel that slides in from the right edge. Keep Settings, Help, About, the close control, outside-click dismissal, and scrollable editor content.
 - Keep the Animations switch and reduced-motion preference effective for the new panel animation.
 
-**Done when:** The new labels appear, saved preferences still select the same palettes, and the menu enters from the right and remains usable at normal and narrow desktop widths in both run modes. Browser testing is deferred until the next requested test batch.
+**Done when:** The new labels appear, saved preferences still select the same palettes, and the menu enters from the right and remains usable at normal and narrow desktop widths in both run modes. Checks passed 2026-11-19 (`tests/pending_checks.py`).
 
 ## Milestone 16 — Compact Galaxy home
 
@@ -185,7 +185,7 @@ Scheduled as Milestone 19.
 - Keep the sun, planet, and moon guidance in cog → Help; retain the System description in each expanded sun.
 - Keep Quick find and the home grid usable at normal and narrow desktop widths.
 
-**Done when:** The Galaxy shows the suns without the introductory block, Help provides the navigation instructions, and search and System navigation still work. Browser testing is deferred until the next requested test batch.
+**Done when:** The Galaxy shows the suns without the introductory block, Help provides the navigation instructions, and search and System navigation still work. Checks passed 2026-11-19 (`tests/pending_checks.py`).
 
 ## Milestone 17 — Global settings and search
 
@@ -194,7 +194,7 @@ Scheduled as Milestone 19.
 - Typing in Quick find from a System should return to the Galaxy and show results for the entered query. Keep the query when opening a System from search results; the Orbit logo still clears it.
 - Keep the top bar usable at normal and narrow desktop widths.
 
-**Done when:** Settings and Quick find are available from both views, a System search reaches Galaxy results, and the header remains readable. Browser testing is deferred until the next requested test batch.
+**Done when:** Settings and Quick find are available from both views, a System search reaches Galaxy results, and the header remains readable. Checks passed 2026-11-19 (`tests/pending_checks.py`).
 
 ## Milestone 18 — Import saved Remote Desktop profiles
 

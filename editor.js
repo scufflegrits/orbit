@@ -180,7 +180,7 @@ function showImportReview(data) {
   const planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0);
   const moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
     (total, planet) => total + planet.moons.length, 0), 0);
-  menuContent.append(element('p', '', `${data.groups.length} suns · ${planetCount} planets · ${moonCount} moons`));
+  menuContent.append(element('p', '', `${counted(data.groups.length, 'sun')} · ${counted(planetCount, 'planet')} · ${counted(moonCount, 'moon')}`));
   menuContent.append(element('p', '', 'Applying this file replaces the link map saved in this browser. Export your current map first if you want a backup.'));
   const actions = editorActions();
   actions.append(editorButton('Apply import', () =>
@@ -218,9 +218,9 @@ function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind
     }
     if (kind === 'sun') {
       const moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);
-      menuContent.append(element('p', '', `${item.links.length} planet${item.links.length === 1 ? '' : 's'} · ${moons} moon${moons === 1 ? '' : 's'}`));
+      menuContent.append(element('p', '', `${counted(item.links.length, 'planet')} · ${counted(moons, 'moon')}`));
     } else if (kind === 'planet') {
-      menuContent.append(element('p', '', `${item.moons.length} moons · ${item.host || item.url}`));
+      menuContent.append(element('p', '', `${counted(item.moons.length, 'moon')} · ${item.host || item.url}`));
     } else {
       menuContent.append(element('p', '', item.host || item.url));
     }
@@ -277,7 +277,7 @@ function showSunList() {
   const list = element('div', 'editor-list');
   groups.forEach((sun, index) => {
     const row = element('div', 'editor-list-row');
-    row.append(element('span', '', `${sun.name} · ${sun.links.length} planets`));
+    row.append(element('span', '', `${sun.name} · ${counted(sun.links.length, 'planet')}`));
     row.append(editorButton('Edit', () => showSunEditor(index)));
     list.append(row);
   });
@@ -342,7 +342,7 @@ function showSunEditor(index) {
     const list = element('div', 'editor-list');
     sun.links.forEach((planet, planetIndex) => {
       const row = element('div', 'editor-list-row');
-      row.append(element('span', '', `${planet.name} · ${planet.moons.length} moons`));
+      row.append(element('span', '', `${planet.name} · ${counted(planet.moons.length, 'moon')}`));
       row.append(editorButton('Edit', () => showPlanetEditor(index, planetIndex)));
       list.append(row);
     });
