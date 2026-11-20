@@ -1,6 +1,6 @@
 # Feature batch plan — 2026-11-19
 
-**Status:** Complete (2026-11-19, version 2.0.0). Implemented, tested in Chromium and in headless Edge on the Windows VM (both run modes), documented, and committed to `main`. A visible-window Edge pass of these features was not done. Tick a box only when that step is done. Testing waits until every feature is implemented (the user asked for this), then follows the usual cycle: local tests → Edge on the Windows VM → fix → docs → commit and push to `main`.
+**Status:** Complete (2026-11-19, version 2.0.0). Implemented, tested in Chromium and in headless Edge on the Windows VM (both run modes), documented, and committed to `main`. On 2026-11-20 every suite also passed in a visible Edge window, and the user confirmed the Open all pop-up flow by hand. Tick a box only when that step is done. Testing waits until every feature is implemented (the user asked for this), then follows the usual cycle: local tests → Edge on the Windows VM → fix → docs → commit and push to `main`.
 
 **Scope:** ideas 1–4 and 6–15 from the 2026-11-19 list. Idea 5 (lab reachability) and touchscreen dragging are out of scope.
 
