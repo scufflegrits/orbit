@@ -1,6 +1,6 @@
 # Orbit
 
-A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination.
+A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination. Your favorite and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list.
 
 To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planets, and moons; see [Rearrange by dragging](#rearrange-by-dragging).
 
@@ -121,7 +121,7 @@ Turn on **Edit mode** in the top bar to rearrange the map with a mouse or pen. I
 - To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun in the Galaxy. Choose **Before** or **After**; the hint shows the position the item will take. Pause on a planet to show its moons, or on a tray entry to open it.
 - **Undo last drag** reverses the most recent move until the map changes again or the page reloads.
 
-A moved link keeps its name, destination, and any imported `.rdp` profile, and goes to the end of its new parent unless you choose a position beside a sibling. Reordering a sun keeps its System address. The Galaxy shows only the first five planets and four moons, so use a System or **Edit links** for the rest. In Edit mode, a Quick find result opens that planet or moon in Edit links. Dragging needs a mouse or pen; with a keyboard, use Edit links: **Move up** and **Move down** set the order, and **Move to another sun** or **Move to another planet** includes a position. Touch dragging is not supported or planned. Team suns cannot be dragged.
+A moved link keeps its name, destination, and any imported `.rdp` profile, and goes to the end of its new parent unless you choose a position beside a sibling. Reordering a sun keeps its System address. The Galaxy shows only the first five planets of each sun and six moons of each planet, so use a System, the list view, or **Edit links** for the rest. In Edit mode, a Quick find result opens that planet or moon in Edit links. Dragging needs a mouse or pen; with a keyboard, use Edit links: **Move up** and **Move down** set the order, and **Move to another sun** or **Move to another planet** includes a position. Touch dragging is not supported or planned. Team suns cannot be dragged.
 
 ## Keyboard
 
