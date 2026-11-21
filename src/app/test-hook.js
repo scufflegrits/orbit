@@ -1,0 +1,101 @@
+// window.OrbitTest: the only way the browser tests reach into the app
+// (REWRITE_PLAN.md, "Test hook"). It exists only in the test bundle
+// (orbit.test.js); the release bundle leaves this file out entirely.
+//
+// In phase 1 it reads and drives the old classic scripts' globals, which it
+// looks up when called (orbit.js loads before those scripts). As code moves
+// into src/, each function here switches to the new module and the tests stay
+// unchanged.
+
+/** @template T @param {T} value @returns {T} */
+const copy = value => (value === undefined ? value : JSON.parse(JSON.stringify(value)));
+
+export function installTestHook() {
+  window.OrbitTest = {
+    /** The combined map (team suns first, as the page numbers them) and the state around it. */
+    state() {
+      return {
+        groups: copy(groups),
+        routines: copy(routines),
+        rdpPresets: copy(rdpPresets),
+        revision: mapRevision,
+        workspace: activeWorkspace,
+        editMode,
+        drag: drag ? drag.state : null,
+      };
+    },
+
+    /** A copy of the combined map: the same as state().groups. */
+    groups() {
+      return copy(groups);
+    },
+
+    /**
+     * Save a combined map (team suns may be included; they're never stored).
+     * @param {any[]} nextGroups
+     * @param {{routines?: any[], rdpPresets?: any[], label?: string|false}} [options]
+     */
+    saveMap(nextGroups, options = {}) {
+      /** @type {{groups: any[], routines?: any[], rdpPresets?: any[]}} */
+      const data = { groups: nextGroups };
+      if (options.routines !== undefined) data.routines = options.routines;
+      if (options.rdpPresets !== undefined) data.rdpPresets = options.rdpPresets;
+      saveMap(data, options.label === undefined ? 'Test' : options.label);
+    },
+
+    /**
+     * Run `action` and return what it would have downloaded as JSON, instead of a file.
+     * @param {() => void} action
+     */
+    captureDownload(action) {
+      let data;
+      const original = downloadJson;
+      downloadJson = value => { data = value; };
+      try {
+        action();
+      } finally {
+        downloadJson = original;
+      }
+      return copy(data);
+    },
+
+    /** App actions the tests drive directly. */
+    actions: {
+      exportMap: () => exportMap(),
+      showSunList: () => showSunList(),
+      /** @param {number[]} path */
+      openEditorAt: path => openEditorAt(path),
+      /** @param {boolean} on */
+      setEditMode: on => setEditMode(on),
+      openMenu: () => openMenu(),
+      openPalette: () => openPalette(),
+      render: () => render(),
+    },
+
+    /** Pure functions the tests call. */
+    helpers: {
+      /** @param {any[]} list @param {any} source @param {any} target */
+      moveMapItem: (list, source, target) => moveMapItem(list, source, target),
+      /** @param {any} value @param {string} label */
+      validDestination: (value, label) => validDestination(value, label),
+      /** @param {any} item */
+      destinationKey: item => destinationKey(item),
+      /** @param {any} item */
+      effectiveRdpProfile: item => effectiveRdpProfile(item),
+      /** @param {any} item */
+      rdpLaunchUrl: item => rdpLaunchUrl(item),
+      /** @param {any} item */
+      siteIcon: item => siteIcon(item),
+      /** @param {any} item @param {string} className @param {number[]} [path] */
+      destinationNode: (item, className, path) => destinationNode(item, className, path),
+    },
+
+    /** Clear Orbit's saved data and reload (file:// pages share one localStorage). */
+    reset() {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('orbit:')) localStorage.removeItem(key);
+      }
+      location.reload();
+    },
+  };
+}

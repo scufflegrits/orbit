@@ -4,8 +4,8 @@
     python tests/perf_compare.py --against WORKTREE         # 2.2.1 vs this checkout, full recipe (phase 8)
     python tests/perf_compare.py --against WORKTREE --quick # phase-end check: 2 warm-up, 5 measured runs
 
-A version is a git ref (tag or commit) or WORKTREE (the tracked files in this
-checkout, including uncommitted edits). Each version is copied into its own
+A version is a git ref (tag or commit) or WORKTREE (this checkout's files,
+including uncommitted edits and new files that git doesn't ignore). Each version is copied into its own
 fixture folder with the committed perf map, then measured in file mode in one
 headless Chromium at 1920x1080, alternating versions run by run.
 
@@ -69,7 +69,9 @@ def materialize(ref, folder):
     """Copy a version's tracked files into folder."""
     folder.mkdir(parents=True)
     if ref == "WORKTREE":
-        for name in subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split("\n"):
+        # Tracked files plus new ones not yet committed (but never ignored files).
+        listing = ["git", "ls-files", "--cached", "--others", "--exclude-standard"]
+        for name in subprocess.run(listing, cwd=ROOT, capture_output=True, text=True, check=True).stdout.split("\n"):
             source = ROOT / name
             if name and source.is_file() and not name.startswith("tests/"):
                 (folder / name).parent.mkdir(parents=True, exist_ok=True)

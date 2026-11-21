@@ -183,3 +183,15 @@ To copy a moon to another planet, open that moon in **Edit links** and choose **
 Browser edits take precedence over `links.json` (or `links-data.js` in direct-file mode) until you reset. Direct-file and local-server pages have separate browser storage; use export and import to move edits between them. The browser editor does not write `links.json` directly.
 
 The Theme setting offers Default, Red, and Blue. Red and Blue retain their existing palettes, and previously saved theme choices still work. Your choice is saved in this browser; select Default to return to the original appearance.
+
+## Changing Orbit's code
+
+Using Orbit needs no build or install: open `index.html`. Changing its code may need Node, because Orbit is moving, piece by piece, from separate scripts into `src/`, bundled into one file:
+
+- **`orbit.js` is built from `src/` and committed.** After you change anything in `src/`, run `npm install` once, then `npm run build`, and commit `orbit.js` with your change. Never edit `orbit.js` by hand.
+- **`npm run check:bundle`** confirms the committed `orbit.js` matches `src/`.
+- **`npm run check`** type-checks `src/`; **`npm run check:layers`** checks how its folders depend on each other.
+- **`npm run watch`** rebuilds `orbit.js` on every change, with a source map for the browser's developer tools. Run `npm run build` before committing; the source-map line makes `check:bundle` fail.
+- **The browser tests** (`tests/*.py`) build their own test copy of the bundle (`orbit.test.js`, not committed) and use it in a temporary folder, so they never touch your `orbit.js`.
+
+The other scripts in the project folder still work as before: edit them directly, with no build step.

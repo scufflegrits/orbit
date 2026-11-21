@@ -1,0 +1,20 @@
+{
+  "name": "orbit",
+  "private": true,
+  "description": "Development tools for Orbit. Users never need Node: the built orbit.js is committed.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:test": "node build.mjs --test",
+    "watch": "node build.mjs --watch",
+    "check": "tsc --noEmit -p jsconfig.json",
+    "check:bundle": "node build.mjs --check",
+    "check:layers": "node scripts/check-layers.mjs",
+    "test:unit": "node --test src"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "fast-check": "4.10.2",
+    "typescript": "6.0.3"
+  }
+}

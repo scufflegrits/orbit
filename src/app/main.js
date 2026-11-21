@@ -1,0 +1,10 @@
+// Entry point for orbit.js. During the rewrite the old classic scripts still
+// start the app (app.js init); this only publishes the bridge and, in the test
+// bundle, the test hook. ORBIT_TEST is set by build.mjs: false for the release
+// bundle, which removes the test hook entirely.
+import { APP_VERSION } from './version.js';
+import { publishBridge } from './legacy-bridge.js';
+import { installTestHook } from './test-hook.js';
+
+publishBridge({ version: APP_VERSION });
+if (ORBIT_TEST) installTestHook();

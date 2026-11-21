@@ -10,6 +10,8 @@
     <script src="links-data.js"></script>
     <!-- Optional read-only team map, written by `python3 sync.py --team PATH`. -->
     <script src="team-data.js"></script>
+    <!-- The new code (src/, bundled by build.mjs). Loads before the old scripts so they can use window.OrbitNext. -->
+    <script src="orbit.js"></script>
     <script src="rdp.js" defer></script>
     <script src="storage.js" defer></script>
     <script src="team.js" defer></script>

@@ -1,13 +1,12 @@
 """Browser checks for milestones 1-8."""
 
 import json
-import shutil
 import tempfile
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
-from helpers import APP_SCRIPTS, ARTIFACTS, QuietHandler, ROOT, check, open_editor, submit_editor_form, write_fixture
+from helpers import ARTIFACTS, QuietHandler, ROOT, check, open_editor, submit_editor_form, write_fixture
 
 
 def run_milestone_1(page, url, mode):
@@ -33,9 +32,6 @@ def run_milestone_1(page, url, mode):
 
 def run_extra_sun_fixture(page):
     with tempfile.TemporaryDirectory(prefix="orbit-fixture-") as directory:
-        fixture = Path(directory)
-        for name in ("index.html", "styles.css", *APP_SCRIPTS):
-            shutil.copy2(ROOT / name, fixture / name)
         data = json.loads((ROOT / "links.json").read_text())
         data["groups"][0]["links"].extend([
             {"name": "Extra One", "url": "https://example.com/one"},
@@ -43,7 +39,7 @@ def run_extra_sun_fixture(page):
         ])
         data["groups"].append({"id": "extra", "name": "Extra", "description": "Fixture",
                                "color": "#88aaff", "links": []})
-        (fixture / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(data) + ";\n")
+        fixture = write_fixture(directory, data)
         page.goto((fixture / "index.html").as_uri(), wait_until="load")
         page.locator(".home-hub").first.wait_for()
         check(page.locator(".home-hub").count() == 10, "extra sun remains visible")
@@ -289,6 +285,8 @@ def run_milestone_4(page, url, mode):
 
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
+    # Server mode renders after fetching links.json; wait for the suns before counting them.
+    page.locator(".home-hub").nth(9).wait_for()
     check(page.locator(".home-hub").count() == 10,
           f"{mode}: browser edits survive reload")
     personal = page.locator(".home-hub").filter(has_text="Personal Renamed")

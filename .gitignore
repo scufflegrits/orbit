@@ -8,3 +8,8 @@ team-data.js
 
 # Test screenshots and output (tests/helpers.py ARTIFACTS).
 .artifacts/
+
+# Development packages and the test bundle (build.mjs --test); orbit.js itself is committed.
+node_modules/
+orbit.test.js
+orbit.js.map

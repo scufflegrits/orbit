@@ -169,9 +169,8 @@ def main():
                         help="Only write the synthetic fixture data files into DIR and exit")
     args = parser.parse_args()
     if args.write_fixture:
-        target = Path(args.write_fixture)
-        (target / "links.json").write_text(json.dumps(FIXTURE))
-        (target / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(FIXTURE) + ";\n")
+        # The whole fixture, test bundle included, so a remote browser tests what the local runs test.
+        write_fixture(Path(args.write_fixture), FIXTURE)
         return
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     if args.cdp:

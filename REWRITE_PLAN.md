@@ -658,7 +658,7 @@ The hook exists only in the test bundle (see "Builds and what tests run"). Tests
 - **`captureDownloads()`:** records every download kind (map, item, pack, `.rdp`) as text. Works over CDP in Edge.
 - **Actions:** `exportMap()`, `showSunList()`, `openEditorAt(path)`, `setEditMode(on)`, `openMenu()`, `render()`.
 - **Pure helpers:** `moveMapItem`, `validDestination`, `effectiveRdpProfile`, `rdpLaunchUrl`, `siteIcon`, `destinationNode`. Alternatively, move the checks that use them (DD01, DD10) to `node --test`.
-- **`setNow(ms)`:** clock override for routine-offer and backup tests.
+- **`setNow(ms)`:** clock override for routine-offer and backup tests. Added in phase 4, when `services/schedule.js` owns the clock.
 - **`reset()`:** clears Orbit's keys and reloads the page. `file://` pages share one localStorage, so a reload is required.
 
 ### Checks added by the review
@@ -969,20 +969,22 @@ Phase 0 closed 2026-11-20. Edge: N/A, no browser-visible change (no app code cha
 
 ### Phase 1: Tooling, no behavior change
 
-- [ ] `package.json` (development only): pinned esbuild, TypeScript, fast-check; scripts `build`, `check`, `watch`, `test:unit` (`node --test`), `check:layers`; committed lockfile
-- [ ] `jsconfig.json` with `checkJs` and `strict`, plus `src/globals.d.ts` declaring `window.ORBIT_DATA`, `window.ORBIT_TEAM_DATA`, and the old globals the bridge touches
-- [ ] `.gitattributes`: `orbit.js text eol=lf`
-- [ ] `build.mjs`: bundle `src/app/main.js` (IIFE, works from `file://`) into the release bundle `orbit.js` (`ORBIT_TEST=false`) and, with `build:test`, the test bundle `orbit.test.js` (`ORBIT_TEST=true`, git-ignored); `watch` writes a linked source map
-- [ ] `npm run check:bundle`: fails if the committed `orbit.js` doesn't match a fresh release build, or contains `OrbitTest`
-- [ ] Every browser runner runs `npm run build:test` first; `build.mjs` writes the build-input fingerprint; `write_fixture` copies `orbit.test.js` as `orbit.js` and refuses a missing bundle or a fingerprint that doesn't match; `browser_matrix.py` moves to a fixture copy
-- [ ] `tests/release_smoke.py` against the repo folder (see "Builds and what tests run"), passing in Chromium in both modes
-- [ ] `src/app/legacy-bridge.js` publishing `window.OrbitNext`, and `index.html` loading `orbit.js` before the old scripts
-- [ ] `src/app/version.js` holding `APP_VERSION`, with `app.js` reading it through the bridge; update the release steps in `README-distribute.md`
-- [ ] `window.OrbitTest` with everything under "Test hook", present only in the test bundle
-- [ ] Move the tests that reach into app globals to `OrbitTest`, one test file at a time. Each file's suite must pass with its assertions unchanged.
-- [ ] `APP_SCRIPTS` in `tests/helpers.py` lists `orbit.js` plus the old scripts still loaded, so `write_fixture` copies the bundle too
-- [ ] Point `sync.py`, the README, and the distribution README at the new layout
-- [ ] Done when: every suite passes in Chromium in both modes; Edge on the VM passes the drag and features suites; all 20 old scripts still loaded
+- [x] `package.json` (development only): pinned esbuild, TypeScript, fast-check; scripts `build`, `check`, `watch`, `test:unit` (`node --test`), `check:layers`; committed lockfile. Done: esbuild 0.28.2, TypeScript 6.0.3 (the last JavaScript-based compiler; 7.x is the native rewrite, kept out because of JSDoc-checking risk), fast-check 4.10.2, all exact, with `package-lock.json`. Also `build:test`, `check:bundle`, and `check:layers` (`scripts/check-layers.mjs`). npm's install-scripts policy blocks esbuild's post-install check; the platform binary is present and works.
+- [x] `jsconfig.json` with `checkJs` and `strict`, plus `src/globals.d.ts` declaring `window.ORBIT_DATA`, `window.ORBIT_TEAM_DATA`, and the old globals the bridge touches. Done; `npm run check` is clean.
+- [x] `.gitattributes`: `orbit.js text eol=lf`. Done.
+- [x] `build.mjs`: bundle `src/app/main.js` (IIFE, works from `file://`) into the release bundle `orbit.js` (`ORBIT_TEST=false`) and, with `build:test`, the test bundle `orbit.test.js` (`ORBIT_TEST=true`, git-ignored); `watch` writes a linked source map. Done; `minifySyntax` drops dead branches so the release bundle holds only live code (about 360 bytes in phase 1).
+- [x] `npm run check:bundle`: fails if the committed `orbit.js` doesn't match a fresh release build, or contains `OrbitTest`. Done; shown to fail on a hand-edited `orbit.js` and on the test bundle copied over it.
+- [x] Every browser runner runs `npm run build:test` first; `build.mjs` writes the build-input fingerprint; `write_fixture` copies `orbit.test.js` as `orbit.js` and refuses a missing bundle or a fingerprint that doesn't match; `browser_matrix.py` moves to a fixture copy. Done, differently in one detail: `write_fixture` itself builds the test bundle once per run and checks the fingerprint, so every runner gets it without its own build step. The Node and Python fingerprints match, and a changed `package.json` makes `write_fixture` refuse the bundle. The `--write-fixture` options of the drag, sizing, and features runners now write the whole fixture, test bundle included, so the VM tests the same folder.
+- [x] `tests/release_smoke.py` against the repo folder (see "Builds and what tests run"), passing in Chromium in both modes. Done; passes in both modes, and fails when the test bundle is shipped as `orbit.js`.
+- [x] `src/app/legacy-bridge.js` publishing `window.OrbitNext`, and `index.html` loading `orbit.js` before the old scripts. Done; `orbit.js` loads synchronously before the deferred old scripts.
+- [x] `src/app/version.js` holding `APP_VERSION`, with `app.js` reading it through the bridge; update the release steps in `README-distribute.md`. Done; `app.js` reads `window.OrbitNext.version`.
+- [x] `window.OrbitTest` with everything under "Test hook", present only in the test bundle. Done except `setNow(ms)`, moved to phase 4: 2.2.1 reads the clock with `new Date()` in several places, so there's nothing to override until `services/schedule.js` owns the clock. No current test needs it.
+- [x] Move the tests that reach into app globals to `OrbitTest`, one test file at a time. Each file's suite must pass with its assertions unchanged. Done for `drag_drop.py`, `features.py`, `milestone_18.py`, `milestones_09_14.py`, and `mode_rules_check.py`; a scan of every app name in test calls finds none left. `data_compat_check.py` keeps reading 2.2.1's globals until phase 3, as its docstring says, because its expected results describe that state.
+- [x] `APP_SCRIPTS` in `tests/helpers.py` lists `orbit.js` plus the old scripts still loaded, so `write_fixture` copies the bundle too. Done in an equivalent way: `APP_SCRIPTS` keeps the old scripts, and `write_fixture` copies the test bundle as `orbit.js` (the `BUNDLE` constant). `browser_matrix.py` and the extra-sun fixture now use fixture copies.
+- [x] Point `sync.py`, the README, and the distribution README at the new layout. Done: `sync.py` needed no change (it lists no scripts); the README has a "Changing Orbit's code" section; README-distribute reads the version from `src/app/version.js` and ships `orbit.js`.
+- [x] Done when: every suite passes in Chromium in both modes; Edge on the VM passes the drag and features suites; all 20 old scripts still loaded. Met 2026-11-21: every suite in Chromium in both modes with the same counts as the 2.2.1 baseline (matrix 39, drag 15 and 29, sizes 13, pending 21, features 53), plus mode rules 23, data compatibility, release smoke, and behavior 22; Edge 158 on the VM passed drag phase 2 and features in file and server mode. Quick performance check: first render +6%, keystroke +3% (within the 20% flag). Found and fixed on the way: three checks counted suns right after a reload without waiting (an intermittent failure in server mode).
+
+Phase 1 closed 2026-11-21.
 
 ### Phase 2: Core (pure logic), tests first
 
@@ -1088,6 +1090,7 @@ Tests use fake `window.open`, `fetch`, storage, and clock.
   - `window.open` called synchronously and looked up at call time
   - the confirm question and the blocked-tab report returned to the UI rather than shown
 - [ ] Tests first, then `services/rdp-launch.js`, `services/link-check.js` (headers `X-Orbit-Check: 1` and JSON content type), `services/file-io.js` (JSON, `.rdp` text, bookmark HTML to folder tree, downloads), and `services/schedule.js` (due routines, backup due, team diff, `now()`)
+- [ ] `OrbitTest.setNow(ms)`, overriding `services/schedule.js`'s clock (moved here from phase 1)
 - [ ] Bridge: the old opener, team loading, file reading, and download functions forward to services
 - [ ] Pop-up allowance check and team server-mode checks (see "Checks added by the review")
 - [ ] Done when:

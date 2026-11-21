@@ -453,8 +453,8 @@ def f09_history(ctx):
     check(rows[0].startswith("Before: Restored the version from"), f"{mode}: a restore can be undone ({rows[:1]})")
     # Drags and resets are recorded as well.
     close_menu(page)
-    page.evaluate("""() => { const next = copyGroups(); next.reverse();
-      saveMap({ groups: next }, 'Moved sun test'); }""")
+    page.evaluate("""() => { const next = OrbitTest.groups(); next.reverse();
+      OrbitTest.saveMap(next, { label: 'Moved sun test' }); }""")
     open_editor(page)
     page.get_by_role("button", name="Reset to file data").click()
     page.get_by_role("button", name="History", exact=True).click()
@@ -570,8 +570,7 @@ def f12_team(ctx):
     if mode.startswith("remote"):
         # A remote browser's download cannot be read here; take the data
         # Export JSON hands to the download instead.
-        exported = page.evaluate("""() => { let data; const save = downloadJson;
-          downloadJson = value => { data = value; }; exportMap(); downloadJson = save; return data; }""")
+        exported = page.evaluate("OrbitTest.captureDownload(() => OrbitTest.actions.exportMap())")
     else:
         with page.expect_download() as download:
             page.get_by_role("button", name="Export JSON", exact=True).click()
@@ -644,7 +643,7 @@ def f14_icons(ctx):
     check("favicon.ico" in page.locator(".menu-content").inner_text(), f"{mode}: the setting says where icons come from")
     page.get_by_label("Show site icons", exact=True).check()
     close_menu(page)
-    sources = page.evaluate("groups[1].links.map(link => siteIcon(link)?.getAttribute('src') ?? null)")
+    sources = page.evaluate("OrbitTest.groups()[1].links.map(link => OrbitTest.helpers.siteIcon(link)?.getAttribute('src') ?? null)")
     check(sources == [f"{ctx.target}/favicon.ico", "https://status.example.test/favicon.ico", None],
           f"{mode}: each icon comes from its own site, and Remote Desktop links have none ({sources})")
     page.locator('.home-hub[data-sun="1"]').hover()
@@ -653,7 +652,7 @@ def f14_icons(ctx):
     check(page.locator('.home-satellite[data-sun="1"][data-planet="0"] .site-icon').count() == 1,
           f"{mode}: an icon that loads stays")
     # A site that refuses the request at once (a closed local port).
-    page.evaluate("""() => { const node = destinationNode({ name: 'Closed', url: 'http://127.0.0.1:9/' }, 'probe-link');
+    page.evaluate("""() => { const node = OrbitTest.helpers.destinationNode({ name: 'Closed', url: 'http://127.0.0.1:9/' }, 'probe-link');
       node.id = 'icon-probe'; document.body.append(node); }""")
     try:
         page.wait_for_function("!document.querySelector('#icon-probe .site-icon')", timeout=10000)
@@ -793,8 +792,7 @@ def f17_routines(ctx):
     close_menu(page)
     page.locator("#edit-toggle").click()
     # Export includes routines; merge adds new names only.
-    exported = page.evaluate("""() => { let data; const save = downloadJson;
-      downloadJson = value => { data = value; }; exportMap(); downloadJson = save; return data; }""")
+    exported = page.evaluate("OrbitTest.captureDownload(() => OrbitTest.actions.exportMap())")
     check([routine["name"] for routine in exported.get("routines", [])] == ["Morning"], f"{mode}: Export JSON includes routines")
     incoming = {"groups": [], "routines": [
         {"name": "MORNING", "links": [{"key": "https://wiki.example.test", "name": "Wiki"}]},
@@ -821,7 +819,7 @@ def f17_routines(ctx):
 # ---- F18 Offer routines on arrival ------------------------------------------------
 
 def set_routines(page, routines):
-    page.evaluate("""list => { saveMap({ groups: copyGroups(), routines: list }, 'test routines');
+    page.evaluate("""list => { OrbitTest.saveMap(OrbitTest.groups(), { routines: list, label: 'test routines' });
       localStorage.removeItem('orbit:routine-offered:v1'); }""", routines)
     page.reload(wait_until="load")
     page.locator(".home-hub").first.wait_for()
@@ -884,13 +882,12 @@ def f18_arrival(ctx):
 
 def save_map_js(page, script, label="test setup"):
     """Change the map in the page with JavaScript (`next` is a copy of the groups)."""
-    page.evaluate(f"""() => {{ const next = copyGroups(); {script}; saveMap({{ groups: next }}, '{label}'); }}""")
+    page.evaluate(f"""() => {{ const next = OrbitTest.groups(); {script}; OrbitTest.saveMap(next, {{ label: '{label}' }}); }}""")
 
 
 def capture_download(page, action_js):
     """Run JavaScript that downloads JSON and return the data instead of a file."""
-    return page.evaluate(f"""() => {{ let data; const save = downloadJson;
-      downloadJson = value => {{ data = value; }}; try {{ {action_js}; }} finally {{ downloadJson = save; }} return data; }}""")
+    return page.evaluate(f"""() => OrbitTest.captureDownload(() => {{ {action_js}; }})""")
 
 
 # ---- F19 Notes ------------------------------------------------------------------
@@ -914,7 +911,7 @@ def f19_notes(ctx):
     check("Use the ops account" in page.locator(".list-link").filter(has_text="Status").first.inner_text(),
           f"{mode}: the list view shows notes")
     page.locator("#view-toggle").click()
-    page.evaluate("() => { try { validDestination({ name: 'x', url: 'https://x.example/', note: 'n'.repeat(501) }, 'X'); window.__noteError = ''; } catch (e) { window.__noteError = e.message; } }")
+    page.evaluate("() => { try { OrbitTest.helpers.validDestination({ name: 'x', url: 'https://x.example/', note: 'n'.repeat(501) }, 'X'); window.__noteError = ''; } catch (e) { window.__noteError = e.message; } }")
     check("longer than 500" in page.evaluate("window.__noteError"), f"{mode}: a longer note is refused")
     print(f"PASS F19 notes ({mode})")
 
@@ -1107,10 +1104,11 @@ def f27_reset_workspace(ctx):
 def f23_link_packs(ctx):
     page, mode = ctx.page, ctx.mode
     fresh(ctx)
-    page.evaluate("""() => saveMap({ groups: copyGroups(), routines: [{ name: 'Morning',
-      links: [{ key: destinationKey(groups[1].links[0].moons[0]), name: 'Guide' },
-              { key: destinationKey(groups[1].links[1]), name: 'Status' }],
-      schedule: { time: '08:00', days: [1, 2, 3, 4, 5] } }] }, 'test')""")
+    page.evaluate("""() => { const groups = OrbitTest.groups(); const key = OrbitTest.helpers.destinationKey;
+      OrbitTest.saveMap(groups, { label: 'test', routines: [{ name: 'Morning',
+      links: [{ key: key(groups[1].links[0].moons[0]), name: 'Guide' },
+              { key: key(groups[1].links[1]), name: 'Status' }],
+      schedule: { time: '08:00', days: [1, 2, 3, 4, 5] } }] }); }""")
     open_editor(page)
     page.get_by_role("button", name="Routines", exact=True).click()
     pack = capture_download(page, "document.querySelector('.routine-row').querySelectorAll('button')[1].click()")
@@ -1238,10 +1236,10 @@ def f26_presets(ctx):
     page.get_by_label("Connection settings", exact=True).select_option(label="Preset: Big screen")
     page.get_by_role("button", name="Save moon").click()
     check(stored(page)[0]["links"][2]["moons"][0].get("rdpPreset") == "big-screen", f"{mode}: a link chooses a preset")
-    profile = page.evaluate("effectiveRdpProfile(groups[1].links[2].moons[0])")
+    profile = page.evaluate("OrbitTest.helpers.effectiveRdpProfile(OrbitTest.groups()[1].links[2].moons[0])")
     check(profile == "full address:s:lab-box-server3\r\nscreen mode id:i:2\r\nuse multimon:i:1\r\n",
           f"{mode}: the link opens with the preset and its own computer ({profile!r})")
-    check(page.evaluate("rdpLaunchUrl(groups[1].links[2].moons[0])").startswith("orbit-rdp://lab-box-server3/?profile="),
+    check(page.evaluate("OrbitTest.helpers.rdpLaunchUrl(OrbitTest.groups()[1].links[2].moons[0])").startswith("orbit-rdp://lab-box-server3/?profile="),
           f"{mode}: the mstsc.exe launch carries the preset")
     tree(page, "editor-tree-planet", "Lab Box").click()
     page.get_by_role("button", name="Apply RDP settings to moons").click()
@@ -1260,7 +1258,7 @@ def f26_presets(ctx):
     after = json.loads(saved_map(page))
     check("rdpPresets" not in after and not any("rdpPreset" in item for item in [after["groups"][0]["links"][2], *after["groups"][0]["links"][2]["moons"]]),
           f"{mode}: removing a preset clears it from links")
-    check(page.evaluate("effectiveRdpProfile(groups[1].links[2].moons[1])").startswith("full address:s:lab-box-server4:3390"),
+    check(page.evaluate("OrbitTest.helpers.effectiveRdpProfile(OrbitTest.groups()[1].links[2].moons[1])").startswith("full address:s:lab-box-server4:3390"),
           f"{mode}: a link falls back to its own imported settings")
     close_menu(page)
     print(f"PASS F26 Remote Desktop presets ({mode})")
@@ -1336,7 +1334,8 @@ def main():
     parser.add_argument("--port", type=int, default=0)
     args = parser.parse_args()
     if args.write_fixture:
-        write_data(args.write_fixture, args.target)
+        # The whole fixture, test bundle included, so a remote browser tests what the local runs test.
+        write_data(write_fixture(Path(args.write_fixture), make_map(args.target)), args.target)
         return
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     if args.serve:

@@ -88,7 +88,7 @@ def stored(page):
 
 
 def memory(page):
-    return page.evaluate("({ groups })")
+    return page.evaluate("({ groups: OrbitTest.groups() })")
 
 
 def fresh(page, url, **prefs):
@@ -194,6 +194,8 @@ def run_pure_operation(page, url, mode):
     """DD01: the shared move operation."""
     fresh(page, url)
     result = page.evaluate("""() => {
+        const groups = OrbitTest.groups();
+        const moveMapItem = OrbitTest.helpers.moveMapItem;
         const before = JSON.stringify(groups);
         const out = {};
         out.planet = moveMapItem(groups, { kind: 'planet', sun: 0, planet: 1 }, { kind: 'sun', sun: 1 });
@@ -579,7 +581,7 @@ def run_rejections(page, url, mode):
     # An in-page map change during the drag cancels it.
     start = galaxy_planet(page, 0, 1)
     drag_to(page, start, pt(node(page, ".home-hub", 1)), release=False)
-    page.evaluate("saveMap({ groups })")
+    page.evaluate("OrbitTest.saveMap(OrbitTest.groups(), { label: 'Change' })")
     page.mouse.up()
     check(stored(page) == FIXTURE and page.locator(".drag-preview").count() == 0,
           f"{mode}: an edit during the drag cancels the move")
@@ -616,7 +618,7 @@ def run_undo(page, url, mode):
     start = galaxy_planet(page, 0, 0)
     drag_to(page, start, pt(node(page, ".home-hub", 2)))
     check(undo.is_visible(), f"{mode}: Undo is offered again")
-    page.evaluate("saveMap({ groups })")
+    page.evaluate("OrbitTest.saveMap(OrbitTest.groups(), { label: 'Change' })")
     check(undo.is_hidden(), f"{mode}: a later map edit retires drag Undo")
 
     # A change from another tab retires it as well.
@@ -710,7 +712,7 @@ def export_map(page):
         if page.locator(".editor-pane").count() == 0:
             page.locator('[data-menu-panel="Settings"]').click()
             page.get_by_role("button", name="Edit links").click()
-    page.evaluate("showSunList()")
+    page.evaluate("OrbitTest.actions.showSunList()")
     if not CDP:
         return download_json(page, "Export JSON")
     # A remote browser saves downloads on its own disk, so read the file's bytes as they are made.
@@ -726,6 +728,8 @@ def run_pure_insertion(page, url, mode):
     """DD10: the insertion form of the shared move operation."""
     fresh(page, url)
     result = page.evaluate("""() => {
+        const groups = OrbitTest.groups();
+        const moveMapItem = OrbitTest.helpers.moveMapItem;
         const before = JSON.stringify(groups);
         const move = (source, target) => moveMapItem(groups, source, target);
         const planet = (sun, index, place) => ({ kind: 'planet', sun, planet: index, ...(place ? { place } : {}) });
@@ -968,7 +972,7 @@ def run_reorder_rejections(page, url, mode):
 def run_editor_positions(page, url, mode):
     """DD15: keyboard-reachable positions in Edit links; search, tree, reload, export."""
     fresh(page, url)
-    page.evaluate("openEditorAt([0, 1])")
+    page.evaluate("OrbitTest.actions.openEditorAt([0, 1])")
     page.get_by_role("button", name="Move to another sun").click()
     page.get_by_label("Move to").select_option("1")
     position = page.get_by_label("Position")
@@ -980,7 +984,7 @@ def run_editor_positions(page, url, mode):
     check(stored(page) == expected, f"{mode}: the editor inserted a planet before B2")
     check("Sun: Beta" in page.locator(".editor-pane").inner_text(), f"{mode}: the editor follows the moved planet")
 
-    page.evaluate("openEditorAt([0, 0, 0])")
+    page.evaluate("OrbitTest.actions.openEditorAt([0, 0, 0])")
     page.get_by_role("button", name="Move to another planet").click()
     page.get_by_label("Move to").select_option("1:0")
     page.get_by_label("Position").select_option("0")
@@ -1099,9 +1103,8 @@ def main():
                         help="Only write the synthetic fixture data files into DIR and exit")
     args = parser.parse_args()
     if args.write_fixture:
-        target = Path(args.write_fixture)
-        (target / "links.json").write_text(json.dumps(FIXTURE))
-        (target / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(FIXTURE) + ";\n")
+        # The whole fixture, test bundle included, so a remote browser tests what the local runs test.
+        write_fixture(Path(args.write_fixture), FIXTURE)
         return
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as playwright:

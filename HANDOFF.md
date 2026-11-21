@@ -4,7 +4,7 @@ Last updated 2026-11-20, at version 2.2.1.
 
 ## Status
 
-All released work is on `main`, with no failing or pending test. The 3.0.0 rewrite runs on the `rewrite` branch ([REWRITE_PLAN.md](https://github.com/scufflegrits/orbit/blob/rewrite/REWRITE_PLAN.md) there). **Phase 0 (prepare) is done on `rewrite`** (2026-11-20): the 2.2.1 behavior inventory, mode-rule check, storage fixture and data-compatibility check, test-call list, suite baseline, and performance baseline (see `tests/baseline-2.2.md` on that branch). No app code has changed yet. No phase starts without the user's go-ahead; phase 1 is next.
+All released work is on `main`, with no failing or pending test. The 3.0.0 rewrite runs on the `rewrite` branch ([REWRITE_PLAN.md](https://github.com/scufflegrits/orbit/blob/rewrite/REWRITE_PLAN.md) there). **Phases 0 and 1 are done on `rewrite`** (2026-11-20 and 21). Phase 0 recorded the 2.2.1 baseline (`tests/baseline-2.2.md`). Phase 1 added the build: `src/` is bundled by esbuild into a committed `orbit.js` (release, no test hook) and a git-ignored `orbit.test.js` (with `window.OrbitTest`), loaded before the old scripts; the tests now reach the app only through `OrbitTest`. On that branch, changing `src/` needs Node (`npm install`, `npm run build`); see README "Changing Orbit's code". No phase starts without the user's go-ahead; phase 2 is next.
 
 | Release | Date | What it added | Plan |
 | --- | --- | --- | --- |

@@ -7,7 +7,8 @@ const menuOverlay = document.querySelector('#menu-overlay');
 const menuRoot = document.querySelector('#menu-content');
 const viewToggle = document.querySelector('#view-toggle');
 let menuContent = menuRoot;
-const APP_VERSION = '2.2.1';
+// The version lives in src/app/version.js and reaches the old scripts through the bridge.
+const APP_VERSION = window.OrbitNext.version;
 let groups = [];
 // Named link lists saved with the map (see routines.js).
 let routines = [];

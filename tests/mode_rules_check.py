@@ -79,7 +79,7 @@ def in_system(page):
 
 
 def drag_state(page):
-    return page.evaluate("drag ? drag.state : null")
+    return page.evaluate("OrbitTest.state().drag")
 
 
 def center(locator):
@@ -168,8 +168,8 @@ def run(page, url, mode):
 
     # MR07: a drag is cancelled by opening the menu or palette, a page change, and a re-render.
     cancels = {}
-    for name, action in (("menu", "openMenu()"), ("palette", "openPalette()"),
-                         ("page change", "location.hash = 'group/beta'"), ("re-render", "render()")):
+    for name, action in (("menu", "OrbitTest.actions.openMenu()"), ("palette", "OrbitTest.actions.openPalette()"),
+                         ("page change", "location.hash = 'group/beta'"), ("re-render", "OrbitTest.actions.render()")):
         fresh(page, url)
         set_edit(page, True)
         press_planet(page)
