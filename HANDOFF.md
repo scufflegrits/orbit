@@ -18,7 +18,7 @@ Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and t
 ## How the user wants work done
 
 - **The change cycle, unprompted:** local tests → Edge on the Windows VM → fix what fails → update the docs → commit and push. Do not ask before each step.
-- **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`.
+- **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`. **Exception:** the 3.0.0 rewrite lives only on the `rewrite` branch, and [REWRITE_PLAN.md](REWRITE_PLAN.md) overrides this rule for rewrite work (push with `git push main rewrite`; merging into `main` needs the user's approval).
 - **Plans** for multi-part work go in a Markdown file with `[ ]` checkboxes, ticked as items land; testing may wait until every item is built.
 - **Tests are focused**, not full-matrix: check changed behavior and its direct dependencies (see [TEST_MATRIX.md](TEST_MATRIX.md)). Run the full matrix only for app-wide changes, a release, or an explicit request.
 

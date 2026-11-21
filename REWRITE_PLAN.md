@@ -1,121 +1,6 @@
 # Orbit rewrite plan (3.0.0)
 
-Status: **planning; no app code changed yet.**
-
-## Branch rules
-
-- All rewrite work happens on the `rewrite` branch, starting from `main` at `d194f43` (2.2.0). That includes this plan.
-- **Nothing from the rewrite goes to `main`** until the user approves the final merge.
-- `main` keeps the normal rule (commit straight to `main`) for fixes to 2.2.0 only. Each fix is merged into `rewrite` the same day.
-- Push the branch with `git push -u main rewrite` the first time, then `git push main rewrite`. (The remote is named `main`.)
-- The change cycle still applies to each phase, on the branch: local tests, Edge on the VM, fix, docs, then commit and push to `rewrite`.
-- **Every bug gets a failing test first.** Write a test that reproduces the bug, see it fail, then fix it. This applies on the branch and to fixes on `main`.
-
-## How we test
-
-| Approach | Where | How |
-| --- | --- | --- |
-| Existing behavior as the contract | Whole app | The 2.2.0 browser suites (matrix, drag, sizes, pending, features) are the acceptance tests. A phase is done when the suites it touches pass in Chromium and Edge. |
-| Test-driven development | `core/` and `state/` | For each function: write a `node --test` case from what 2.2.0 does today, see it fail, write the code, then tidy it. No core or state function is merged without its tests. |
-| Property-based tests (fast-check) | `core/map-ops.js`, `core/schema.js`, `state/store.js` | Generate random maps and operations and check rules that must always hold (listed in phase 2). Rules that don't fit a single example belong here. |
-| State-machine model | Interaction modes (`ui/modes.js`) | The diagram under "Interaction modes" is the model. The code follows it, and its transitions are tested directly. |
-| After-the-fact checks | Layout, sizing, drag visuals | The sizing (OS) and drag (DD) suites. Writing these tests first would be slow and fragile, so they are not. |
-
-Not used: full model-based engineering tooling (SysML) or code generated from diagrams. Both are too heavy for a project of this size.
-
-## Who does the work
-
-The main session (the **Lead**) hands well-defined checkboxes to cheaper subagent models, which do the work and report back. Tests-first makes this safe: the Lead writes or approves the tests, a worker makes them pass without touching them, and the Lead checks the result itself. The Lead may skip delegating anything small; delegation is for work that is well defined and big enough to be worth a cold start.
-
-### Roles
-
-| Role | Model | Does | Never does |
-| --- | --- | --- | --- |
-| **Lead** (main session) | Opus | Owns the plan, architecture, and interfaces. Writes the tests first and the task cards. Reviews every diff, runs the tests itself, merges into `rewrite`. Runs the change cycle: Edge on the VM, docs, commits, pushes. Talks to the user. | Hands off decisions about architecture, data compatibility, or the user's privacy rules |
-| **Builder** | Sonnet | Implements one task card in its own git worktree: writes the module so the given tests pass, runs `tsc`, `node --test`, and the named browser suite | Edits tests, changes files outside the card, commits to `rewrite` or `main`, pushes, uses the VM |
-| **Helper** | Haiku | Mechanical, checkable work: rewriting the ~170 `page.evaluate` calls to `window.OrbitTest`, collecting facts for the behavior inventory, running a suite and summarizing failures, renaming, doc tidy-ups | Design choices; anything without an exact check |
-| **Reviewer** | Sonnet, with fresh context | Reads a finished diff against its card and the architecture rules (layer direction, no DOM in `core/`, one writer), and lists problems | Fixes things; only reports |
-
-### Agent definitions
-
-All three live in `.claude/agents/` on `rewrite` and set `model`, a description, and a limited tool list:
-
-- `orbit-builder.md` (Sonnet; Read, Edit, Write, Bash, Grep, Glob)
-- `orbit-helper.md` (Haiku; same tools)
-- `orbit-reviewer.md` (Sonnet; Read, Grep, Glob, read-only Bash)
-
-The Lead launches each Builder with `isolation: "worktree"`, so parallel Builders can't touch each other's files or `rewrite`.
-
-Each definition repeats the hard rules:
-
-- Never read, copy, or print `tests/rdptest01.rdp` or `request-observations.md`.
-- Never use the Windows VM or SSH.
-- Never commit, push, or switch branches.
-- Never edit files under `tests/` unless the card says so.
-- Stop and report, rather than guess, when the card is unclear or a test looks wrong.
-
-### Task card (the brief the Lead sends)
-
-Every delegated checkbox becomes a card, using one fixed template (`.claude/agents/TASK_CARD.md`):
-
-```
-Task:        <checkbox text>  (Phase N)
-Goal:        one sentence on what must be true when done
-Read first:  files and plan sections to read (e.g. REWRITE_PLAN.md "Architecture", tests/behavior-2.2.md §search)
-May change:  exact paths (e.g. src/core/search.js)
-Must not change: tests/**, anything else
-Interface:   JSDoc signatures the module must export
-Done when:   these commands pass:
-             npm run check
-             node --test src/core/search.test.js
-             (browser suite, if any)
-Hard rules:  the agent file's list
-Report back: in the format below
-```
-
-### Report back (what every worker returns)
-
-```
-Status:    done | blocked | partly done
-Changed:   files, with one line each on what changed
-Commands:  each "Done when" command, with pass/fail and the last lines of output
-Deviations: anything that differs from the card, and why
-Questions: anything the Lead must decide
-```
-
-### How the Lead checks a report
-
-The Lead never accepts a report on trust:
-
-1. **Scope:** `git diff --stat` in the worktree. Only the card's "May change" paths may appear, and `tests/` must be unchanged unless allowed.
-2. **Tests:** re-run every "Done when" command; the Lead's own output is what counts.
-3. **Review:** start a Reviewer on the diff for anything in `core/` or `state/`, or larger than about 200 lines.
-4. **Then one of three outcomes:**
-   - **Accept:** merge the worktree branch into `rewrite`.
-   - **Send back:** one round of specific feedback by SendMessage to the same Builder.
-   - **Take over:** the Lead finishes it after a second failed round.
-5. **Record:** tick the checkbox and note its owner, e.g. `[x] … (builder, reviewed)`.
-
-### Who owns which phase
-
-| Phase | Lead | Delegated |
-| --- | --- | --- |
-| 0 Prepare | Interaction-mode check, storage fixture, baseline run | Helper: collect facts for the behavior inventory, one file at a time (the Lead writes the final inventory) |
-| 1 Tooling | `build.mjs`, `window.OrbitTest` design, `jsconfig` | Helper: rewrite `page.evaluate` calls to the test hook, one test file per helper; Builder: `package.json` scripts |
-| 2 Core | Schema design and every test file (tests first) | Builders in parallel, one per module: destination, templates, search, rdp, bookmarks, map-ops; Reviewer for each |
-| 3 State | Store design and its tests | Builders: storage, workspaces, prefs, history; Reviewer for the store |
-| 4 Services | Interfaces | Builders: one per service |
-| 5–6 Screens | Screen-to-store wiring, any visual call | Builders, one screen area each; the browser suites decide |
-| 7 Drag and keyboard | `ui/modes.js` and its tests | Builder: replacing the scattered flags, after the mode tests pass |
-| 8 Clean-up | Cycle check, sign-off | Helper: delete old files and fix references |
-| 9 Release | All of it: Edge on the VM, Windows checks, docs, merge (with the user's approval) | Nothing |
-
-### Limits
-
-- **At most three workers at once.** Only modules with no dependency on each other run in parallel; for example, `core/search.js` and `core/rdp.js` can run together, but `state/store.js` waits for `core/`.
-- **No worker starts another worker.**
-- **Track the cost.** At the end of each phase, the Lead notes in this plan how many workers ran, how many were sent back, and how many it took over. If more than about a third need taking over, it delegates less in the next phase.
-- **The user still sets the pace.** No phase starts without the user's go-ahead.
+Status: **planning; no app code changed yet.** Revised 2026-11-20 after three independent plan reviews (see "Review record" at the end).
 
 ## Goal
 
@@ -126,254 +11,726 @@ Rebuild Orbit's code so it is easier to change safely, while keeping what the us
   - Each file is a module that names what it uses.
   - One schema defines the map format.
   - Types are checked before tests run.
-  - One store holds app state and is the only place that saves.
+  - One store holds app state and is the only writer of the map.
 
 Not in scope: new features, a new look, or a framework.
+
+## Branch rules
+
+- All rewrite work happens on the `rewrite` branch, starting from `main` at `d194f43` (2.2.0, tag `v2.2.0`). That includes this plan. This overrides the usual "commit straight to `main`" rule for rewrite work only.
+- **Nothing from the rewrite goes to `main`** until the user approves the final merge.
+- **Feature freeze:** no new features on `main` while the rewrite runs.
+- **Fixes to 2.2.0** still go to `main` under the normal rule. The same day:
+  1. Merge `main` into `rewrite`.
+  2. Apply the fix to the new module too, if that code has already moved.
+  3. Add the failing test to both the browser suite and, where it applies, the node suite.
+- Push the branch with `git push main rewrite`. (The remote is named `main`.)
+- The change cycle applies to each phase, on the branch: local tests, Edge on the VM, fix, docs, then commit and push to `rewrite`. A phase with no change on screen records "Edge: N/A, no browser-visible change" instead of running Edge.
+- **Every bug gets a failing test first.** Write a test that reproduces the bug, see it fail, then fix it.
+- **Only the Lead edits this plan.**
+- **The user sets the pace.** No phase starts without the user's go-ahead.
 
 ## Decisions
 
 | Question | Choice | Why |
 | --- | --- | --- |
-| Language | JavaScript with JSDoc types, checked by `tsc --noEmit` (`checkJs`) | Types catch wrong fields and indices, and the source still runs as plain JavaScript |
-| Modules | ES modules in `src/`, bundled by esbuild into one `orbit.js` | Chromium won't load modules from `file://`; a single bundled file works from disk |
-| Bundle in git | Yes, commit `orbit.js` (as with `links-data.js`) | Double-click still works without installing anything; a test checks that the bundle matches the source |
-| Map format | One schema in `src/core/schema.js` that drives validation, types, and the docs | Today four validators repeat the same rules |
+| Language | JavaScript with JSDoc types, checked by `tsc --noEmit` (`checkJs`, `strict`) | Types catch wrong fields and indices, and the source still runs as plain JavaScript |
+| Modules | ES modules in `src/`, bundled by esbuild into one `orbit.js` (IIFE) | Chromium won't load modules from `file://`; a single bundled file works from disk |
+| Bundle in git | Yes, commit `orbit.js` (as with `links-data.js`). esbuild is pinned to an exact version with a committed lockfile. `.gitattributes` sets `orbit.js text eol=lf`. A test checks that the bundle matches a fresh build. | Double-click still works without installing anything, and the check is stable across machines |
+| Source map | A linked `orbit.js.map`, generated by `npm run watch` only and not committed | Keeps the bundle check simple; a release zip without it only costs a DevTools warning |
+| Map format | One schema in `src/core/schema.js` that drives validation, types, and the docs, held to 2.2.0's behavior by a differential test | Today four validators repeat the same rules; a stricter schema would silently drop user maps |
 | State | One store (`src/state/store.js`) that the screens subscribe to | Replaces 20 files reassigning shared globals |
+| Migration path | A strangler: the bundle and the old scripts run together, and old functions forward to new ones phase by phase (see "Coexistence") | The app works and is tested at the end of every phase |
 | Tests | Keep the Python Playwright suites, and add a `window.OrbitTest` hook | The suites check what's on screen, so they still apply; their direct use of globals moves to the hook |
+| Version | `APP_VERSION` moves to `src/app/version.js`; the release steps in `README-distribute.md` read it from there | The release `sed` lines read `app.js` today |
 | Helpers | `serve.py`, `sync.py`, and `windows/*.ps1` stay as they are | They work and aren't part of the problem |
 | Tooling | Node only for development: esbuild, TypeScript, fast-check | Users never need Node |
-| Test approach | Tests first for `core/` and `state/`, property-based tests for map operations, a state-machine model for interaction modes (see "How we test") | Fast, exact tests where the logic lives; random inputs find edge cases nobody writes by hand; the mode model replaces scattered flags |
+| Test approach | Tests first for `core/`, `state/`, `services/`, and `ui/modes.js`; property-based tests for map operations; a differential test against 2.2.0; a state-machine model for interaction modes (see "How we test") | Fast, exact tests where the logic lives; random inputs find edge cases nobody writes by hand |
+
+## Coexistence (strangler)
+
+The old classic scripts and the new bundle run in the same page until phase 8, so Orbit works, and is tested, at the end of every phase.
+
+- **Load order in `index.html`:**
+  1. `links-data.js` and the optional `team-data.js` (synchronous, as today).
+  2. `orbit.js`, synchronous and not `defer`.
+  3. The old scripts that are still in use, in their current order.
+- **The bridge.** `orbit.js` publishes `window.OrbitNext` from `src/app/legacy-bridge.js`. During coexistence it does not run its own start-up; the old `app.js` `init` still does.
+- **Each phase ends by making the old functions thin wrappers** around the new ones, so the browser suites exercise new code from phase 2 on. For example, `function destinationKey(item) { return OrbitNext.core.destinationKey(item); }`. Wrappers look up `OrbitNext` when called, never at load time.
+- **One writer from phase 3.** The old `saveMap` calls `store.saveMap`, and a store subscriber copies the result back into the old globals (`groups`, `routines`, `rdpPresets`, `mapRevision`, `activeMapSource`), then runs the old `countDestinations` and `render`. Old code that writes `groups` directly (`setTeamSunHidden`, Reset, workspace switch) moves to store calls in the same phase.
+- **Screens move whole (phases 5–7).** When a screen's code moves, its old script is removed from `index.html` and from `APP_SCRIPTS` in `tests/helpers.py`. The bridge temporarily re-exports any names the remaining old scripts still call (e.g. `tagPath`, `fitOrbitSizes`, `render`).
+- **Each phase's "done when"** lists which old files are no longer loaded.
+- **Phase 8** deletes the bridge, the last wrappers, and the remaining old files, and `main.js` runs start-up.
+
+| End of phase | Old scripts still loaded |
+| --- | --- |
+| 1 | All 20 (bundle loaded, only the test hook in it) |
+| 2 | All 20; core functions forward to `OrbitNext.core` |
+| 3 | All 20; `saveMap` and storage forward to the store |
+| 4 | All 20; opener, sources, and file I/O forward to services |
+| 5 | Without `render.js` and `palette.js` |
+| 6a | Also without `menu.js`, `variables.js`, `sharing.js` (notices), `favorites.js` |
+| 6b | Also without `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `workspaces.js`, `presets.js`, `team.js` |
+| 7 | Also without `drag.js`, `keys.js` |
+| 8 | None; `storage.js`, `rdp.js`, `app.js` and the bridge removed |
+
+The table is the target. A phase may move a file earlier or later, and records it here.
 
 ## Architecture
 
-Arrows point from a module to what it uses. Dependencies go one way only: ui → services → state → core, and never back up. `core` touches no browser APIs, so it can be tested on its own.
+Arrows point from a module to what it uses. Dependencies point down only: app → ui → services → state → core. A module may skip layers going down (a screen may read `state/` or call `core/` directly) but never imports upward. Modules inside `ui/` may use each other as long as there's no cycle. `core` touches no browser APIs, so it can be tested under `node --test`. Dotted arrows are temporary or test-only. The store gets the bundled map from `main.js` at start-up (it can't import `services/sources.js`, which is a layer above it), and uses it for Reset and for Main's fallback.
 
 ```mermaid
+---
+config:
+  # The only built-in theme meant to be customized.
+  theme: base
+  # Stabilize shapes and selectors for this tested layout.
+  look: classic
+  # Hierarchical layers; also checked under dagre for GitHub.
+  layout: elk
+  # Hex colors are quoted: an unquoted # starts a YAML comment.
+  themeVariables:
+    darkMode: false
+    background: "#ffffff"
+    primaryTextColor: "#191970"
+    textColor: "#191970"
+    lineColor: "#475569"
+    edgeLabelBackground: "#ffffff"
+    clusterBkg: "#ffffff"
+  flowchart:
+    # Labels use <br/>.
+    htmlLabels: true
+---
+%% Orbit 3.0.0 layers: what each layer may use, and how the old scripts
+%% reach the new code during the rewrite. Module-level detail is in the
+%% table under this diagram, not here.
 flowchart TB
-  subgraph outside["Outside the page"]
-    LS[("localStorage")]
-    BUNDLED["links-data.js<br/>(bundled map)"]
-    TEAMFILE["team-data.js / GET /team.json<br/>(team map)"]
-    SERVER["serve.py<br/>POST /api/check-links"]
-    TABS["Browser tabs<br/>(window.open)"]
-    RDPOUT[".rdp download /<br/>orbit-rdp:// helper"]
-    FILES["Files the user picks<br/>(JSON, .rdp, bookmarks, packs)"]
+  %% Light card: the wrapper has no meaning beyond a white backing.
+  subgraph SG_CARD[" "]
+    LEGACY_SCRIPTS["Old classic scripts<br/>fewer each phase, gone in phase 8"]
+
+    subgraph SG_APP["src/app"]
+      APP_MAIN["main.js<br/>start-up and wiring"]
+      APP_BRIDGE["legacy-bridge.js<br/>window.OrbitNext, until phase 8"]
+      APP_TEST_HOOK["test-hook.js<br/>window.OrbitTest, test builds only"]
+    end
+
+    subgraph SG_UI["src/ui: screens"]
+      UI_SCREENS["views, layout, find, menu, editor,<br/>editor tools, notices, dialogs, drag, keys"]
+      UI_MODES["modes.js<br/>interaction-mode state machine, pure"]
+    end
+
+    subgraph SG_SERVICES["src/services: side effects"]
+      SERVICES_ALL["opener, rdp-launch, sources,<br/>link-check, file-io, schedule"]
+    end
+
+    subgraph SG_STATE["src/state"]
+      STATE_STORE["store.js<br/>the only writer of the map"]
+      STATE_MODULES["storage, workspaces, prefs,<br/>history, backup"]
+    end
+
+    subgraph SG_CORE["src/core: pure, no DOM"]
+      CORE_ALL["schema, destination, templates,<br/>map-ops, search, rdp, bookmarks"]
+    end
+
+    subgraph SG_OUTSIDE["Outside the page"]
+      EXT_LOCAL_STORAGE[("localStorage")]
+      EXT_DATA_FILES["links-data.js or links.json,<br/>team-data.js or team.json"]
+      EXT_LINK_CHECK["serve.py<br/>/api/check-links"]
+      EXT_BROWSER_OUT["Browser tabs, .rdp downloads,<br/>orbit-rdp:// helper"]
+      EXT_USER_FILES["Files the user picks or saves"]
+    end
   end
 
-  subgraph app["src/app"]
-    MAIN["main.js<br/>startup, wiring"]
-    TESTHOOK["test-hook.js<br/>window.OrbitTest"]
-  end
+  %% --- Temporary: old scripts reach new code only through the bridge.
+  LEGACY_SCRIPTS edge_legacy_bridge_calls@-->|"calls through"| APP_BRIDGE
+  %% Group-level: the bridge re-exports from each layer, not every module.
+  APP_BRIDGE edge_bridge_ui@--> SG_UI
+  APP_BRIDGE edge_bridge_services@--> SG_SERVICES
+  APP_BRIDGE edge_bridge_state@--> SG_STATE
+  APP_BRIDGE edge_bridge_core@--> SG_CORE
 
-  subgraph ui["src/ui (DOM only)"]
-    direction TB
-    VIEWS["views/<br/>galaxy, system, list"]
-    LAYOUT["layout/<br/>fitOrbitSizes, moon fan"]
-    FIND["find/<br/>Quick find, palette"]
-    MENU["menu/<br/>settings, help, about"]
-    EDITOR["editor/<br/>workspace page, tree,<br/>sun/planet/moon forms"]
-    TOOLS["editor/tools/<br/>history, duplicates, link check,<br/>imports, bulk RDP, presets,<br/>routines, packs, workspaces"]
-    NOTICES["notices/<br/>routine offer, backup,<br/>team updates, open-all report"]
-    DIALOGS["dialogs/<br/>placeholder form, quick add"]
-    DRAG["drag/<br/>Edit mode, pointer drag, tray"]
-    KEYS["keys/<br/>focus trap, Escape order, arrows"]
-    MODES["modes.js<br/>interaction-mode state machine"]
-  end
+  %% --- Start-up wiring.
+  APP_MAIN --> UI_SCREENS
+  APP_MAIN --> SERVICES_ALL
+  APP_MAIN --> STATE_STORE
 
-  subgraph services["src/services (side effects)"]
-    OPENER["opener.js<br/>openLinks, pop-up report"]
-    RDPLAUNCH["rdp-launch.js<br/>download / protocol URL"]
-    SOURCES["sources.js<br/>bundled + team loading,<br/>file vs server mode"]
-    LINKCHECK["link-check.js<br/>client for serve.py"]
-    FILEIO["file-io.js<br/>pick, read, download JSON"]
-    SCHEDULE["schedule.js<br/>due routines, backup due,<br/>team diff"]
-  end
+  %% --- Test builds only.
+  APP_TEST_HOOK edge_test_store@--> STATE_STORE
+  APP_TEST_HOOK edge_test_services@--> SERVICES_ALL
+  APP_TEST_HOOK edge_test_modes@--> UI_MODES
 
-  subgraph state["src/state"]
-    STORE["store.js<br/>state, saveMap(), subscribe()"]
-    STORAGE["storage.js<br/>keys, read/write, migrations"]
-    WS["workspaces.js<br/>active workspace, key prefix"]
-    PREFS["prefs.js<br/>theme, toggles, recents,<br/>favorites, variables"]
-    HISTORY["history.js<br/>versions, removal undo"]
-  end
+  %% --- Layer rule: each arrow points down; a layer may skip layers below it.
+  UI_SCREENS --> UI_MODES
+  UI_SCREENS --> SERVICES_ALL
+  UI_SCREENS --> STATE_STORE
+  UI_SCREENS -->|"read only"| STATE_MODULES
+  UI_SCREENS --> CORE_ALL
+  SERVICES_ALL --> STATE_STORE
+  SERVICES_ALL --> STATE_MODULES
+  SERVICES_ALL --> CORE_ALL
+  STATE_STORE --> STATE_MODULES
+  STATE_STORE --> CORE_ALL
 
-  subgraph core["src/core (pure, no DOM)"]
-    SCHEMA["schema.js<br/>map, link, routine, preset,<br/>pack: types + validate"]
-    DKEY["destination.js<br/>destinationKey, normalize"]
-    TEMPL["templates.js<br/>{placeholders}"]
-    OPS["map-ops.js<br/>moveMapItem, merge, duplicates,<br/>personalGroups, routine merge"]
-    SEARCH["search.js<br/>findMatches, typo rules, tags"]
-    RDPCORE["rdp.js<br/>parse .rdp, strip secrets,<br/>apply preset"]
-    BOOK["bookmarks.js<br/>parse bookmark HTML"]
-  end
+  %% --- The only places that touch the outside world.
+  STATE_MODULES --> EXT_LOCAL_STORAGE
+  SERVICES_ALL --> EXT_DATA_FILES
+  SERVICES_ALL --> EXT_LINK_CHECK
+  SERVICES_ALL --> EXT_BROWSER_OUT
+  SERVICES_ALL --> EXT_USER_FILES
 
-  MAIN --> SOURCES & STORE & VIEWS & KEYS & NOTICES
-  MAIN -.-> TESTHOOK
-  TESTHOOK -.-> STORE & FILEIO
+  %% --- Node roles: fill and text paired for contrast on white.
+  classDef nodeModule fill:aliceblue,stroke:steelblue,color:midnightblue,stroke-width:1px
+  classDef nodeExternal fill:whitesmoke,stroke:slategray,color:#1e293b,stroke-width:1px
+  %% Status: dashed border marks code that is removed in phase 8 or never ships.
+  classDef stateTemporary stroke-dasharray:6 4
+  %% Edge meaning; the prose legend below repeats it so color is not the only cue.
+  classDef edgeTemporary stroke:darkorange,stroke-width:2px,stroke-dasharray:6 4
+  classDef edgeTestOnly stroke:slategray,stroke-width:1.5px,stroke-dasharray:2 3
+  classDef groupLayer fill:white,stroke:#94a3b8,stroke-width:1px,color:#191970
+  classDef groupCard fill:white,stroke:none
 
-  VIEWS --> STORE & LAYOUT & OPENER & PREFS
-  FIND --> SEARCH & STORE & OPENER & DIALOGS
-  MENU --> PREFS & EDITOR & WS
-  EDITOR --> STORE & OPS & SCHEMA & FILEIO & TOOLS
-  TOOLS --> STORE & OPS & LINKCHECK & FILEIO & RDPCORE & BOOK & HISTORY & WS
-  NOTICES --> SCHEDULE & OPENER & FILEIO
-  DIALOGS --> TEMPL & STORE & PREFS
-  DRAG --> OPS & STORE & MODES
-  KEYS --> VIEWS & FIND & MENU & DRAG & MODES
-  FIND & MENU & DIALOGS & NOTICES & VIEWS --> MODES
-
-  OPENER --> TEMPL & DKEY & PREFS & RDPLAUNCH & TABS
-  RDPLAUNCH --> RDPCORE & RDPOUT
-  SOURCES --> SCHEMA & BUNDLED & TEAMFILE
-  LINKCHECK --> SERVER
-  FILEIO --> FILES
-  SCHEDULE --> STORE & PREFS & DKEY
-
-  STORE --> SCHEMA & OPS & HISTORY & STORAGE & WS
-  HISTORY --> STORAGE
-  PREFS --> STORAGE
-  WS --> STORAGE
-  STORAGE --> LS
-
-  OPS --> SCHEMA & DKEY
-  SEARCH --> DKEY
-  SCHEMA --> TEMPL
+  %% --- Assignments: keep in sync when renaming or deleting elements.
+  class LEGACY_SCRIPTS,APP_MAIN,APP_BRIDGE,APP_TEST_HOOK nodeModule
+  class UI_SCREENS,UI_MODES,SERVICES_ALL,STATE_STORE,STATE_MODULES,CORE_ALL nodeModule
+  class EXT_LOCAL_STORAGE,EXT_DATA_FILES,EXT_LINK_CHECK,EXT_BROWSER_OUT,EXT_USER_FILES nodeExternal
+  class LEGACY_SCRIPTS,APP_BRIDGE,APP_TEST_HOOK stateTemporary
+  class edge_legacy_bridge_calls,edge_bridge_ui,edge_bridge_services edgeTemporary
+  class edge_bridge_state,edge_bridge_core edgeTemporary
+  class edge_test_store,edge_test_services,edge_test_modes edgeTestOnly
+  class SG_APP,SG_UI,SG_SERVICES,SG_STATE,SG_CORE,SG_OUTSIDE groupLayer
+  class SG_CARD groupCard
 ```
+
+**Legend:** solid arrows mean "uses" and point down the layers. Dashed orange arrows are the temporary bridge that exists only until phase 8. Dotted gray arrows exist only in test builds. A dashed border marks a module that is removed in phase 8 or never ships. Arrows to a whole layer box mean the bridge re-exports from that layer, not that it uses every module in it.
+
+Each module's own dependencies:
+
+| Module | Uses |
+| --- | --- |
+| **app/main.js** | `services/sources`, `state/store`, `ui/views`, `ui/keys`, `ui/notices`, `ui/modes` |
+| **ui/views** (Galaxy, System, list, click tracking, Shift+click) | `state/store`, `state/prefs`, `ui/layout`, `ui/dialogs`, `ui/menu`, `ui/editor`, `ui/modes`, `services/opener`, `services/rdp-launch`, `core/search` |
+| **ui/layout** (`fitOrbitSizes`, moon fan) | nothing (DOM measuring only) |
+| **ui/find** (Quick find, palette) | `state/store`, `ui/dialogs`, `ui/editor`, `ui/modes`, `services/opener`, `core/search` |
+| **ui/menu** (Settings, Help, About, workspace switch) | `state/store`, `state/prefs`, `ui/editor`, `ui/modes` |
+| **ui/editor** (workspace page, tree, forms, Quick add, import/export, reset) | `state/store`, `ui/editor/tools`, `ui/dialogs`, `services/file-io`, `core/schema`, `core/map-ops` |
+| **ui/editor/tools** (history, duplicates, link check, imports, bulk RDP, presets, routines, packs, workspaces, team) | `state/store`, `state/history` (read), `services/link-check`, `services/file-io`, `core/schema`, `core/map-ops`, `core/rdp`, `core/bookmarks` |
+| **ui/notices** (routine offer, backup, team updates, open-all report, removal undo, storage warning) | `state/store`, `state/prefs`, `state/backup`, `ui/modes`, `services/schedule`, `services/opener`, `services/file-io` |
+| **ui/dialogs** (placeholder form, confirm) | `state/prefs`, `ui/modes`, `core/templates` |
+| **ui/drag** (Edit mode, pointer drag, tray, drag undo) | `state/store`, `ui/editor`, `ui/modes`, `core/map-ops` |
+| **ui/keys** (focus trap, Escape, arrows) | `ui/views`, `ui/find`, `ui/menu`, `ui/drag`, `ui/modes` |
+| **ui/modes** | nothing (pure) |
+| **services/opener** | `state/store`, `state/prefs`, `services/rdp-launch`, `core/templates`, `core/destination`; opens browser tabs |
+| **services/rdp-launch** | `core/rdp`; `.rdp` downloads and `orbit-rdp://` URLs |
+| **services/sources** | `core/schema`; `links-data.js`/`links.json`, `team-data.js`/`team.json` |
+| **services/link-check** | `serve.py` `/api/check-links` |
+| **services/file-io** (pick, read, download, bookmark HTML to folder tree, `.rdp` text) | the user's files |
+| **services/schedule** (due routines, backup due, team diff, clock) | `state/store`, `state/prefs`, `state/backup`, `core/destination` |
+| **state/store** | `state/storage`, `state/workspaces`, `state/history`, `state/backup`, `core/schema`, `core/map-ops` |
+| **state/workspaces**, **state/prefs**, **state/history**, **state/backup** | `state/storage` |
+| **state/storage** | localStorage |
+| **core/schema** | `core/templates`, `core/rdp` |
+| **core/map-ops** | `core/schema`, `core/destination` |
+| **core/search** | `core/destination` |
+| **core/destination**, **core/templates**, **core/rdp**, **core/bookmarks** | nothing |
+
+`scripts/check-layers.mjs` checks the real imports against this table's layer rule. The table is the intent; if the code needs an edge that isn't here, the Lead adds it to the table first.
+
+### Where today's loose state goes
+
+| Today (file) | New home |
+| --- | --- |
+| `groups`, `routines`, `rdpPresets`, `mapRevision`, `activeMapSource`, `seedData` (`app.js`, `storage.js`) | `state/store.js` |
+| `storageWarning` (`storage.js:308`) | `state/store.js` as a load-result field; shown by `ui/notices/` |
+| `teamGroups`, `teamSource`, `teamError` (`team.js`) | `services/sources.js` (loading); `state/store.js` (view) |
+| `MAP_STORAGE_KEY`, `UNDO_STORAGE_KEY`, `HISTORY_STORAGE_KEY`, `activeWorkspace` | `state/workspaces.js` |
+| `linkCheckResults` (`tools.js:143`) | `ui/editor/tools/` (screen-local, not saved) |
+| `dragUndo`, drag controller (`drag.js`) | `ui/drag/` |
+| `editMode`, `menuOverlay.hidden`, `palette`, `variableDialog`, `findQuery` | `ui/modes.js` |
+| Change counter `countChangeForBackup` (`workspaces.js`) | `state/backup.js`; due check in `services/schedule.js` |
+| `uniqueSunId` | `core/map-ops.js` |
+| `pathsForKey`, `itemAt` (`favorites.js`) | `core/destination.js` (pure, given the map) |
+| Click tracking, Shift+click open (`favorites.js:198-217`) | `ui/views/` |
+| `undoRemoval` (`app.js:70-100`) | `state/store.js` (`undoRemoval()`), with the button in `ui/notices/` |
 
 ### How a change flows
 
-Every edit, drag, import, and restore takes the same path. Nothing else writes the map.
+Every edit, drag, import, restore, and reset goes through the store. Nothing else writes the map. Preferences, recents, variables, and team-seen records are written by `state/prefs.js` and are not map writes.
 
 ```mermaid
+---
+config:
+  theme: base
+  # Sequence diagrams use their own renderer; flowchart layout settings do not apply.
+  themeVariables:
+    darkMode: false
+    background: "#ffffff"
+    actorBkg: "#f0f8ff"
+    actorTextColor: "#191970"
+    actorBorder: "#64748b"
+    actorLineColor: "#64748b"
+    signalColor: "#475569"
+    signalTextColor: "#191970"
+    noteBkgColor: "#fffbea"
+    noteTextColor: "#191970"
+    labelBoxBkgColor: "#f0f8ff"
+    labelTextColor: "#191970"
+    loopTextColor: "#191970"
+---
+%% One map change through the store, including every failure path.
+%% Order matches 2.2.0 (storage.js:328-339, editor.js:162-185) except
+%% expectRevision, which moves from the drag code into the store.
 sequenceDiagram
-  participant UI as ui (editor, drag, tools)
-  participant Ops as core/map-ops
-  participant Store as state/store
-  participant Schema as core/schema
-  participant Hist as state/history
-  participant St as state/storage
-  participant Views as ui/views + notices
+  participant UI_CALLER as ui (editor, drag, tools)
+  participant CORE_MAP_OPS as core/map-ops
+  participant STATE_STORE as state/store
+  participant CORE_SCHEMA as core/schema
+  participant STATE_STORAGE as state/storage
+  participant STATE_HISTORY as state/history
+  participant STATE_BACKUP as state/backup
+  participant UI_SUBSCRIBERS as ui (subscribers)
 
-  UI->>Ops: next = moveMapItem(map, from, to)
-  UI->>Store: saveMap(next, "Moved Jira to Work")
-  Store->>Store: strip team suns, check revision
-  Store->>Schema: validate(next)
-  Schema-->>Store: clean map or error
-  Store->>Hist: record previous version
-  Store->>St: write to the workspace's map key
-  Store->>Store: revision++, count change for backup
-  Store-->>Views: notify(subscribers)
-  Views->>Views: re-render
+  rect rgb(255,255,255)
+    UI_CALLER->>CORE_MAP_OPS: next = moveMapItem(map, from, to)
+    UI_CALLER->>STATE_STORE: saveMap(next, "Moved Jira to Work", options)
+    Note over STATE_STORE: options: undoRecord, clearUndo, expectRevision
+    alt expectRevision given and the map changed underneath
+      STATE_STORE-->>UI_CALLER: refused, nothing written
+    else
+      opt undoRecord given
+        STATE_STORE->>STATE_STORAGE: write the undo record, keeping the previous one
+      end
+      STATE_STORE->>STATE_STORE: strip team suns
+      STATE_STORE->>CORE_SCHEMA: validate(next)
+      CORE_SCHEMA-->>STATE_STORE: clean map or error
+      alt invalid
+        STATE_STORE->>STATE_STORAGE: put the previous undo record back
+        STATE_STORE-->>UI_CALLER: error, nothing changed
+      else valid
+        STATE_STORE->>STATE_STORAGE: write the workspace's map key
+        alt write failed (storage full)
+          STATE_STORE->>STATE_STORAGE: put the previous undo record back
+          STATE_STORE-->>UI_CALLER: error, map and history unchanged
+        else written
+          STATE_STORE->>STATE_HISTORY: if changed and labelled, record previous version
+          STATE_STORE->>STATE_BACKUP: if changed, count a change
+          opt clearUndo
+            STATE_STORE->>STATE_STORAGE: remove the undo record
+          end
+          STATE_STORE->>STATE_STORE: revision + 1 (every save, as in 2.2.0)
+          STATE_STORE-->>UI_SUBSCRIBERS: notify(subscribers)
+          UI_SUBSCRIBERS->>UI_SUBSCRIBERS: re-render (cancels any drag)
+          STATE_STORE-->>UI_CALLER: saved
+        end
+      end
+    end
+  end
 ```
+
+The order matches 2.2.0:
+
+- **Map before history** (`storage.js:328-339`). If storage is full, the map write fails first, so no history entry is recorded for a change that never happened.
+- **Undo record first.** It's written before the map and put back if the save fails (`editor.js:162-185`).
+- **`expectRevision` is the one change.** It's new in the store (opt-in, used by drag); 2.2.0 checks the revision inside the drag code instead (`drag.js:433-438`).
 
 ### Interaction modes
 
-Today these modes are separate flags spread across files: `menuOverlay.hidden`, `editMode`, the drag controller, the palette, `variableDialog`, `findQuery`, and `location.hash`. Their order of precedence lives only in `handleEscape` in `keys.js`. In the rewrite they become one state machine, `ui/modes.js`, which follows this diagram. Each box runs alongside the others, and the diagram names the combinations that can't happen.
+Today these modes are separate flags spread across files: `menuOverlay.hidden`, `editMode`, the drag controller, `palette`, `variableDialog`, `findQuery`, and `location.hash`. Their order of precedence lives in `handleEscape` (`keys.js:33`) and the key handler (`keys.js:161`). In the rewrite they become one pure state machine, `ui/modes.js`, which follows this diagram. The four parts run side by side.
 
 ```mermaid
+---
+config:
+  theme: base
+  look: classic
+  # Rendered under both engines: dagre keeps the four parts side by side in
+  # declared order with labels beside their arrows; elk put the overlay part
+  # underneath and crowded its labels.
+  layout: dagre
+  themeVariables:
+    darkMode: false
+    background: "#ffffff"
+    primaryColor: "#f0f8ff"
+    primaryTextColor: "#191970"
+    primaryBorderColor: "#4682b4"
+    textColor: "#191970"
+    lineColor: "#475569"
+    edgeLabelBackground: "#ffffff"
+    clusterBkg: "#ffffff"
+    compositeBackground: "#ffffff"
+    compositeTitleBackground: "#e2e8f0"
+---
+%% Orbit's interaction modes: four parts that run side by side.
+%% Escape is handled by only one part per press; the order is in the
+%% rules below the diagram. Each transition cites 2.2.0 in those notes.
 stateDiagram-v2
   direction LR
-  [*] --> Orbit
-  state Orbit {
-  state "Overlay (topmost layer)" as Overlay {
-    [*] --> NoOverlay
-    NoOverlay --> Palette: Ctrl/Cmd+K
-    NoOverlay --> Menu: cog
-    NoOverlay --> PlaceholderForm: open a placeholder link
-    Menu --> Palette: Ctrl/Cmd+K
-    Palette --> NoOverlay: Escape / run entry
-    Palette --> Menu: run entry that opens a screen
-    Menu --> NoOverlay: Escape / close
-    PlaceholderForm --> NoOverlay: Escape / Open / Cancel
+  [*] --> SG_ORBIT
+  %% Concurrent regions: Orbit is in one state of each part at the same time.
+  state "Orbit" as SG_ORBIT {
+  state "Overlay (at most one)" as SG_OVERLAY {
+    state "No overlay" as OVERLAY_NONE
+    state "Command palette" as OVERLAY_PALETTE
+    state "Placeholder form" as OVERLAY_PLACEHOLDER
+    %% The menu's three states are flat, not a nested box: arrows from outside
+    %% into a nested box pull its states out of it under both elk and dagre.
+    state "Menu: no panel selected" as MENU_NO_PANEL
+    state "Menu: Settings, Help, or About" as MENU_PANELS
+    state "Menu: link editor" as MENU_EDITOR
+    [*] --> OVERLAY_NONE
+    OVERLAY_NONE --> OVERLAY_PALETTE: Ctrl/Cmd+K, not in error view
+    OVERLAY_NONE --> OVERLAY_PLACEHOLDER: open a placeholder link
+    OVERLAY_NONE --> MENU_NO_PANEL: cog
+    OVERLAY_NONE --> MENU_EDITOR: editor shortcut
+    OVERLAY_PALETTE --> OVERLAY_NONE: Escape or run an entry
+    OVERLAY_PALETTE --> OVERLAY_PLACEHOLDER: run a placeholder link
+    OVERLAY_PALETTE --> MENU_PANELS: Open Settings or Help
+    OVERLAY_PALETTE --> MENU_EDITOR: Edit links, Edit routines, or Add a link
+    OVERLAY_PLACEHOLDER --> OVERLAY_NONE: Escape, Open, or Cancel
+    MENU_NO_PANEL --> MENU_PANELS: choose a tab
+    MENU_PANELS --> MENU_EDITOR: Edit links
+    MENU_EDITOR --> MENU_PANELS: back
+    MENU_NO_PANEL --> OVERLAY_NONE: close
+    MENU_PANELS --> OVERLAY_NONE: close
+    MENU_EDITOR --> OVERLAY_NONE: close
+  }
+  --
+  state "Mode" as SG_MODE {
+    state "Browsing" as MODE_BROWSING
+    state "Edit mode, idle" as MODE_EDIT_IDLE
+    state "Item pressed" as MODE_PRESSED
+    state "Dragging" as MODE_DRAGGING
+    [*] --> MODE_BROWSING
+    MODE_BROWSING --> MODE_EDIT_IDLE: Edit mode on
+    MODE_EDIT_IDLE --> MODE_PRESSED: pointer down on an item
+    MODE_PRESSED --> MODE_DRAGGING: move past the threshold
+    MODE_PRESSED --> MODE_EDIT_IDLE: release, Escape, re-render, or overlay opens
+    MODE_DRAGGING --> MODE_EDIT_IDLE: drop, Escape, re-render, or overlay opens
+    MODE_EDIT_IDLE --> MODE_BROWSING: Edit mode off or Escape
+  }
+  --
+  state "View" as SG_VIEW {
+    state "Galaxy" as VIEW_GALAXY
+    state "System (one sun)" as VIEW_SYSTEM
+    state "Error view" as VIEW_ERROR
+    [*] --> VIEW_GALAXY: start-up
+    [*] --> VIEW_SYSTEM: start-up with a sun in the address
+    [*] --> VIEW_ERROR: start-up, links could not load
+    VIEW_GALAXY --> VIEW_SYSTEM: open a sun from the orbit, list, or Quick find
+    VIEW_SYSTEM --> VIEW_GALAXY: logo, Escape, list toggle, Return to Galaxy, typing in Quick find, or the sun is gone
+  }
+  --
+  state "Quick find" as SG_FIND {
+    state "Empty" as FIND_EMPTY
+    state "Filtering" as FIND_FILTERING
+    [*] --> FIND_EMPTY
+    FIND_EMPTY --> FIND_FILTERING: type
+    FIND_FILTERING --> FIND_EMPTY: Escape or clear
+  }
+  }
 
-    state Menu {
-      [*] --> Settings
-      Settings --> Help
-      Settings --> About
-      Settings --> Editor: Edit links
-      Editor --> Settings: back
-    }
-  }
-  --
-  state "Mode" as Mode {
-    [*] --> Browsing
-    Browsing --> EditIdle: Edit mode on
-    EditIdle --> Dragging: pointer down + move
-    Dragging --> EditIdle: drop / Escape cancels
-    EditIdle --> Browsing: Edit mode off / Escape
-  }
-  --
-  state "View" as View {
-    [*] --> Galaxy
-    Galaxy --> System: open a sun
-    System --> Galaxy: logo / Escape
-    Galaxy --> ListView: list toggle
-    ListView --> Galaxy: list toggle
-  }
-  --
-  state "Quick find" as Find {
-    [*] --> Empty
-    Empty --> Filtering: type
-    Filtering --> Empty: Escape / clear
-  }
-  }
+  %% Status: the error view is a dead end until the page is reloaded.
+  classDef stateTerminal stroke-dasharray:6 4
+  class VIEW_ERROR stateTerminal
 ```
 
-Rules the model makes explicit, each tested in `ui/modes.test.js`:
+"Close" on a menu state means Escape, the close button, or a page change (`app.js:134`). The four parts are separated by dashed lines inside the Orbit box, which in a state diagram means they run at the same time: at any moment Orbit is in one state of each part. The error view (dashed border) has no way out except reloading the page.
 
-- **Escape goes to the topmost active layer only:** the overlay (palette, then placeholder form, then menu), then Dragging, then Edit mode, then Quick find, then View (System → Galaxy). This is the same order as `handleEscape` today.
-- **Overlays block what's underneath.** While any overlay is open, Dragging can't start, map clicks and arrow keys don't reach the map, and `/` doesn't focus Quick find.
-- **Opening the menu or palette during a drag cancels the drag first.** A drag never survives a change of overlay.
-- **Switching workspace or restoring a version cancels the drag.** Today `switchWorkspace` calls `cancelDrag`.
-- **Only Browsing opens links and records recent links.** In Edit mode, link clicks are paused.
-- **Routine offers appear only in Browsing with no overlay,** and are re-checked on returning to that state.
+Notes on the diagram:
 
-Phase 0 checks these rules against 2.2.0, and fixes the diagram first if 2.2.0 behaves differently.
+- **"Menu: Settings, Help, or About"** stands for three sibling tabs. The cog opens the menu with no panel selected (`menu.js:23-25`).
+- **The link editor can be entered directly.** "Editor shortcut" means `openEditorAt`, the Edit-bar button, the empty-Galaxy button, Quick add, or a palette command (`editor-page.js:22`, `drag.js:568`, `render.js:790`, `variables.js:127`).
+- **Escape appears in several parts, but only one part handles each press.** Which one is decided by the Escape order below, which the diagram can't show.
+- **The "Edit links" arrow from the panels** stands for every way into the link editor from a panel, such as the Settings button.
+- **List view is a Galaxy preference** (`orbit:galaxy-view`), not a separate view. A sun opened from the list goes to its System. There's no dragging in list view, because list links carry no `data-kind`.
+
+Rules the model makes explicit, each with a `node --test` case in `ui/modes.test.js`:
+
+- **Escape order:**
+  1. The open overlay. Only one can be open. The placeholder form handles Escape itself while focus is inside it (`variables.js:66`).
+  2. A pressed or dragging item (`drag.js:426`).
+  3. Edit mode.
+  4. Quick find.
+  5. System → Galaxy.
+
+  This matches `handleEscape` (`keys.js:33-55`) and the palette's own handler (`palette.js:150`).
+- **What an open overlay blocks:**
+  - While the placeholder form is open, every other key is ignored (`keys.js:161`).
+  - While the menu is open, Ctrl/Cmd+K and `/` are refused (`palette.js:177`, `keys.js:65`).
+  - Ctrl/Cmd+K is also refused in the Error view.
+- **A drag never survives:**
+  - opening the menu (`menu.js:21`) or the palette (`palette.js:62`)
+  - a page change (`app.js:134`)
+  - a workspace switch (`workspaces.js:48`)
+  - turning Edit mode off (`drag.js:101`)
+  - any re-render (`render.js:895`)
+
+  Every store notify re-renders, so every map change cancels a drag.
+- **Edit mode stays on when the menu opens.** Only drags are cancelled.
+- **Link clicks are paused in Edit mode only inside `#app`** (`drag.js:543-550`):
+  - Galaxy, System, and list links open the editor instead.
+  - Links in banners, such as team-update notice links (`sharing.js:150`), still open.
+  - Palette matches open the editor (`palette.js:53`).
+- **When routine offers are checked:**
+  - They check only Edit mode (`routines.js:79`).
+  - They run at start-up, whenever Edit mode changes (`drag.js:110`), on workspace switch (`workspaces.js:70`), and when the tab becomes visible (`routines.js:113`).
+  - They are not re-checked when an overlay closes.
+
+Phase 0 confirms these rules in a browser and records any other differences here.
 
 ### Rules the structure enforces
 
-- **Core is pure.** Files in `core/` take data and return data, with no `document`, `window`, or `localStorage`.
-- **One writer.** Only `store.saveMap` writes the map. Screens never change state themselves; they ask the store and re-render when notified.
-- **Team suns are added at read time.** The store keeps personal and team suns apart and combines them in `store.view()`. Paths say which set they belong to (`{team: true, sun, planet, moon}`), so a raw index can no longer reach a team sun by mistake.
-- **No cycles.** A lint check (esbuild metafile or `madge --circular`) fails the build if a lower layer imports a higher one.
+- **Core is pure.** Files in `core/` take data and return data, with no `document`, `window`, `localStorage`, `File`, or `DOMParser`. Bookmark HTML and `.rdp` files are read in `services/file-io`, and `core/` gets plain data.
+- **One writer of the map.** Only `state/store.js` writes the map key. Its API covers every write that bypasses `saveMap` today:
+  - `saveMap(next, label, {undoRecord, clearUndo, expectRevision})`
+  - `resetToBundled()`
+  - `undoRemoval()`
+  - `setTeamSunHidden()`
+  - workspace `add`, `remove`, and `switch`
+
+  Screens never change state themselves; they ask the store and re-render when notified. Screens may read `state/history.js` and `state/prefs.js` directly (to list versions, or to save a preference), but restoring a version and switching, adding, or removing a workspace go through the store.
+- **No storage reads at import time.** Modules set up when `main.js` (or the bridge) calls them, so `node --test` can import any module.
+- **Team suns keep their place in the numbering.** The page's `data-sun` attributes and `OrbitTest` keep combined indices with team suns first, as today (`render.js:253-258`). `store.view()` converts between a combined index and `{team, index}`. Writes to a team index are refused by `store` at runtime, and the JSDoc types make them a type error.
+- **Stubbed browser calls still work.** App code looks up `window.open`, `confirm`, `prompt`, and `Storage.prototype.setItem` when it calls them and never caches them, so test stubs keep working.
+- **Opening tabs stays synchronous.** `services/opener.js` calls `window.open` in the same task as the user's click, with no `await` before it, or Edge blocks even the first tab.
+- **Layer check.** `scripts/check-layers.mjs` reads esbuild's metafile and fails the build if a file imports from a higher layer (core < state < services < ui < app) or forms a cycle.
+- **Browser stubs are swapped through `services`.** `services/schedule.js` owns the clock (`now()`), so tests can set the time.
 
 ## Old file → new home
 
 | Today | Goes to |
 | --- | --- |
-| `storage.js` | `core/schema.js`, `core/destination.js`, `core/templates.js`, `state/storage.js`, `state/prefs.js` |
-| `app.js` | `app/main.js`, `state/store.js` |
-| `rdp.js` | `core/rdp.js`, `services/rdp-launch.js` |
-| `team.js` | `services/sources.js`, `state/store.js` (combined view) |
-| `favorites.js` | `state/prefs.js` (recents, favorites), `services/opener.js`, `ui/notices/` |
+| `storage.js` | `core/schema.js` (validation), `core/destination.js`, `core/templates.js`, `state/storage.js`, `state/prefs.js`, `state/history.js`, `state/store.js` (`saveMap`) |
+| `app.js` | `app/main.js`, `app/version.js`, `state/store.js` (state, `undoRemoval`) |
+| `rdp.js` | `core/rdp.js` (parse, strip, preset settings, `effectiveRdpProfile(item, presets)`), `services/rdp-launch.js`, `services/file-io.js` (`readRdpText`) |
+| `team.js` | `services/sources.js`, `state/store.js` (combined view, hidden suns), `state/prefs.js` (team favorites, hidden) |
+| `favorites.js` | `state/prefs.js` (recents), `core/destination.js` (`pathsForKey`, `itemAt`), `services/opener.js`, `ui/views/` (click tracking), `ui/notices/` (open-all report), `ui/dialogs/` (confirm) |
 | `render.js` | `ui/views/`, `ui/layout/`, `core/search.js`, `ui/find/` |
-| `editor.js`, `editor-page.js` | `ui/editor/` |
-| `tools.js` | `core/map-ops.js` (merge, duplicates), `core/bookmarks.js`, `services/link-check.js`, `ui/editor/tools/` |
-| `routines.js` | `core/map-ops.js` (merge), `services/schedule.js`, `ui/editor/tools/routines.js`, `ui/notices/` |
-| `variables.js` | `core/templates.js`, `ui/dialogs/` |
-| `workspaces.js` | `state/workspaces.js`, `services/schedule.js` (backup due), `ui/editor/tools/workspaces.js`, `ui/notices/` |
-| `sharing.js` | `core/schema.js` (pack), `services/schedule.js` (team diff), `ui/editor/tools/packs.js`, `ui/notices/` |
-| `presets.js` | `core/rdp.js` (apply), `ui/editor/tools/presets.js` |
+| `editor.js`, `editor-page.js` | `ui/editor/`, `core/schema.js` (`orbit-item-v1`) |
+| `tools.js` | `core/map-ops.js` (merge, duplicates), `core/bookmarks.js` (tree to suns), `services/file-io.js` (bookmark HTML parsing), `services/link-check.js`, `ui/editor/tools/` |
+| `routines.js` | `core/map-ops.js` (`mergeRoutines`), `services/schedule.js` (due), `ui/editor/tools/routines.js`, `ui/notices/` |
+| `variables.js` | `core/templates.js`, `state/prefs.js` (saved values), `ui/dialogs/` (placeholder form), `ui/editor/` (Quick add) |
+| `workspaces.js` | `state/workspaces.js`, `state/backup.js`, `services/schedule.js` (backup due), `ui/editor/tools/workspaces.js`, `ui/menu/` (switch), `ui/notices/` |
+| `sharing.js` | `core/schema.js` (pack), `services/schedule.js` (team diff), `state/prefs.js` (team seen), `ui/editor/tools/packs.js`, `ui/notices/` |
+| `presets.js` | `core/rdp.js`, `ui/editor/tools/presets.js` |
 | `menu.js` | `ui/menu/` |
-| `drag.js` | `core/map-ops.js` (`moveMapItem`), `ui/drag/` |
+| `drag.js` | `core/map-ops.js` (`moveMapItem`), `ui/drag/`, `state/storage.js` (cross-tab `storage` events become the external-change signal) |
 | `palette.js` | `ui/find/palette.js` |
-| `keys.js` | `ui/keys/` |
+| `keys.js` | `ui/keys/`, `ui/modes.js` |
 | `styles.css` | Unchanged at first; split per area once the markup is settled |
 
 ## Data the rewrite must keep
 
 The rewrite reads all of these exactly as 2.2.0 writes them. Key names and formats stay the same, and any change goes through a numbered migration in `state/storage.js`.
 
-- [ ] Map for each workspace: `orbit:map:v1`, plus `orbit:map:v1:<id>` for workspaces other than Main
-- [ ] Removal undo and history: `orbit:undo-removal:v1[:<id>]`, `orbit:history:v1[:<id>]`
-- [ ] Workspaces: `orbit:workspaces:v1`, `orbit:workspace`
-- [ ] Preferences: `orbit:theme`, `orbit:animations`, `orbit:always-show-moons`, `orbit:font-size`, `orbit:rdp-launch`, `orbit:quick-bar`, `orbit:galaxy-view`, `orbit:site-icons`, `orbit:backup-reminders`
-- [ ] Recents, favorites, and team-map state: `orbit:recent:v1`, `orbit:team-favorites`, `orbit:team-hidden`, `orbit:team-seen:v1`
-- [ ] No other `orbit:` keys exist in 2.2.0 (checked with a grep of `*.js`); re-run that grep before the fixture is captured
-- [ ] Saved values and per-day offers: `orbit:variables:v1`, `orbit:routine-offered:v1`, `orbit:backup:v1`
-- [ ] Files: Export JSON, link packs (`orbit-pack-v1`), bookmark HTML, `.rdp` (UTF-8 and UTF-16)
+### Storage keys
 
-Before any code moves, a 2.2.0 browser with all of the above filled in is saved as a fixture (`tests/fixtures/v2.2-storage.json`). Every phase must load that fixture with nothing lost.
+| Key | Scope | Notes |
+| --- | --- | --- |
+| `orbit:map:v1` (Main), `orbit:map:v1:<id>` | Per workspace | Personal favorites live on each item, so they are per workspace too |
+| `orbit:undo-removal:v1[:<id>]` | Per workspace | Shape `{kind, index, item, label, sunId, planetUrl, planetHost, planetName, planetIndex}` (`app.js:69-93`) |
+| `orbit:history:v1[:<id>]` | Per workspace | Entries `{time, label, groups, routines?, rdpPresets?}` (`storage.js:289`), last 20 |
+| `orbit:backup:v1` | One key, one entry per workspace | Read and rewritten whole; a removed workspace's entry is deleted |
+| `orbit:workspaces:v1`, `orbit:workspace` | Shared | |
+| `orbit:recent:v1` | Shared | |
+| `orbit:variables:v1` | Shared | Last value of each placeholder |
+| `orbit:routine-offered:v1` | Shared, keyed by routine id | Known clash: routines with the same id in two workspaces share one "offered today" mark. Keep as is; record it in the behavior inventory. |
+| `orbit:team-favorites`, `orbit:team-hidden`, `orbit:team-seen:v1` | Shared | |
+| `orbit:theme`, `orbit:animations`, `orbit:always-show-moons`, `orbit:font-size`, `orbit:rdp-launch`, `orbit:quick-bar`, `orbit:galaxy-view`, `orbit:site-icons`, `orbit:backup-reminders` | Shared | Booleans stored as the strings `'true'`/`'false'`. Theme ids `alabama`/`auburn` (Red/Blue). Unknown values fall back to the default. |
+
+- [ ] Re-run the key grep (`grep -ohE "'orbit:[a-z0-9:-]+'" *.js`, plus any keys built dynamically) before the fixture is captured, and list any new keys here
+
+### Files, URLs, and globals
+
+- [ ] Export JSON (full map, including `routines` and `rdpPresets`)
+- [ ] Single-item export `orbit-item-v1` (sun, planet, or moon; `editor.js:229,260`)
+- [ ] Link packs `orbit-pack-v1`
+- [ ] Bookmark HTML (Edge and Chrome export format)
+- [ ] `.rdp` files, UTF-8 and UTF-16, up to 64,000 bytes
+- [ ] `links.json` (server mode) and `window.ORBIT_DATA` from `links-data.js` (file mode)
+- [ ] Team map:
+  - `/team.json` wins over `window.ORBIT_TEAM_DATA`
+  - a 404 falls back to it (`team.js:35-44`)
+  - the error text shown when loading fails
+- [ ] `orbit-rdp://host/?profile=<base64url>` URLs and the content of downloaded `.rdp` files, which the Windows helper reads
+
+### Fixture
+
+The 2.2.0 storage fixture (`tests/fixtures/v2.2-storage.json`):
+
+- It is built by a script (`tests/make_v22_fixture.py`) from synthetic data, never from the user's browser.
+- It contains:
+  - every key above
+  - two workspaces
+  - a team map
+  - routines and presets
+  - placeholder values
+  - old-format values (missing optional fields, `'true'` strings)
+  - values 2.2.0 rejects
+- Every phase from 3 on must load it with nothing lost.
+
+## How we test
+
+| Approach | Where | How |
+| --- | --- | --- |
+| Existing behavior as the contract | Whole app | The 2.2.0 browser suites (matrix, drag, sizes, pending, features) are the acceptance tests. A phase is done when the suites it touches pass in Chromium and Edge, with that phase's old scripts removed from `index.html`. |
+| Differential test against 2.2.0 | `core/schema.js`, `core/rdp.js`, `core/destination.js` | `tests/oracle/` keeps a frozen copy of 2.2.0's `storage.js` and `rdp.js`, loaded in Node `vm`. For random valid and invalid inputs, the new code must return the same result or the same error message. The copy stays after phase 8. |
+| Test-driven development | `core/`, `state/`, `services/`, `ui/modes.js` | For each function: write a `node --test` case from the behavior inventory, see it fail, write the code, then tidy it. Services are tested with fake `window.open`, `fetch`, storage, and clock. |
+| Property-based tests (fast-check) | `core/map-ops.js`, `core/schema.js`, `state/store.js` | Generate random maps and operations and check rules that must always hold (listed in phases 2 and 3). |
+| State-machine model | `ui/modes.js` | The "Interaction modes" diagram is the model; each transition and rule has a test. |
+| Data compatibility | Fixture | Node from phase 2 (validation of the fixture's maps); browser from phase 3 (the fixture loaded into a real page, then compared field by field). |
+| After-the-fact checks | Layout, sizing, drag visuals | The sizing (OS) and drag (DD) suites. Writing these tests first would be slow and fragile, so they are not. |
+
+Not used: full model-based engineering tooling (SysML) or code generated from diagrams. Both are too heavy for a project of this size.
+
+### Test hook (`window.OrbitTest`)
+
+The hook exists only when the page is opened with `?test=1`, and an esbuild `define` strips it from release builds. Tests use it instead of reaching into app globals. Most of the ~148 `page.evaluate` calls only read the page (focus, styles) and stay as they are. The 57 raw `localStorage` reads also stay raw, because they check the storage format itself.
+
+- **`state()`:**
+  - groups with combined indices, team suns first
+  - routines, presets
+  - revision, workspace
+  - Edit mode, drag state, current mode
+- **`saveMap(groups, {routines, rdpPresets, label})`:** accepts team suns at the front, and the label defaults to `"Test"`.
+- **`captureDownloads()`:** records every download kind (map, item, pack, `.rdp`) as text. Works over CDP in Edge.
+- **Actions:** `exportMap()`, `showSunList()`, `openEditorAt(path)`, `setEditMode(on)`, `openMenu()`, `render()`.
+- **Pure helpers:** `moveMapItem`, `validDestination`, `effectiveRdpProfile`, `rdpLaunchUrl`, `siteIcon`, `destinationNode`. Alternatively, move the checks that use them (DD01, DD10) to `node --test`.
+- **`setNow(ms)`:** clock override for routine-offer and backup tests.
+- **`reset()`:** clears Orbit's keys and reloads the page. `file://` pages share one localStorage, so a reload is required.
+
+### Checks added by the review
+
+- [ ] **Pop-up allowance:** a `window.open` stub records `navigator.userActivation.isActive` for every call, and the test asserts it is true. That catches an `await` that would break Edge's first-tab allowance, which Playwright's Chromium never blocks.
+- [ ] **Team map in server mode:** a case where `team.json` differs from `team-data.js` (to prove which one loaded), and one where `/team.json` returns 500 (checking the error text).
+- [ ] **Performance (phase 8):** on the largest map the phase 2 generator makes, compare with 2.2.0:
+  - first render time
+  - Quick find time per keystroke
+  - bundle size (total bytes of the 20 old scripts vs `orbit.js`)
+
+  Each must be no more than 10% worse.
+
+### Known 2.2.0 bug found by the review
+
+Resetting a workspace other than Main shows the sample map, then an empty map after reload (`editor.js:348`). Decide with the user whether to fix it on `main` (with a failing test first, then merged into `rewrite`) or only in the rewrite.
+
+- [ ] User decision recorded: fix on `main` / fix in rewrite
+
+## Who does the work
+
+The main session (the **Lead**) hands well-defined checkboxes to cheaper subagent models, which do the work and report back. Tests-first makes this safe: the Lead writes and commits the tests, a worker makes them pass without touching them, and the Lead checks the result itself. The Lead may skip delegating anything small; delegation is for work that is well defined and big enough to be worth a cold start.
+
+### Roles
+
+| Role | Model | Does | Never does |
+| --- | --- | --- | --- |
+| **Lead** (main session) | Opus | Owns the plan, architecture, and interfaces. Writes and commits the tests first, writes the task cards. Reviews every diff, runs the tests itself, commits and merges worker results into `rewrite`. Runs the change cycle: Edge on the VM, docs, pushes. Runs milestone 18 (it needs the private `.rdp` fixture). Talks to the user. | Hands off decisions about architecture, data compatibility, or the user's privacy rules |
+| **Builder** | Sonnet | Implements one task card in its own git worktree: writes the module so the given tests pass, runs `npm run check`, `node --test`, and the named browser suite. Also rewrites one test file's calls to `OrbitTest` per card, when a card allows `tests/` changes. | Edits tests (unless the card allows it), changes files outside the card, commits, pushes, switches branches, uses the VM |
+| **Helper** | Haiku | Read-and-list work with an exact check: listing and sorting the test calls into app code, collecting facts for the behavior inventory from one file, running a suite and summarizing failures, deleting files named on the card | Design choices; changing what code does; rewriting tests |
+| **Reviewer** | Sonnet, with fresh context | Reads a finished diff against its card and the architecture rules (layer direction, no DOM in `core/`, one writer, no caching of stubbed browser calls), and lists problems | Fixes things; only reports |
+
+### Agent definitions
+
+Each agent lives in `.claude/agents/` on `rewrite` and sets `name`, `description`, `model`, and a limited `tools` list:
+
+- `orbit-builder.md` (Sonnet; Read, Edit, Write, Bash, Grep, Glob)
+- `orbit-helper.md` (Haiku; same tools)
+- `orbit-reviewer.md` (Sonnet; Read, Grep, Glob, Bash). Frontmatter can't make Bash read-only, so its instructions say read-only, and the Lead checks `git status` after it runs.
+
+The Lead launches each Builder with `isolation: "worktree"`, so parallel Builders can't touch each other's files or `rewrite`.
+
+Each definition repeats the hard rules:
+
+- Never read, copy, or print `tests/rdptest01.rdp` or `request-observations.md`. Always grep with `--exclude=rdptest01.rdp --exclude=request-observations.md`. Never run `tests/milestone_18.py`.
+- Never use the Windows VM, `ssh`, or `scp`.
+- Never commit, push, merge, or switch branches.
+- Never edit files under `tests/` unless the card says so. Never use `sed -i` or other shell edits to get around this.
+- Never keep changes to shared files:
+  - `orbit.js*`, `package.json`, `package-lock.json`, `jsconfig.json`
+  - `index.html`, `styles.css`
+  - `tests/helpers.py`, `REWRITE_PLAN.md`
+
+  Builds may rewrite `orbit.js` locally; the Lead discards it and rebuilds after merging.
+- Stop and report, rather than guess, when the card is unclear or a test looks wrong.
+
+Enforcement:
+
+- **Text rules alone aren't enough.** `.claude/settings.local.json` allows commands that subagents inherit.
+- **Phase 0 adds hard blocks.** `permissions.deny` rules, or a PreToolUse hook applied to subagents, block `ssh`, `scp`, `git commit`, `git push`, `git checkout`, `git switch`, and writes to `tests/**` and the shared files.
+- **The Lead's diff check is still the final enforcement.**
+
+### Task card (the brief the Lead sends)
+
+Every delegated checkbox becomes a card copied from `.claude/agents/TASK_CARD.md`:
+
+```
+Task:        <checkbox text>  (Phase N)
+Goal:        one sentence on what must be true when done
+Base:        rewrite @ <sha> (the card's tests are already committed here)
+Read first:  files and plan sections (e.g. REWRITE_PLAN.md "Architecture", tests/behavior-2.2.md "search")
+May change:  exact paths (e.g. src/core/search.js)
+Must not change: tests/** (unless listed above), the shared files, anything else
+Interface:   JSDoc signatures the module must export
+Setup:       ln -s <main checkout>/node_modules node_modules   (or: npm ci)
+             export ORBIT_TEST_ARTIFACTS=/tmp/orbit-artifacts-<card id>
+Fixtures:    tests/fixtures/v2.2-storage.json; no team-data.js (features.py --team builds one);
+             no .rdp fixture (milestone 18 is Lead-only)
+Done when:   these commands pass (expected time in brackets):
+             npm run check                                   [~10 s]
+             node --test src/core/search.test.js             [~5 s]
+             <python> tests/features.py --only F06           [~1 min, run in background]
+Hard rules:  the agent file's list
+Report back: in the format below
+```
+
+`ORBIT_TEST_ARTIFACTS` needs a small phase 0 change. `ARTIFACTS` in `tests/helpers.py:11` is fixed at `/tmp/orbit-browser-tests` today, so parallel runs overwrite each other's screenshots. Ports are already safe, since the runners bind port 0.
+
+### Report back (what every worker returns)
+
+```
+Status:     done | blocked | partly done
+Base:       the sha the worktree started from
+Changed:    files, with one line each on what changed
+git status: output, including untracked files
+Commands:   each "Done when" command, with pass/fail and the last lines of output
+Deviations: anything that differs from the card, and why
+Questions:  anything the Lead must decide
+```
+
+### How the Lead runs a card
+
+The Lead never accepts a report on trust:
+
+1. **Before:** commit the card's tests to `rewrite` (message `test: <card>, failing`). The worktree starts from that commit.
+2. **Scope:** run `git status` and `git diff --stat` in the worktree. Only the card's "May change" paths may appear. `tests/` and the shared files must be unchanged unless allowed.
+3. **Tests:** re-run every "Done when" command. The Lead's own output is what counts.
+4. **Review:** start a Reviewer on the diff for anything in `core/` or `state/`, or larger than about 200 lines.
+5. **Then one of three outcomes:**
+   - **Accept:** the Lead commits in the worktree, merges it into `rewrite` with `git merge --no-ff`, then rebuilds `orbit.js` and commits it.
+   - **Send back:** one round of specific feedback by SendMessage to the same Builder.
+   - **Take over:** the Lead finishes it after a second failed round.
+6. **Record:** tick the checkbox and note its owner, e.g. `[x] … (builder, reviewed)`, and update the cost table at the end.
+7. **Push** only after the phase's change cycle.
+
+### Who owns which phase
+
+| Phase | Lead | Delegated |
+| --- | --- | --- |
+| 0 Prepare | Mode-rule check, fixture script, agent files, deny rules, `TASK_CARD.md`, baseline run | Helper: behavior-inventory facts, one old file per card (the Lead writes the final inventory); Helper: list and sort the test calls into app code |
+| 1 Tooling | `build.mjs`, bridge, test hook design, `jsconfig`, `package.json` | Builders, **one at a time** (they share `helpers.py`): move one test file to `OrbitTest` per card; done when that file's suite passes unchanged |
+| 2 Core | Schema design, the oracle, every test file | Builders in parallel, one per module: destination, templates, search, rdp, bookmarks, map-ops; Reviewer for each |
+| 3 State | Store design and its tests, `ui/modes.js` tests, the bridge to old `saveMap` | Builders: storage, workspaces, prefs, history, backup, `ui/modes.js`; Reviewer for the store |
+| 4 Services | Interfaces and tests | Builders: one per service |
+| 5–6 Screens | Screen-to-store wiring, any visual call, removing old scripts from `index.html` | Builders, one screen area each; the browser suites decide |
+| 7 Drag and keyboard | Wiring drag and keys to `ui/modes.js` | Builder: drag tray and drag undo, after the mode tests pass |
+| 8 Clean-up | Bridge removal, layer check, sign-off | Helper: delete old files named on the card |
+| 9 Release | All of it: Edge on the VM, Windows checks, docs, merge (with the user's approval) | Nothing |
+
+### Limits
+
+- **At most three workers at once.** Only modules with no dependency on each other run in parallel. For example, `core/search.js` and `core/rdp.js` can run together, but `state/store.js` waits for `core/`.
+- **No worker starts another worker.**
+- **Track the cost** in the table at the end. If more than about a third of a phase's cards need taking over, delegate less in the next phase.
 
 ## Plan
 
@@ -381,108 +738,191 @@ Each phase ends with Orbit working and its tests passing.
 
 ### Phase 0: Prepare
 
-- [x] Create the `rewrite` branch from `main` at `d194f43` (local; 2026-11-20)
-- [x] Commit this plan on `rewrite` and push the branch (`git push -u main rewrite`) (2026-11-20)
-- [x] Tag `v2.2.0` on `d194f43` and push only the tag (`git push main v2.2.0`); a tag does not move `main` (2026-11-20)
-- [ ] Freeze new features on `main`; only fixes go there, then into `rewrite` the same day
-- [ ] Behavior inventory (`tests/behavior-2.2.md`): for each core and state function, list its inputs and outputs, edge cases, and error messages as 2.2.0 behaves today, from the code and the existing tests. This is the source for the tests written first in phases 2 and 3.
-- [ ] Check the interaction-mode rules above against 2.2.0 in Chromium (including Escape order and which overlay blocks what); correct the diagram where 2.2.0 differs, and record each difference
-- [ ] Capture the 2.2.0 storage fixture (every key above, two workspaces, team map, routines, presets, placeholders)
-- [ ] Add `.claude/agents/orbit-builder.md`, `orbit-helper.md`, and `orbit-reviewer.md` on `rewrite` (see "Who does the work")
-- [ ] Dry run: one Helper task (behavior facts for one file) through the full card → report → check loop, before any real delegation
-- [ ] Add a data-compatibility check: load the fixture and compare the map, preferences, and saved values field by field
-- [ ] Run every suite once on 2.2.0 and record the baseline
+- [x] Create the `rewrite` branch from `main` at `d194f43` (2026-11-20)
+- [x] Commit this plan on `rewrite` and push the branch (2026-11-20)
+- [x] Tag `v2.2.0` on `d194f43` and push only the tag (2026-11-20)
+- [ ] Behavior inventory (`tests/behavior-2.2.md`): for each core and state function, its inputs and outputs, edge cases, and exact error messages as 2.2.0 behaves today. It must include at least these validation rules:
+  - [ ] Unknown fields are dropped at every level: map, sun, planet, moon, routine, preset. This includes `team`, `type: 'web'`, and moons on a moon (`storage.js:119,178,189-192`).
+  - [ ] Which empty fields are dropped (empty `tags`, a `favorite` that isn't exactly `true`, empty `note` and `icon`, an empty or unknown `rdpPreset`, empty `routines` and `rdpPresets`) and which are always written (`description: ''`, `moons: []`)
+  - [ ] Defaults and coercions:
+    - `color` defaults only when undefined, and `null` throws (`storage.js:161`)
+    - missing sun ids are generated from order, and a later explicit id that matches one throws "Duplicate sun ID"
+    - ports are normalized (`:03389` → `:3389`)
+  - [ ] Duplicates: a duplicate sun id throws; duplicate routine and preset ids are regenerated silently (`storage.js:208,256`); duplicate routine link keys and tags are removed silently
+  - [ ] Limits:
+    - notes 500 characters
+    - tags 8, each up to 24 characters
+    - placeholders 5
+    - routine names 60 characters; routine link names cut silently to 200 (`storage.js:253`); 100 links, counted after duplicates are removed
+    - `rdpProfile` 12,000 bytes; `.rdp` files 64,000 bytes
+    - no limit on map size
+  - [ ] RDP rules:
+    - preset settings throw on secrets; `rdpProfile` strips them silently
+    - a whitespace-only line throws in a profile but is skipped in a preset (`rdp.js:22` vs `storage.js:218`)
+    - `rdpProfile: null` or `""` makes the whole map invalid
+  - [ ] `schedule.days` given as a string throws a raw `TypeError` (`storage.js:262`)
+  - [ ] `validPack` (`sharing.js:42,108`):
+    - keeps `favorite`, `rdpPreset`, and `rdpProfile` from the file
+    - checks `routine.schedule` only on Add
+    - adds duplicate links twice
+    - renames a clashing routine to "X 2", whereas Merge import skips it
+  - [ ] What `loadBrowserMap` does on a validation error (`storage.js:303-310`): it falls back to the bundled map (Main) or an empty one (other workspaces), and the stored map is overwritten on the next save
+  - [ ] The routine-offer id clash across workspaces
+- [ ] Check the interaction-mode rules above in Chromium against 2.2.0 (Escape order, what each overlay blocks, drag cancellation, routine-offer timing), and record any difference in this plan
+- [ ] Fixture script `tests/make_v22_fixture.py` and `tests/fixtures/v2.2-storage.json` (see "Fixture")
+- [ ] Data-compatibility check: load the fixture into a 2.2.0 page, then compare the map, preferences, and saved values field by field. It must pass on 2.2.0 before any code moves.
+- [ ] Make `ARTIFACTS` in `tests/helpers.py` follow `ORBIT_TEST_ARTIFACTS` when set
+- [ ] Add `.claude/agents/orbit-builder.md`, `orbit-helper.md`, `orbit-reviewer.md`, and `TASK_CARD.md`
+- [ ] Add the subagent deny rules or hook (see "Enforcement"), and check that a test subagent is actually blocked
+- [ ] Dry run: one Helper card (behavior facts for one file) through the full card → report → check loop
+- [ ] List and sort every test call into app code by kind: state read, `saveMap`, download capture, action, pure helper, stub
+- [ ] Run every suite once on 2.2.0 and record the baseline (counts and times), plus a map of which checks cover which old script, used by the "done when" lines of phases 5–7
 
 ### Phase 1: Tooling, no behavior change
 
-- [ ] `package.json` (development only): esbuild, TypeScript, fast-check; scripts `build`, `check`, `watch`, `test:unit` (`node --test`)
-- [ ] `jsconfig.json` with `checkJs`, `strict`
-- [ ] `build.mjs`: bundle `src/app/main.js` into `orbit.js` as a single script that works from `file://`, with a source map
-- [ ] A test that fails if committed `orbit.js` doesn't match a fresh build
-- [ ] `window.OrbitTest`: a test-only surface (`state()`, `saveMap()`, `captureDownloads()`, `reset()`), turned on by `?test=1`
-- [ ] Move tests off the old globals: about 170 `page.evaluate` calls reach `groups`, `saveMap`, `copyGroups`, and `downloadJson` directly
-- [ ] Replace `APP_SCRIPTS` in `tests/helpers.py` with `orbit.js` plus the data files
+- [ ] `package.json` (development only): pinned esbuild, TypeScript, fast-check; scripts `build`, `check`, `watch`, `test:unit` (`node --test`), `check:layers`; committed lockfile
+- [ ] `jsconfig.json` with `checkJs` and `strict`, plus `src/globals.d.ts` declaring `window.ORBIT_DATA`, `window.ORBIT_TEAM_DATA`, and the old globals the bridge touches
+- [ ] `.gitattributes`: `orbit.js text eol=lf`
+- [ ] `build.mjs`: bundle `src/app/main.js` into `orbit.js` (IIFE, works from `file://`); `define` strips the test hook from release builds; `watch` writes a linked source map
+- [ ] A test that fails if the committed `orbit.js` doesn't match a fresh build
+- [ ] `src/app/legacy-bridge.js` publishing `window.OrbitNext`, and `index.html` loading `orbit.js` before the old scripts
+- [ ] `src/app/version.js` holding `APP_VERSION`, with `app.js` reading it through the bridge; update the release steps in `README-distribute.md`
+- [ ] `window.OrbitTest` with everything under "Test hook", turned on by `?test=1`
+- [ ] Move the tests that reach into app globals to `OrbitTest`, one test file per card. Each file's suite must pass with its assertions unchanged.
+- [ ] `APP_SCRIPTS` in `tests/helpers.py` lists `orbit.js` plus the old scripts still loaded, so `write_fixture` copies the bundle too
 - [ ] Point `sync.py`, the README, and the distribution README at the new layout
-- [ ] Add the task-card template (`.claude/agents/TASK_CARD.md`) that cards are copied from
+- [ ] Done when: every suite passes in Chromium in both modes; Edge on the VM passes the drag and features suites; all 20 old scripts still loaded
 
 ### Phase 2: Core (pure logic), tests first
 
-For each module: write its `node --test` file from the behavior inventory, see it fail, write the module, then tidy it.
+For each module: write its `node --test` file from the behavior inventory, see it fail, write the module, then tidy it. At the end of the phase, the old functions forward to the new ones through the bridge.
 
-- [ ] Tests first, then `core/schema.js`: one schema for map, sun, link, routine, preset, and pack; produces JSDoc types and `validate*`. Tests cover each 2.2.0 error message and dropping empty optional fields.
-- [ ] Tests first, then `core/destination.js` (URL normalization, `rdp:host[:port]`)
-- [ ] Tests first, then `core/templates.js` (up to five `{placeholders}`, fill, names)
+- [ ] Oracle: `tests/oracle/` with frozen 2.2.0 `storage.js` and `rdp.js`, and a loader that runs them in Node `vm`
+- [ ] Tests first, then `core/schema.js`: one schema for map, sun, link, routine, preset, pack, and `orbit-item-v1`; produces JSDoc types and `validate*`. Tests cover each rule in the behavior inventory and each 2.2.0 error message.
+- [ ] Differential test: for random valid and invalid inputs, `core/schema.js` and `core/rdp.js` give the same output or the same error message as the oracle
+- [ ] Tests first, then `core/destination.js`:
+  - `destinationKey` ignores the fragment, all trailing slashes, and host case
+  - it keeps query order, path case, scheme, and `www`
+  - placeholders are encoded as `%7B`/`%7D`
+  - `rdp:` keeps the port, so `host` and `host:3389` differ
+  - `pathsForKey` and `itemAt` take the map as a parameter
+- [ ] Tests first, then `core/templates.js` (up to five placeholders, fill, names)
 - [ ] Tests first, then `core/search.js`:
   - every word must match
   - typo tolerance, including swapped letters
   - the 3+ letter contains rule on every field
   - `#tag` and `tag:` filters
   - path matches only narrow
-- [ ] Tests first, then `core/rdp.js` (UTF-8 and UTF-16 parsing, secrets stripped, applying a preset keeps the link's own computer) and `core/bookmarks.js`
-- [ ] Tests first, then `core/map-ops.js`: `moveMapItem`, `mergeMaps`, `mergeRoutines`, duplicates, `personalGroups`
-- [ ] Property-based tests (fast-check) for `core/map-ops.js` and `core/schema.js`, with random maps of up to 10 suns, 12 planets, and 8 moons:
-  - [ ] A move never loses or duplicates a link: the multiset of destination keys is unchanged
+- [ ] Tests first, then `core/rdp.js` (parsing UTF-8 and UTF-16 text, secrets stripped, preset settings validation, `effectiveRdpProfile(item, presets)` keeps the link's own computer) and `core/bookmarks.js` (folder tree to suns)
+- [ ] Tests first, then `core/map-ops.js`: `moveMapItem`, `mergeMaps` (returns `{groups, added, skipped}`), `mergeRoutines` (and the preset merge at `editor.js:277`), duplicates, `personalGroups`, `uniqueSunId`
+- [ ] Property-based tests (fast-check), with random maps of up to 10 suns, 12 planets, and 8 moons:
+  - [ ] A `moved` result never loses or duplicates a link: the multiset of destination keys is unchanged
   - [ ] A move refuses team paths and never changes a team sun
-  - [ ] Moving an item, then moving it back to where it came from, gives the original map
-  - [ ] `mergeMaps(a, a)` equals `a`; merging adds only destinations that weren't there before
-  - [ ] `mergeRoutines` never creates two routines with the same name (ignoring case)
-  - [ ] Every map that passes validation also passes after export and re-import (`validate(JSON.parse(JSON.stringify(m)))` equals `m`)
-  - [ ] `destinationKey` gives the same key for URLs that differ only in ways normalization ignores
-- [ ] `tsc` passes with no errors in `core/`
+  - [ ] For a `moved` result, the inverse move built from the returned path and the original index restores the map; `same` and `invalid` leave the input untouched
+  - [ ] `mergeMaps` adds nothing already under the matched sun or planet, and copies new suns whole. Includes the case of two planets with the same address but different moons.
+  - [ ] `mergeRoutines` never creates two routines with the same name (ignoring case); the same rule holds for presets
+  - [ ] Validation is idempotent: `validate(roundTrip(validate(x)))` equals `validate(x)`
+  - [ ] `destinationKey` gives the same key for URLs that differ only in the ways listed above
+- [ ] Old functions in `storage.js`, `rdp.js`, `favorites.js`, `tools.js`, `drag.js`, `routines.js`, and `render.js` (search) forward to `OrbitNext.core`
+- [ ] `tsc` passes with no errors in `core/`; `check:layers` passes
+- [ ] Done when: unit, property, and differential tests pass; every browser suite passes in Chromium in both modes; data-compatibility check (node) passes; Edge: features and drag suites
 
-### Phase 3: State, tests first
+### Phase 3: State and modes, tests first
 
-State tests run under `node --test` against an in-memory storage stand-in, with no browser.
+State and mode tests run under `node --test` against an in-memory storage stand-in, with no browser.
 
-- [ ] Tests first, then `state/storage.js` with the same key names, plus a migration runner (version 0 = 2.2.0, so there are no migrations yet). Tests: reads every key in the 2.2.0 fixture; a full or unavailable storage is handled the same way 2.2.0 handles it.
-- [ ] Tests first, then `state/workspaces.js`: Main keeps the plain keys, others add `:<id>`; removing a workspace removes its keys and backup entry
-- [ ] Tests first, then `state/prefs.js` and `state/history.js`: 20 versions kept, oldest dropped when storage is full, skipped when nothing changed, `label === false` skips
-- [ ] Tests first, then `state/store.js`: state, `view()` combining personal and team suns, `saveMap(next, label)`, `subscribe()`, revision check
+- [ ] Tests first, then `state/storage.js`:
+  - same key names
+  - a migration runner (version 0 = 2.2.0, so no migrations yet)
+  - the external-change signal for cross-tab `storage` events
+  - a full or unavailable storage is handled as in 2.2.0
+- [ ] Tests first, then `state/workspaces.js`:
+  - Main keeps the plain keys, and others add `:<id>`
+  - add, remove, and switch
+  - removing a workspace removes its keys and its entry in `orbit:backup:v1`
+- [ ] Tests first, then `state/prefs.js` (value formats as in "Storage keys"), `state/history.js` (20 versions kept, oldest dropped when storage is full, skipped when nothing changed, `label === false` skips), and `state/backup.js`
+- [ ] Tests first, then `state/store.js`:
+  - state and `view()`, with combined index ↔ `{team, index}`
+  - `saveMap(next, label, {undoRecord, clearUndo, expectRevision})` in the order shown in "How a change flows"
+  - `resetToBundled()`, `undoRemoval()`, `setTeamSunHidden()`
+  - `subscribe()`
 - [ ] Property-based tests for `state/store.js`:
   - [ ] After any sequence of saves, the stored map contains no team suns
-  - [ ] Each save that changes the map raises the revision by exactly one
+  - [ ] The revision goes up by one on every save, changed or not, and on hiding a team sun or switching workspace
   - [ ] Restoring any history version gives that version's map, routines, and presets
-  - [ ] A workspace switch never reads or writes another workspace's keys
-- [ ] Team paths carry `team: true`; writing to a team path is a type error and a runtime refusal
-- [ ] The data-compatibility check passes
+  - [ ] A workspace switch never touches another workspace's map, undo, or history key, or its entry in `orbit:backup:v1`
+  - [ ] A write to a team index is refused and changes nothing
+- [ ] Tests first, then `ui/modes.js`: the state machine from "Interaction modes", with a test for each transition and each rule. It is not wired to the page yet.
+- [ ] Bridge: old `saveMap`, `loadBrowserMap`, Reset, `undoRemoval`, `setTeamSunHidden`, and the workspace functions call the store; a subscriber copies state back into the old globals and renders
+- [ ] Done when:
+  - all node tests pass
+  - every browser suite passes in Chromium in both modes
+  - the data-compatibility check passes in the browser
+  - Edge passes all suites, in file mode and server mode
 
-### Phase 4: Services
+### Phase 4: Services, tests first
 
-- [ ] `services/sources.js`: bundled map, team map in file and server modes
-- [ ] `services/opener.js`: open all, favorites, routines, pop-up report, placeholder values, Remote Desktop left out
-- [ ] `services/rdp-launch.js`, `services/link-check.js`, `services/file-io.js`, `services/schedule.js`
+Tests use fake `window.open`, `fetch`, storage, and clock.
+
+- [ ] Tests first, then `services/sources.js`:
+  - the bundled map from `window.ORBIT_DATA` or `links.json`
+  - the team map: `/team.json` before `ORBIT_TEAM_DATA`, with the 404 fallback and the error text
+- [ ] Tests first, then `services/opener.js`:
+  - open all, favorites, routines
+  - placeholder values reused or skipped and counted
+  - Remote Desktop links left out
+  - `window.open` called synchronously and looked up at call time
+  - the confirm question and the blocked-tab report returned to the UI rather than shown
+- [ ] Tests first, then `services/rdp-launch.js`, `services/link-check.js` (headers `X-Orbit-Check: 1` and JSON content type), `services/file-io.js` (JSON, `.rdp` text, bookmark HTML to folder tree, downloads), and `services/schedule.js` (due routines, backup due, team diff, `now()`)
+- [ ] Bridge: the old opener, team loading, file reading, and download functions forward to services
+- [ ] Pop-up allowance check and team server-mode checks (see "Checks added by the review")
+- [ ] Done when:
+  - node tests pass
+  - every browser suite passes in Chromium in both modes
+  - Edge passes the features suite in both modes, plus a visible-window Open-all check while the user is signed in over Remote Desktop, if available
 
 ### Phase 5: Views and finding
 
-- [ ] `ui/views/`: Galaxy, System, list view; the `data-kind`/`data-sun`/`data-planet`/`data-moon` attributes stay the same
+- [ ] `ui/views/`:
+  - Galaxy, System, and list view
+  - the `data-kind`/`data-sun`/`data-planet`/`data-moon` attributes keep combined indices
+  - click tracking and Shift+click
 - [ ] `ui/layout/`: `fitOrbitSizes`, moon fan, Galaxy top room, System note offset
-- [ ] `ui/find/`: Quick find, quick add card, palette
-- [ ] Milestones 1–14 and 19 pass, along with sizing (OS01–OS06)
+- [ ] `ui/find/`: Quick find, the quick add card, palette, all reading `ui/modes.js`
+- [ ] Remove `render.js` and `palette.js` from `index.html` and `APP_SCRIPTS`. The bridge re-exports `render`, `tagPath`, and `fitOrbitSizes` for the old scripts that still call them.
+- [ ] Done when: milestones 1–14 and 19 and sizing (OS01–OS06) pass with those scripts removed, in Chromium in both modes and in Edge (OS07 at 1920×1080)
 
-### Phase 6: Menu and editor
+### Phase 6a: Menu, dialogs, and notices
 
 - [ ] `ui/menu/`: Settings, Help, About, workspace switch
-- [ ] `ui/editor/`: workspace page, tree, sun/planet/moon forms, JSON import/export, reset, `.rdp` import
+- [ ] `ui/dialogs/`: placeholder form (handles its own Escape, swallows other keys) and the confirm questions moved out of services
+- [ ] `ui/notices/`: routine offer, backup reminder, team updates, open-all report, removal undo, storage warning
+- [ ] Remove `menu.js`, `variables.js`, `sharing.js`, and `favorites.js` from `index.html` and `APP_SCRIPTS`, after moving their remaining parts (Quick add and link packs) per the "Old file → new home" table
+- [ ] Done when: the checks covering these screens pass with those scripts removed, in Chromium in both modes and in Edge. Phase 0's baseline run lists which F, B, and milestone checks those are.
+
+### Phase 6b: Editor and tools
+
+- [ ] `ui/editor/`: workspace page, tree, sun/planet/moon forms, Quick add, JSON and single-item import/export, reset, `.rdp` import
 - [ ] `ui/editor/tools/`: history, duplicates, link check, bookmark and merge import, bulk RDP, presets, routines, packs, workspaces, team screens
-- [ ] `ui/dialogs/`: placeholder form, quick add
-- [ ] `ui/notices/`: routine offer, backup reminder, team updates, open-all report
-- [ ] Milestone 18 passes, along with B03–B11, milestones 15–17, and F01–F26
+- [ ] Remove `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `workspaces.js`, `presets.js`, and `team.js` from `index.html` and `APP_SCRIPTS`
+- [ ] Done when: milestones 1–19, B03–B11, and F01–F26 pass with those scripts removed; milestone 18 is run by the Lead; Chromium in both modes and Edge
 
 ### Phase 7: Drag and keyboard
 
-- [ ] Tests first, then `ui/modes.js`: the interaction-mode state machine from the diagram. Each transition and each rule under "Interaction modes" has a `node --test` case, with no browser.
-- [ ] Replace the scattered flags (`menuOverlay.hidden`, `editMode`, `variableDialog`, drag state, `findQuery`) with reads of `ui/modes.js`
-- [ ] `ui/drag/`: Edit mode, pointer drag, tray, drag Undo, all driven by `ui/modes.js`
-- [ ] `ui/keys/`: focus trap and arrow navigation; Escape asks `ui/modes.js` for the topmost layer instead of checking flags in order
-- [ ] Browser check that overlays block what's underneath: with the menu, palette, or placeholder form open, dragging, map clicks, arrow keys, and `/` do nothing
-- [ ] DD01–DD17 and K01–K08 pass
+- [ ] Wire `ui/modes.js` into the page: the scattered flags (`menuOverlay.hidden`, `editMode`, `palette`, `variableDialog`, drag state, `findQuery`) become reads of `ui/modes.js`
+- [ ] `ui/drag/`: Edit mode, the pointer drag (pressed and dragging states), the tray, drag undo, the revision check through `expectRevision`, and the external-change signal
+- [ ] `ui/keys/`: focus trap and arrow navigation. Escape asks `ui/modes.js` for the topmost layer instead of checking flags in order.
+- [ ] Browser check of what overlays block: with the placeholder form open, other keys do nothing; with the menu open, Ctrl/Cmd+K and `/` do nothing; opening the menu or palette cancels a drag
+- [ ] Remove `drag.js` and `keys.js` from `index.html` and `APP_SCRIPTS`
+- [ ] Done when: DD01–DD17 and K01–K08 pass with those scripts removed, in Chromium in both modes and in Edge
 
 ### Phase 8: Remove the old code and harden
 
-- [ ] Delete the 20 root `*.js` app files; `index.html` loads `links-data.js`, the optional `team-data.js`, and `orbit.js`
-- [ ] Import-cycle check passes; `tsc` clean across `src/`
-- [ ] Split `styles.css` by area (optional, only if markup changed)
-- [ ] Compare bundle size and first-render time with 2.2.0 (should be no worse)
+- [ ] Delete `storage.js`, `rdp.js`, `app.js`, the bridge, and every remaining wrapper. `index.html` loads `links-data.js`, the optional `team-data.js`, and `orbit.js`. `main.js` runs start-up.
+- [ ] `tsc` clean across `src/`; `check:layers` passes
+- [ ] Performance check (see "Checks added by the review")
+- [ ] Split `styles.css` by area (optional, only if the markup changed)
+- [ ] Done when: every suite passes in Chromium in both modes and in Edge
 
 ### Phase 9: Release
 
@@ -491,7 +931,7 @@ State tests run under `node --test` against an in-memory storage stand-in, with 
 - [ ] Visible-window Edge pass in the user's Remote Desktop session (also covers 2.2.0's missing pass)
 - [ ] Windows checks B01, B02, B07
 - [ ] Open the 2.2.0 storage fixture in Edge on the VM; nothing lost
-- [ ] Docs: README (developer section: `npm run build`), HANDOFF, TEST_MATRIX, ROADMAP, this plan ticked
+- [ ] Docs: README (a developer section with `npm run build`), HANDOFF, TEST_MATRIX, ROADMAP, README-distribute, this plan ticked
 - [ ] `APP_VERSION` 3.0.0; release note: "nothing changes for you", plus how to go back to `v2.2.0`
 - [ ] Only after the user approves: merge `rewrite` into `main`, push, tag `v3.0.0`, delete the branch
 
@@ -499,9 +939,37 @@ State tests run under `node --test` against an in-memory storage stand-in, with 
 
 | Risk | What we do |
 | --- | --- |
-| Saved maps or preferences lost | Same key names, the 2.2.0 fixture checked every phase, migrations only with a test |
-| `file://` stops working | Bundle as one plain script; every phase runs the file-mode suites in Chromium and Edge |
+| Saved maps or preferences lost | Same key names; the differential test against 2.2.0 validation; the 2.2.0 fixture checked every phase from 2 on; migrations only with a test |
+| `file://` stops working | One plain IIFE bundle loaded synchronously; every phase runs the file-mode suites in Chromium and Edge |
+| Old and new code disagree mid-rewrite | One writer from phase 3; old functions become wrappers; every phase's suites run with that phase's old scripts removed |
 | Tests depend on old globals | `window.OrbitTest` in phase 1, before any app code moves |
-| Sizing and drag behave slightly differently | Keep the DOM structure and class names; OS and DD suites at every phase they touch |
-| `main` and `rewrite` drift apart | Feature freeze; fixes to `main` are merged into `rewrite` the same day |
+| Edge blocks opened tabs | Opening stays synchronous; the user-activation check from phase 4 |
+| Sizing and drag behave slightly differently | Keep the DOM structure, class names, and combined indices; OS and DD suites at every phase they touch |
+| `main` and `rewrite` drift apart | Feature freeze; fixes to `main` are merged into `rewrite` the same day and applied to moved code |
+| Parallel workers collide | Worktrees; shared files are Lead-only; at most three workers; test-file moves one at a time |
+| A worker breaks a privacy rule | Deny rules or a hook, plus the grep excludes, the milestone 18 rule, and the Lead's diff check |
 | The rewrite takes longer than planned | Each phase leaves a working app on the branch; we can stop after any phase and keep `main` as is |
+
+## Review record
+
+Three read-only subagents reviewed the first version of this plan (commit `94b922d`) on 2026-11-20: architecture, data and testing, and process and delegation. Between them they found 9 blockers. The Lead spot-checked the main claims in the code before revising.
+
+| Blocker | Resolved in |
+| --- | --- |
+| No way for old and new code to run together | "Coexistence (strangler)" and the per-phase "done when" lines |
+| A stricter schema would silently drop users' maps | Differential test against 2.2.0, behavior inventory rules, "Fixture" |
+| Data list missing formats and per-workspace scope | "Data the rewrite must keep" |
+| Team-marked paths conflicted with the page's combined indices | "Rules the structure enforces": team suns keep their place in the numbering |
+| Mode diagram and rules didn't match 2.2.0 | Redrawn "Interaction modes" with file:line references |
+| Builders couldn't commit, so there was nothing to merge | "How the Lead runs a card" |
+| Parallel builders would collide on the bundle and shared files | Shared files are Lead-only; the Lead rebuilds after each merge |
+| Moving the test calls isn't mechanical (Haiku) work | Helpers only list the calls; Builders move one file per card, one at a time |
+| The private fixture and the inherited permissions | Hard rules, grep excludes, milestone 18 Lead-only, deny rules or a hook |
+
+## Cost tally
+
+Filled in by the Lead at the end of each phase.
+
+| Phase | Cards | Accepted first time | Sent back | Taken over | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 0 | | | | | |
