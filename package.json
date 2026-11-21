@@ -10,7 +10,7 @@
     "check": "tsc --noEmit -p jsconfig.json",
     "check:bundle": "node build.mjs --check",
     "check:layers": "node scripts/check-layers.mjs",
-    "test:unit": "node --test src"
+    "test:unit": "node --test \"src/**/*.test.js\""
   },
   "devDependencies": {
     "esbuild": "0.28.2",
