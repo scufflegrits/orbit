@@ -13,3 +13,6 @@ team-data.js
 node_modules/
 orbit.test.js
 orbit.js.map
+
+# Worker card registry and guard log (REWRITE_PLAN.md, "Enforcement").
+.claude/cards/
