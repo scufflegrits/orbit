@@ -493,10 +493,26 @@ Mode state follows the same rule as the map: **one owner at a time**, never two 
 **Phase 4b, the cut-over, is one change made by the Lead, not delegated:**
 
 1. **Every old write becomes an event.** Each place that sets a mode today sends an event to `ui/modes.js` instead: `openMenu`/`closeMenu` (`menu.js`), `openPalette`/`closePalette` (`palette.js`), `askForVariables`/`closeVariableDialog` (`variables.js`), `setEditMode` and the drag controller's press, drag, drop, and cancel (`drag.js`), Quick find typing and clearing (`render.js`, `keys.js`), and route changes (`app.js` `hashchange`).
-2. **Every old read becomes a query.** Reads of `editMode`, `menuOverlay.hidden`, `palette`, `variableDialog`, and `findQuery` become calls such as `OrbitNext.modes.is('editIdle')`. The `let` flags are deleted, so a missed read fails loudly instead of using a stale copy.
+2. **State and controllers are separated.** Some of today's variables are pure state; others are UI controllers that also happen to signal "open":
+
+   | Variable | Holds today | After 4b |
+   | --- | --- | --- |
+   | `editMode` (`drag.js:13`) | true or false | **State only.** Deleted; reads become `OrbitNext.modes.is('editIdle')` (or `inEditMode()`) |
+   | `findQuery` (`app.js:36`) | The current query text | **The query text stays in the Quick find controller.** Whether Quick find is empty or filtering moves to `ui/modes.js` |
+   | `menuOverlay.hidden` | DOM visibility | **Set only by the mode subscriber.** Reads of whether the menu is open become a query |
+   | `palette` (`palette.js:88`) | `{overlay, input, list, status, opener, entries, active}` or `null` | **Controller, kept.** It holds DOM references, entries, the active row, and the element to refocus. `ui/modes.js` owns open or closed; the subscriber creates the controller on open and drops it on close |
+   | `variableDialog` (`variables.js:76`) | `{overlay, opener}` or `null` | **Controller, kept**, same rule as `palette`; the link being opened and its values stay in the controller |
+
+   - **One rule:** a controller's existence is never used to decide whether something is open. `if (palette)` as an open check becomes a mode query, while `palette.input` and `palette.entries` stay as they are.
+   - **Pure state flags are deleted,** so a missed read fails loudly instead of using a stale copy.
 3. **The page shows the mode by subscribing.** What's visible (the menu overlay, the palette, the placeholder form, the Edit bar) is set by one subscriber to `ui/modes.js`, not by the code that sent the event.
 4. **`handleEscape` asks `ui/modes.js` for the topmost layer** instead of checking flags in order.
-5. **A check proves there's one owner:** a test greps the old scripts and `src/` and fails on any assignment to those names or to `menuOverlay.hidden` outside the subscriber.
+5. **A check proves there's one owner.** A test greps the old scripts and `src/`, and fails in three cases:
+   - any assignment to a deleted state flag
+   - any assignment to `menuOverlay.hidden` outside the mode subscriber
+   - any use of a controller (`palette`, `variableDialog`) as a true-or-false test, such as `if (palette)`, `!palette`, or `palette ?`
+
+   Uses of a controller's fields are allowed.
 
 After 4b, phases 5–7 move screen code into modules that already use `ui/modes.js`. They don't change who owns the state.
 
@@ -614,13 +630,18 @@ Not used: full model-based engineering tooling (SysML) or code generated from di
 
 Both come from the same `src/` and the same `build.mjs`; only the `ORBIT_TEST` define differs.
 
-- **Browser suites use the test bundle, in fixture copies only.** `write_fixture` in `tests/helpers.py` copies `orbit.test.js` into the fixture folder **under the name `orbit.js`**, so `index.html` is the same file in tests and in release. It fails with a clear message if `orbit.test.js` is missing or older than any file in `src/`. Every runner tests a fixture copy, never the repo folder; `tests/browser_matrix.py`, which loads the repo's `index.html` today (`browser_matrix.py:67`), moves to a fixture copy in phase 1. Edge runs on the VM copy the same fixture folder, so they test the test bundle too.
+- **Browser suites use the test bundle, in fixture copies only.** `write_fixture` in `tests/helpers.py` copies `orbit.test.js` into the fixture folder **under the name `orbit.js`**, so `index.html` is the same file in tests and in release.
+- **The test bundle is never stale:**
+  - Every browser runner runs `npm run build:test` before it starts. esbuild takes about a second, so it's simply rebuilt every time.
+  - `build.mjs` writes a fingerprint into the first line of `orbit.test.js`: a SHA-256 of every build input. The inputs are every file under `src/`, `build.mjs`, `package.json`, `package-lock.json`, and the installed esbuild version.
+  - `write_fixture` recomputes the fingerprint from the current files and refuses to copy a bundle whose fingerprint doesn't match. That catches the cases that skip the rebuild, such as a fixture written by hand for the VM.
+  - Timestamps are never used to decide freshness. Every runner tests a fixture copy, never the repo folder; `tests/browser_matrix.py`, which loads the repo's `index.html` today (`browser_matrix.py:67`), moves to a fixture copy in phase 1. Edge runs on the VM copy the same fixture folder, so they test the test bundle too.
 - **The committed release bundle is tested three ways:**
   1. **It matches its source:** `npm run check:bundle` rebuilds the release bundle into a temporary folder and compares it byte for byte with the committed `orbit.js`.
   2. **It has no test hook:** the release smoke check asserts `window.OrbitTest` is undefined, and a text search of `orbit.js` finds no `OrbitTest`.
   3. **It works:** `tests/release_smoke.py` opens the **repo folder itself** (the committed `orbit.js`, `links-data.js`, and `index.html`) in file and server mode, with no hook, using only clicks and keys. It checks the Galaxy renders the bundled suns, a System opens, Quick find finds a link, Settings opens, and an edit made in Edit links survives a reload; then it clears what it saved.
 - **When each runs:**
-  - The test bundle is rebuilt before every browser run (the runners call `npm run build:test` if it's stale).
+  - The test bundle is rebuilt before every browser run, and its fingerprint is checked whenever a fixture is written.
   - `check:bundle` and `release_smoke.py` run at the end of every phase from 1 on, and in phase 9 in Edge on the VM as well.
 
 ### Test hook (`window.OrbitTest`)
@@ -653,6 +674,7 @@ The hook exists only in the test bundle (see "Builds and what tests run"). Tests
 The goal is to catch a real slowdown, not to fail on normal timing noise. Everything is fixed in advance:
 
 - **Map:** `tests/fixtures/perf-map.json`, made once by the phase 2 generator with seed `2026`: 10 suns, 12 planets each, 8 moons each (120 planets, 960 moons), plus a 2-sun team map. Committed, and used for both versions.
+- **Queries:** `tests/fixtures/perf-queries.json`, committed with the map: five fixed queries chosen from the map's names, covering a single-word match, a two-word match, a typo, a `#tag` filter, and a query with no results. The same file drives both versions.
 - **Versions:** 2.2.1 (a temporary worktree of tag `v2.2.1`) against the rewrite, both as fixture copies of the same map, in file mode.
 - **Browser:** Playwright's Chromium on this machine, headless, 1920×1080, one browser for the whole run. Edge numbers may be recorded but don't decide pass or fail.
 - **Order:** the two versions alternate run by run (A, B, A, B…), so drift on the machine affects both equally.
@@ -660,7 +682,11 @@ The goal is to catch a real slowdown, not to fail on normal timing noise. Everyt
 - **Repetitions:** 20 measured runs per version.
 - **Measurements:**
   1. **First render:** from navigation start to the frame where every Galaxy sun is in the page. Read as `performance.now()` inside a `requestAnimationFrame` poll that waits for the sun count.
-  2. **Quick find per keystroke:** for a fixed list of five queries typed one key at a time, from the key press to the frame where the results list has changed. Measured the same way.
+  2. **Quick find per keystroke:** the five committed queries, typed one key at a time. For each key:
+     - **Start:** a capture-phase `keydown` listener on the document records `performance.now()`.
+     - **End:** a bubble-phase `input` listener on the document runs after Quick find's own handler (`render.js:781`, which searches and renders synchronously). It schedules a `requestAnimationFrame`, whose callback records `performance.now()`. That's when input handling has finished and the browser has had its chance to render.
+     - **Unchanged results count.** The end doesn't depend on the results list changing, so a key that leaves the same results is still measured, and no measurement can wait forever.
+     - **Timeouts.** Each measurement times out after 2 seconds; a timeout fails the run with the query and key named. If the rewrite ever delays the search with a timer, the end must be moved to an explicit "results rendered" signal, and this recipe updated first.
 - **Statistic:** the median of each measurement. Medians are reported with their spread (the middle 50% of runs).
 - **Pass:** the rewrite's median is no more than 10% above 2.2.1's, **or** no more than 5 ms above it (a floor, so tiny numbers can't fail on noise).
 - **If it fails:** run the whole procedure once more. Fail only if both runs fail, and record both runs here.
@@ -719,27 +745,39 @@ Enforcement:
 
 - **Text rules alone aren't enough.** `.claude/settings.local.json` allows commands that subagents inherit.
 - **Blanket blocks would break real work.** Some cards must edit a test file (test-call migration), and every build rewrites `orbit.js`. So the rules are per card, not global.
-- **The card writes its own permissions file.** Before launching a worker, the Lead writes `.orbit-card.json` into the worker's worktree (and git-ignores the name):
+- **The guard fails closed for workers.** A worker is identified by who it is, not by where it's running, and a worker with no valid card can do nothing:
+  - **Identity.** The guard is attached to the worker agents themselves, so it runs for every tool call a worker makes and never for the Lead. Two candidate mechanisms, to be confirmed in phase 0: hooks declared in the worker agents' own definitions, or a subagent identifier in the hook's input. The current working directory is never used to decide who is calling.
+  - **Card lookup.** The Lead writes each card to a registry in the main checkout, `.claude/cards/<worktree name>.json` (git-ignored), before launching the worker:
 
-  ```json
-  {"card": "2-search", "mayChange": ["src/core/search.js"], "mayChangeTests": [],
-   "buildOutputs": ["orbit.js", "orbit.test.js"]}
-  ```
+    ```json
+    {"card": "2-search", "worktree": "/abs/path/to/worktree",
+     "mayChange": ["src/core/search.js"], "mayChangeTests": [],
+     "buildOutputs": ["orbit.js", "orbit.test.js"]}
+    ```
 
-- **A PreToolUse hook enforces it.** `.claude/hooks/card-guard.py` runs before Edit, Write, and Bash tool calls:
-  - If the tool call's working directory has no `.orbit-card.json`, it's the Lead in the main checkout, and nothing is blocked.
-  - Otherwise, Edit and Write are allowed only for paths in `mayChange` and `mayChangeTests`.
-  - Bash commands are refused if they run `ssh`, `scp`, `git commit`, `git push`, `git merge`, `git checkout`, `git switch`, or `git reset`, or read `tests/rdptest01.rdp` or `request-observations.md`.
-- **What the hook can't see:** files written by a Bash command, such as a build writing `orbit.js` or a `sed -i`. Those are allowed to happen, and the Lead's check handles them:
-  - `buildOutputs` are discarded and rebuilt by the Lead after merging.
-  - Any other changed path outside the card fails the review.
-- **The Lead's `git status` and `git diff --stat` check stays the final enforcement.**
-- **Phase 0 verifies the real setup before any delegation**, and records the results here. If a check fails, the plan falls back to the Lead's review alone, and says so here, before delegating. The checks:
-  1. The hook fires for a subagent's tool calls, not only the Lead's.
-  2. The hook sees the worktree as its working directory.
-  3. A denial stops the tool call, and the worker is told why.
-  4. With a test card: an allowed edit succeeds; a forbidden edit, an `ssh` command, and a `git commit` are each refused; a `npm run build` succeeds.
-  5. The Lead's own session is not blocked.
+  - **No card, no access.** For a worker, the guard denies the call if it finds no registered card for the worktree the call comes from, or if the call's working directory is outside that card's `worktree`.
+- **What the guard checks for a worker, by tool:**
+  - **Read, Grep, Glob:** every path and search root must be inside the card's worktree. The private files (`tests/rdptest01.rdp`, `request-observations.md`) are untracked or ignored, so they don't exist in a worktree; the only way to reach them is a path into the main checkout, which this rule refuses.
+  - **Edit, Write:** the path must be listed in `mayChange` or `mayChangeTests`.
+  - **Bash:** only commands on an allowlist run. Everything else is refused, so `ssh`, `scp`, `curl`, any `git` that changes state, and commands naming paths outside the worktree are refused without having to list them. The allowlist:
+    - `npm run build`, `npm run build:test`, `npm run check`, `npm run check:bundle`, `npm run test:unit`, `node --test <path in worktree>`
+    - `<venv python> tests/<runner>.py` with its flags (but not `tests/milestone_18.py`)
+    - `git status`, `git diff`, `git log`
+    - `ls` and `grep` on paths inside the worktree
+  - **Agent and other tools:** refused, so a worker can't start another worker.
+- **What the guard still can't see:** files that an allowed command writes, such as a build writing `orbit.js`. `buildOutputs` are discarded and rebuilt by the Lead after merging; any other changed path outside the card fails the review. The Lead's `git status` and `git diff --stat` check covers this case only. It can't detect a read or undo a remote action, which is why reads and commands are blocked up front instead.
+- **Phase 0 verifies the real setup before any delegation**, and records each result here. The checks:
+  1. The guard runs for a worker's tool calls, through the identity mechanism phase 0 confirms, and never for the Lead's.
+  2. A worker that changes directory into the main checkout is refused (no registered card there).
+  3. A worker with no registered card is refused for every tool.
+  4. With a test card:
+     - an allowed edit, `npm run build`, and `node --test` succeed
+     - an edit outside the card is refused
+     - a `Read`, `Grep`, and `Glob` of `/home/sysadmin/projects/orbit/tests/rdptest01.rdp` are each refused (by path, without the file ever being opened)
+     - `ssh`, `curl`, `git commit`, `git push`, and starting another agent are each refused
+  5. A denial stops the tool call, and the worker is told why.
+  6. The Lead's own session is not blocked.
+- **No fallback to review alone.** If phase 0 can't reliably identify workers or make the guard fail closed, delegation of tool-using work is off. The Lead does that work, and the plan records why. Review can't catch a private-file read or undo a remote action, so it doesn't count as a fallback.
 
 ### Task card (the brief the Lead sends)
 
@@ -753,7 +791,7 @@ Read first:  files and plan sections (e.g. REWRITE_PLAN.md "Architecture", tests
 May change:  exact paths (e.g. src/core/search.js)
 Must not change: tests/** (unless listed above), the shared files, anything else
 Interface:   JSDoc signatures the module must export
-Permissions: .orbit-card.json in the worktree (written by the Lead): mayChange, mayChangeTests, buildOutputs
+Permissions: .claude/cards/<worktree>.json in the main checkout (written by the Lead before launch): worktree, mayChange, mayChangeTests, buildOutputs
 Setup:       ln -s <main checkout>/node_modules node_modules   (or: npm ci)
              export ORBIT_TEST_ARTIFACTS=/tmp/orbit-artifacts-<card id>
 Fixtures:    tests/fixtures/v2.2-storage.json; no team-data.js (features.py --team builds one);
@@ -799,7 +837,7 @@ The Lead never accepts a report on trust:
 
 | Phase | Lead | Delegated |
 | --- | --- | --- |
-| 0 Prepare | Mode-rule check, fixture script, agent files, deny rules, `TASK_CARD.md`, baseline run | Helper: behavior-inventory facts, one old file per card (the Lead writes the final inventory); Helper: list and sort the test calls into app code |
+| 0 Prepare | Mode-rule check, fixture script, agent files, the worker guard and its checks, `TASK_CARD.md`, baseline run | Helper: behavior-inventory facts, one old file per card (the Lead writes the final inventory); Helper: list and sort the test calls into app code |
 | 1 Tooling | `build.mjs`, bridge, test hook design, `jsconfig`, `package.json` | Builders, **one at a time** (they share `helpers.py`): move one test file to `OrbitTest` per card; done when that file's suite passes unchanged |
 | 2 Core | Schema design, the oracle, every test file | Builders in parallel, one per module: destination, templates, search, rdp, bookmarks, map-ops; Reviewer for each |
 | 3 State | Store design and its tests, `ui/modes.js` tests, the bridge to old `saveMap` | Builders: storage, workspaces, prefs, history, backup, `ui/modes.js`; Reviewer for the store |
@@ -873,8 +911,8 @@ Each phase ends with Orbit working and its tests passing.
 - [ ] Data-compatibility check: load the fixture into a 2.2.1 page (tag `v2.2.1`), then compare the map, preferences, and saved values field by field. It must pass on 2.2.1 before any code moves.
 - [ ] Make `ARTIFACTS` in `tests/helpers.py` follow `ORBIT_TEST_ARTIFACTS` when set
 - [ ] Add `.claude/agents/orbit-builder.md`, `orbit-helper.md`, `orbit-reviewer.md`, and `TASK_CARD.md`
-- [ ] Add `.claude/hooks/card-guard.py`, register it in `.claude/settings.json`, and git-ignore `.orbit-card.json` (see "Enforcement")
-- [ ] Run the five enforcement checks in "Enforcement" with a test card, and record each result; if any fails, record the fallback before delegating
+- [ ] Add `.claude/hooks/card-guard.py`, attach it to the worker agents, and git-ignore `.claude/cards/` (see "Enforcement")
+- [ ] Run the six enforcement checks in "Enforcement" and record each result. If worker identity or fail-closed denial can't be confirmed, record that delegation of tool-using work is off
 - [ ] Dry run: one Helper card (behavior facts for one file) through the full card → report → check loop
 - [ ] List and sort every test call into app code by kind: state read, `saveMap`, download capture, action, pure helper, stub
 - [ ] Run every suite once on 2.2.1 (tag `v2.2.1`) and record the baseline (counts and times), plus a map of which checks cover which old script, used by the "done when" lines of phases 5–7
@@ -886,7 +924,7 @@ Each phase ends with Orbit working and its tests passing.
 - [ ] `.gitattributes`: `orbit.js text eol=lf`
 - [ ] `build.mjs`: bundle `src/app/main.js` (IIFE, works from `file://`) into the release bundle `orbit.js` (`ORBIT_TEST=false`) and, with `build:test`, the test bundle `orbit.test.js` (`ORBIT_TEST=true`, git-ignored); `watch` writes a linked source map
 - [ ] `npm run check:bundle`: fails if the committed `orbit.js` doesn't match a fresh release build, or contains `OrbitTest`
-- [ ] `write_fixture` copies `orbit.test.js` as `orbit.js` and refuses a missing or stale test bundle; `browser_matrix.py` moves to a fixture copy
+- [ ] Every browser runner runs `npm run build:test` first; `build.mjs` writes the build-input fingerprint; `write_fixture` copies `orbit.test.js` as `orbit.js` and refuses a missing bundle or a fingerprint that doesn't match; `browser_matrix.py` moves to a fixture copy
 - [ ] `tests/release_smoke.py` against the repo folder (see "Builds and what tests run"), passing in Chromium in both modes
 - [ ] `src/app/legacy-bridge.js` publishing `window.OrbitNext`, and `index.html` loading `orbit.js` before the old scripts
 - [ ] `src/app/version.js` holding `APP_VERSION`, with `app.js` reading it through the bridge; update the release steps in `README-distribute.md`
@@ -1085,10 +1123,21 @@ An outside review of commit `1d3bb81` judged the plan ready for preparation but 
 | Test builds versus release builds | "Builds and what tests run": a separate test bundle in fixture copies; the committed release bundle checked for match, for no hook, and by `release_smoke.py` |
 | Who owns interaction-mode state during the migration | "Who owns mode state during the migration" and the new phase 4b cut-over: one owner at a time, old flags deleted |
 | Reset bug versus "preserve 2.2.0" | Already decided and fixed in 2.2.1 (`1d3bb81`). The baseline is now stated as 2.2.1 in "How we test" and phase 0 |
-| Blanket permission blocks conflict with authorized cards | Per-card `.orbit-card.json` plus a PreToolUse hook; what the hook can't see is named; five checks of the real setup in phase 0, with a fallback |
+| Blanket permission blocks conflict with authorized cards | Per-card permissions enforced by a guard on the worker agents; what the guard can't see is named; checks of the real setup in phase 0 (tightened by the third review) |
 | The pop-up check overstated what it proves | Three layers: a synchronous-call unit test, the activation check as supporting evidence only, and a visible-window Edge check as the actual proof |
 | No measurement recipe for performance | "Performance recipe": fixed map and seed, browser, alternating order, warm-up, 20 runs, medians, a 5 ms floor, one rerun |
 | Too much ceremony for small changes | "Right-sizing the process": small changes skip cards, worktrees, and review; Edge, docs, and push once per phase |
+
+### Third review (2026-11-20)
+
+The same reviewer, on commit `a13c224`, found most earlier concerns resolved and raised four more:
+
+| Point | Resolved in |
+| --- | --- |
+| The permission guard failed open when a worker had no card, ignored read tools, and fell back to review | "Enforcement": workers identified by agent, not by directory; cards in a registry in the main checkout; no card means no access; Read, Grep, and Glob limited to the worktree; Bash on an allowlist; no fallback to review alone, and delegation is off if phase 0 can't confirm this |
+| The Quick find measurement could wait forever when results don't change | "Performance recipe": the end is input handling plus one animation frame, whatever the results; a 2-second timeout per key; the five queries committed with the map |
+| Test-bundle freshness checked only `src/` timestamps | "Builds and what tests run": rebuild before every browser run, plus a SHA-256 fingerprint of all build inputs checked by `write_fixture`; no timestamps |
+| Phase 4b treated controllers as mode flags | Phase 4b step 2: a table separating state from controllers; `palette` and `variableDialog` stay as controllers; the one-owner check targets their use as true-or-false tests only |
 
 ## Cost tally
 
