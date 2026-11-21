@@ -23,6 +23,100 @@ Status: **planning; no app code changed yet.**
 
 Not used: full model-based engineering tooling (SysML) or code generated from diagrams. Both are too heavy for a project of this size.
 
+## Who does the work
+
+The main session (the **Lead**) hands well-defined checkboxes to cheaper subagent models, which do the work and report back. Tests-first makes this safe: the Lead writes or approves the tests, a worker makes them pass without touching them, and the Lead checks the result itself. The Lead may skip delegating anything small; delegation is for work that is well defined and big enough to be worth a cold start.
+
+### Roles
+
+| Role | Model | Does | Never does |
+| --- | --- | --- | --- |
+| **Lead** (main session) | Opus | Owns the plan, architecture, and interfaces. Writes the tests first and the task cards. Reviews every diff, runs the tests itself, merges into `rewrite`. Runs the change cycle: Edge on the VM, docs, commits, pushes. Talks to the user. | Hands off decisions about architecture, data compatibility, or the user's privacy rules |
+| **Builder** | Sonnet | Implements one task card in its own git worktree: writes the module so the given tests pass, runs `tsc`, `node --test`, and the named browser suite | Edits tests, changes files outside the card, commits to `rewrite` or `main`, pushes, uses the VM |
+| **Helper** | Haiku | Mechanical, checkable work: rewriting the ~170 `page.evaluate` calls to `window.OrbitTest`, collecting facts for the behavior inventory, running a suite and summarizing failures, renaming, doc tidy-ups | Design choices; anything without an exact check |
+| **Reviewer** | Sonnet, with fresh context | Reads a finished diff against its card and the architecture rules (layer direction, no DOM in `core/`, one writer), and lists problems | Fixes things; only reports |
+
+### Agent definitions
+
+All three live in `.claude/agents/` on `rewrite` and set `model`, a description, and a limited tool list:
+
+- `orbit-builder.md` (Sonnet; Read, Edit, Write, Bash, Grep, Glob)
+- `orbit-helper.md` (Haiku; same tools)
+- `orbit-reviewer.md` (Sonnet; Read, Grep, Glob, read-only Bash)
+
+The Lead launches each Builder with `isolation: "worktree"`, so parallel Builders can't touch each other's files or `rewrite`.
+
+Each definition repeats the hard rules:
+
+- Never read, copy, or print `tests/rdptest01.rdp` or `request-observations.md`.
+- Never use the Windows VM or SSH.
+- Never commit, push, or switch branches.
+- Never edit files under `tests/` unless the card says so.
+- Stop and report, rather than guess, when the card is unclear or a test looks wrong.
+
+### Task card (the brief the Lead sends)
+
+Every delegated checkbox becomes a card, using one fixed template (`.claude/agents/TASK_CARD.md`):
+
+```
+Task:        <checkbox text>  (Phase N)
+Goal:        one sentence on what must be true when done
+Read first:  files and plan sections to read (e.g. REWRITE_PLAN.md "Architecture", tests/behavior-2.2.md §search)
+May change:  exact paths (e.g. src/core/search.js)
+Must not change: tests/**, anything else
+Interface:   JSDoc signatures the module must export
+Done when:   these commands pass:
+             npm run check
+             node --test src/core/search.test.js
+             (browser suite, if any)
+Hard rules:  the agent file's list
+Report back: in the format below
+```
+
+### Report back (what every worker returns)
+
+```
+Status:    done | blocked | partly done
+Changed:   files, with one line each on what changed
+Commands:  each "Done when" command, with pass/fail and the last lines of output
+Deviations: anything that differs from the card, and why
+Questions: anything the Lead must decide
+```
+
+### How the Lead checks a report
+
+The Lead never accepts a report on trust:
+
+1. **Scope:** `git diff --stat` in the worktree. Only the card's "May change" paths may appear, and `tests/` must be unchanged unless allowed.
+2. **Tests:** re-run every "Done when" command; the Lead's own output is what counts.
+3. **Review:** start a Reviewer on the diff for anything in `core/` or `state/`, or larger than about 200 lines.
+4. **Then one of three outcomes:**
+   - **Accept:** merge the worktree branch into `rewrite`.
+   - **Send back:** one round of specific feedback by SendMessage to the same Builder.
+   - **Take over:** the Lead finishes it after a second failed round.
+5. **Record:** tick the checkbox and note its owner, e.g. `[x] … (builder, reviewed)`.
+
+### Who owns which phase
+
+| Phase | Lead | Delegated |
+| --- | --- | --- |
+| 0 Prepare | Interaction-mode check, storage fixture, baseline run | Helper: collect facts for the behavior inventory, one file at a time (the Lead writes the final inventory) |
+| 1 Tooling | `build.mjs`, `window.OrbitTest` design, `jsconfig` | Helper: rewrite `page.evaluate` calls to the test hook, one test file per helper; Builder: `package.json` scripts |
+| 2 Core | Schema design and every test file (tests first) | Builders in parallel, one per module: destination, templates, search, rdp, bookmarks, map-ops; Reviewer for each |
+| 3 State | Store design and its tests | Builders: storage, workspaces, prefs, history; Reviewer for the store |
+| 4 Services | Interfaces | Builders: one per service |
+| 5–6 Screens | Screen-to-store wiring, any visual call | Builders, one screen area each; the browser suites decide |
+| 7 Drag and keyboard | `ui/modes.js` and its tests | Builder: replacing the scattered flags, after the mode tests pass |
+| 8 Clean-up | Cycle check, sign-off | Helper: delete old files and fix references |
+| 9 Release | All of it: Edge on the VM, Windows checks, docs, merge (with the user's approval) | Nothing |
+
+### Limits
+
+- **At most three workers at once.** Only modules with no dependency on each other run in parallel; for example, `core/search.js` and `core/rdp.js` can run together, but `state/store.js` waits for `core/`.
+- **No worker starts another worker.**
+- **Track the cost.** At the end of each phase, the Lead notes in this plan how many workers ran, how many were sent back, and how many it took over. If more than about a third need taking over, it delegates less in the next phase.
+- **The user still sets the pace.** No phase starts without the user's go-ahead.
+
 ## Goal
 
 Rebuild Orbit's code so it is easier to change safely, while keeping what the user sees and their saved data the same.
@@ -294,6 +388,8 @@ Each phase ends with Orbit working and its tests passing.
 - [ ] Behavior inventory (`tests/behavior-2.2.md`): for each core and state function, list its inputs and outputs, edge cases, and error messages as 2.2.0 behaves today, from the code and the existing tests. This is the source for the tests written first in phases 2 and 3.
 - [ ] Check the interaction-mode rules above against 2.2.0 in Chromium (including Escape order and which overlay blocks what); correct the diagram where 2.2.0 differs, and record each difference
 - [ ] Capture the 2.2.0 storage fixture (every key above, two workspaces, team map, routines, presets, placeholders)
+- [ ] Add `.claude/agents/orbit-builder.md`, `orbit-helper.md`, and `orbit-reviewer.md` on `rewrite` (see "Who does the work")
+- [ ] Dry run: one Helper task (behavior facts for one file) through the full card → report → check loop, before any real delegation
 - [ ] Add a data-compatibility check: load the fixture and compare the map, preferences, and saved values field by field
 - [ ] Run every suite once on 2.2.0 and record the baseline
 
@@ -307,6 +403,7 @@ Each phase ends with Orbit working and its tests passing.
 - [ ] Move tests off the old globals: about 170 `page.evaluate` calls reach `groups`, `saveMap`, `copyGroups`, and `downloadJson` directly
 - [ ] Replace `APP_SCRIPTS` in `tests/helpers.py` with `orbit.js` plus the data files
 - [ ] Point `sync.py`, the README, and the distribution README at the new layout
+- [ ] Add the task-card template (`.claude/agents/TASK_CARD.md`) that cards are copied from
 
 ### Phase 2: Core (pure logic), tests first
 
