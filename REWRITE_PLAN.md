@@ -29,6 +29,7 @@ Not in scope: new features, a new look, or a framework.
 - The change cycle applies to each phase, on the branch: local tests, Edge on the VM, fix, docs, then commit and push to `rewrite`. A phase with no change on screen records "Edge: N/A, no browser-visible change" instead of running Edge.
 - **Every bug gets a failing test first.** Write a test that reproduces the bug, see it fail, then fix it.
 - **Only the Lead edits this plan.**
+- **The plan is frozen after phase 0.** From then on it changes only by ticking boxes, recording decisions and results, and correcting something a phase has proven wrong. Restructuring it needs the user's go-ahead. Review history lives in [REWRITE_REVIEWS.md](REWRITE_REVIEWS.md), not here.
 - **The user sets the pace.** No phase starts without the user's go-ahead.
 
 ## Decisions
@@ -673,7 +674,7 @@ The hook exists only in the test bundle (see "Builds and what tests run"). Tests
 
 The goal is to catch a real slowdown, not to fail on normal timing noise. Everything is fixed in advance:
 
-- **Map:** `tests/fixtures/perf-map.json`, made once by the phase 2 generator with seed `2026`: 10 suns, 12 planets each, 8 moons each (120 planets, 960 moons), plus a 2-sun team map. Committed, and used for both versions.
+- **Map:** `tests/fixtures/perf-map.json`, made once in phase 0 by `tests/make_perf_map.py` with seed `2026`: 10 suns, 12 planets each, 8 moons each (120 planets, 960 moons), plus a 2-sun team map. Committed, and used for both versions.
 - **Queries:** `tests/fixtures/perf-queries.json`, committed with the map: five fixed queries chosen from the map's names, covering a single-word match, a two-word match, a typo, a `#tag` filter, and a query with no results. The same file drives both versions.
 - **Versions:** 2.2.1 (a temporary worktree of tag `v2.2.1`) against the rewrite, both as fixture copies of the same map, in file mode.
 - **Browser:** Playwright's Chromium on this machine, headless, 1920×1080, one browser for the whole run. Edge numbers may be recorded but don't decide pass or fail.
@@ -690,6 +691,10 @@ The goal is to catch a real slowdown, not to fail on normal timing noise. Everyt
 - **Statistic:** the median of each measurement. Medians are reported with their spread (the middle 50% of runs).
 - **Pass:** the rewrite's median is no more than 10% above 2.2.1's, **or** no more than 5 ms above it (a floor, so tiny numbers can't fail on noise).
 - **If it fails:** run the whole procedure once more. Fail only if both runs fail, and record both runs here.
+- **When it runs:**
+  - **Phase 0, the baseline:** `perf_compare.py --baseline` measures 2.2.1 alone with the full recipe, and the medians are recorded here.
+  - **Each phase end, phases 1–7, a quick check:** the rewrite against 2.2.1, alternating, 2 warm-up runs and 5 measured runs per version. It informs; it doesn't block. If a median is more than 20% (and 5 ms) worse, the Lead finds the cause before the next phase, or records why it's accepted.
+  - **Phase 8:** the full recipe, which does decide pass or fail.
 - **Bundle size** is not timed, so it has no noise. Compare bytes: `orbit.js` against the 20 old scripts combined, and record the result. It must be no more than 10% larger.
 
 ### 2.2.0 bug found by the review (fixed in 2.2.1)
@@ -706,7 +711,31 @@ The rewrite must keep the fixed behavior, not the old one:
 
 ## Who does the work
 
-The main session (the **Lead**) hands well-defined checkboxes to cheaper subagent models, which do the work and report back. Tests-first makes this safe: the Lead writes and commits the tests, a worker makes them pass without touching them, and the Lead checks the result itself. The Lead may skip delegating anything small; delegation is for work that is well defined and big enough to be worth a cold start.
+**Default: the Lead does the work.** Delegating to cheaper subagent models is a **trial**, not the plan's default. Because workers have no Bash, every round of a worker's test loop costs the Lead a diff review and a test run. For an app of about 6,000 lines that may save little, while the guard machinery below is real work of its own.
+
+- **The trial:** two or three small, pure `core/` modules in phase 2 (see "Delegation trial").
+- **Built only when the trial starts:** the agent files, the guard, and the task-card machinery described in the rest of this section.
+- **Later phases** use delegation only if the trial shows it's worth it.
+
+When delegation is used, it works like this: the Lead writes and commits the tests, a worker makes them pass without touching them, and the Lead checks the result itself.
+
+### Delegation trial
+
+- **When:** in phase 2, after the Lead has written and committed the tests for `core/destination.js`, `core/templates.js`, and `core/search.js`.
+- **Setup first:**
+  1. Write the agent files and `TASK_CARD.md`.
+  2. Add the guard.
+  3. Run the six checks in "Enforcement". If identity or fail-closed denial can't be confirmed, the trial is cancelled, and the Lead writes those modules too.
+- **Run:** one card per module, one at a time, through the full card → report → check loop in "How the Lead runs a card".
+- **Record per card,** in the cost tally:
+  - accepted first time, sent back, or taken over
+  - rounds of the test loop
+  - the Lead's estimate of time spent reviewing and running, compared with writing the module directly
+- **Decision at Checkpoint A:**
+  - **Continue delegating** only for later modules of the same kind (pure, well specified, easy to review) and only if both hold:
+    - at least two of the three cards were accepted without being taken over
+    - the Lead's time per card was clearly less than writing it
+  - **Otherwise,** delegation stays off for the rest of the rewrite, and the agent files and guard are removed.
 
 ### Roles
 
@@ -852,15 +881,11 @@ The Lead never accepts a report on trust:
 
 | Phase | Lead | Delegated |
 | --- | --- | --- |
-| 0 Prepare | Mode-rule check, fixture script, agent files, the worker guard and its checks, `TASK_CARD.md`, baseline run | Helper: behavior-inventory facts, one old file per card (the Lead writes the final inventory); Helper: list and sort the test calls into app code |
-| 1 Tooling | `build.mjs`, bridge, test hook design, `jsconfig`, `package.json` | Builders, **one at a time** (they share `helpers.py`): move one test file to `OrbitTest` per card; done when that file's suite passes unchanged |
-| 2 Core | Schema design, the oracle, every test file | Builders in parallel, one per module: destination, templates, search, rdp, bookmarks, map-ops; Reviewer for each |
-| 3 State | Store design and its tests, `ui/modes.js` tests, the bridge to old `saveMap` | Builders: storage, workspaces, prefs, history, backup, `ui/modes.js`; Reviewer for the store |
-| 4 Services | Interfaces and tests | Builders: one per service |
-| 4b Mode cut-over | All of it (one change) | Nothing |
-| 5–6 Screens | Screen-to-store wiring, any visual call, removing old scripts from `index.html` | Builders, one screen area each; the browser suites decide |
-| 7 Drag and keyboard | Moving drag and keys into modules (they already use `ui/modes.js`) | Builder: drag tray and drag undo |
-| 8 Clean-up | Bridge removal, layer check, sign-off | Helper: delete old files named on the card |
+| 0 Prepare | All of it | Nothing |
+| 1 Tooling | All of it, including moving the tests to `OrbitTest`, one test file at a time | Nothing |
+| 2 Core | Schema, the oracle, every test file, and the modules not in the trial | The trial only: `destination`, `templates`, `search`, one Builder card each, one at a time |
+| 3–7 | All of it by default | Only if Checkpoint A says to continue; then only pure, well-specified modules, one card at a time |
+| 8 Clean-up | All of it | Nothing |
 | 9 Release | All of it: Edge on the VM, Windows checks, docs, merge (with the user's approval) | Nothing |
 
 ### Right-sizing the process
@@ -870,8 +895,8 @@ Each safeguard is useful, but running all of them on every change would cost mor
 | Size | Example | Who | Tests | Review | Edge, docs, push |
 | --- | --- | --- | --- | --- | --- |
 | **Small** | A wrapper, a rename, one function, a test fix; under about 50 changed lines in one module, nothing visible changes | The Lead, directly in the branch. No card, no worktree | The module's node tests and the one browser suite that covers it | None | Not per change; at the end of the phase |
-| **Medium** | One module with its tests | A Builder with a card, or the Lead if it's quicker to do than to describe | As the card says | Reviewer only for `core/` and `state/` | At the end of the phase |
-| **Phase end** | Closing a phase | The Lead | Every suite the phase touches, in Chromium; `check:bundle`; `release_smoke.py` | None beyond the cards' | Edge on the VM, docs, commit, push: the full change cycle, once |
+| **Medium** | One module with its tests | The Lead; a Builder with a card only during the trial, or later if Checkpoint A says so | As the card says | Reviewer only for `core/` and `state/` | At the end of the phase |
+| **Phase end** | Closing a phase | The Lead | Every suite the phase touches, in Chromium; `check:bundle`; `release_smoke.py`; the performance quick check (phases 1–7) | None beyond the cards' | Edge on the VM, docs, commit, push: the full change cycle, once |
 
 - Edge runs once per phase, not once per change. The exception is a change that only Edge can confirm, such as pop-ups or scrollbars.
 - Docs are updated once per phase, plus `REWRITE_PLAN.md` ticks as cards land.
@@ -879,7 +904,7 @@ Each safeguard is useful, but running all of them on every change would cost mor
 
 ### Limits
 
-- **At most three workers at once.** Only modules with no dependency on each other run in parallel. For example, `core/search.js` and `core/rdp.js` can run together, but `state/store.js` waits for `core/`.
+- **During the trial, one worker at a time.** If delegation continues after Checkpoint A: **at most three workers at once.** Only modules with no dependency on each other run in parallel. For example, `core/search.js` and `core/rdp.js` can run together, but `state/store.js` waits for `core/`.
 - **No worker starts another worker.**
 - **Track the cost** in the table at the end. If more than about a third of a phase's cards need taking over, delegate less in the next phase.
 
@@ -925,12 +950,9 @@ Each phase ends with Orbit working and its tests passing.
 - [ ] Fixture script `tests/make_v22_fixture.py` and `tests/fixtures/v2.2-storage.json` (see "Fixture")
 - [ ] Data-compatibility check: load the fixture into a 2.2.1 page (tag `v2.2.1`), then compare the map, preferences, and saved values field by field. It must pass on 2.2.1 before any code moves.
 - [ ] Make `ARTIFACTS` in `tests/helpers.py` default to a git-ignored `.artifacts/` folder in the checkout running the tests
-- [ ] Add `.claude/agents/orbit-builder.md`, `orbit-helper.md`, `orbit-reviewer.md`, and `TASK_CARD.md`
-- [ ] Add `.claude/hooks/card-guard.py`, attach it to the worker agents, and git-ignore `.claude/cards/` (see "Enforcement")
-- [ ] Run the six enforcement checks in "Enforcement" and record each result. If worker identity or fail-closed denial can't be confirmed, delegation is off.
-- [ ] Dry run: one Helper card (behavior facts for one file) through the full card → report → check loop
 - [ ] List and sort every test call into app code by kind: state read, `saveMap`, download capture, action, pure helper, stub
 - [ ] Run every suite once on 2.2.1 (tag `v2.2.1`) and record the baseline (counts and times), plus a map of which checks cover which old script, used by the "done when" lines of phases 5–7
+- [ ] Performance baseline: `tests/make_perf_map.py` (seed `2026`) writes `tests/fixtures/perf-map.json`; commit it with `tests/fixtures/perf-queries.json`; `tests/perf_compare.py --baseline` measures 2.2.1 with the full recipe, and the medians are recorded in "Performance recipe"
 
 ### Phase 1: Tooling, no behavior change
 
@@ -944,7 +966,7 @@ Each phase ends with Orbit working and its tests passing.
 - [ ] `src/app/legacy-bridge.js` publishing `window.OrbitNext`, and `index.html` loading `orbit.js` before the old scripts
 - [ ] `src/app/version.js` holding `APP_VERSION`, with `app.js` reading it through the bridge; update the release steps in `README-distribute.md`
 - [ ] `window.OrbitTest` with everything under "Test hook", present only in the test bundle
-- [ ] Move the tests that reach into app globals to `OrbitTest`, one test file per card. Each file's suite must pass with its assertions unchanged.
+- [ ] Move the tests that reach into app globals to `OrbitTest`, one test file at a time. Each file's suite must pass with its assertions unchanged.
 - [ ] `APP_SCRIPTS` in `tests/helpers.py` lists `orbit.js` plus the old scripts still loaded, so `write_fixture` copies the bundle too
 - [ ] Point `sync.py`, the README, and the distribution README at the new layout
 - [ ] Done when: every suite passes in Chromium in both modes; Edge on the VM passes the drag and features suites; all 20 old scripts still loaded
@@ -954,6 +976,10 @@ Each phase ends with Orbit working and its tests passing.
 For each module: write its `node --test` file from the behavior inventory, see it fail, write the module, then tidy it. At the end of the phase, the old functions forward to the new ones through the bridge.
 
 - [ ] Oracle: `tests/oracle/` with frozen 2.2.0 `storage.js` and `rdp.js`, and a loader that runs them in Node `vm`
+- [ ] Delegation trial (see "Delegation trial"):
+  - [ ] Agent files and `TASK_CARD.md`; `.claude/hooks/card-guard.py` attached to the worker agents; `.claude/cards/` git-ignored
+  - [ ] The six enforcement checks in "Enforcement", each result recorded; if identity or fail-closed denial fails, cancel the trial
+  - [ ] Cards for `destination`, `templates`, `search`, one at a time, each recorded in the cost tally
 - [ ] Tests first, then `core/schema.js`: one schema for map, sun, link, routine, preset, pack, and `orbit-item-v1`; produces JSDoc types and `validate*`. Tests cover each rule in the behavior inventory and each 2.2.0 error message.
 - [ ] Differential test: for random valid and invalid inputs, `core/schema.js` and `core/rdp.js` give the same output or the same error message as the oracle
 - [ ] Tests first, then `core/destination.js`:
@@ -982,6 +1008,24 @@ For each module: write its `node --test` file from the behavior inventory, see i
 - [ ] Old functions in `storage.js`, `rdp.js`, `favorites.js`, `tools.js`, `drag.js`, `routines.js`, and `render.js` (search) forward to `OrbitNext.core`
 - [ ] `tsc` passes with no errors in `core/`; `check:layers` passes
 - [ ] Done when: unit, property, and differential tests pass; every browser suite passes in Chromium in both modes; data-compatibility check (node) passes; Edge: features and drag suites
+
+### Checkpoint A: after phase 2 (go/no-go)
+
+The Lead reports to the user, and **the user decides** before phase 3 starts:
+
+- **Health:** do all suites pass in Chromium and Edge, and do the differential and data-compatibility checks pass?
+- **Cost:** how long did phases 0–2 take compared with what was expected, and what does that suggest for phases 3–9?
+- **Value:** is the rewrite still buying something the user wants?
+- **Delegation:** the trial results and the recommendation (see "Delegation trial").
+- **Performance:** the phase-end quick check against the 2.2.1 baseline.
+
+Possible decisions:
+
+| Decision | What happens |
+| --- | --- |
+| **Continue** | Phase 3 starts |
+| **Adjust** | The plan is corrected first (a recorded decision), then phase 3 |
+| **Stop** | The rewrite ends. `main` stays on 2.x, untouched. Worth keeping, if wanted: the new tests, the 2.2.1 fixture, the oracle, and the schema. They can be brought to `main` as a separate change with the user's approval. |
 
 ### Phase 3: State and modes, tests first
 
@@ -1044,6 +1088,10 @@ Tests use fake `window.open`, `fetch`, storage, and clock.
 - [ ] Steps 1–5 of "Who owns mode state during the migration", as one change
 - [ ] The one-owner check passes
 - [ ] Done when: every browser suite passes in Chromium in both modes and in Edge (file and server), especially K01–K08, DD01–DD17, and the palette, placeholder, and menu checks (F04, F20)
+
+### Checkpoint B: after phase 4b (go/no-go)
+
+Same questions and decisions as Checkpoint A, before any screen code moves. By now the store, services, and mode ownership are all in place, so this is the last cheap point to stop. If the rewrite stops here, `main` stays as it is, and the branch is kept for reference.
 
 ### Phase 5: Views and finding
 
@@ -1109,60 +1157,13 @@ Tests use fake `window.open`, `fetch`, storage, and clock.
 | Edge blocks opened tabs | Opening stays synchronous; the user-activation check from phase 4 |
 | Sizing and drag behave slightly differently | Keep the DOM structure, class names, and combined indices; OS and DD suites at every phase they touch |
 | `main` and `rewrite` drift apart | Feature freeze; fixes to `main` are merged into `rewrite` the same day and applied to moved code |
-| Parallel workers collide | Worktrees; shared files are Lead-only; at most three workers; test-file moves one at a time |
-| A worker breaks a privacy rule | The per-card hook (verified in phase 0), plus the grep excludes, the milestone 18 rule, and the Lead's diff check |
+| Parallel workers collide | Delegation is a trial, one card at a time; if it continues, worktrees, Lead-only shared files, and at most three workers |
+| A worker breaks a privacy rule | Workers exist only in the trial and have no Bash; the guard (checked before the trial) limits their reads and edits to the worktree; the Lead reads every diff before running it |
 | The rewrite takes longer than planned | Each phase leaves a working app on the branch; we can stop after any phase and keep `main` as is |
 
-## Review record
+## Review history
 
-Three read-only subagents reviewed the first version of this plan (commit `94b922d`) on 2026-11-20: architecture, data and testing, and process and delegation. Between them they found 9 blockers. The Lead spot-checked the main claims in the code before revising.
-
-| Blocker | Resolved in |
-| --- | --- |
-| No way for old and new code to run together | "Coexistence (strangler)" and the per-phase "done when" lines |
-| A stricter schema would silently drop users' maps | Differential test against 2.2.0, behavior inventory rules, "Fixture" |
-| Data list missing formats and per-workspace scope | "Data the rewrite must keep" |
-| Team-marked paths conflicted with the page's combined indices | "Rules the structure enforces": team suns keep their place in the numbering |
-| Mode diagram and rules didn't match 2.2.0 | Redrawn "Interaction modes" with file:line references |
-| Builders couldn't commit, so there was nothing to merge | "How the Lead runs a card" |
-| Parallel builders would collide on the bundle and shared files | Shared files are Lead-only; the Lead rebuilds after each merge |
-| Moving the test calls isn't mechanical (Haiku) work | Helpers only list the calls; Builders move one file per card, one at a time |
-| The private fixture and the inherited permissions | Hard rules, grep excludes, milestone 18 Lead-only, deny rules or a hook |
-
-### Second review (2026-11-20)
-
-An outside review of commit `1d3bb81` judged the plan ready for preparation but not yet an unambiguous implementation contract. It raised six points. It also noted that its assessment didn't check the plan's behavioral claims against the code.
-
-| Point | Resolved in |
-| --- | --- |
-| Test builds versus release builds | "Builds and what tests run": a separate test bundle in fixture copies; the committed release bundle checked for match, for no hook, and by `release_smoke.py` |
-| Who owns interaction-mode state during the migration | "Who owns mode state during the migration" and the new phase 4b cut-over: one owner at a time, old flags deleted |
-| Reset bug versus "preserve 2.2.0" | Already decided and fixed in 2.2.1 (`1d3bb81`). The baseline is now stated as 2.2.1 in "How we test" and phase 0 |
-| Blanket permission blocks conflict with authorized cards | Per-card permissions enforced by a guard on the worker agents; what the guard can't see is named; checks of the real setup in phase 0 (tightened by the third review) |
-| The pop-up check overstated what it proves | Three layers: a synchronous-call unit test, the activation check as supporting evidence only, and a visible-window Edge check as the actual proof |
-| No measurement recipe for performance | "Performance recipe": fixed map and seed, browser, alternating order, warm-up, 20 runs, medians, a 5 ms floor, one rerun |
-| Too much ceremony for small changes | "Right-sizing the process": small changes skip cards, worktrees, and review; Edge, docs, and push once per phase |
-
-### Third review (2026-11-20)
-
-The same reviewer, on commit `a13c224`, found most earlier concerns resolved and raised four more:
-
-| Point | Resolved in |
-| --- | --- |
-| The permission guard failed open when a worker had no card, ignored read tools, and fell back to review | "Enforcement": workers identified by agent, not by directory; cards in a registry in the main checkout; no card means no access; Read, Grep, and Glob limited to the worktree; Bash on an allowlist (later removed entirely, see the fourth review); no fallback to review alone, and delegation is off if phase 0 can't confirm this |
-| The Quick find measurement could wait forever when results don't change | "Performance recipe": the end is input handling plus one animation frame, whatever the results; a 2-second timeout per key; the five queries committed with the map |
-| Test-bundle freshness checked only `src/` timestamps | "Builds and what tests run": rebuild before every browser run, plus a SHA-256 fingerprint of all build inputs checked by `write_fixture`; no timestamps |
-| Phase 4b treated controllers as mode flags | Phase 4b step 2: a table separating state from controllers; `palette` and `variableDialog` stay as controllers; the one-owner check targets their use as true-or-false tests only |
-
-### Fourth review (2026-11-20)
-
-The same reviewer, on commit `0feb609`, judged the approach ready for phase 0 and raised one substantive point and two small ones:
-
-| Point | Resolved in |
-| --- | --- |
-| An allowed command can run worker-written code, which the guard can't inspect | "Execution boundary". The plan first offered a sandbox, with no Bash for workers as the alternative. The user chose no sandbox, so workers have no Bash, and the Lead reads each diff before running any worker-written code |
-| Task-card setup used commands the worker couldn't run | "The Lead prepares each worktree before launch"; artifacts default to the worktree's `.artifacts/` folder, so no environment variables |
-| The performance endpoint was described as rendering | "Performance recipe": the endpoint is the next animation-frame callback after input handling, which runs before painting |
+The four plan reviews (2026-11-20) and how each point was resolved are recorded in [REWRITE_REVIEWS.md](REWRITE_REVIEWS.md).
 
 ## Cost tally
 
