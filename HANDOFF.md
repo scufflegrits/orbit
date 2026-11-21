@@ -6,6 +6,14 @@ Last updated 2026-11-20, at version 2.2.1.
 
 All released work is on `main`, with no failing or pending test. The 3.0.0 rewrite runs on the `rewrite` branch ([REWRITE_PLAN.md](https://github.com/scufflegrits/orbit/blob/rewrite/REWRITE_PLAN.md) there). **Phases 0 and 1 are done on `rewrite`** (2026-11-20 and 21). Phase 0 recorded the 2.2.1 baseline (`tests/baseline-2.2.md`). Phase 1 added the build: `src/` is bundled by esbuild into a committed `orbit.js` (release, no test hook) and a git-ignored `orbit.test.js` (with `window.OrbitTest`), loaded before the old scripts; the tests now reach the app only through `OrbitTest`. On that branch, changing `src/` needs Node (`npm install`, `npm run build`); see README "Changing Orbit's code". Phase 2 (2026-11-21) moved the pure logic into `src/core/` (schema, destination, templates, search, rdp, map-ops, bookmarks), tested with `npm run test:unit` against a frozen copy of 2.2.1 (`tests/oracle/`); the old scripts' functions now forward to it through `window.OrbitNext.core`. A trial of delegating modules to cheaper subagents worked but saved no time, so it was switched off. No phase starts without the user's go-ahead; Checkpoint A was passed ("Continue"). Phase 3 (2026-11-21) added `src/state/` (storage, workspaces, prefs, history, backup, and the store, now the only writer of the map) and the pure interaction-mode model `src/ui/modes.js` (tested, not wired until phase 4b); one subscriber in `app.js` copies the store's state into the old globals and redraws. Phase 4 (services) is next and waits for the user's go-ahead.
 
+**Waiting for the user (logged 2026-11-21, while away):**
+1. **Go-ahead for phase 4** (services: sources, opener, Remote Desktop launch, link check, file I/O, schedule and clock).
+2. **Phase 4's pop-up check:** the visible-window Edge check of Open all needs you signed in over Remote Desktop. If you can't, it's recorded as deferred to phase 9.
+3. **Confirm two decisions taken under the plan's own rules:**
+   - Delegation is off after the trial (all three cards accepted, but no Lead time saved); the agent files and guard were removed.
+   - The phase 3 property "a write to a team index is refused" was corrected to "never stored or changed", because 2.2.1 ignores team suns in a save and refusing would be new behavior.
+4. **To watch, no action needed:** app scripts are +7% against 2.2.1 while old and new code overlap; phase 8 allows 10%.
+
 | Release | Date | What it added | Plan |
 | --- | --- | --- | --- |
 | Milestones 1–19, backlog 1–9 | to 2026-11-17 | Galaxy and System views, editor, Remote Desktop links and Windows helper, keyboard navigation, sizing, drag-and-drop | [ROADMAP.md](ROADMAP.md), [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) |
