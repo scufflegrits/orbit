@@ -49,6 +49,19 @@ export function oracle() {
     set(name, value) {
       context.__set(name, inside(value));
     },
+    /** Run code inside the sandbox (to define the browser-side functions 2.2.1 code calls); returns plain JSON. */
+    run(code) {
+      return toPlain(vm.runInContext(code, context));
+    },
+    /** Everything in the sandbox's localStorage, as {key: text}. */
+    storage() {
+      return Object.fromEntries(store);
+    },
+    /** Replace the sandbox's localStorage contents. */
+    setStorage(entries) {
+      store.clear();
+      for (const [key, value] of Object.entries(entries)) store.set(key, String(value));
+    },
     /** Read a 2.2.1 global or constant, as plain JSON. */
     get(name) {
       const value = context.__get(name);

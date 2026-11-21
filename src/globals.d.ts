@@ -16,14 +16,8 @@ interface Window {
 }
 
 // ---- Old classic-script globals (temporary) -------------------------------------
-declare var groups: any[];
-declare var routines: any[];
-declare var rdpPresets: any[];
-declare var mapRevision: number;
-declare var activeWorkspace: string;
 declare var editMode: boolean;
 declare var drag: { state: 'pressed' | 'dragging' } | null;
-declare function saveMap(data: { groups: any[]; routines?: any[]; rdpPresets?: any[] }, label?: string | false): void;
 // A function declaration in a classic script; the test hook swaps it to capture downloads.
 declare var downloadJson: (data: unknown, filename?: string) => void;
 declare function exportMap(): void;

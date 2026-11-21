@@ -2,64 +2,31 @@
 // reminders. Loaded as a classic script after variables.js and before app.js,
 // which takes its storage keys from workspaceKey().
 
-const WORKSPACES_KEY = 'orbit:workspaces:v1';
-const ACTIVE_WORKSPACE_KEY = 'orbit:workspace';
-const BACKUP_KEY = 'orbit:backup:v1';
 const BACKUP_CHANGES = 20;
 const BACKUP_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function loadWorkspaces() {
-  try {
-    const list = JSON.parse(localStorage.getItem(WORKSPACES_KEY) || '[]');
-    const valid = Array.isArray(list) ? list.filter(item => item && typeof item.id === 'string' && item.name) : [];
-    return valid.some(item => item.id === 'main') ? valid : [{ id: 'main', name: 'Main' }, ...valid];
-  } catch {
-    return [{ id: 'main', name: 'Main' }];
-  }
-}
+// The list and keys moved to src/state/workspaces.js, and switching, adding,
+// and removing to the store, in rewrite phase 3. These keep the screen parts.
+const stateWorkspaces = () => window.OrbitNext.state.workspaces;
 
-function saveWorkspaces(list) {
-  localStorage.setItem(WORKSPACES_KEY, JSON.stringify(list));
-}
+function loadWorkspaces() { return stateWorkspaces().loadWorkspaces(); }
+function saveWorkspaces(list) { stateWorkspaces().saveWorkspaces(list); }
+function readActiveWorkspace() { return stateWorkspaces().readActiveWorkspace(); }
 
-function readActiveWorkspace() {
-  try {
-    const id = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
-    return id && loadWorkspaces().some(item => item.id === id) ? id : 'main';
-  } catch {
-    return 'main';
-  }
-}
-
+// Set from the store by the subscriber in app.js.
 let activeWorkspace = readActiveWorkspace();
 
 // Main keeps the original keys, so maps saved before workspaces stay put.
-function workspaceKey(base, id = activeWorkspace) {
-  return id === 'main' ? base : `${base}:${id}`;
-}
-
-function workspaceName(id = activeWorkspace) {
-  return loadWorkspaces().find(item => item.id === id)?.name || 'Main';
-}
+function workspaceKey(base, id = activeWorkspace) { return stateWorkspaces().workspaceKey(base, id); }
+function workspaceName(id = activeWorkspace) { return stateWorkspaces().workspaceName(id); }
 
 function switchWorkspace(id) {
   if (!loadWorkspaces().some(item => item.id === id)) return;
   cancelDrag();
-  activeWorkspace = id;
-  savePreference(ACTIVE_WORKSPACE_KEY, id);
-  MAP_STORAGE_KEY = workspaceKey('orbit:map:v1');
-  UNDO_STORAGE_KEY = workspaceKey('orbit:undo-removal:v1');
-  HISTORY_STORAGE_KEY = workspaceKey('orbit:history:v1');
-  storageWarning = '';
-  const browserMap = loadBrowserMap();
-  const start = browserMap || (id === 'main' ? seedData : { groups: [] });
-  groups = [...visibleTeamGroups(), ...start.groups];
-  routines = start.routines || [];
-  rdpPresets = start.rdpPresets || [];
-  activeMapSource = browserMap ? 'browser' : id === 'main' ? 'bundled' : 'browser';
-  mapRevision++;
-  countDestinations();
+  // The store loads the workspace's map; its subscriber copies it but leaves
+  // the redraw to this function.
+  if (!window.OrbitNext.store.switchWorkspace(id)) return;
   updateWorkspaceSwitch();
   // A System from another workspace does not exist here.
   if (location.hash && location.hash !== '#' && !groups.some(sun => location.hash.includes(encodeURIComponent(sun.id)))) {
@@ -72,43 +39,16 @@ function switchWorkspace(id) {
 }
 
 // start: 'empty', 'copy' (this workspace), or 'bundled'.
-function addWorkspace(name, start) {
-  const list = loadWorkspaces();
-  const clean = String(name || '').trim();
-  if (!clean || clean.length > 40) throw new Error('A workspace needs a name of up to 40 characters.');
-  if (list.some(item => item.name.toLocaleLowerCase() === clean.toLocaleLowerCase())) {
-    throw new Error(`There is already a workspace named ${clean}.`);
-  }
-  const id = uniqueSunId(clean, new Set(list.map(item => item.id)));
-  const map = start === 'copy'
-    ? { groups: personalGroups(groups), routines, rdpPresets }
-    : start === 'bundled' ? seedData : { groups: [] };
-  localStorage.setItem(workspaceKey('orbit:map:v1', id), JSON.stringify(validateMap(map)));
-  saveWorkspaces([...list, { id, name: clean }]);
-  return id;
-}
+function addWorkspace(name, start) { return window.OrbitNext.store.addWorkspace(name, start); }
 
 function renameWorkspace(id, name) {
-  const clean = String(name || '').trim();
-  const list = loadWorkspaces();
-  if (!clean || clean.length > 40) throw new Error('A workspace needs a name of up to 40 characters.');
-  if (list.some(item => item.id !== id && item.name.toLocaleLowerCase() === clean.toLocaleLowerCase())) {
-    throw new Error(`There is already a workspace named ${clean}.`);
-  }
-  saveWorkspaces(list.map(item => item.id === id ? { ...item, name: clean } : item));
+  stateWorkspaces().renameWorkspace(id, name);
   updateWorkspaceSwitch();
 }
 
 function removeWorkspace(id) {
   if (id === 'main') return;
-  for (const base of ['orbit:map:v1', 'orbit:undo-removal:v1', 'orbit:history:v1']) {
-    localStorage.removeItem(workspaceKey(base, id));
-  }
-  const backups = readBackupState();
-  delete backups[id];
-  writeBackupState(backups);
-  saveWorkspaces(loadWorkspaces().filter(item => item.id !== id));
-  if (activeWorkspace === id) switchWorkspace('main');
+  if (window.OrbitNext.store.removeWorkspace(id)) switchWorkspace('main');
   else updateWorkspaceSwitch();
 }
 
@@ -190,32 +130,12 @@ function workspaceSettings() {
 
 // ---- Backup reminders ---------------------------------------------------------
 
-function readBackupState() {
-  try {
-    const value = JSON.parse(localStorage.getItem(BACKUP_KEY) || '{}');
-    return value && typeof value === 'object' ? value : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeBackupState(state) {
-  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(state)); } catch { /* Storage may be unavailable. */ }
-}
-
-function countChangeForBackup() {
-  const state = readBackupState();
-  const entry = state[activeWorkspace] || {};
-  entry.changes = (entry.changes || 0) + 1;
-  entry.since = entry.since || entry.lastExport || Date.now();
-  state[activeWorkspace] = entry;
-  writeBackupState(state);
-}
+// Backup bookkeeping moved to src/state/backup.js in rewrite phase 3.
+function readBackupState() { return window.OrbitNext.state.backup.readBackupState(); }
+function writeBackupState(state) { window.OrbitNext.state.backup.writeBackupState(state); }
 
 function noteBackupMade() {
-  const state = readBackupState();
-  state[activeWorkspace] = { changes: 0, lastExport: Date.now() };
-  writeBackupState(state);
+  window.OrbitNext.state.backup.noteBackupMade(activeWorkspace);
   document.querySelector('#backup-reminder')?.remove();
 }
 

@@ -68,32 +68,30 @@ function dataSourceLabel() {
   return activeMapSource === 'browser' ? 'Browser edits' : 'Bundled project data';
 }
 
+// The store (src/state/store.js) is the only writer of the map since rewrite
+// phase 3. This subscriber copies its state into the old globals the other
+// scripts still read, then redraws, exactly once per change.
+const orbitStore = window.OrbitNext.store;
+orbitStore.subscribe((state, kind) => {
+  groups = state.groups;
+  routines = state.routines;
+  rdpPresets = state.rdpPresets;
+  mapRevision = state.revision;
+  activeMapSource = state.source;
+  storageWarning = state.warning;
+  seedData = state.seed;
+  activeWorkspace = state.workspace;
+  MAP_STORAGE_KEY = workspaceKey('orbit:map:v1');
+  UNDO_STORAGE_KEY = workspaceKey('orbit:undo-removal:v1');
+  HISTORY_STORAGE_KEY = workspaceKey('orbit:history:v1');
+  countDestinations();
+  // A workspace switch redraws itself after deciding whether to leave the System.
+  if (kind !== 'switch') render();
+});
+
 function undoRemoval() {
-  const record = loadUndoRecord();
-  if (!record) return editorError('There is no removal to undo.');
   try {
-    const next = copyGroups();
-    if (record.kind === 'sun') {
-      if (next.some(sun => sun.id === record.item.id)) {
-        record.item.id = uniqueSunId(record.item.name, new Set(next.map(sun => sun.id)));
-      }
-      next.splice(Math.min(record.index, next.length), 0, record.item);
-    } else {
-      const sun = next.find(item => item.id === record.sunId);
-      if (!sun) throw new Error('The parent sun no longer exists.');
-      if (record.kind === 'planet') {
-        sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
-      } else {
-        const matching = sun.links.find(planet =>
-          planet.url === record.planetUrl && planet.host === record.planetHost &&
-          planet.name === record.planetName);
-        const planet = matching || sun.links[record.planetIndex];
-        if (!planet) throw new Error('The parent planet no longer exists.');
-        planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
-      }
-    }
-    saveMap({ groups: next }, `Undid removal of ${record.label}`);
-    localStorage.removeItem(UNDO_STORAGE_KEY);
+    if (!orbitStore.undoRemoval()) return editorError('There is no removal to undo.');
     showSunList();
   } catch (error) {
     editorError(`Could not undo removal: ${error.message}`);
@@ -111,16 +109,10 @@ async function init() {
       data = await response.json();
     }
     if (!data) throw new Error('Run `python3 sync.py` to generate links-data.js.');
-    seedData = validateMap(data);
-    const browserMap = loadBrowserMap();
+    const seed = validateMap(data);
     await loadTeamMap();
-    const startMap = browserMap || (activeWorkspace === 'main' ? seedData : { groups: [] });
-    groups = [...visibleTeamGroups(), ...startMap.groups];
-    routines = startMap.routines || [];
-    rdpPresets = startMap.rdpPresets || [];
-    activeMapSource = browserMap ? 'browser' : 'bundled';
-    countDestinations();
-    render();
+    // Loads the workspace's map; the subscriber above copies it and renders.
+    orbitStore.start({ seed, team: teamGroups });
     offerDueRoutines();
     checkTeamUpdates();
     showBackupReminder();

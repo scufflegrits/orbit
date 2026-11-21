@@ -3,33 +3,15 @@
 // `sync.py --team PATH` writes team-data.js for file:// use. Team suns are shown
 // in front of the personal map, marked `team: true`, and never saved or exported.
 
-const TEAM_HIDDEN_KEY = 'orbit:team-hidden';
 const TEAM_FAVORITES_KEY = 'orbit:team-favorites';
 let teamGroups = [];
 let teamSource = '';
 let teamError = '';
 
-function readStoredSet(key) {
-  try {
-    const list = JSON.parse(localStorage.getItem(key) || '[]');
-    return new Set(Array.isArray(list) ? list.map(String) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function writeStoredSet(key, set) {
-  try { localStorage.setItem(key, JSON.stringify([...set])); } catch { /* Storage may be unavailable. */ }
-}
-
-function hiddenTeamSuns() {
-  return readStoredSet(TEAM_HIDDEN_KEY);
-}
-
-function visibleTeamGroups() {
-  const hidden = hiddenTeamSuns();
-  return teamGroups.filter(sun => !hidden.has(sun.id));
-}
+// Stored sets and hidden team suns moved to src/state/prefs.js in rewrite phase 3.
+function readStoredSet(key) { return window.OrbitNext.state.prefs.readStoredSet(key); }
+function writeStoredSet(key, set) { window.OrbitNext.state.prefs.writeStoredSet(key, set); }
+function hiddenTeamSuns() { return window.OrbitNext.state.prefs.hiddenTeamSuns(); }
 
 async function fetchTeamData() {
   if (location.protocol !== 'file:') {
@@ -61,16 +43,8 @@ async function loadTeamMap() {
   }
 }
 
-function setTeamSunHidden(id, hidden) {
-  const set = hiddenTeamSuns();
-  if (hidden) set.add(id);
-  else set.delete(id);
-  writeStoredSet(TEAM_HIDDEN_KEY, set);
-  groups = [...visibleTeamGroups(), ...personalGroups(groups)];
-  mapRevision++;
-  countDestinations();
-  render();
-}
+// Hiding a team sun goes through the store, which redraws (rewrite phase 3).
+function setTeamSunHidden(id, hidden) { window.OrbitNext.store.setTeamSunHidden(id, hidden); }
 
 function isTeamPath(path) {
   return Boolean(groups[path.sun]?.team);

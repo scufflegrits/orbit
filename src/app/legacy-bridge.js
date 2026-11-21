@@ -8,6 +8,8 @@
  * @property {string} version The app version, from src/app/version.js.
  * @property {Readonly<Record<string, any>>} core Every export of src/core/, for the
  *   old scripts' forwarding functions (phase 2 on).
+ * @property {ReturnType<typeof import('../state/store.js').createStore>} store The one store (phase 3 on).
+ * @property {Readonly<Record<string, any>>} state The state modules (storage, workspaces, prefs, history, backup).
  */
 
 /** @param {OrbitNextApi} api */

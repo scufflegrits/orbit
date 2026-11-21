@@ -6,9 +6,10 @@ check that everything is read back the same way as 2.2.1 reads it.
     python tests/data_compat_check.py                # any later version: compares with them
 
 The expected results (tests/fixtures/v2.2-expected.json) were recorded from 2.2.1
-and are the contract. This version collects state through 2.2.1's page globals;
-when the rewrite moves state into modules (phase 3), collection switches to
-window.OrbitTest, and the expected results stay the same.
+and are the contract. Since rewrite phase 3 the per-workspace state is read
+through window.OrbitTest (the store), and the expected results stayed the
+same. The shared preferences are still read through the old scripts' readers,
+which forward to src/state/; they move to OrbitTest as those screens move.
 """
 
 import argparse
@@ -30,20 +31,19 @@ FIXTURE = FIXTURES / "v2.2-storage.json"
 EXPECTED = FIXTURES / "v2.2-expected.json"
 
 COLLECT = """() => {
-  const json = value => JSON.parse(JSON.stringify(value));
-  const raw = key => localStorage.getItem(key);
+  const state = OrbitTest.state();
   return {
-    workspace: activeWorkspace,
-    personal: json(personalGroups(groups)),
-    teamShown: groups.filter(sun => sun.team).map(sun => sun.id),
-    routines: json(routines),
-    rdpPresets: json(rdpPresets),
-    source: activeMapSource,
-    warning: storageWarning,
-    undo: json(loadUndoRecord()),
-    history: loadHistory().map(entry => ({ time: entry.time, label: entry.label, suns: entry.groups.length,
+    workspace: state.workspace,
+    personal: state.groups.filter(sun => !sun.team),
+    teamShown: state.groups.filter(sun => sun.team).map(sun => sun.id),
+    routines: state.routines,
+    rdpPresets: state.rdpPresets,
+    source: state.source,
+    warning: state.warning,
+    undo: OrbitTest.undoRecord(),
+    history: OrbitTest.history().map(entry => ({ time: entry.time, label: entry.label, suns: entry.groups.length,
       routines: (entry.routines || []).length, rdpPresets: (entry.rdpPresets || []).length })),
-    storedMap: raw(MAP_STORAGE_KEY),
+    storedMap: localStorage.getItem(state.workspace === 'main' ? 'orbit:map:v1' : `orbit:map:v1:${state.workspace}`),
   };
 }"""
 

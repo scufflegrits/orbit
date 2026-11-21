@@ -33,16 +33,16 @@
       return `url:${item.url}`;
     }
   }
-  function pathsForKey(groups2, key) {
+  function pathsForKey(groups, key) {
     let paths = [];
-    return groups2.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
+    return groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
       destinationKey(planet) === key && paths.push([sunIndex, planetIndex]), planet.moons.forEach((moon, moonIndex) => {
         destinationKey(moon) === key && paths.push([sunIndex, planetIndex, moonIndex]);
       });
     })), paths;
   }
-  function itemAt(groups2, path) {
-    let planet = groups2[
+  function itemAt(groups, path) {
+    let planet = groups[
       /** @type {number} */
       path[0]
     ]?.links[
@@ -265,12 +265,12 @@ prompt for credentials:i:1\r
         return { ...planet, moons };
       }), icon = validSunIcon(group.icon, name);
       return { id, name, description: String(group.description || ""), color, ...icon ? { icon } : {}, links };
-    }), routines2 = validRoutines(data.routines), rdpPresets2 = validRdpPresets(data.rdpPresets), presetIds = new Set(rdpPresets2.map((preset) => preset.id));
+    }), routines = validRoutines(data.routines), rdpPresets = validRdpPresets(data.rdpPresets), presetIds = new Set(rdpPresets.map((preset) => preset.id));
     for (let sun of normalized)
       for (let item of sun.links.flatMap((planet) => [planet, ...planet.moons]))
         item.type === "rdp" && item.rdpPreset && !presetIds.has(item.rdpPreset) && delete item.rdpPreset;
     let map = { groups: normalized };
-    return routines2.length && (map.routines = routines2), rdpPresets2.length && (map.rdpPresets = rdpPresets2), map;
+    return routines.length && (map.routines = routines), rdpPresets.length && (map.rdpPresets = rdpPresets), map;
   }
   function validRdpPresets(value) {
     if (value == null) return [];
@@ -426,6 +426,189 @@ prompt for credentials:i:1\r
     return { format: "orbit-item-v1", kind, item: plainCopy(item) };
   }
 
+  // src/state/history.js
+  var history_exports = {};
+  __export(history_exports, {
+    HISTORY_LIMIT: () => HISTORY_LIMIT,
+    loadHistory: () => loadHistory,
+    recordHistory: () => recordHistory
+  });
+
+  // src/state/storage.js
+  var storage_exports = {};
+  __export(storage_exports, {
+    KEYS: () => KEYS,
+    MIGRATIONS: () => MIGRATIONS,
+    STORAGE_VERSION_KEY: () => STORAGE_VERSION_KEY,
+    memoryStorage: () => memoryStorage,
+    migrate: () => migrate,
+    onExternalChange: () => onExternalChange,
+    read: () => read,
+    readJson: () => readJson,
+    readSafely: () => readSafely,
+    remove: () => remove,
+    useBackend: () => useBackend,
+    write: () => write,
+    writeSafely: () => writeSafely
+  });
+  var KEYS = Object.freeze({
+    map: "orbit:map:v1",
+    undo: "orbit:undo-removal:v1",
+    history: "orbit:history:v1",
+    backup: "orbit:backup:v1",
+    workspaces: "orbit:workspaces:v1",
+    activeWorkspace: "orbit:workspace",
+    recent: "orbit:recent:v1",
+    variables: "orbit:variables:v1",
+    routineOffered: "orbit:routine-offered:v1",
+    teamFavorites: "orbit:team-favorites",
+    teamHidden: "orbit:team-hidden",
+    teamSeen: "orbit:team-seen:v1"
+  }), override = null;
+  function backend() {
+    return override ? override() : globalThis.localStorage;
+  }
+  function useBackend(storage) {
+    override = storage ? () => storage : null;
+  }
+  function memoryStorage(initial = {}) {
+    let data = new Map(Object.entries(initial));
+    return {
+      data,
+      failWrites: !1,
+      /** @param {string} key */
+      getItem(key) {
+        return data.has(key) ? (
+          /** @type {string} */
+          data.get(key)
+        ) : null;
+      },
+      /** @param {string} key @param {string} value */
+      setItem(key, value) {
+        if (this.failWrites) throw new Error("The quota has been exceeded.");
+        data.set(key, String(value));
+      },
+      /** @param {string} key */
+      removeItem(key) {
+        data.delete(key);
+      }
+    };
+  }
+  function read(key) {
+    return backend().getItem(key);
+  }
+  function readSafely(key) {
+    try {
+      return backend().getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  function readJson(key, fallback) {
+    try {
+      let text = backend().getItem(key);
+      return text === null ? fallback : JSON.parse(text);
+    } catch {
+      return fallback;
+    }
+  }
+  function write(key, value) {
+    backend().setItem(key, value);
+  }
+  function writeSafely(key, value) {
+    try {
+      return backend().setItem(key, value), !0;
+    } catch {
+      return !1;
+    }
+  }
+  function remove(key) {
+    backend().removeItem(key);
+  }
+  var MIGRATIONS = [], STORAGE_VERSION_KEY = "orbit:storage-version";
+  function migrate() {
+    if (!MIGRATIONS.length) return [];
+    let current = Number(readSafely(STORAGE_VERSION_KEY) || 0), applied = [];
+    for (let migration of MIGRATIONS)
+      migration.version <= current || (migration.up(), write(STORAGE_VERSION_KEY, String(migration.version)), applied.push(migration.version));
+    return applied;
+  }
+  function onExternalChange(listener, target = globalThis) {
+    let handler = (event) => {
+      (event.key === null || String(event.key).startsWith("orbit:")) && listener(event.key);
+    };
+    return target.addEventListener("storage", handler), () => target.removeEventListener("storage", handler);
+  }
+
+  // src/state/history.js
+  var HISTORY_LIMIT = 20;
+  function loadHistory(key) {
+    let list = readJson(key, []);
+    return Array.isArray(list) ? list.filter((entry) => entry && Array.isArray(entry.groups)) : [];
+  }
+  function recordHistory(key, previousGroups, label, previousRoutines = [], previousPresets = [], time = Date.now()) {
+    let entry = { time, label: String(label || "Change"), groups: previousGroups };
+    previousRoutines.length && (entry.routines = previousRoutines), previousPresets.length && (entry.rdpPresets = previousPresets);
+    let list = [entry, ...loadHistory(key)].slice(0, HISTORY_LIMIT);
+    for (; list.length; )
+      try {
+        write(key, JSON.stringify(list));
+        return;
+      } catch {
+        list.pop();
+      }
+  }
+
+  // src/state/workspaces.js
+  var workspaces_exports = {};
+  __export(workspaces_exports, {
+    MAIN: () => MAIN,
+    WORKSPACE_KEYS: () => WORKSPACE_KEYS,
+    loadWorkspaces: () => loadWorkspaces,
+    newWorkspace: () => newWorkspace,
+    readActiveWorkspace: () => readActiveWorkspace,
+    renameWorkspace: () => renameWorkspace,
+    saveActiveWorkspace: () => saveActiveWorkspace,
+    saveWorkspaces: () => saveWorkspaces,
+    workspaceKey: () => workspaceKey,
+    workspaceName: () => workspaceName
+  });
+  var MAIN = "main", WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
+  function loadWorkspaces() {
+    let list = readJson(KEYS.workspaces, []), valid = Array.isArray(list) ? list.filter((item) => item && typeof item.id == "string" && item.name) : [];
+    return valid.some((item) => item.id === MAIN) ? valid : [{ id: MAIN, name: "Main" }, ...valid];
+  }
+  function saveWorkspaces(list) {
+    write(KEYS.workspaces, JSON.stringify(list));
+  }
+  function readActiveWorkspace() {
+    let id = readSafely(KEYS.activeWorkspace);
+    return id && loadWorkspaces().some((item) => item.id === id) ? id : MAIN;
+  }
+  function saveActiveWorkspace(id) {
+    writeSafely(KEYS.activeWorkspace, String(id));
+  }
+  function workspaceKey(base, id) {
+    return id === MAIN ? base : `${base}:${id}`;
+  }
+  function workspaceName(id) {
+    return loadWorkspaces().find((item) => item.id === id)?.name || "Main";
+  }
+  function newWorkspace(name) {
+    let list = loadWorkspaces(), clean = String(name || "").trim();
+    if (!clean || clean.length > 40) throw new Error("A workspace needs a name of up to 40 characters.");
+    if (list.some((item) => item.name.toLocaleLowerCase() === clean.toLocaleLowerCase()))
+      throw new Error(`There is already a workspace named ${clean}.`);
+    return { id: uniqueSunId(clean, new Set(list.map((item) => item.id))), name: clean };
+  }
+  function renameWorkspace(id, name) {
+    let clean = String(name || "").trim(), list = loadWorkspaces();
+    if (!clean || clean.length > 40) throw new Error("A workspace needs a name of up to 40 characters.");
+    if (list.some((item) => item.id !== id && item.name.toLocaleLowerCase() === clean.toLocaleLowerCase()))
+      throw new Error(`There is already a workspace named ${clean}.`);
+    saveWorkspaces(list.map((item) => item.id === id ? { ...item, name: clean } : item));
+  }
+
   // src/core/bookmarks.js
   var bookmarks_exports = {};
   __export(bookmarks_exports, {
@@ -514,12 +697,12 @@ prompt for credentials:i:1\r
       return item.url || "";
     }
   }
-  function searchEntries(groups2) {
+  function searchEntries(groups) {
     let entries = [], fields = (name, path, item) => {
       let list = [{ kind: "name", text: name.toLocaleLowerCase(), weight: 1, anywhere: !0 }];
       return path && list.push({ kind: "path", text: path.toLocaleLowerCase(), weight: 0.7 }), item && (list.push({ kind: "address", text: addressText(item).toLocaleLowerCase(), weight: 0.6 }), item.tags?.length && list.push({ kind: "tag", text: item.tags.join(" "), weight: 0.8 }), item.note && list.push({ kind: "note", text: item.note.toLocaleLowerCase(), weight: 0.5 })), list.map((field) => ({ ...field, words: searchWords(field.text) }));
     };
-    return groups2.forEach((sun, sunIndex) => {
+    return groups.forEach((sun, sunIndex) => {
       entries.push({
         match: { kind: "Sun", name: sun.name, path: sun.team ? "Team Galaxy" : "Galaxy", id: sun.id, icon: sun.icon },
         tags: [],
@@ -553,13 +736,13 @@ prompt for credentials:i:1\r
       });
     }), entries;
   }
-  function findMatches(groups2, query) {
+  function findMatches(groups, query) {
     let raw = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean), tagFilters = raw.flatMap((word) => {
       let tag = /^#(.+)$/.exec(word) || /^tag:(.+)$/.exec(word);
       return tag ? [tag[1]] : [];
     }), tokens = raw.filter((word) => !/^#.+$/.test(word) && !/^tag:.+$/.test(word));
     if (!tokens.length && !tagFilters.length) return [];
-    let entries = searchEntries(groups2).filter((entry) => tagFilters.every((tag) => entry.tags.includes(tag))), strictHits = new Set(tokens.filter((token) => entries.some((entry) => entry.fields.some((field) => wordQuality(token, field.text, field.words || [], !1, field.anywhere))))), scored = [];
+    let entries = searchEntries(groups).filter((entry) => tagFilters.every((tag) => entry.tags.includes(tag))), strictHits = new Set(tokens.filter((token) => entries.some((entry) => entry.fields.some((field) => wordQuality(token, field.text, field.words || [], !1, field.anywhere))))), scored = [];
     return entries.forEach((entry, order) => {
       let score = 0, reasons = /* @__PURE__ */ new Set();
       for (let token of tokens) {
@@ -578,9 +761,308 @@ prompt for credentials:i:1\r
     }), scored.sort((a, b) => b.match.score - a.match.score || a.order - b.order), scored.map((item) => item.match);
   }
 
+  // src/state/backup.js
+  var backup_exports = {};
+  __export(backup_exports, {
+    countChange: () => countChange,
+    forgetWorkspace: () => forgetWorkspace,
+    noteBackupMade: () => noteBackupMade,
+    readBackupState: () => readBackupState,
+    writeBackupState: () => writeBackupState
+  });
+  function readBackupState() {
+    let value = readJson(KEYS.backup, {});
+    return value && typeof value == "object" ? value : {};
+  }
+  function writeBackupState(state) {
+    writeSafely(KEYS.backup, JSON.stringify(state));
+  }
+  function countChange(workspace, now = Date.now()) {
+    let state = readBackupState(), entry = state[workspace] || {};
+    entry.changes = (entry.changes || 0) + 1, entry.since = entry.since || entry.lastExport || now, state[workspace] = entry, writeBackupState(state);
+  }
+  function noteBackupMade(workspace, now = Date.now()) {
+    let state = readBackupState();
+    state[workspace] = { changes: 0, lastExport: now }, writeBackupState(state);
+  }
+  function forgetWorkspace(workspace) {
+    let state = readBackupState();
+    delete state[workspace], writeBackupState(state);
+  }
+
+  // src/state/prefs.js
+  var prefs_exports = {};
+  __export(prefs_exports, {
+    hiddenTeamSuns: () => hiddenTeamSuns,
+    readBoolean: () => readBoolean,
+    readFontSize: () => readFontSize,
+    readGalaxyView: () => readGalaxyView,
+    readRdpLaunch: () => readRdpLaunch,
+    readStoredSet: () => readStoredSet,
+    readTheme: () => readTheme,
+    savePreference: () => savePreference,
+    writeStoredSet: () => writeStoredSet
+  });
+  function readBoolean(key, fallback) {
+    let value = readSafely(key);
+    return value === null ? fallback : value === "true";
+  }
+  function savePreference(key, value) {
+    writeSafely(key, String(value));
+  }
+  function readChoice(key, allowed, fallback) {
+    let value = (
+      /** @type {T} */
+      readSafely(key)
+    );
+    return allowed.includes(value) ? value : fallback;
+  }
+  var readTheme = () => readChoice("orbit:theme", ["default", "alabama", "auburn"], "default"), readFontSize = () => readChoice("orbit:font-size", ["small", "standard", "large", "extra"], "standard"), readGalaxyView = () => readSafely("orbit:galaxy-view") === "list" ? "list" : "orbits", readRdpLaunch = () => readSafely("orbit:rdp-launch") === "client" ? "client" : "download";
+  function readStoredSet(key) {
+    let list = readJson(key, []);
+    return new Set(Array.isArray(list) ? list.map(String) : []);
+  }
+  function writeStoredSet(key, set) {
+    writeSafely(key, JSON.stringify([...set]));
+  }
+  var hiddenTeamSuns = () => readStoredSet(KEYS.teamHidden);
+
+  // src/state/store.js
+  function createStore() {
+    let state = {
+      groups: [],
+      routines: [],
+      rdpPresets: [],
+      revision: 0,
+      workspace: MAIN,
+      source: "bundled",
+      warning: "",
+      seed: null,
+      team: []
+    }, subscribers = /* @__PURE__ */ new Set(), set = (changes) => {
+      state = Object.freeze({ ...state, ...changes });
+    }, notify = (kind) => {
+      for (let subscriber of [...subscribers]) subscriber(state, kind);
+    }, key = (base) => workspaceKey(base, state.workspace), visibleTeam = () => {
+      let hidden = hiddenTeamSuns();
+      return state.team.filter((sun) => !hidden.has(sun.id));
+    };
+    function loadBrowserMap() {
+      try {
+        let text = read(key(KEYS.map));
+        return text ? validateMap(JSON.parse(text)) : null;
+      } catch (error) {
+        return set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */
+        error.message}` }), null;
+      }
+    }
+    let store2 = {
+      /** @returns {Readonly<StoreState>} */
+      state: () => state,
+      /**
+       * @param {Subscriber} subscriber
+       * @returns {() => void} Unsubscribes.
+       */
+      subscribe(subscriber) {
+        return subscribers.add(subscriber), () => {
+          subscribers.delete(subscriber);
+        };
+      },
+      /**
+       * Load the active workspace at start-up. `seed` is the validated project
+       * data; `team` the team suns (ids with `team:`, `team: true`).
+       * @param {{seed: MapData, team?: Sun[]}} input
+       */
+      start({ seed, team = [] }) {
+        set({ seed, team, workspace: readActiveWorkspace(), warning: "" });
+        let browserMap = loadBrowserMap(), map = browserMap || (state.workspace === MAIN ? seed : { groups: [] });
+        set({
+          groups: [...visibleTeam(), ...map.groups],
+          routines: map.routines || [],
+          rdpPresets: map.rdpPresets || [],
+          source: browserMap ? "browser" : "bundled"
+        }), notify("start");
+      },
+      /**
+       * Save a map (team suns may be included; they're never stored or changed).
+       * Routines and presets are kept unless `data` replaces them. The previous
+       * version goes into history under `label` unless it's false or nothing
+       * changed. Throws, with nothing changed, if the map is invalid or can't be
+       * written.
+       * @param {{groups: Sun[], routines?: Routine[], rdpPresets?: RdpPreset[]}} data
+       * @param {string|false} [label]
+       * @param {SaveOptions} [options]
+       */
+      saveMap(data, label = "Change", options = {}) {
+        if (options.expectRevision !== void 0 && options.expectRevision !== state.revision)
+          throw new Error("The link map changed, so nothing was saved.");
+        let undoKey = key(KEYS.undo), previousUndo;
+        try {
+          options.undoRecord && (previousUndo = read(undoKey), write(undoKey, JSON.stringify(options.undoRecord)));
+          let normalized = validateMap({
+            groups: personalGroups(data.groups),
+            routines: data.routines !== void 0 ? data.routines : state.routines,
+            rdpPresets: data.rdpPresets !== void 0 ? data.rdpPresets : state.rdpPresets
+          }), previous = personalGroups(state.groups);
+          write(key(KEYS.map), JSON.stringify(normalized));
+          let changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !== JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
+          label !== !1 && changed && recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets), changed && countChange(state.workspace), set({
+            groups: [...visibleTeam(), ...normalized.groups],
+            routines: normalized.routines || [],
+            rdpPresets: normalized.rdpPresets || [],
+            revision: state.revision + 1,
+            source: "browser"
+          });
+        } catch (error) {
+          if (options.undoRecord)
+            try {
+              previousUndo === null ? remove(undoKey) : previousUndo !== void 0 && write(undoKey, previousUndo);
+            } catch {
+            }
+          throw error;
+        }
+        if (options.clearUndo)
+          try {
+            remove(undoKey);
+          } catch {
+          }
+        notify("save");
+      },
+      /** Forget the load warning (after a successful edit, as 2.2.1's editor does). */
+      clearWarning() {
+        set({ warning: "" });
+      },
+      /**
+       * Replace the map with the project's link data. In Main the saved map is
+       * removed, so Main follows the project files again; elsewhere the file data
+       * is saved under the workspace's key (2.2.1, check F27). History keeps the
+       * map as it was; the removal undo is cleared.
+       */
+      resetToBundled() {
+        let fileData = validateMap(state.seed);
+        recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), state.workspace === MAIN ? remove(key(KEYS.map)) : write(key(KEYS.map), JSON.stringify(fileData)), remove(key(KEYS.undo)), set({
+          groups: [...visibleTeam(), ...fileData.groups],
+          routines: fileData.routines || [],
+          rdpPresets: fileData.rdpPresets || [],
+          revision: state.revision + 1,
+          source: state.workspace === MAIN ? "bundled" : "browser",
+          warning: ""
+        }), notify("reset");
+      },
+      /** The workspace's last removal, if it can be undone. @returns {UndoRecord|null} */
+      loadUndoRecord() {
+        try {
+          let saved = readSafely(key(KEYS.undo));
+          if (!saved) return null;
+          let record = JSON.parse(saved);
+          return record && ["sun", "planet", "moon"].includes(record.kind) && Number.isInteger(record.index) && record.index >= 0 && record.item ? record : null;
+        } catch {
+          return null;
+        }
+      },
+      /**
+       * Put the last removed sun, planet, or moon back. Returns false when there
+       * is nothing to undo; throws when it can't be put back.
+       */
+      undoRemoval() {
+        let record = store2.loadUndoRecord();
+        if (!record) return !1;
+        let next = JSON.parse(JSON.stringify(state.groups));
+        if (record.kind === "sun")
+          next.some((sun) => sun.id === record.item.id) && (record.item.id = uniqueSunId(record.item.name, new Set(next.map((sun) => sun.id)))), next.splice(Math.min(record.index, next.length), 0, record.item);
+        else {
+          let sun = next.find((item) => item.id === record.sunId);
+          if (!sun) throw new Error("The parent sun no longer exists.");
+          if (record.kind === "planet")
+            sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
+          else {
+            let planet = sun.links.find((planet2) => (
+              /** @type {any} */
+              planet2.url === record.planetUrl && /** @type {any} */
+              planet2.host === record.planetHost && planet2.name === record.planetName
+            )) || sun.links[
+              /** @type {number} */
+              record.planetIndex
+            ];
+            if (!planet) throw new Error("The parent planet no longer exists.");
+            planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
+          }
+        }
+        return store2.saveMap({ groups: next }, `Undid removal of ${record.label}`, { clearUndo: !0 }), !0;
+      },
+      /**
+       * Hide or show a team sun. Stored as a shared preference; the revision goes up.
+       * @param {string} id With its `team:` prefix.
+       * @param {boolean} hidden
+       */
+      setTeamSunHidden(id, hidden) {
+        let ids = hiddenTeamSuns();
+        hidden ? ids.add(id) : ids.delete(id), writeStoredSet(KEYS.teamHidden, ids), set({ groups: [...visibleTeam(), ...personalGroups(state.groups)], revision: state.revision + 1 }), notify("team");
+      },
+      /**
+       * Open another workspace. Returns false if it doesn't exist. Never touches
+       * another workspace's keys.
+       * @param {string} id
+       */
+      switchWorkspace(id) {
+        if (!loadWorkspaces().some((item) => item.id === id)) return !1;
+        set({ workspace: id, warning: "" }), saveActiveWorkspace(id);
+        let browserMap = loadBrowserMap(), map = browserMap || (id === MAIN ? state.seed || { groups: [] } : { groups: [] });
+        return set({
+          groups: [...visibleTeam(), ...map.groups],
+          routines: map.routines || [],
+          rdpPresets: map.rdpPresets || [],
+          source: browserMap ? "browser" : id === MAIN ? "bundled" : "browser",
+          revision: state.revision + 1
+        }), notify("switch"), !0;
+      },
+      /**
+       * Add a workspace and save its first map: 'empty', 'copy' (of this
+       * workspace), or 'bundled'. Doesn't switch to it. Returns its id.
+       * @param {unknown} name
+       * @param {'empty'|'copy'|'bundled'|string} start
+       */
+      addWorkspace(name, start) {
+        let added = newWorkspace(name), map = start === "copy" ? { groups: personalGroups(state.groups), routines: state.routines, rdpPresets: state.rdpPresets } : start === "bundled" ? state.seed : { groups: [] };
+        return write(workspaceKey(KEYS.map, added.id), JSON.stringify(validateMap(map))), saveWorkspaces([...loadWorkspaces(), added]), added.id;
+      },
+      /**
+       * Remove a workspace (never Main): its map, undo, and history keys, and its
+       * backup entry. Returns true if it was the open one; the caller then
+       * switches to Main.
+       * @param {string} id
+       */
+      removeWorkspace(id) {
+        if (id === MAIN) return !1;
+        for (let base of WORKSPACE_KEYS) remove(workspaceKey(base, id));
+        return forgetWorkspace(id), saveWorkspaces(loadWorkspaces().filter((item) => item.id !== id)), state.workspace === id;
+      },
+      /**
+       * Where a combined index points: a team sun or a personal one.
+       * @param {number} index
+       * @returns {{team: boolean, index: number}}
+       */
+      locate(index) {
+        let teamCount = state.groups.filter((sun) => sun.team).length;
+        return index < teamCount ? { team: !0, index } : { team: !1, index: index - teamCount };
+      },
+      /**
+       * The combined index of a team or personal sun.
+       * @param {{team: boolean, index: number}} place
+       */
+      combinedIndex(place) {
+        return place.team ? place.index : place.index + state.groups.filter((sun) => sun.team).length;
+      }
+    };
+    return store2;
+  }
+
   // src/app/main.js
+  var store = createStore();
   publishBridge({
     version: APP_VERSION,
-    core: Object.freeze({ ...templates_exports, ...destination_exports, ...search_exports, ...rdp_exports, ...schema_exports, ...map_ops_exports, ...bookmarks_exports })
+    core: Object.freeze({ ...templates_exports, ...destination_exports, ...search_exports, ...rdp_exports, ...schema_exports, ...map_ops_exports, ...bookmarks_exports }),
+    store,
+    state: Object.freeze({ storage: storage_exports, workspaces: workspaces_exports, prefs: prefs_exports, history: history_exports, backup: backup_exports })
   });
 })();

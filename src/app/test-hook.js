@@ -10,30 +10,47 @@
 import { destinationKey } from '../core/destination.js';
 import { moveMapItem } from '../core/map-ops.js';
 import { validDestination } from '../core/schema.js';
+import * as history from '../state/history.js';
+import { KEYS } from '../state/storage.js';
+import { workspaceKey } from '../state/workspaces.js';
 
 const core = { destinationKey, moveMapItem, validDestination };
 
 /** @template T @param {T} value @returns {T} */
 const copy = value => (value === undefined ? value : JSON.parse(JSON.stringify(value)));
 
-export function installTestHook() {
+/** @param {ReturnType<typeof import('../state/store.js').createStore>} store */
+export function installTestHook(store) {
   window.OrbitTest = {
     /** The combined map (team suns first, as the page numbers them) and the state around it. */
     state() {
+      const state = store.state();
       return {
-        groups: copy(groups),
-        routines: copy(routines),
-        rdpPresets: copy(rdpPresets),
-        revision: mapRevision,
-        workspace: activeWorkspace,
+        groups: copy(state.groups),
+        routines: copy(state.routines),
+        rdpPresets: copy(state.rdpPresets),
+        revision: state.revision,
+        workspace: state.workspace,
+        source: state.source,
+        warning: state.warning,
         editMode,
         drag: drag ? drag.state : null,
       };
     },
 
+    /** The active workspace's saved versions, newest first. */
+    history() {
+      return copy(history.loadHistory(workspaceKey(KEYS.history, store.state().workspace)));
+    },
+
+    /** The active workspace's removal undo record, or null. */
+    undoRecord() {
+      return copy(store.loadUndoRecord());
+    },
+
     /** A copy of the combined map: the same as state().groups. */
     groups() {
-      return copy(groups);
+      return copy(store.state().groups);
     },
 
     /**
@@ -46,7 +63,7 @@ export function installTestHook() {
       const data = { groups: nextGroups };
       if (options.routines !== undefined) data.routines = options.routines;
       if (options.rdpPresets !== undefined) data.rdpPresets = options.rdpPresets;
-      saveMap(data, options.label === undefined ? 'Test' : options.label);
+      store.saveMap(data, options.label === undefined ? 'Test' : options.label);
     },
 
     /**

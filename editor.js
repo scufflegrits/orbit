@@ -159,27 +159,18 @@ function copyGroups() {
   return JSON.parse(JSON.stringify(groups));
 }
 
+// Every edit goes through the store, which writes the undo record first and
+// puts it back if the save fails (src/state/store.js).
 function applyEditorChange(nextGroups, showNext, options = {}) {
-  let previousUndo;
   try {
-    if (options.undoRecord) {
-      previousUndo = localStorage.getItem(UNDO_STORAGE_KEY);
-      localStorage.setItem(UNDO_STORAGE_KEY, JSON.stringify(options.undoRecord));
-    }
-    saveMap({ groups: nextGroups, ...(options.routines !== undefined ? { routines: options.routines } : {}),
+    orbitStore.saveMap({ groups: nextGroups, ...(options.routines !== undefined ? { routines: options.routines } : {}),
       ...(options.rdpPresets !== undefined ? { rdpPresets: options.rdpPresets } : {}) },
-    options.label || 'Edit links change');
-    if (options.clearUndo) localStorage.removeItem(UNDO_STORAGE_KEY);
+    options.label || 'Edit links change', { undoRecord: options.undoRecord, clearUndo: options.clearUndo });
+    orbitStore.clearWarning();
     storageWarning = '';
     showNext();
     renderEditorTree();
   } catch (error) {
-    if (options.undoRecord) {
-      try {
-        if (previousUndo === null) localStorage.removeItem(UNDO_STORAGE_KEY);
-        else if (previousUndo !== undefined) localStorage.setItem(UNDO_STORAGE_KEY, previousUndo);
-      } catch { /* Keep the original error visible. */ }
-    }
     editorError(error.message);
   }
 }
@@ -332,21 +323,9 @@ function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind
 function resetMap() {
   if (!window.confirm('Replace browser edits with the link data loaded from the project files?')) return;
   try {
-    const fileData = validateMap(seedData);
-    recordHistory(personalGroups(groups), 'Reset to file data', routines, rdpPresets);
-    // Main with no saved map follows the project files on every load. Other
-    // workspaces start from their own key, so they keep a saved copy instead.
-    if (activeWorkspace === 'main') localStorage.removeItem(MAP_STORAGE_KEY);
-    else localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(fileData));
-    localStorage.removeItem(UNDO_STORAGE_KEY);
-    groups = [...visibleTeamGroups(), ...fileData.groups];
-    routines = fileData.routines || [];
-    rdpPresets = fileData.rdpPresets || [];
-    mapRevision++;
-    activeMapSource = activeWorkspace === 'main' ? 'bundled' : 'browser';
-    storageWarning = '';
-    countDestinations();
-    render();
+    // Main follows the project files again; other workspaces keep a saved
+    // copy (store.resetToBundled). The store subscriber redraws.
+    orbitStore.resetToBundled();
     showSunList();
   } catch (error) {
     editorError(error.message);

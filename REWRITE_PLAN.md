@@ -1059,35 +1059,43 @@ Possible decisions:
 
 State and mode tests run under `node --test` against an in-memory storage stand-in, with no browser.
 
-- [ ] Tests first, then `state/storage.js`:
+- [x] Tests first, then `state/storage.js`:
   - same key names
   - a migration runner (version 0 = 2.2.0, so no migrations yet)
   - the external-change signal for cross-tab `storage` events
   - a full or unavailable storage is handled as in 2.2.0
-- [ ] Tests first, then `state/workspaces.js`:
+- [x] Tests first, then `state/workspaces.js`:
   - Main keeps the plain keys, and others add `:<id>`
   - add, remove, and switch
   - removing a workspace removes its keys and its entry in `orbit:backup:v1`
-- [ ] Tests first, then `state/prefs.js` (value formats as in "Storage keys"), `state/history.js` (20 versions kept, oldest dropped when storage is full, skipped when nothing changed, `label === false` skips), and `state/backup.js`
-- [ ] Tests first, then `state/store.js`:
-  - state and `view()`, with combined index ↔ `{team, index}`
+- [x] Tests first, then `state/prefs.js` (value formats as in "Storage keys"), `state/history.js` (20 versions kept, oldest dropped when storage is full, skipped when nothing changed, `label === false` skips), and `state/backup.js`
+- [x] Tests first, then `state/store.js`:
+  - state and `view()`, with combined index ↔ `{team, index}` (as `locate(index)` and `combinedIndex({team, index})`)
   - `saveMap(next, label, {undoRecord, clearUndo, expectRevision})` in the order shown in "How a change flows"
   - `resetToBundled()`, `undoRemoval()`, `setTeamSunHidden()`
   - `subscribe()`
-- [ ] Property-based tests for `state/store.js`:
-  - [ ] After any sequence of saves, the stored map contains no team suns
-  - [ ] The revision goes up by one on every save, changed or not, and on hiding a team sun or switching workspace
-  - [ ] Restoring any history version gives that version's map, routines, and presets
-  - [ ] A workspace switch never touches another workspace's map, undo, or history key, or its entry in `orbit:backup:v1`
-  - [ ] A write to a team index is refused and changes nothing
-  - [ ] After `resetToBundled()` in any workspace, reloading that workspace gives the same map that was shown
-- [ ] Tests first, then `ui/modes.js`: the state machine from "Interaction modes", with a test for each transition and each rule. It is not wired to the page yet.
-- [ ] Bridge: old `saveMap`, `loadBrowserMap`, Reset, `undoRemoval`, `setTeamSunHidden`, and the workspace functions call the store; a subscriber copies state back into the old globals and renders
-- [ ] Done when:
+- [x] Property-based tests for `state/store.js`:
+  - [x] After any sequence of saves, the stored map contains no team suns
+  - [x] The revision goes up by one on every save, changed or not, and on hiding a team sun or switching workspace
+  - [x] Restoring any history version gives that version's map, routines, and presets
+  - [x] A workspace switch never touches another workspace's map, undo, or history key, or its entry in `orbit:backup:v1`
+  - [x] A write to a team index is refused and changes nothing. **Corrected in phase 3:** the store has no index-based writes; it takes whole maps, and, as in 2.2.1, team suns in a saved map are ignored rather than refused (an error would be new behavior). The property tested is that no operation ever stores a team sun or changes one, including a save that passes an edited team sun.
+  - [x] After `resetToBundled()` in any workspace, reloading that workspace gives the same map that was shown
+- [x] Tests first, then `ui/modes.js`: the state machine from "Interaction modes", with a test for each transition and each rule. It is not wired to the page yet.
+- [x] Bridge: old `saveMap`, `loadBrowserMap`, Reset, `undoRemoval`, `setTeamSunHidden`, and the workspace functions call the store; a subscriber copies state back into the old globals and renders. Done: the subscriber is in `app.js`; it redraws on every change except a workspace switch, which redraws itself after deciding whether to leave the System (as 2.2.1 did). `init` calls `store.start()`. Preferences, history, backup bookkeeping, stored sets, and the workspace list forward to `src/state/`. `loadBrowserMap`, `recordHistory`, `visibleTeamGroups`, and `countChangeForBackup` are gone from the old scripts. `OrbitTest.state()` reads the store and now also returns `source` and `warning`; `OrbitTest.history()` and `OrbitTest.undoRecord()` were added for the data-compatibility check, which now reads per-workspace state through `OrbitTest`.
+- Phase 3 notes:
+  - **2.2.1 quirks kept, with a comment where they live:** at start-up a workspace with no saved map reports its source as "bundled" even outside Main (switching to it reports "browser"); `undoRemoval` inserts a sun at an index that counts team suns.
+  - **Tests:** 53 new node tests (141 in all), including a differential test that runs 300 random sequences of saves through 2.2.1's own `saveMap` and the store, comparing the shown map, the stored map, history, the change count, the revision, and error messages. Four deliberate mutations of the store were each caught. The oracle gained `run()`, `storage()`, and `setStorage()` for this.
+  - **Edge "all suites"** means the four runners that can drive a remote browser (drag, features, sizes, pending). The matrix, mode-rule, and data-compatibility runners launch their own Chromium and run in Chromium only.
+- [x] Done when:
   - all node tests pass
   - every browser suite passes in Chromium in both modes
   - the data-compatibility check passes in the browser
   - Edge passes all suites, in file mode and server mode
+
+  Met 2026-11-21: 141 node tests; every suite in Chromium in both modes with the baseline counts (39, 15, 29, 13, 21, 53), plus mode rules 23, release smoke, and behavior 22; data compatibility in the browser, read through the store, in both modes; Edge 158 on the VM passed drag phase 2 (14 + 14), features (27 + 27), sizes (7 + 7), and pending (11 + 11) in file and server mode. Quick performance check: first render +4%, keystroke +0%. **To watch:** app scripts are 265,522 bytes, +7% against 2.2.1, because the bundle and the old scripts overlap until screens move; phase 8 allows at most 10%. All 20 old scripts still loaded.
+
+Phase 3 closed 2026-11-21.
 
 ### Phase 4: Services, tests first
 
