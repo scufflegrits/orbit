@@ -102,7 +102,7 @@ Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` r
 
 ## Workspaces
 
-**Settings → Workspaces** keeps separate maps, such as Work and Home, each with its own suns, favorites, routines, history, and undo. Add a workspace starting from an empty map, a copy of the current one, or the sample map; rename or remove it (Main stays). Once there is more than one, a workspace menu appears in the top bar, and the command palette offers **Switch to workspace**. The team map and your settings are shared by all workspaces. Export JSON and Import JSON work on the open workspace.
+**Settings → Workspaces** keeps separate maps, such as Work and Home, each with its own suns, favorites, routines, history, and undo. Add a workspace starting from an empty map, a copy of the current one, or the sample map; rename or remove it (Main stays). Once there is more than one, a workspace menu appears in the top bar, and the command palette offers **Switch to workspace**. The team map and your settings are shared by all workspaces. Export JSON and Import JSON work on the open workspace. **Reset to file data** in Main goes back to following the project's link data; in any other workspace it saves a copy of that link data as the workspace's map, so it stays after a reload.
 
 ## Start your day with Orbit
 

@@ -1,10 +1,10 @@
 # Orbit handoff
 
-Last updated 2026-11-20, at version 2.2.0 (commit `cd8cc49`).
+Last updated 2026-11-20, at version 2.2.1.
 
 ## Status
 
-All assigned work is complete and on `main`. There is no open assignment and no failing or pending test; check with the user before starting new work.
+All released work is on `main`, with no failing or pending test. The 3.0.0 rewrite is being planned on the `rewrite` branch ([REWRITE_PLAN.md](https://github.com/scufflegrits/orbit/blob/rewrite/REWRITE_PLAN.md) there); no phase starts without the user's go-ahead.
 
 | Release | Date | What it added | Plan |
 | --- | --- | --- | --- |
@@ -12,13 +12,14 @@ All assigned work is complete and on `main`. There is no open assignment and no 
 | 2.0.0 | 2026-11-19 | Recent links and favorites, open all, smarter Quick find, Ctrl/Cmd+K palette, bulk RDP settings, tags, link check, version history, duplicate finder, merge import, read-only team map, bookmark import, site icons, list view | [FEATURES_PLAN.md](FEATURES_PLAN.md) |
 | 2.1.0 | 2026-11-20 | Open all favorites, named routines, routine offers when Orbit opens | FEATURES_PLAN.md |
 | 2.2.0 | 2026-11-20 | Notes, `{placeholder}` links, quick add, workspaces, link packs, backup reminders, team map update notices, RDP presets | FEATURES_PLAN.md |
+| 2.2.1 | 2026-11-20 | Fix: Reset to file data in a workspace other than Main now keeps the file data after a reload (check F27) | TEST_MATRIX.md |
 
 Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and touchscreen dragging.
 
 ## How the user wants work done
 
 - **The change cycle, unprompted:** local tests → Edge on the Windows VM → fix what fails → update the docs → commit and push. Do not ask before each step.
-- **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`.
+- **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`. **Exception:** the 3.0.0 rewrite lives only on the `rewrite` branch, and [REWRITE_PLAN.md](REWRITE_PLAN.md) overrides this rule for rewrite work (push with `git push main rewrite`; merging into `main` needs the user's approval).
 - **Plans** for multi-part work go in a Markdown file with `[ ]` checkboxes, ticked as items land; testing may wait until every item is built.
 - **Tests are focused**, not full-matrix: check changed behavior and its direct dependencies (see [TEST_MATRIX.md](TEST_MATRIX.md)). Run the full matrix only for app-wide changes, a release, or an explicit request.
 
@@ -109,7 +110,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06 at 1920×1080 | 13 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F26, no F05 | all passed |
+| `tests/features.py` | F01–F27, no F05 | all passed |
 
 `drag_drop.py`, `orbit_sizes.py`, `pending_checks.py`, and `features.py` accept `--cdp URL` and `--url PAGE` to drive a remote browser; `features.py` also takes `--target`, `--server-mode`, and `--write-fixture DIR`, and the drag and sizing runners take `--write-fixture DIR`.
 

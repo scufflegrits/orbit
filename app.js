@@ -7,7 +7,7 @@ const menuOverlay = document.querySelector('#menu-overlay');
 const menuRoot = document.querySelector('#menu-content');
 const viewToggle = document.querySelector('#view-toggle');
 let menuContent = menuRoot;
-const APP_VERSION = '2.2.0';
+const APP_VERSION = '2.2.1';
 let groups = [];
 // Named link lists saved with the map (see routines.js).
 let routines = [];
