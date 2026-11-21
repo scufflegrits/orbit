@@ -6,21 +6,9 @@ const RECENT_STORAGE_KEY = 'orbit:recent:v1';
 const RECENT_LIMIT = 10;
 
 // Every path in the map (team suns included) whose destination has this key.
-function pathsForKey(key) {
-  const paths = [];
-  groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
-    if (destinationKey(planet) === key) paths.push([sunIndex, planetIndex]);
-    planet.moons.forEach((moon, moonIndex) => {
-      if (destinationKey(moon) === key) paths.push([sunIndex, planetIndex, moonIndex]);
-    });
-  }));
-  return paths;
-}
-
-function itemAt(path) {
-  const planet = groups[path[0]]?.links[path[1]];
-  return path.length === 3 ? planet?.moons[path[2]] : planet;
-}
+// Moved to src/core/destination.js in rewrite phase 2.
+function pathsForKey(key) { return window.OrbitNext.core.pathsForKey(groups, key); }
+function itemAt(path) { return window.OrbitNext.core.itemAt(groups, path); }
 
 // ---- Recent -------------------------------------------------------------
 

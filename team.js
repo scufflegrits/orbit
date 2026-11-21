@@ -76,10 +76,6 @@ function isTeamPath(path) {
   return Boolean(groups[path.sun]?.team);
 }
 
-// Copy a team item into the personal map, as an independent link.
-function plainCopy(item) {
-  const copy = JSON.parse(JSON.stringify(item));
-  delete copy.team;
-  if (typeof copy.id === 'string' && copy.id.startsWith('team:')) copy.id = copy.id.slice(5);
-  return copy;
-}
+// Copy a team item into the personal map, as an independent link. Moved to
+// src/core/map-ops.js in rewrite phase 2.
+function plainCopy(item) { return window.OrbitNext.core.plainCopy(item); }

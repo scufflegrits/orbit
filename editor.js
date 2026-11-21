@@ -226,7 +226,7 @@ function exportMap() {
 
 function exportItem(kind, item) {
   const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || kind;
-  downloadJson({ format: 'orbit-item-v1', kind, item: plainCopy(item) }, `orbit-${kind}-${slug}.json`);
+  downloadJson(window.OrbitNext.core.itemExport(kind, item), `orbit-${kind}-${slug}.json`);
 }
 
 function selectJsonFile(onData) {
@@ -282,19 +282,7 @@ function importMap() {
 
 function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
   selectJsonFile(data => {
-    if (!data || data.format !== 'orbit-item-v1' || data.kind !== sourceKind || !data.item) {
-      throw new Error(`Choose an Orbit ${sourceKind} export file.`);
-    }
-    let item;
-    if (kind === 'sun' && sourceKind === 'planet') {
-      item = validateMap({ groups: [{ name: data.item.name, links: [data.item] }] }).groups[0];
-    } else if (kind === 'sun') {
-      item = validateMap({ groups: [data.item] }).groups[0];
-    } else if (kind === 'planet') {
-      item = validateMap({ groups: [{ name: 'Import', links: [data.item] }] }).groups[0].links[0];
-    } else {
-      item = validDestination(data.item, 'Moon');
-    }
+    const item = window.OrbitNext.core.validItemExport(data, kind, sourceKind);
     const back = kind === 'sun' ? showSunList
       : kind === 'planet' ? () => showSunEditor(sunIndex)
         : () => showPlanetEditor(sunIndex, planetIndex);

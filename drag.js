@@ -18,54 +18,11 @@ let suppressNextClick = false;
 // ---- Pure map operation -------------------------------------------------
 
 // Paths use array indices: { kind: 'sun', sun }, { kind: 'planet', sun, planet },
-// or { kind: 'moon', sun, planet, moon }.
-function mapItemAt(list, path) {
-  const sun = list[path.sun];
-  if (path.kind === 'sun') return sun || null;
-  const planet = sun?.links[path.planet];
-  if (path.kind === 'planet') return planet || null;
-  return path.kind === 'moon' ? planet?.moons[path.moon] || null : null;
-}
-
-function samePath(a, b) {
-  return a.kind === b.kind && a.sun === b.sun && a.planet === b.planet && a.moon === b.moon;
-}
-
-// Move one item. A parent target ({ kind: 'sun' } for a planet, { kind:
-// 'planet' } for a moon) appends. A sibling target (same kind as the source,
-// with place: 'before' | 'after') reorders within one parent or inserts under
-// another; suns can only be reordered. Returns { status: 'moved', groups, path }
-// with a fresh copy, or { status: 'same' } / { status: 'invalid' } without
-// touching anything.
-function moveMapItem(list, source, target) {
-  const key = source.kind;
-  const parentKind = { planet: 'sun', moon: 'planet' }[key];
-  const sibling = target.kind === key && (target.place === 'before' || target.place === 'after');
-  if (!['sun', 'planet', 'moon'].includes(key)) return { status: 'invalid' };
-  if (!sibling && (!parentKind || target.kind !== parentKind)) return { status: 'invalid' };
-  if (!mapItemAt(list, source) || !mapItemAt(list, target)) return { status: 'invalid' };
-  if (sibling && samePath(source, target)) return { status: 'invalid' };
-  // The team map is read-only: nothing moves out of, into, or around it.
-  if (list[source.sun]?.team || list[target.sun]?.team) return { status: 'invalid' };
-  const next = JSON.parse(JSON.stringify(list));
-  const siblingsAt = path => key === 'sun' ? next
-    : key === 'planet' ? next[path.sun].links : next[path.sun].links[path.planet].moons;
-  const from = siblingsAt(source);
-  const to = siblingsAt(target);
-  let index = sibling ? target[key] + (target.place === 'after' ? 1 : 0) : to.length;
-  if (from === to) {
-    if (!sibling) return { status: 'same' };
-    // Removing the source first shifts every later sibling down by one.
-    if (source[key] < index) index--;
-    if (index === source[key]) return { status: 'same' };
-  }
-  const [moved] = from.splice(source[key], 1);
-  to.splice(index, 0, moved);
-  const path = { kind: key, sun: key === 'sun' ? index : target.sun };
-  if (key !== 'sun') path.planet = key === 'planet' ? index : target.planet;
-  if (key === 'moon') path.moon = index;
-  return { status: 'moved', groups: next, path, total: to.length };
-}
+// or { kind: 'moon', sun, planet, moon }. Moved to src/core/map-ops.js in
+// rewrite phase 2.
+function mapItemAt(list, path) { return window.OrbitNext.core.mapItemAt(list, path); }
+function samePath(a, b) { return window.OrbitNext.core.samePath(a, b); }
+function moveMapItem(list, source, target) { return window.OrbitNext.core.moveMapItem(list, source, target); }
 
 // ---- Edit mode ----------------------------------------------------------
 

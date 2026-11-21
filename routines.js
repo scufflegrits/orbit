@@ -27,21 +27,9 @@ function runRoutine(routine) {
   return openLinks(items.map(entry => entry.item), routine.name, { confirm: false, extra });
 }
 
-// Add incoming routines whose names are new (ignoring case).
-function mergeRoutines(current, incoming) {
-  const names = new Set(current.map(routine => routine.name.toLocaleLowerCase()));
-  const used = new Set(current.map(routine => routine.id));
-  const next = [...current];
-  for (const routine of incoming) {
-    if (names.has(routine.name.toLocaleLowerCase())) continue;
-    names.add(routine.name.toLocaleLowerCase());
-    const copy = JSON.parse(JSON.stringify(routine));
-    if (used.has(copy.id)) copy.id = uniqueSunId(copy.name, used);
-    used.add(copy.id);
-    next.push(copy);
-  }
-  return next;
-}
+// Add incoming routines whose names are new (ignoring case). Moved to
+// src/core/map-ops.js in rewrite phase 2.
+function mergeRoutines(current, incoming) { return window.OrbitNext.core.mergeRoutines(current, incoming); }
 
 // ---- Arrival offer ------------------------------------------------------
 

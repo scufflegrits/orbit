@@ -7,6 +7,12 @@
 // into src/, each function here switches to the new module and the tests stay
 // unchanged.
 
+import { destinationKey } from '../core/destination.js';
+import { moveMapItem } from '../core/map-ops.js';
+import { validDestination } from '../core/schema.js';
+
+const core = { destinationKey, moveMapItem, validDestination };
+
 /** @template T @param {T} value @returns {T} */
 const copy = value => (value === undefined ? value : JSON.parse(JSON.stringify(value)));
 
@@ -75,11 +81,11 @@ export function installTestHook() {
     /** Pure functions the tests call. */
     helpers: {
       /** @param {any[]} list @param {any} source @param {any} target */
-      moveMapItem: (list, source, target) => moveMapItem(list, source, target),
+      moveMapItem: (list, source, target) => core.moveMapItem(list, source, target),
       /** @param {any} value @param {string} label */
-      validDestination: (value, label) => validDestination(value, label),
+      validDestination: (value, label) => core.validDestination(value, label),
       /** @param {any} item */
-      destinationKey: item => destinationKey(item),
+      destinationKey: item => core.destinationKey(item),
       /** @param {any} item */
       effectiveRdpProfile: item => effectiveRdpProfile(item),
       /** @param {any} item */

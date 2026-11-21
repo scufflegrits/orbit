@@ -5,51 +5,8 @@
 
 // ---- Merge import -------------------------------------------------------
 
-// Add what is new in `incoming` to `personal`, never changing what is there.
-// Suns match by id, then by name (ignoring case); planets match inside their
-// sun, and moons inside their planet, by destination.
-function mergeMaps(personal, incoming) {
-  const next = JSON.parse(JSON.stringify(personal));
-  const added = { suns: 0, planets: 0, moons: 0 };
-  const skipped = { suns: 0, planets: 0, moons: 0 };
-  const usedIds = new Set(next.map(sun => sun.id));
-  for (const source of incoming) {
-    const sun = next.find(item => item.id === source.id) ||
-      next.find(item => item.name.toLocaleLowerCase() === source.name.toLocaleLowerCase());
-    if (!sun) {
-      const copy = plainCopy(source);
-      if (usedIds.has(copy.id)) copy.id = uniqueSunId(copy.name, usedIds);
-      usedIds.add(copy.id);
-      next.push(copy);
-      added.suns++;
-      added.planets += copy.links.length;
-      added.moons += copy.links.reduce((sum, planet) => sum + planet.moons.length, 0);
-      continue;
-    }
-    skipped.suns++;
-    for (const sourcePlanet of source.links) {
-      const key = destinationKey(sourcePlanet);
-      const planet = sun.links.find(item => destinationKey(item) === key);
-      if (!planet) {
-        sun.links.push(plainCopy(sourcePlanet));
-        added.planets++;
-        added.moons += sourcePlanet.moons.length;
-        continue;
-      }
-      skipped.planets++;
-      for (const moon of sourcePlanet.moons) {
-        const moonKey = destinationKey(moon);
-        if (planet.moons.some(item => destinationKey(item) === moonKey)) {
-          skipped.moons++;
-        } else {
-          planet.moons.push(plainCopy(moon));
-          added.moons++;
-        }
-      }
-    }
-  }
-  return { groups: next, added, skipped };
-}
+// Moved to src/core/map-ops.js in rewrite phase 2.
+function mergeMaps(personal, incoming) { return window.OrbitNext.core.mergeMaps(personal, incoming); }
 
 // ---- Version history ----------------------------------------------------
 
@@ -97,18 +54,7 @@ function showHistory() {
 
 // ---- Duplicates ---------------------------------------------------------
 
-function duplicateGroups() {
-  const byKey = new Map();
-  groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
-    [[planet, [sunIndex, planetIndex]], ...planet.moons.map((moon, moonIndex) => [moon, [sunIndex, planetIndex, moonIndex]])]
-      .forEach(([item, path]) => {
-        const key = destinationKey(item);
-        if (!byKey.has(key)) byKey.set(key, []);
-        byKey.get(key).push({ item, path });
-      });
-  }));
-  return [...byKey.values()].filter(list => list.length > 1);
-}
+function duplicateGroups() { return window.OrbitNext.core.duplicateGroups(groups); }
 
 function editPath(path) {
   if (path.length === 3) showMoonEditor(...path);
@@ -223,8 +169,7 @@ async function runLinkCheck(byUrl, status, results, start) {
 
 // ---- Bookmark import ----------------------------------------------------
 
-const BOOKMARK_LIMIT = 2000;
-const BOOKMARK_BARS = /^(bookmarks bar|bookmarks toolbar|favorites bar|favourites bar|other bookmarks|other favorites|mobile bookmarks)$/i;
+const BOOKMARK_LIMIT = window.OrbitNext.core.BOOKMARK_LIMIT;
 
 // The Netscape bookmark format nests <DL> lists under <DT><H3> folders; the
 // parser may put each list inside its <DT> or right after it.
@@ -244,53 +189,8 @@ function readBookmarkFolder(list, name) {
   return folder;
 }
 
-function flattenFolder(folder) {
-  return [...folder.links, ...folder.folders.flatMap(flattenFolder)];
-}
-
-// Turn bookmark folders into suns, links into planets, and subfolders into a
-// planet (its first link) with moons (the rest).
-function bookmarksToMap(root) {
-  const stats = { links: 0, skipped: 0, truncated: false };
-  const destination = link => {
-    if (stats.links >= BOOKMARK_LIMIT) {
-      stats.truncated = true;
-      return null;
-    }
-    try {
-      const url = new URL(link.url);
-      if (!['http:', 'https:'].includes(url.protocol)) throw new Error('not web');
-      const item = validDestination({ name: link.name || url.hostname, url: link.url }, 'Bookmark');
-      stats.links++;
-      return item;
-    } catch {
-      stats.skipped++;
-      return null;
-    }
-  };
-  const tops = [];
-  const loose = [];
-  for (const folder of root.folders) {
-    if (BOOKMARK_BARS.test(folder.name)) {
-      tops.push(...folder.folders);
-      if (folder.links.length) tops.push({ name: folder.name, links: folder.links, folders: [] });
-    } else {
-      tops.push(folder);
-    }
-  }
-  loose.push(...root.links);
-  if (loose.length) tops.push({ name: 'Bookmarks', links: loose, folders: [] });
-  const suns = tops.map(folder => {
-    const links = folder.links.map(destination).filter(Boolean).map(item => ({ ...item, moons: [] }));
-    for (const sub of folder.folders) {
-      const items = flattenFolder(sub).map(destination).filter(Boolean);
-      if (!items.length) continue;
-      links.push({ name: sub.name, url: items[0].url, moons: items.slice(1) });
-    }
-    return { name: folder.name, description: 'Imported from browser bookmarks', links };
-  }).filter(sun => sun.links.length);
-  return { map: validateMap({ groups: suns }), stats };
-}
+// Folder tree to suns moved to src/core/bookmarks.js in rewrite phase 2.
+function bookmarksToMap(root) { return window.OrbitNext.core.bookmarksToMap(root); }
 
 function importBookmarks() {
   const input = document.createElement('input');

@@ -6,14 +6,8 @@ const TEAM_SEEN_KEY = 'orbit:team-seen:v1';
 // ---- Link packs -----------------------------------------------------------------
 
 // A pack holds the links themselves (never moons, favorites, or passwords),
-// and for a routine its name and schedule.
-function packLink(item) {
-  const copy = plainCopy(item);
-  delete copy.moons;
-  delete copy.favorite;
-  delete copy.rdpPreset;
-  return copy;
-}
+// and for a routine its name and schedule. Moved to src/core/ in rewrite phase 2.
+function packLink(item) { return window.OrbitNext.core.packLink(item); }
 
 function exportPack(name, items, routine = null) {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'pack';
@@ -32,16 +26,7 @@ function shareFavorites() {
   exportPack('Favorites', items);
 }
 
-function validPack(data) {
-  if (!data || data.format !== 'orbit-pack-v1' || !Array.isArray(data.links)) {
-    throw new Error('This is not an Orbit link pack.');
-  }
-  const name = String(data.name || '').trim().slice(0, 60) || 'Shared links';
-  const links = data.links.map((link, index) => validDestination(link, `Link ${index + 1} in the pack`));
-  if (!links.length) throw new Error('The pack has no links.');
-  return { name, links, routine: data.routine ? { name: String(data.routine.name || name).trim().slice(0, 60) || name,
-    schedule: data.routine.schedule } : null };
-}
+function validPack(data) { return window.OrbitNext.core.validPack(data); }
 
 function showPackImport() {
   editorHeader('Import link pack', showSunList);

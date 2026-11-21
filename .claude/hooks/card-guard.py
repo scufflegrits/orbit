@@ -17,6 +17,7 @@ directory is.
 Rules for a worker:
 - Read, Grep, Glob: every path (and the search root) must be inside the card's worktree.
 - Edit, Write: the path must be listed in mayChange or mayChangeTests.
+- SubagentHandback (returning the report): always allowed.
 - Every other tool (Bash, Agent, web, ...): denied.
 Private files are never reachable: they don't exist in a worktree, and any
 path naming them is refused outright.
@@ -34,6 +35,9 @@ from pathlib import Path
 PRIVATE = ("rdptest01.rdp", "request-observations.md")
 READ_TOOLS = {"Read": ("file_path",), "Grep": ("path",), "Glob": ("path",)}
 EDIT_TOOLS = {"Edit": "file_path", "Write": "file_path"}
+# Tools that only hand the worker's report back to the Lead; always allowed,
+# so a blocked worker can still say why it stopped.
+REPORT_TOOLS = {"SubagentHandback"}
 
 
 def main_checkout():
@@ -68,6 +72,9 @@ def check(root, event):
     tool = event.get("tool_name", "")
     args = event.get("tool_input") or {}
     call = f"{event.get('agent_type', '?')}/{event.get('agent_id', '?')} {tool} {json.dumps(args)[:200]}"
+    if tool in REPORT_TOOLS:
+        log(root, f"ALLOW {call}")
+        return
     cards = sorted((root / ".claude" / "cards").glob("*.json"))
     if len(cards) != 1:
         deny(root, f"expected exactly one registered card, found {len(cards)}", call)

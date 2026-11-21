@@ -6,6 +6,8 @@
 /**
  * @typedef {object} OrbitNextApi
  * @property {string} version The app version, from src/app/version.js.
+ * @property {Readonly<Record<string, any>>} core Every export of src/core/, for the
+ *   old scripts' forwarding functions (phase 2 on).
  */
 
 /** @param {OrbitNextApi} api */

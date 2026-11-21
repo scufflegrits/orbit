@@ -237,7 +237,8 @@ Each module's own dependencies:
 | **core/schema** | `core/templates`, `core/rdp` |
 | **core/map-ops** | `core/schema`, `core/destination` |
 | **core/search** | `core/destination` |
-| **core/destination**, **core/templates**, **core/rdp**, **core/bookmarks** | nothing |
+| **core/bookmarks** | `core/schema` (added in phase 2: imported bookmarks are validated as links) |
+| **core/destination**, **core/templates**, **core/rdp** | nothing |
 
 `scripts/check-layers.mjs` checks the real imports against this table's layer rule. The table is the intent; if the code needs an edge that isn't here, the Lead adds it to the table first.
 
@@ -253,7 +254,7 @@ Each module's own dependencies:
 | `dragUndo`, drag controller (`drag.js`) | `ui/drag/` |
 | `editMode`, `menuOverlay.hidden`, `palette`, `variableDialog`, `findQuery` | `ui/modes.js` |
 | Change counter `countChangeForBackup` (`workspaces.js`) | `state/backup.js`; due check in `services/schedule.js` |
-| `uniqueSunId` | `core/map-ops.js` |
+| `uniqueSunId` | `core/schema.js`, re-exported by `core/map-ops.js` (phase 2: schema needs it, and map-ops imports schema, so it can't live in map-ops without a cycle) |
 | `pathsForKey`, `itemAt` (`favorites.js`) | `core/destination.js` (pure, given the map) |
 | Click tracking, Shift+click open (`favorites.js:198-217`) | `ui/views/` |
 | `undoRemoval` (`app.js:70-100`) | `state/store.js` (`undoRemoval()`), with the button in `ui/notices/` |
@@ -990,41 +991,53 @@ Phase 1 closed 2026-11-21.
 
 For each module: write its `node --test` file from the behavior inventory, see it fail, write the module, then tidy it. At the end of the phase, the old functions forward to the new ones through the bridge.
 
-- [ ] Oracle: `tests/oracle/` with frozen 2.2.0 `storage.js` and `rdp.js`, and a loader that runs them in Node `vm`
+- [x] Oracle: `tests/oracle/` with frozen 2.2.0 `storage.js` and `rdp.js`, and a loader that runs them in Node `vm`. Done: `storage.js` and `rdp.js` copied unchanged from tag `v2.2.1`, plus `pure.js` (the pure functions from `render.js`, `drag.js`, `tools.js`, `routines.js`, `favorites.js`, `team.js`, `sharing.js`, extracted unchanged), loaded by `tests/oracle/oracle.mjs`. Shared fast-check generators are in `tests/unit/arbitraries.mjs`.
 - [ ] Delegation trial (see "Delegation trial"):
-  - [ ] Agent files and `TASK_CARD.md`; `.claude/hooks/card-guard.py` attached to the worker agents; `.claude/cards/` git-ignored
-  - [ ] The six enforcement checks in "Enforcement", each result recorded; if identity or fail-closed denial fails, cancel the trial
-  - [ ] Cards for `destination`, `templates`, `search`, one at a time, each recorded in the cost tally
-- [ ] Tests first, then `core/schema.js`: one schema for map, sun, link, routine, preset, pack, and `orbit-item-v1`; produces JSDoc types and `validate*`. Tests cover each rule in the behavior inventory and each 2.2.0 error message.
-- [ ] Differential test: for random valid and invalid inputs, `core/schema.js` and `core/rdp.js` give the same output or the same error message as the oracle
-- [ ] Tests first, then `core/destination.js`:
+  - [x] Agent files and `TASK_CARD.md`; `.claude/hooks/card-guard.py` attached to the worker agents; `.claude/cards/` git-ignored. Two changes: the template is `.claude/TASK_CARD.md` (inside `.claude/agents/` it could be read as an agent), and the guard finds the card by requiring **exactly one** registered card rather than by the call's working directory (one worker at a time, so it's simpler and still fails closed). It always allows `SubagentHandback`, so a blocked worker can still report. New agent files load into a running session only between turns.
+  - [x] The six enforcement checks in "Enforcement", each result recorded; if identity or fail-closed denial fails, cancel the trial. All passed live on 2026-11-21, with a real worker:
+    1. Identity: the hook input carries `agent_type` (`orbit-builder`) and `agent_id`; the hook is declared only in the worker agents' frontmatter.
+    2. A read of `/home/sysadmin/projects/orbit/storage.js` (main checkout) was refused.
+    3. With no card registered, Read, Glob, and Write were each refused.
+    4. With a test card: the allowed write succeeded; an edit to another file and a new file outside the card were refused; a Read of a decoy `tests/rdptest01.rdp` path was refused by name; Bash and Agent were refused. (Grep and Glob on the private name were refused only in the direct-input tests: the probe agent had no Grep or Glob tools.)
+    5. Each refusal reached the worker with the guard's reason.
+    6. The Lead's own calls are never seen by the guard.
+    The Builder also refused, on its own rules, every out-of-card call it was asked to try, so the live refusals came from a throwaway `orbit-guardprobe` agent with the same guard and no rules; it was deleted afterwards.
+  - [x] Cards for `destination`, `templates`, `search`, one at a time, each recorded in the cost tally. All three accepted first time (builder, reviewed); see the cost tally.
+- [x] Tests first, then `core/schema.js`: one schema for map, sun, link, routine, preset, pack, and `orbit-item-v1`; produces JSDoc types and `validate*`. Tests cover each rule in the behavior inventory and each 2.2.0 error message.
+- [x] Differential test: for random valid and invalid inputs, `core/schema.js` and `core/rdp.js` give the same output or the same error message as the oracle. Done for every `core/` module: 2,000 raw maps per run for `validateMap`, and random input for destinations, routines, presets, packs, profiles, preset settings, hosts, launch URLs, keys, search, moves, merges, duplicates, and bookmarks. Mutations of the routine-name limit and the favorite rule were caught.
+- [x] Tests first, then `core/destination.js` (trial card):
   - `destinationKey` ignores the fragment, all trailing slashes, and host case
   - it keeps query order, path case, scheme, and `www`
   - placeholder braces are encoded as `%7B`/`%7D` in the **path only**; in the query they stay literal (corrected in phase 0, `tests/behavior-2.2.md`)
   - `rdp:` keeps the port, so `host` and `host:3389` differ
   - `pathsForKey` and `itemAt` take the map as a parameter
-- [ ] Tests first, then `core/templates.js` (up to five placeholders, fill, names)
-- [ ] Tests first, then `core/search.js`:
+- [x] Tests first, then `core/templates.js` (up to five placeholders, fill, names) (trial card)
+- [x] Tests first, then `core/search.js` (trial card):
   - every word must match
   - typo tolerance, including swapped letters
   - the 3+ letter contains rule on every field
   - `#tag` and `tag:` filters
   - path matches only narrow
-- [ ] Tests first, then `core/rdp.js` (parsing UTF-8 and UTF-16 text, secrets stripped, preset settings validation, `effectiveRdpProfile(item, presets)` keeps the link's own computer) and `core/bookmarks.js` (folder tree to suns)
-- [ ] Tests first, then `core/map-ops.js`: `moveMapItem`, `mergeMaps` (returns `{groups, added, skipped}`), `mergeRoutines` (and the preset merge at `editor.js:277`), duplicates, `personalGroups`, `uniqueSunId`
+- [x] Tests first, then `core/rdp.js` (parsing UTF-8 and UTF-16 text, secrets stripped, preset settings validation, `effectiveRdpProfile(item, presets)` keeps the link's own computer) and `core/bookmarks.js` (folder tree to suns)
+- [x] Tests first, then `core/map-ops.js`: `moveMapItem`, `mergeMaps` (returns `{groups, added, skipped}`), `mergeRoutines` (and the preset merge at `editor.js:277`), duplicates, `personalGroups`, `uniqueSunId`
 - [ ] Property-based tests (fast-check), with random maps of up to 10 suns, 12 planets, and 8 moons:
-  - [ ] A `moved` result never loses or duplicates a link: the multiset of destination keys is unchanged
-  - [ ] A move refuses team paths and never changes a team sun
-  - [ ] For a `moved` result, the inverse move built from the returned path and the original index restores the map; `same` and `invalid` leave the input untouched
-  - [ ] `mergeMaps` adds nothing already under the matched sun or planet, and copies new suns whole. Includes the case of two planets with the same address but different moons.
-  - [ ] `mergeRoutines` never creates two routines with the same name (ignoring case); the same rule holds for presets
-  - [ ] Validation is idempotent: `validate(roundTrip(validate(x)))` equals `validate(x)`
-  - [ ] `destinationKey` gives the same key for URLs that differ only in the ways listed above
-- [ ] Old functions in `storage.js`, `rdp.js`, `favorites.js`, `tools.js`, `drag.js`, `routines.js`, and `render.js` (search) forward to `OrbitNext.core`
-- [ ] `tsc` passes with no errors in `core/`; `check:layers` passes
-- [ ] Done when: unit, property, and differential tests pass; every browser suite passes in Chromium in both modes; data-compatibility check (node) passes; Edge: features and drag suites
+  - [x] A `moved` result never loses or duplicates a link: the multiset of destination keys is unchanged
+  - [x] A move refuses team paths and never changes a team sun
+  - [x] For a `moved` result, the inverse move built from the returned path and the original index restores the map; `same` and `invalid` leave the input untouched
+  - [x] `mergeMaps` adds nothing already under the matched sun or planet, and copies new suns whole. Includes the case of two planets with the same address but different moons.
+  - [x] `mergeRoutines` never creates two routines with the same name (ignoring case); the same rule holds for presets
+  - [x] Validation is idempotent: `validate(roundTrip(validate(x)))` equals `validate(x)`
+  - [x] `destinationKey` gives the same key for URLs that differ only in the ways listed above
+- [x] Old functions in `storage.js`, `rdp.js`, `favorites.js`, `tools.js`, `drag.js`, `routines.js`, and `render.js` (search) forward to `OrbitNext.core`. Done, plus `team.js` (`plainCopy`), `sharing.js` (`packLink`, `validPack`), and `editor.js` (single-item export and import). 628 lines of old code became one-line forwarders. `PLACEHOLDER` and `BOOKMARK_LIMIT` are read from `OrbitNext.core` when the old script loads, which is safe because `orbit.js` always loads first. The test hook's pure helpers (`moveMapItem`, `validDestination`, `destinationKey`) now call `core/` directly.
+- Phase 2 additions not in the list above: `src/core/types.js` (shared JSDoc types for the map); `core/rdp.js` also has `decodeRdpBytes` (the pure half of reading an `.rdp` file), `rdpFileContent`, `rdpFileName`, and `rdpLaunchUrl`, all taking presets as a parameter; `core/schema.js` has `validItemExport` and `validPack`; `core/map-ops.js` has `plainCopy`, `packLink`, and `itemExport`. Test files (`src/**/*.test.js`) are run by `npm run test:unit` and left out of `tsc`.
+- [x] `tsc` passes with no errors in `core/`; `check:layers` passes
+- [x] Done when: unit, property, and differential tests pass; every browser suite passes in Chromium in both modes; data-compatibility check (node) passes; Edge: features and drag suites. Met 2026-11-21: 88 node tests (`npm run test:unit`, including the fixture's maps validated as 2.2.1 does, in `schema.test.js`); every suite in Chromium in both modes with the baseline counts (39, 15, 29, 13, 21, 53), plus mode rules 23, data compatibility, release smoke, and behavior 22; Edge 158 on the VM passed drag phase 2 and features in file and server mode. Quick performance check: first render −2%, keystroke +2%, app scripts 252,873 bytes (+1.9%). All 20 old scripts still loaded.
+
+Phase 2 closed 2026-11-21.
 
 ### Checkpoint A: after phase 2 (go/no-go)
+
+**Decided 2026-11-21: Continue.** The user wrote "if satisfied with phase 2 you can proceed with the next phase". The Lead was satisfied (see phase 2's "done when"); delegation is off per the trial rule (see "Cost tally").
 
 The Lead reports to the user, and **the user decides** before phase 3 starts:
 
@@ -1187,4 +1200,16 @@ Filled in by the Lead at the end of each phase.
 
 | Phase | Cards | Accepted first time | Sent back | Taken over | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 0 | | | | | |
+| 0 | 0 | | | | Lead only |
+| 1 | 0 | | | | Lead only |
+| 2 | 3 | 3 | 0 | 0 | Trial; see below |
+
+Phase 2 trial, per card (2026-11-21). Worker time is wall-clock; Lead time covers writing the card, reading the diff, running the commands, the Reviewer, and merging; "direct" is the Lead's estimate for porting the module itself with the same tests.
+
+| Card | Lines | Worker | Worker tokens | Reviewer tokens | Lead time | Direct | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `templates` | 25 | 8 s | 12k | 10k | ~4 min | ~1 min | Accepted first time; the card's `npm run check` was wrong (it also type-checked `map-ops.js`, which waited on `destination`); Lead's mistake |
+| `destination` | 52 | 12 s | 18k | 18k | ~3 min | ~2 min | Accepted first time |
+| `search` | 190 | 22 s | 18k | 16k | ~4 min | ~3 min | Accepted first time |
+
+**Trial result:** the first condition holds (3 of 3 accepted, none taken over); the second doesn't (the Lead's time per card was not clearly less than writing it). With a frozen oracle and differential tests, these modules are close to mechanical ports, so reviewing a worker's port costs about as much as writing it. Per "Delegation trial", **delegation stays off** for the rest of the rewrite, and the agent files, guard, and card template were removed (they stay in git history, in the commit before their removal).

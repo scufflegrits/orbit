@@ -5,6 +5,16 @@
 import { APP_VERSION } from './version.js';
 import { publishBridge } from './legacy-bridge.js';
 import { installTestHook } from './test-hook.js';
+import * as bookmarks from '../core/bookmarks.js';
+import * as destination from '../core/destination.js';
+import * as mapOps from '../core/map-ops.js';
+import * as rdp from '../core/rdp.js';
+import * as schema from '../core/schema.js';
+import * as search from '../core/search.js';
+import * as templates from '../core/templates.js';
 
-publishBridge({ version: APP_VERSION });
+publishBridge({
+  version: APP_VERSION,
+  core: Object.freeze({ ...templates, ...destination, ...search, ...rdp, ...schema, ...mapOps, ...bookmarks }),
+});
 if (ORBIT_TEST) installTestHook();
