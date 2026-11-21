@@ -713,17 +713,17 @@ The main session (the **Lead**) hands well-defined checkboxes to cheaper subagen
 | Role | Model | Does | Never does |
 | --- | --- | --- | --- |
 | **Lead** (main session) | Opus | Owns the plan, architecture, and interfaces. Writes and commits the tests first, writes the task cards. Reviews every diff, runs the tests itself, commits and merges worker results into `rewrite`. Runs the change cycle: Edge on the VM, docs, pushes. Runs milestone 18 (it needs the private `.rdp` fixture). Talks to the user. | Hands off decisions about architecture, data compatibility, or the user's privacy rules |
-| **Builder** | Sonnet | Implements one task card in its own git worktree: writes the module so the given tests pass. Runs `npm run check`, `node --test`, and the named browser suite inside the sandbox (option 1 of "Execution boundary"), or asks the Lead to run them (option 2). Also rewrites one test file's calls to `OrbitTest` per card, when a card allows `tests/` changes. | Edits tests (unless the card allows it), changes files outside the card, commits, pushes, switches branches, uses the VM |
-| **Helper** | Haiku | Read-and-list work with an exact check: listing and sorting the test calls into app code, collecting facts for the behavior inventory from one file, running a suite and summarizing failures, deleting files named on the card | Design choices; changing what code does; rewriting tests |
+| **Builder** | Sonnet | Implements one task card in its own git worktree: writes the module so the given tests pass. Has no Bash: the Lead runs `npm run check`, `node --test`, and the browser suites after reading the diff, and sends back the output (see "Execution boundary"). Also rewrites one test file's calls to `OrbitTest` per card, when a card allows `tests/` changes. | Edits tests (unless the card allows it), changes files outside the card, commits, pushes, switches branches, uses the VM |
+| **Helper** | Haiku | Read-and-list work with an exact check: listing and sorting the test calls into app code, collecting facts for the behavior inventory from one file, summarizing a test log the Lead saved into the worktree, listing files to delete (the Lead deletes them) | Design choices; changing what code does; rewriting tests |
 | **Reviewer** | Sonnet, with fresh context | Reads a finished diff against its card and the architecture rules (layer direction, no DOM in `core/`, one writer, no caching of stubbed browser calls), and lists problems | Fixes things; only reports |
 
 ### Agent definitions
 
 Each agent lives in `.claude/agents/` on `rewrite` and sets `name`, `description`, `model`, and a limited `tools` list:
 
-- `orbit-builder.md` (Sonnet; Read, Edit, Write, Bash, Grep, Glob)
+- `orbit-builder.md` (Sonnet; Read, Edit, Write, Grep, Glob; no Bash)
 - `orbit-helper.md` (Haiku; same tools)
-- `orbit-reviewer.md` (Sonnet; Read, Grep, Glob, Bash). Frontmatter can't make Bash read-only, so its instructions say read-only, and the Lead checks `git status` after it runs.
+- `orbit-reviewer.md` (Sonnet; Read, Grep, Glob only). The Lead saves the diff to review as a file in the worktree, since the Reviewer can't run `git diff`.
 
 The Lead launches each Builder with `isolation: "worktree"`, so parallel Builders can't touch each other's files or `rewrite`.
 
@@ -759,46 +759,33 @@ Enforcement:
 - **What the guard checks for a worker, by tool:**
   - **Read, Grep, Glob:** every path and search root must be inside the card's worktree. The private files (`tests/rdptest01.rdp`, `request-observations.md`) are untracked or ignored, so they don't exist in a worktree; the only way to reach them is a path into the main checkout, which this rule refuses.
   - **Edit, Write:** the path must be listed in `mayChange` or `mayChangeTests`.
-  - **Bash:** only commands on an allowlist run. Everything else is refused, so `ssh`, `scp`, `curl`, any `git` that changes state, and commands naming paths outside the worktree are refused without having to list them. The allowlist:
-    - `npm run build`, `npm run build:test`, `npm run check`, `npm run check:bundle`, `npm run test:unit`, `node --test <path in worktree>`
-    - `<venv python> tests/<runner>.py` with its flags (but not `tests/milestone_18.py`)
-    - `git status`, `git diff`, `git log`
-    - `ls` and `grep` on paths inside the worktree
-  - **Agent and other tools:** refused, so a worker can't start another worker.
-- **What the guard is, and isn't.** The guard stops a worker's own tool calls from touching what they shouldn't, which prevents accidental misuse. It is **not** a privacy boundary on its own. An allowed command can run code the worker just wrote: `node --test` imports the module being built, and a test-migration card edits a Python runner that it then runs. That code can read outside the worktree or use the network without another tool call for the guard to inspect. The execution boundary below is what confines it.
-- **Files written by allowed commands,** such as a build writing `orbit.js`: `buildOutputs` are discarded and rebuilt by the Lead after merging; any other changed path outside the card fails the review.
+  - **Bash:** refused. Workers have no Bash in their agent definitions, and the guard refuses it as well, in case a definition is wrong.
+  - **Agent and every other tool:** refused, so a worker can't start another worker or reach the network.
+- **What the guard is, and isn't.** It covers every tool a worker has. Because workers can't run commands, no worker-written code executes during a worker's turn, so there's nothing the guard can't see. Worker-written code first runs when **the Lead** runs it, under the execution rule below.
 - **Phase 0 verifies the real setup before any delegation**, and records each result here. The checks:
   1. The guard runs for a worker's tool calls, through the identity mechanism phase 0 confirms, and never for the Lead's.
-  2. A worker that changes directory into the main checkout is refused (no registered card there).
+  2. A worker whose tool call names a path in the main checkout is refused.
   3. A worker with no registered card is refused for every tool.
   4. With a test card:
-     - an allowed edit, `npm run build`, and `node --test` succeed
+     - an allowed edit succeeds
      - an edit outside the card is refused
      - a `Read`, `Grep`, and `Glob` of `/home/sysadmin/projects/orbit/tests/rdptest01.rdp` are each refused (by path, without the file ever being opened)
-     - `ssh`, `curl`, `git commit`, `git push`, and starting another agent are each refused
+     - `Bash` (any command) and starting another agent are each refused
   5. A denial stops the tool call, and the worker is told why.
   6. The Lead's own session is not blocked.
-  7. **Sandbox reads.** A worker runs a small Node script, and a small Python script, each trying to read a **canary file** the Lead placed outside the worktree (`.claude/cards/canary.txt` in the main checkout). Both must fail. The private files are never used for this test, so a sandbox that doesn't hold can't expose them.
-  8. **Sandbox network.** The same scripts try an outside address and the VM's address; both must fail. A request to a loopback test server started by the same script must still work.
-  9. **Sandbox writes.** The scripts try to write the canary's folder and the main checkout's `REWRITE_PLAN.md`; both must fail, and a write inside the worktree must work.
-
-  If checks 7–9 all pass, option 1 applies; otherwise option 2, and the worker agents' tool lists drop Bash. Record the result and the option here.
-- **No fallback to review alone.** If phase 0 can't reliably identify workers or make the guard fail closed, delegation of tool-using work is off. The Lead does that work, and the plan records why. Review can't catch a private-file read or undo a remote action, so it doesn't count as a fallback.
+- **No fallback to review alone.** If phase 0 can't reliably identify workers or make the guard fail closed, delegation is off. The Lead does that work, and the plan records why.
 
 #### Execution boundary: how worker-written code runs
 
-**Policy: worker commands run in a sandbox, or workers don't run commands.** Phase 0 decides which applies; describing the guard as enough is not an option.
+**Policy (decided by the user, 2026-11-20): workers edit, the Lead runs.** No sandbox is used.
 
-1. **Preferred: a sandbox around every worker command.** Every Bash command a worker runs, and every process it starts, runs inside Claude Code's sandbox. The sandbox is configured so that:
-   - files can be read only inside the worker's worktree, plus the shared `node_modules` and the Python and Node installations;
-   - files can be written only inside the worktree and a temporary folder;
-   - there's no network access, except loopback for the test servers the runners start themselves (they bind port 0 on `127.0.0.1`).
+- **Workers have only guarded tools:** Read, Grep, Glob, Edit, and Write, inside their worktree. They have no Bash, so they can't build, test, or run anything.
+- **The Lead runs every command for a worker,** in the worker's worktree, from the Lead's own session.
+- **The Lead reads the diff before running any of it.** A command the Lead runs executes the worker's code with the Lead's own access, to the private files, the VM, and the network. So before every run, the Lead reads the full `git diff` of the worktree, not only `--stat`, and doesn't run code that reads files outside the worktree, opens network connections other than the test servers on `127.0.0.1`, or starts other programs, unless the card asked for it.
+- **The test-first loop goes through the Lead:** the worker edits, the Lead reads the diff and runs the card's commands, then sends the output back with SendMessage. The worker fixes, and the loop repeats.
+- **The same rule covers merge-time runs:** the browser suites and Edge runs after a merge execute merged worker code, which the Lead has already read diff by diff.
 
-   Phase 0 must confirm each of these for a **subagent's** commands, including a child process started by `node --test` or a Python runner (checks 7–9 below). Today no sandbox is configured (`.claude/settings.local.json` and the user settings have no `sandbox` block).
-2. **If phase 0 can't confirm the sandbox: workers edit, the Lead runs.** Workers keep only guarded tools (Read, Grep, Glob, Edit, Write inside their worktree) and **no Bash**. The Lead runs every command for them, and **reads the diff before running any of it**, because a command the Lead runs executes the worker's code with the Lead's own access. The TDD loop then goes through the Lead: the worker edits, the Lead runs the tests and returns the output with SendMessage.
-3. **Either way, the Lead reads every worker diff before running it outside the sandbox,** including the merge-time test runs and browser suites in the main checkout.
-
-Under both options, the realistic risk is a worker making a mistake, not acting with intent. The boundary keeps a mistake from reaching the private files, the VM, or the network.
+**What this costs.** Every round of a worker's test loop needs the Lead to read a diff and run commands. Delegation therefore pays off for bigger, well-specified modules, where the worker's writing saves more than the Lead's reviewing costs. Small changes stay with the Lead (see "Right-sizing the process"). The realistic risk is a worker making a mistake, not acting with intent, and reading every diff before running it catches that.
 
 ### Task card (the brief the Lead sends)
 
@@ -819,17 +806,17 @@ Setup:       done by the Lead before launch, not by the worker: node_modules lin
              environment variables are needed.
 Fixtures:    tests/fixtures/v2.2-storage.json; no team-data.js (features.py --team builds one);
              no .rdp fixture (milestone 18 is Lead-only)
-Done when:   these commands pass (expected time in brackets):
+Done when:   these commands pass when the Lead runs them (the worker has no Bash):
              npm run check                                   [~10 s]
              node --test src/core/search.test.js             [~5 s]
-             <python> tests/features.py --only F06           [~1 min, run in background]
+             <python> tests/features.py --only F06           [~1 min]
 Hard rules:  the agent file's list
 Report back: in the format below
 ```
 
-**Artifacts need a small phase 0 change.** `ARTIFACTS` in `tests/helpers.py:11` is fixed at `/tmp/orbit-browser-tests` today, so parallel runs overwrite each other's screenshots. It will default to a git-ignored `.artifacts/` folder inside the checkout running the tests. Each worktree then has its own folder, it stays inside the sandbox's writable area, and nobody needs to set an environment variable. Ports are already safe, since the runners bind port 0.
+**Artifacts need a small phase 0 change.** `ARTIFACTS` in `tests/helpers.py:11` is fixed at `/tmp/orbit-browser-tests` today, so parallel runs overwrite each other's screenshots. It will default to a git-ignored `.artifacts/` folder inside the checkout running the tests. Each worktree then has its own folder, and nobody needs to set an environment variable. Ports are already safe, since the runners bind port 0.
 
-**The Lead prepares each worktree before launch.** The worker's command allowlist doesn't include `ln`, `npm ci`, or `export`, so the Lead:
+**The Lead prepares each worktree before launch.** Workers have no Bash, so the Lead:
 1. creates the worktree;
 2. links the main checkout's `node_modules` into it;
 3. runs `npm run build:test` there;
@@ -841,8 +828,7 @@ Report back: in the format below
 Status:     done | blocked | partly done
 Base:       the sha the worktree started from
 Changed:    files, with one line each on what changed
-git status: output, including untracked files
-Commands:   each "Done when" command, with pass/fail and the last lines of output
+Last run:   the latest command output the Lead sent, and whether the worker expects the next run to pass
 Deviations: anything that differs from the card, and why
 Questions:  anything the Lead must decide
 ```
@@ -941,10 +927,7 @@ Each phase ends with Orbit working and its tests passing.
 - [ ] Make `ARTIFACTS` in `tests/helpers.py` default to a git-ignored `.artifacts/` folder in the checkout running the tests
 - [ ] Add `.claude/agents/orbit-builder.md`, `orbit-helper.md`, `orbit-reviewer.md`, and `TASK_CARD.md`
 - [ ] Add `.claude/hooks/card-guard.py`, attach it to the worker agents, and git-ignore `.claude/cards/` (see "Enforcement")
-- [ ] Configure the sandbox for worker commands (see "Execution boundary")
-- [ ] Run the nine enforcement checks in "Enforcement", using the canary file (never the private files), and record each result:
-  - If worker identity or fail-closed denial can't be confirmed, delegation of tool-using work is off.
-  - If the sandbox checks fail, option 2 applies: workers have no Bash, and the Lead runs commands after reading the diff.
+- [ ] Run the six enforcement checks in "Enforcement" and record each result. If worker identity or fail-closed denial can't be confirmed, delegation is off.
 - [ ] Dry run: one Helper card (behavior facts for one file) through the full card → report → check loop
 - [ ] List and sort every test call into app code by kind: state read, `saveMap`, download capture, action, pure helper, stub
 - [ ] Run every suite once on 2.2.1 (tag `v2.2.1`) and record the baseline (counts and times), plus a map of which checks cover which old script, used by the "done when" lines of phases 5–7
@@ -1166,7 +1149,7 @@ The same reviewer, on commit `a13c224`, found most earlier concerns resolved and
 
 | Point | Resolved in |
 | --- | --- |
-| The permission guard failed open when a worker had no card, ignored read tools, and fell back to review | "Enforcement": workers identified by agent, not by directory; cards in a registry in the main checkout; no card means no access; Read, Grep, and Glob limited to the worktree; Bash on an allowlist; no fallback to review alone, and delegation is off if phase 0 can't confirm this |
+| The permission guard failed open when a worker had no card, ignored read tools, and fell back to review | "Enforcement": workers identified by agent, not by directory; cards in a registry in the main checkout; no card means no access; Read, Grep, and Glob limited to the worktree; Bash on an allowlist (later removed entirely, see the fourth review); no fallback to review alone, and delegation is off if phase 0 can't confirm this |
 | The Quick find measurement could wait forever when results don't change | "Performance recipe": the end is input handling plus one animation frame, whatever the results; a 2-second timeout per key; the five queries committed with the map |
 | Test-bundle freshness checked only `src/` timestamps | "Builds and what tests run": rebuild before every browser run, plus a SHA-256 fingerprint of all build inputs checked by `write_fixture`; no timestamps |
 | Phase 4b treated controllers as mode flags | Phase 4b step 2: a table separating state from controllers; `palette` and `variableDialog` stay as controllers; the one-owner check targets their use as true-or-false tests only |
@@ -1177,8 +1160,8 @@ The same reviewer, on commit `0feb609`, judged the approach ready for phase 0 an
 
 | Point | Resolved in |
 | --- | --- |
-| An allowed command can run worker-written code, which the guard can't inspect | "Execution boundary": the guard is described as protection against accidental misuse only. Worker commands run in a sandbox confirmed by three canary checks in phase 0, or else workers get no Bash and the Lead runs commands after reading the diff |
-| Task-card setup used commands outside the worker allowlist | "The Lead prepares each worktree before launch"; artifacts default to the worktree's `.artifacts/` folder, so no environment variables |
+| An allowed command can run worker-written code, which the guard can't inspect | "Execution boundary". The plan first offered a sandbox, with no Bash for workers as the alternative. The user chose no sandbox, so workers have no Bash, and the Lead reads each diff before running any worker-written code |
+| Task-card setup used commands the worker couldn't run | "The Lead prepares each worktree before launch"; artifacts default to the worktree's `.artifacts/` folder, so no environment variables |
 | The performance endpoint was described as rendering | "Performance recipe": the endpoint is the next animation-frame callback after input handling, which runs before painting |
 
 ## Cost tally
