@@ -17,10 +17,11 @@ Not in scope: new features, a new look, or a framework.
 
 ## Branch rules
 
-- All rewrite work happens on the `rewrite` branch, starting from `main` at `d194f43` (2.2.0, tag `v2.2.0`). That includes this plan. This overrides the usual "commit straight to `main`" rule for rewrite work only.
+- All rewrite work happens on the `rewrite` branch, including this plan. It started from `main` at `d194f43` (2.2.0, tag `v2.2.0`); `main` was merged in again at 2.2.1 (`45d6df0`, tag `v2.2.1`), which is the rollback point. This overrides the usual "commit straight to `main`" rule for rewrite work only.
+- **"2.2.0" in this plan means the current 2.x behavior.** 2.2.1 changed only Reset in workspaces other than Main (see "2.2.0 bug found by the review"); everything else, including `storage.js` and `rdp.js` for the oracle, is unchanged.
 - **Nothing from the rewrite goes to `main`** until the user approves the final merge.
 - **Feature freeze:** no new features on `main` while the rewrite runs.
-- **Fixes to 2.2.0** still go to `main` under the normal rule. The same day:
+- **Fixes to 2.x** still go to `main` under the normal rule. The same day:
   1. Merge `main` into `rewrite`.
   2. Apply the fix to the new module too, if that code has already moved.
   3. Add the failing test to both the browser suite and, where it applies, the node suite.
@@ -483,7 +484,7 @@ Phase 0 confirms these rules in a browser and records any other differences here
 - **Core is pure.** Files in `core/` take data and return data, with no `document`, `window`, `localStorage`, `File`, or `DOMParser`. Bookmark HTML and `.rdp` files are read in `services/file-io`, and `core/` gets plain data.
 - **One writer of the map.** Only `state/store.js` writes the map key. Its API covers every write that bypasses `saveMap` today:
   - `saveMap(next, label, {undoRecord, clearUndo, expectRevision})`
-  - `resetToBundled()`
+  - `resetToBundled()`: in Main, removes the saved map; in other workspaces, saves the file data under the workspace's key (2.2.1 behavior, check F27)
   - `undoRemoval()`
   - `setTeamSunHidden()`
   - workspace `add`, `remove`, and `switch`
@@ -610,11 +611,17 @@ The hook exists only when the page is opened with `?test=1`, and an esbuild `def
 
   Each must be no more than 10% worse.
 
-### Known 2.2.0 bug found by the review
+### 2.2.0 bug found by the review (fixed in 2.2.1)
 
-Resetting a workspace other than Main shows the sample map, then an empty map after reload (`editor.js:348`). Decide with the user whether to fix it on `main` (with a failing test first, then merged into `rewrite`) or only in the rewrite.
+Resetting a workspace other than Main showed the sample map, then an empty map after reload (`editor.js:344`).
 
-- [ ] User decision recorded: fix on `main` / fix in rewrite
+- [x] User decision: fix on `main`. Fixed in 2.2.1 (`45d6df0`, 2026-11-20) with check F27, which failed first. Merged into `rewrite` the same day.
+
+The rewrite must keep the fixed behavior, not the old one:
+
+- In Main, Reset removes the saved map, so Main follows the project's link data again.
+- In any other workspace, Reset saves the file data under that workspace's own key, so it survives a reload.
+- In both cases, Reset records the previous map in history and clears the removal undo.
 
 ## Who does the work
 
@@ -741,6 +748,7 @@ Each phase ends with Orbit working and its tests passing.
 - [x] Create the `rewrite` branch from `main` at `d194f43` (2026-11-20)
 - [x] Commit this plan on `rewrite` and push the branch (2026-11-20)
 - [x] Tag `v2.2.0` on `d194f43` and push only the tag (2026-11-20)
+- [x] Tag `v2.2.1` on `45d6df0` (the Reset fix) and push only the tag; this is the rollback point (2026-11-20)
 - [ ] Behavior inventory (`tests/behavior-2.2.md`): for each core and state function, its inputs and outputs, edge cases, and exact error messages as 2.2.0 behaves today. It must include at least these validation rules:
   - [ ] Unknown fields are dropped at every level: map, sun, planet, moon, routine, preset. This includes `team`, `type: 'web'`, and moons on a moon (`storage.js:119,178,189-192`).
   - [ ] Which empty fields are dropped (empty `tags`, a `favorite` that isn't exactly `true`, empty `note` and `icon`, an empty or unknown `rdpPreset`, empty `routines` and `rdpPresets`) and which are always written (`description: ''`, `moons: []`)
@@ -768,6 +776,7 @@ Each phase ends with Orbit working and its tests passing.
     - renames a clashing routine to "X 2", whereas Merge import skips it
   - [ ] What `loadBrowserMap` does on a validation error (`storage.js:303-310`): it falls back to the bundled map (Main) or an empty one (other workspaces), and the stored map is overwritten on the next save
   - [ ] The routine-offer id clash across workspaces
+  - [ ] Reset to file data: Main removes its saved map; other workspaces save the file data to their own key (2.2.1, `editor.js:344`)
 - [ ] Check the interaction-mode rules above in Chromium against 2.2.0 (Escape order, what each overlay blocks, drag cancellation, routine-offer timing), and record any difference in this plan
 - [ ] Fixture script `tests/make_v22_fixture.py` and `tests/fixtures/v2.2-storage.json` (see "Fixture")
 - [ ] Data-compatibility check: load the fixture into a 2.2.0 page, then compare the map, preferences, and saved values field by field. It must pass on 2.2.0 before any code moves.
@@ -852,6 +861,7 @@ State and mode tests run under `node --test` against an in-memory storage stand-
   - [ ] Restoring any history version gives that version's map, routines, and presets
   - [ ] A workspace switch never touches another workspace's map, undo, or history key, or its entry in `orbit:backup:v1`
   - [ ] A write to a team index is refused and changes nothing
+  - [ ] After `resetToBundled()` in any workspace, reloading that workspace gives the same map that was shown
 - [ ] Tests first, then `ui/modes.js`: the state machine from "Interaction modes", with a test for each transition and each rule. It is not wired to the page yet.
 - [ ] Bridge: old `saveMap`, `loadBrowserMap`, Reset, `undoRemoval`, `setTeamSunHidden`, and the workspace functions call the store; a subscriber copies state back into the old globals and renders
 - [ ] Done when:
@@ -905,7 +915,7 @@ Tests use fake `window.open`, `fetch`, storage, and clock.
 - [ ] `ui/editor/`: workspace page, tree, sun/planet/moon forms, Quick add, JSON and single-item import/export, reset, `.rdp` import
 - [ ] `ui/editor/tools/`: history, duplicates, link check, bookmark and merge import, bulk RDP, presets, routines, packs, workspaces, team screens
 - [ ] Remove `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `workspaces.js`, `presets.js`, and `team.js` from `index.html` and `APP_SCRIPTS`
-- [ ] Done when: milestones 1–19, B03–B11, and F01–F26 pass with those scripts removed; milestone 18 is run by the Lead; Chromium in both modes and Edge
+- [ ] Done when: milestones 1–19, B03–B11, and F01–F27 pass with those scripts removed; milestone 18 is run by the Lead; Chromium in both modes and Edge
 
 ### Phase 7: Drag and keyboard
 
@@ -932,7 +942,7 @@ Tests use fake `window.open`, `fetch`, storage, and clock.
 - [ ] Windows checks B01, B02, B07
 - [ ] Open the 2.2.0 storage fixture in Edge on the VM; nothing lost
 - [ ] Docs: README (a developer section with `npm run build`), HANDOFF, TEST_MATRIX, ROADMAP, README-distribute, this plan ticked
-- [ ] `APP_VERSION` 3.0.0; release note: "nothing changes for you", plus how to go back to `v2.2.0`
+- [ ] `APP_VERSION` 3.0.0; release note: "nothing changes for you", plus how to go back to `v2.2.1`
 - [ ] Only after the user approves: merge `rewrite` into `main`, push, tag `v3.0.0`, delete the branch
 
 ## Risks
