@@ -1069,6 +1069,39 @@ def f22_workspaces(ctx):
     print(f"PASS F22 workspaces ({mode})")
 
 
+def reset_to_file_data(page):
+    open_editor(page)
+    page.get_by_role("button", name="Reset to file data").click()
+    close_menu(page)
+
+
+def f27_reset_workspace(ctx):
+    """Reset in a workspace other than Main keeps the sample map after a reload."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    add_workspace(page, "Home", "An empty map")
+    check(page.locator(".hub-name").all_inner_texts() == ["Ops"], f"{mode}: Home starts empty")
+    reset_to_file_data(page)
+    check(page.locator(".hub-name").all_inner_texts() == ["Ops", "Alpha", "Beta"], f"{mode}: Reset shows the file data in Home")
+    saved = page.evaluate("localStorage.getItem('orbit:map:v1:home')")
+    check(saved is not None and [sun["name"] for sun in json.loads(saved)["groups"]] == ["Alpha", "Beta"],
+          f"{mode}: Reset saves the file data to Home's own key")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator("#workspace-switch").input_value() == "home" and
+          page.locator(".hub-name").all_inner_texts() == ["Ops", "Alpha", "Beta"],
+          f"{mode}: Home still shows the file data after a reload")
+    # Main keeps following the project files: Reset removes its saved map.
+    page.locator("#workspace-switch").select_option(label="Main")
+    save_map_js(page, "next[2].links.pop()", "main change")
+    check(saved_map(page) is not None, f"{mode}: Main has a saved map before Reset")
+    reset_to_file_data(page)
+    check(saved_map(page) is None and page.locator(".hub-name").all_inner_texts() == ["Ops", "Alpha", "Beta"],
+          f"{mode}: Reset in Main removes the saved map, as before")
+    check(page.evaluate("localStorage.getItem('orbit:map:v1:home')") is not None, f"{mode}: Reset in Main leaves Home alone")
+    print(f"PASS F27 reset in a workspace ({mode})")
+
+
 # ---- F23 Link packs -------------------------------------------------------------
 
 def f23_link_packs(ctx):
@@ -1236,7 +1269,7 @@ def f26_presets(ctx):
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
-          f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets)
+          f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace)
 
 
 def run_checks(make_ctx, only):

@@ -344,14 +344,18 @@ function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind
 function resetMap() {
   if (!window.confirm('Replace browser edits with the link data loaded from the project files?')) return;
   try {
+    const fileData = validateMap(seedData);
     recordHistory(personalGroups(groups), 'Reset to file data', routines, rdpPresets);
-    localStorage.removeItem(MAP_STORAGE_KEY);
+    // Main with no saved map follows the project files on every load. Other
+    // workspaces start from their own key, so they keep a saved copy instead.
+    if (activeWorkspace === 'main') localStorage.removeItem(MAP_STORAGE_KEY);
+    else localStorage.setItem(MAP_STORAGE_KEY, JSON.stringify(fileData));
     localStorage.removeItem(UNDO_STORAGE_KEY);
-    groups = [...visibleTeamGroups(), ...validateMap(seedData).groups];
-    routines = validateMap(seedData).routines || [];
-    rdpPresets = validateMap(seedData).rdpPresets || [];
+    groups = [...visibleTeamGroups(), ...fileData.groups];
+    routines = fileData.routines || [];
+    rdpPresets = fileData.rdpPresets || [];
     mapRevision++;
-    activeMapSource = 'bundled';
+    activeMapSource = activeWorkspace === 'main' ? 'bundled' : 'browser';
     storageWarning = '';
     countDestinations();
     render();
