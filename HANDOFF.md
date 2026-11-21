@@ -4,7 +4,7 @@ Last updated 2026-11-20, at version 2.2.1.
 
 ## Status
 
-All released work is on `main`, with no failing or pending test. The 3.0.0 rewrite is being planned on the `rewrite` branch ([REWRITE_PLAN.md](https://github.com/scufflegrits/orbit/blob/rewrite/REWRITE_PLAN.md) there); no phase starts without the user's go-ahead.
+All released work is on `main`, with no failing or pending test. The 3.0.0 rewrite runs on the `rewrite` branch ([REWRITE_PLAN.md](https://github.com/scufflegrits/orbit/blob/rewrite/REWRITE_PLAN.md) there). **Phase 0 (prepare) is done on `rewrite`** (2026-11-20): the 2.2.1 behavior inventory, mode-rule check, storage fixture and data-compatibility check, test-call list, suite baseline, and performance baseline (see `tests/baseline-2.2.md` on that branch). No app code has changed yet. No phase starts without the user's go-ahead; phase 1 is next.
 
 | Release | Date | What it added | Plan |
 | --- | --- | --- | --- |
@@ -111,6 +111,10 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/orbit_sizes.py` | OS01–OS06 at 1920×1080 | 13 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
 | `tests/features.py` | F01–F27, no F05 | all passed |
+| `tests/behavior_check.mjs` (`rewrite` branch) | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
+| `tests/mode_rules_check.py` (`rewrite` branch) | Interaction-mode rules MR01–MR12 | 23 passed |
+| `tests/data_compat_check.py` (`rewrite` branch) | The 2.2 storage fixture reads back as recorded | passed |
+| `tests/perf_compare.py` (`rewrite` branch) | The performance recipe (`--baseline`, `--against REF [--quick]`) | baseline recorded |
 
 `drag_drop.py`, `orbit_sizes.py`, `pending_checks.py`, and `features.py` accept `--cdp URL` and `--url PAGE` to drive a remote browser; `features.py` also takes `--target`, `--server-mode`, and `--write-fixture DIR`, and the drag and sizing runners take `--write-fixture DIR`.
 

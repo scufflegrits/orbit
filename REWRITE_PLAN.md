@@ -693,6 +693,16 @@ The goal is to catch a real slowdown, not to fail on normal timing noise. Everyt
 - **If it fails:** run the whole procedure once more. Fail only if both runs fail, and record both runs here.
 - **When it runs:**
   - **Phase 0, the baseline:** `perf_compare.py --baseline` measures 2.2.1 alone with the full recipe, and the medians are recorded here.
+
+    **Recorded 2026-11-20** (Chromium 156, headless, 1920×1080; 3 warm-up and 20 measured runs):
+
+    | Measurement | Median | Middle 50% of runs |
+    | --- | --- | --- |
+    | First render | 184.45 ms | 182.03–195.15 ms |
+    | Quick find, per keystroke | 14.20 ms | 14.02–14.37 ms |
+    | App script size | 248,070 bytes | |
+
+    A quick run against an identical checkout differed by 3% and 1%, so the thresholds sit well above the noise.
   - **Each phase end, phases 1–7, a quick check:** the rewrite against 2.2.1, alternating, 2 warm-up runs and 5 measured runs per version. It informs; it doesn't block. If a median is more than 20% (and 5 ms) worse, the Lead finds the cause before the next phase, or records why it's accepted.
   - **Phase 8:** the full recipe, which does decide pass or fail.
 - **Bundle size** is not timed, so it has no noise. Compare bytes: `orbit.js` against the 20 old scripts combined, and record the result. It must be no more than 10% larger.
@@ -918,41 +928,44 @@ Each phase ends with Orbit working and its tests passing.
 - [x] Commit this plan on `rewrite` and push the branch (2026-11-20)
 - [x] Tag `v2.2.0` on `d194f43` and push only the tag (2026-11-20)
 - [x] Tag `v2.2.1` on `45d6df0` (the Reset fix) and push only the tag; this is the rollback point (2026-11-20)
-- [ ] Behavior inventory (`tests/behavior-2.2.md`): for each core and state function, its inputs and outputs, edge cases, and exact error messages as 2.2.0 behaves today. It must include at least these validation rules:
-  - [ ] Unknown fields are dropped at every level: map, sun, planet, moon, routine, preset. This includes `team`, `type: 'web'`, and moons on a moon (`storage.js:119,178,189-192`).
-  - [ ] Which empty fields are dropped (empty `tags`, a `favorite` that isn't exactly `true`, empty `note` and `icon`, an empty or unknown `rdpPreset`, empty `routines` and `rdpPresets`) and which are always written (`description: ''`, `moons: []`)
-  - [ ] Defaults and coercions:
+- [x] Behavior inventory (`tests/behavior-2.2.md`): for each core and state function, its inputs and outputs, edge cases, and exact error messages as 2.2.0 behaves today. Done 2026-11-20; the pure rules are executable in `tests/behavior_check.mjs` (22 checks against tag `v2.2.1`, all passing). It must include at least these validation rules:
+  - [x] Unknown fields are dropped at every level: map, sun, planet, moon, routine, preset. This includes `team`, `type: 'web'`, and moons on a moon (`storage.js:119,178,189-192`).
+  - [x] Which empty fields are dropped (empty `tags`, a `favorite` that isn't exactly `true`, empty `note` and `icon`, an empty or unknown `rdpPreset`, empty `routines` and `rdpPresets`) and which are always written (`description: ''`, `moons: []`)
+  - [x] Defaults and coercions:
     - `color` defaults only when undefined, and `null` throws (`storage.js:161`)
     - missing sun ids are generated from order, and a later explicit id that matches one throws "Duplicate sun ID"
     - ports are normalized (`:03389` → `:3389`)
-  - [ ] Duplicates: a duplicate sun id throws; duplicate routine and preset ids are regenerated silently (`storage.js:208,256`); duplicate routine link keys and tags are removed silently
-  - [ ] Limits:
+  - [x] Duplicates: a duplicate sun id throws; duplicate routine and preset ids are regenerated silently (`storage.js:208,256`); duplicate routine link keys and tags are removed silently
+  - [x] Limits:
     - notes 500 characters
     - tags 8, each up to 24 characters
     - placeholders 5
     - routine names 60 characters; routine link names cut silently to 200 (`storage.js:253`); 100 links, counted after duplicates are removed
     - `rdpProfile` 12,000 bytes; `.rdp` files 64,000 bytes
     - no limit on map size
-  - [ ] RDP rules:
+  - [x] RDP rules:
     - preset settings throw on secrets; `rdpProfile` strips them silently
     - a whitespace-only line throws in a profile but is skipped in a preset (`rdp.js:22` vs `storage.js:218`)
     - `rdpProfile: null` or `""` makes the whole map invalid
-  - [ ] `schedule.days` given as a string throws a raw `TypeError` (`storage.js:262`)
-  - [ ] `validPack` (`sharing.js:42,108`):
+  - [x] `schedule.days` given as a string throws a raw `TypeError` (`storage.js:262`)
+  - [x] Found in phase 0, not in the reviews: presets allow at most 100 setting lines (`storage.js:228`); hidden team suns are stored with their `team:` prefix (`team.js:57`, `tools.js:460`); the fragment never enters a destination key, so `url.hash = ''` is redundant (`storage.js:129`); `rdpProfile: null` and `""` fail with different messages
+  - [x] `validPack` (`sharing.js:42,108`):
     - keeps `favorite`, `rdpPreset`, and `rdpProfile` from the file
     - checks `routine.schedule` only on Add
     - adds duplicate links twice
     - renames a clashing routine to "X 2", whereas Merge import skips it
-  - [ ] What `loadBrowserMap` does on a validation error (`storage.js:303-310`): it falls back to the bundled map (Main) or an empty one (other workspaces), and the stored map is overwritten on the next save
-  - [ ] The routine-offer id clash across workspaces
-  - [ ] Reset to file data: Main removes its saved map; other workspaces save the file data to their own key (2.2.1, `editor.js:344`)
-- [ ] Check the interaction-mode rules above in Chromium against 2.2.0 (Escape order, what each overlay blocks, drag cancellation, routine-offer timing), and record any difference in this plan
-- [ ] Fixture script `tests/make_v22_fixture.py` and `tests/fixtures/v2.2-storage.json` (see "Fixture")
-- [ ] Data-compatibility check: load the fixture into a 2.2.1 page (tag `v2.2.1`), then compare the map, preferences, and saved values field by field. It must pass on 2.2.1 before any code moves.
-- [ ] Make `ARTIFACTS` in `tests/helpers.py` default to a git-ignored `.artifacts/` folder in the checkout running the tests
-- [ ] List and sort every test call into app code by kind: state read, `saveMap`, download capture, action, pure helper, stub
-- [ ] Run every suite once on 2.2.1 (tag `v2.2.1`) and record the baseline (counts and times), plus a map of which checks cover which old script, used by the "done when" lines of phases 5–7
-- [ ] Performance baseline: `tests/make_perf_map.py` (seed `2026`) writes `tests/fixtures/perf-map.json`; commit it with `tests/fixtures/perf-queries.json`; `tests/perf_compare.py --baseline` measures 2.2.1 with the full recipe, and the medians are recorded in "Performance recipe"
+  - [x] What `loadBrowserMap` does on a validation error (`storage.js:303-310`): it falls back to the bundled map (Main) or an empty one (other workspaces), and the stored map is overwritten on the next save
+  - [x] The routine-offer id clash across workspaces
+  - [x] Reset to file data: Main removes its saved map; other workspaces save the file data to their own key (2.2.1, `editor.js:344`)
+- [x] Check the interaction-mode rules above in Chromium against 2.2.0 (Escape order, what each overlay blocks, drag cancellation, routine-offer timing), and record any difference in this plan. `tests/mode_rules_check.py`: 23 checks (MR01–MR12), all passing on 2.2.1 in both modes; **no differences** from the rules as written. Mutations of the Escape order and of the menu's drag cancel were caught (2026-11-20)
+- [x] Fixture script `tests/make_v22_fixture.py` and `tests/fixtures/v2.2-storage.json` (see "Fixture"): 25 keys covering all 21 storage keys in 2.2.1's code, three workspaces (Main, an older-format Home, and a Broken one whose map 2.2.1 rejects), and a team map. The key grep found no keys beyond the list above
+- [x] Data-compatibility check: load the fixture into a 2.2.1 page (tag `v2.2.1`), then compare the map, preferences, and saved values field by field. It must pass on 2.2.1 before any code moves. `tests/data_compat_check.py` recorded `tests/fixtures/v2.2-expected.json` on 2.2.1 and passes against it in both modes; loading and switching workspaces write nothing to storage
+- [x] Make `ARTIFACTS` in `tests/helpers.py` default to a git-ignored `.artifacts/` folder in the checkout running the tests
+- [x] List and sort every test call into app code by kind: `tests/test-calls-2.2.md`, generated by `tests/list_test_calls.py`. Of 182 `page.evaluate` call sites (including the phase 0 checks): 12 stubs, 6 writes, 3 actions, 7 pure helpers, and 39 state reads to move to `OrbitTest`; 42 raw-storage and 73 page-only calls stay
+- [x] Run every suite once on 2.2.1 (tag `v2.2.1`) and record the baseline (counts and times), plus a map of which checks cover which old script, used by the "done when" lines of phases 5–7: `tests/baseline-2.2.md`. 170 PASS lines across the six suites, no failures, about 9 minutes; the check-to-script map is by feature area, not measured coverage
+- [x] Performance baseline: `tests/make_perf_map.py` (seed `2026`) writes `tests/fixtures/perf-map.json`; commit it with `tests/fixtures/perf-queries.json`; `tests/perf_compare.py --baseline` measures 2.2.1 with the full recipe, and the medians are recorded in "Performance recipe"
+
+Phase 0 closed 2026-11-20. Edge: N/A, no browser-visible change (no app code changed).
 
 ### Phase 1: Tooling, no behavior change
 
@@ -985,7 +998,7 @@ For each module: write its `node --test` file from the behavior inventory, see i
 - [ ] Tests first, then `core/destination.js`:
   - `destinationKey` ignores the fragment, all trailing slashes, and host case
   - it keeps query order, path case, scheme, and `www`
-  - placeholders are encoded as `%7B`/`%7D`
+  - placeholder braces are encoded as `%7B`/`%7D` in the **path only**; in the query they stay literal (corrected in phase 0, `tests/behavior-2.2.md`)
   - `rdp:` keeps the port, so `host` and `host:3389` differ
   - `pathsForKey` and `itemAt` take the map as a parameter
 - [ ] Tests first, then `core/templates.js` (up to five placeholders, fill, names)

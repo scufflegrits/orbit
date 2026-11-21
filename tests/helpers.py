@@ -8,7 +8,9 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACTS = Path("/tmp/orbit-browser-tests")
+# Screenshots and other test output, inside the checkout running the tests (git-ignored),
+# so separate checkouts and worktrees never overwrite each other's files.
+ARTIFACTS = ROOT / ".artifacts"
 # Classic scripts loaded by index.html (besides links-data.js). Add new split files here.
 APP_SCRIPTS = ("rdp.js", "storage.js", "team.js", "favorites.js", "editor.js", "editor-page.js", "tools.js", "routines.js",
                "variables.js", "workspaces.js", "sharing.js", "presets.js", "menu.js",
