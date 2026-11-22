@@ -8,6 +8,7 @@ import { counted, element } from '../dom.js';
 import { modes } from '../page-modes.js';
 import { routineItems, runRoutine } from '../views/open.js';
 import { noticeArea } from './area.js';
+import { groups, routines } from '../page.js';
 
 /** @param {string} id */
 const offered = id => markOffered(id, localDay(today()));

@@ -12,6 +12,7 @@ import { modes } from '../page-modes.js';
 import { store } from '../../state/page-store.js';
 import { team } from '../team-map.js';
 import { workspaceSettings } from './workspaces.js';
+import { activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowQuickBar, setShowSiteIcons, settingsTrigger, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
 
 /** The element that opened the menu, to refocus when it closes. @type {HTMLElement | null} */
 let menuOpener = null;
@@ -28,7 +29,7 @@ export function closeMenu() {
 export function menuHidden() {
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-sheet')).classList.remove('editor-page-mode');
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-top h2')).textContent = 'Explore the menu';
-  menuContent = menuRoot;
+  setMenuContent(menuRoot);
   setEditorTree(null);
   // Return focus to whatever opened the menu so keyboard users keep their place.
   const target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
@@ -41,7 +42,7 @@ export function openMenu() {
   modes.send('openMenu');
   if (!modes.menuOpen()) return;
   menuOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  menuContent = menuRoot;
+  setMenuContent(menuRoot);
   menuContent.replaceChildren();
   for (const option of document.querySelectorAll('[data-menu-panel]')) option.classList.remove('active');
   /** @type {HTMLElement} */ (document.querySelector('[data-menu-panel]')).focus();
@@ -77,7 +78,7 @@ export function showMenuPanel(name) {
     }
     themeSelect.value = activeTheme;
     themeSelect.addEventListener('change', () => {
-      activeTheme = /** @type {any} */ (themeSelect.value);
+      setActiveTheme(/** @type {any} */ (themeSelect.value));
       document.documentElement.dataset.theme = activeTheme;
       prefs.savePreference('orbit:theme', activeTheme);
     });
@@ -99,7 +100,7 @@ export function showMenuPanel(name) {
     }
     fontSelect.value = activeFontSize;
     fontSelect.addEventListener('change', () => {
-      activeFontSize = /** @type {any} */ (fontSelect.value);
+      setActiveFontSize(/** @type {any} */ (fontSelect.value));
       document.documentElement.dataset.fontSize = activeFontSize;
       prefs.savePreference('orbit:font-size', activeFontSize);
     });
@@ -130,7 +131,7 @@ export function showMenuPanel(name) {
     const updateRdpSetup = () => { rdpSetup.hidden = rdpSelect.value !== 'client'; };
     updateRdpSetup();
     rdpSelect.addEventListener('change', () => {
-      rdpLaunchMode = /** @type {any} */ (rdpSelect.value);
+      setRdpLaunchMode(/** @type {any} */ (rdpSelect.value));
       prefs.savePreference('orbit:rdp-launch', rdpLaunchMode);
       updateRdpSetup();
       hooks.render();
@@ -146,7 +147,7 @@ export function showMenuPanel(name) {
     input.checked = animationsEnabled;
     input.setAttribute('aria-label', 'Animations');
     input.addEventListener('change', () => {
-      animationsEnabled = input.checked;
+      setAnimationsEnabled(input.checked);
       document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
       prefs.savePreference('orbit:animations', animationsEnabled);
     });
@@ -161,7 +162,7 @@ export function showMenuPanel(name) {
     moonInput.checked = alwaysShowMoons;
     moonInput.setAttribute('aria-label', 'Always show moons');
     moonInput.addEventListener('change', () => {
-      alwaysShowMoons = moonInput.checked;
+      setAlwaysShowMoons(moonInput.checked);
       document.documentElement.dataset.moons = alwaysShowMoons ? 'always' : 'hover';
       prefs.savePreference('orbit:always-show-moons', alwaysShowMoons);
     });
@@ -169,7 +170,7 @@ export function showMenuPanel(name) {
     menuContent.append(moonRow);
     menuContent.append(settingToggle('Show favorites and recent', 'A row of your favorite and recently opened links above the Galaxy',
       showQuickBar, checked => {
-        showQuickBar = checked;
+        setShowQuickBar(checked);
         prefs.savePreference('orbit:quick-bar', checked);
         hooks.render();
       }));
@@ -198,7 +199,7 @@ export function showMenuPanel(name) {
     menuContent.append(viewRow);
     menuContent.append(settingToggle('Show site icons', 'Loads each website’s own icon from that site (its /favicon.ico). Off keeps Orbit from contacting sites until you open them.',
       showSiteIcons, checked => {
-        showSiteIcons = checked;
+        setShowSiteIcons(checked);
         prefs.savePreference('orbit:site-icons', checked);
         hooks.render();
       }));

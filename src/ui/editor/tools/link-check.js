@@ -6,6 +6,7 @@ import { checkLinks } from '../../../services/link-check.js';
 import { counted, element } from '../../dom.js';
 import { editorActions, editorButton, editorHeader, editPath, linkCheckResults, pathLabel } from '../kit.js';
 import { nav } from '../nav.js';
+import { groups, menuContent } from '../../page.js';
 
 function webLinksByUrl() {
   const byUrl = new Map();

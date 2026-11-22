@@ -11,6 +11,7 @@ import { modes } from '../page-modes.js';
 import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorHeader, editorTree, linkCheckResults,
   movePositionField, moveTargetField, setEditorTree } from './kit.js';
 import { nav } from './nav.js';
+import { groups, menuContent, menuOverlay, menuRoot, setMenuContent } from '../page.js';
 
 export function openEditorPage() {
   modes.send('openEditor');
@@ -24,7 +25,7 @@ export function openEditorPage() {
   const pane = element('section', 'editor-pane');
   layout.append(tree, pane);
   menuRoot.replaceChildren(layout);
-  menuContent = pane;
+  setMenuContent(pane);
   renderEditorTree();
   nav.showSunList();
   tree.querySelector('button')?.focus();
@@ -45,7 +46,7 @@ export function leaveEditorPage() {
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-sheet')).classList.remove('editor-page-mode');
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-top h2')).textContent = 'Explore the menu';
   setEditorTree(null);
-  menuContent = menuRoot;
+  setMenuContent(menuRoot);
   hooks.showMenuPanel('Settings');
   /** @type {HTMLElement | null} */ (menuRoot.querySelector('.editor-open'))?.focus();
 }

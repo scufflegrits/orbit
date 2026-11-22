@@ -8,6 +8,7 @@ import { store } from '../../state/page-store.js';
 import { copyGroups } from '../editor/kit.js';
 import { hooks } from '../hooks.js';
 import { modes } from '../page-modes.js';
+import { groups } from '../page.js';
 
 /**
  * Whether a destination is a favorite (`sun` says whether it is a team item).

@@ -9,6 +9,7 @@ import { askForVariables } from '../dialogs/placeholder.js';
 import { openEditorAt } from '../editor/page.js';
 import { modes } from '../page-modes.js';
 import { isFavorite, setFavorite } from '../views/favorites.js';
+import { app, groups, rdpLaunchMode, rdpPresets } from '../page.js';
 
 /** @param {any} match */
 function findCopy(match) {

@@ -5,6 +5,7 @@ import { cancelDrag, editBar, editToggle, setEditMode } from '../drag/drag.js';
 import { handlePaletteKey, handlePaletteShortcut } from '../find/palette.js';
 import { closeMenu } from '../menu/menu.js';
 import { modes } from '../page-modes.js';
+import { app, menuOverlay, quickFind, setFindQuery, topbarSearch } from '../page.js';
 
 /** @type {Record<string, [number, number]>} */
 const ARROWS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };

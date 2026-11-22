@@ -14,6 +14,7 @@ import { modes } from '../page-modes.js';
 import { favoriteItems, isFavorite, recentItems } from './favorites.js';
 import { openAllFavorites, routineItems, runRoutine } from './open.js';
 import { destinationNode, homeGroup } from './nodes.js';
+import { app, findQuery, galaxyView, groups, quickFind, routines, setFindQuery, settingsTrigger, showQuickBar, topbarSearch } from '../page.js';
 
 /**
  * A chip that opens a destination like its circle does. In Edit mode the

@@ -7,6 +7,7 @@ import { counted, descriptionNode, element, tagChips } from '../../dom.js';
 import { isFavorite, setFavorite } from '../../views/favorites.js';
 import { applyEditorChange, copyGroups, editorActions, editorButton, editorHeader, exportItem, moveTargetField } from '../kit.js';
 import { nav } from '../nav.js';
+import { groups, menuContent } from '../../page.js';
 
 function personalSunOptions() {
   return groups.flatMap((sun, index) => sun.team ? [] : [[String(index), sun.name]]);

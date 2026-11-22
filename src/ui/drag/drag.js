@@ -13,6 +13,7 @@ import { hooks } from '../hooks.js';
 import { openMenu } from '../menu/menu.js';
 import { offerDueRoutines } from '../notices/routine-offer.js';
 import { modes } from '../page-modes.js';
+import { app, groups } from '../page.js';
 
 const editToggle = () => /** @type {HTMLButtonElement} */ (document.querySelector('#edit-toggle'));
 export const editBar = () => /** @type {HTMLElement} */ (document.querySelector('#edit-bar'));

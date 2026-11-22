@@ -37,7 +37,9 @@ def run(page, url, mode):
     hubs = page.locator(".home-hub")
     hubs.first.wait_for()
     check(page.evaluate("typeof window.OrbitTest") == "undefined", f"{mode}: the release bundle has no test hook")
-    check(page.evaluate("window.OrbitNext && window.OrbitNext.version") == VERSION, f"{mode}: the bridge reports {VERSION}")
+    # Since rewrite phase 8 the release bundle puts nothing on the page: no bridge, no old globals.
+    check(page.evaluate("[typeof window.OrbitNext, typeof window.groups, typeof window.render]") == ["undefined"] * 3,
+          f"{mode}: the release bundle defines no page globals")
     check(hubs.count() == len(DATA["groups"]), f"{mode}: the Galaxy shows every bundled sun ({hubs.count()})")
 
     hubs.first.click()

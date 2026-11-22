@@ -9,6 +9,7 @@ import { askForVariables } from '../dialogs/placeholder.js';
 import { confirmed } from '../dialogs/confirm.js';
 import { showOpenAllNotice } from '../notices/area.js';
 import { favoriteItems, noteOpened } from './favorites.js';
+import { groups, rdpLaunchMode, rdpPresets } from '../page.js';
 
 /**
  * Open one destination the way its circle on the map would.

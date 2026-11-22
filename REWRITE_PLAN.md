@@ -1220,11 +1220,18 @@ Phase 7 closed 2026-11-21.
 
 ### Phase 8: Remove the old code and harden
 
-- [ ] Delete `storage.js`, `rdp.js`, `app.js`, the bridge, and every remaining wrapper. `index.html` loads `links-data.js`, the optional `team-data.js`, and `orbit.js`. `main.js` runs start-up.
-- [ ] `tsc` clean across `src/`; `check:layers` passes
-- [ ] Performance check by `tests/perf_compare.py` (see "Performance recipe")
-- [ ] Split `styles.css` by area (optional, only if the markup changed)
-- [ ] Done when: every suite passes in Chromium in both modes and in Edge
+- [x] Delete `storage.js`, `rdp.js`, `app.js`, the bridge, and every remaining wrapper. `index.html` loads `links-data.js`, the optional `team-data.js`, and `orbit.js`. `main.js` runs start-up. Done: `app/start.js` (called by `main.js` once the page has loaded) finds the page, reads the preferences, subscribes to the store and the mode store, wires the top bar, and loads the maps. `app.js`'s globals are `ui/page.js`, imported by the screens as live bindings and changed only through its setters. `legacy-bridge.js`, `window.OrbitNext`, and every page global are gone; `src/globals.d.ts` now declares only the page data and the build switch.
+- [x] `tsc` clean across `src/`; `check:layers` passes (67 files, no upward imports, no cycles).
+- Phase 8 notes:
+  - **The tests still read a few page names** 2.2.1 defined (the drag suite's `drag`, `setEditMode`, `openMenu`, `moveMapItem`; the data-compatibility check's preferences and saved-value readers). The test hook defines them, read-only, in the test bundle only; the release smoke check now also asserts the release bundle defines no page globals (`OrbitNext`, `groups`, `render`).
+  - **Bundle size:** the release `orbit.js` is 251,737 bytes against 248,070 for 2.2.1's 20 scripts, +1.5% (limit +10%).
+- [x] Performance check by `tests/perf_compare.py` (see "Performance recipe"). Full recipe, 2026-11-22: first render 194.3 ms (2.2.1) against 190.45 ms (−2%); Quick find per keystroke 14.55 ms against 14.6 ms (+0%); scripts 248,070 against 251,737 bytes (+1.5%). All pass; the first run passed, so no second run was needed.
+- [x] Split `styles.css` by area (optional, only if the markup changed). Not done: the markup didn't change.
+- [x] Done when: every suite passes in Chromium in both modes and in Edge
+
+  Met 2026-11-22 with no old scripts left: 180 node tests; every suite in Chromium in both modes with the baseline counts (39, 15, 29, 13, 21, 53), plus mode rules 23, data compatibility, release smoke, behavior 22, and the services check; headless Edge 158 on the VM passed drag phase 2 (14 + 14), features (27 in server mode; in file mode one check of F25, "a new link opens from the list", missed the new tab once and then passed 3 of 3 runs of F25 alone, so it is recorded as a flaky wait, not a failure), sizes (7 + 7), pending (11 + 11), and the services pop-up checks (6 + 6).
+
+Phase 8 closed 2026-11-22.
 
 ### Phase 9: Release
 

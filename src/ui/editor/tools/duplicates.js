@@ -5,6 +5,7 @@ import { addressText } from '../../../core/search.js';
 import { counted, element } from '../../dom.js';
 import { editorButton, editorHeader, editPath, pathLabel } from '../kit.js';
 import { nav } from '../nav.js';
+import { groups, menuContent } from '../../page.js';
 
 export function showDuplicates() {
   editorHeader('Find duplicates', nav.showSunList);

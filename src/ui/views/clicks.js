@@ -5,6 +5,7 @@ import { itemAt } from '../../core/destination.js';
 import { modes } from '../page-modes.js';
 import { noteOpened } from './favorites.js';
 import { openAll } from './open.js';
+import { app, groups } from '../page.js';
 
 /** @param {MouseEvent} event */
 function trackDestinationClicks(event) {

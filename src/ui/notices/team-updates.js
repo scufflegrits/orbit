@@ -8,6 +8,7 @@ import { element } from '../dom.js';
 import { destinationNode } from '../views/nodes.js';
 import { team } from '../team-map.js';
 import { noticeArea } from './area.js';
+import { groups } from '../page.js';
 
 export function checkTeamUpdates() {
   document.querySelector('#team-updates')?.remove();

@@ -2,18 +2,22 @@
 // (REWRITE_PLAN.md, "Test hook"). It exists only in the test bundle
 // (orbit.test.js); the release bundle leaves this file out entirely.
 //
-// In phase 1 it reads and drives the old classic scripts' globals, which it
-// looks up when called (orbit.js loads before those scripts). As code moves
-// into src/, each function here switches to the new module and the tests stay
-// unchanged.
+// Since rewrite phase 8 everything it reaches is in src/. A few checks still
+// read page names that 2.2.1's classic scripts defined (the drag suite and the
+// data-compatibility check); the hook defines those too, read-only, so the
+// tests stay unchanged and the release bundle defines nothing.
 
 import { destinationKey } from '../core/destination.js';
 import { moveMapItem } from '../core/map-ops.js';
+import * as rdp from '../core/rdp.js';
 import { validDestination } from '../core/schema.js';
 import { captureJson } from '../services/file-io.js';
 import * as history from '../state/history.js';
 import { KEYS } from '../state/storage.js';
-import { workspaceKey } from '../state/workspaces.js';
+import * as backup from '../state/backup.js';
+import * as prefs from '../state/prefs.js';
+import { loadWorkspaces, workspaceKey } from '../state/workspaces.js';
+import * as page from '../ui/page.js';
 import { openEditorAt } from '../ui/editor/page.js';
 import { exportMap, showSunList } from '../ui/editor/screens.js';
 import { openMenu } from '../ui/menu/menu.js';
@@ -32,9 +36,22 @@ const copy = value => (value === undefined ? value : JSON.parse(JSON.stringify(v
  * @param {{schedule: typeof import('../services/schedule.js'), modes: ReturnType<typeof import('../ui/mode-store.js').createModeStore>}} parts
  */
 export function installTestHook(store, { schedule, modes }) {
-  // tests/drag_drop.py reads the gesture's pointer id as `drag`, as it could
-  // when drag.js was a classic script. Read-only, and in the test bundle only.
-  Object.defineProperty(window, 'drag', { get: currentGesture, configurable: true });
+  // Page names the checks read as 2.2.1 defined them: the gesture (its
+  // pointer id), the display preferences, and the saved-value readers.
+  /** @type {Record<string, () => unknown>} */
+  const readOnly = {
+    drag: currentGesture,
+    activeTheme: () => page.activeTheme, activeFontSize: () => page.activeFontSize,
+    animationsEnabled: () => page.animationsEnabled, alwaysShowMoons: () => page.alwaysShowMoons,
+    rdpLaunchMode: () => page.rdpLaunchMode, showQuickBar: () => page.showQuickBar,
+    showSiteIcons: () => page.showSiteIcons, galaxyView: () => page.galaxyView,
+  };
+  for (const [name, get] of Object.entries(readOnly)) Object.defineProperty(window, name, { get, configurable: true });
+  Object.assign(window, {
+    setEditMode, openMenu, moveMapItem,
+    readBooleanPreference: prefs.readBoolean, readStoredSet: prefs.readStoredSet, loadVariables: prefs.readVariables,
+    readOffered: prefs.readOffered, loadRecent: prefs.readRecent, readBackupState: backup.readBackupState, loadWorkspaces,
+  });
   window.OrbitTest = {
     /** The combined map (team suns first, as the page numbers them) and the state around it. */
     state() {
@@ -111,9 +128,9 @@ export function installTestHook(store, { schedule, modes }) {
       /** @param {any} item */
       destinationKey: item => core.destinationKey(item),
       /** @param {any} item */
-      effectiveRdpProfile: item => effectiveRdpProfile(item),
+      effectiveRdpProfile: item => rdp.effectiveRdpProfile(item, page.rdpPresets),
       /** @param {any} item */
-      rdpLaunchUrl: item => rdpLaunchUrl(item),
+      rdpLaunchUrl: item => rdp.rdpLaunchUrl(item, page.rdpPresets),
       /** @param {any} item */
       siteIcon: item => siteIcon(item),
       /** @param {any} item @param {string} className @param {number[]} [path] */

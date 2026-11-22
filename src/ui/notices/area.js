@@ -2,6 +2,7 @@
 // (routine offers, backup reminders, team updates), and the short report
 // after opening several links. Moved in rewrite phase 6a.
 import { element } from '../dom.js';
+import { app } from '../page.js';
 
 /** The notice area above the map, created on first use. */
 export function noticeArea() {

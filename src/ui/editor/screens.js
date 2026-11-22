@@ -26,6 +26,7 @@ import { shareFavorites, showPackImport } from './tools/packs.js';
 import { showPresets } from './tools/presets.js';
 import { showRoutines } from './tools/routines.js';
 import { showTeamItem, showTeamSun } from './tools/team.js';
+import { dataSourceLabel, groups, menuContent, quickFind, rdpPresets, routines, setFindQuery } from '../page.js';
 
 /**
  * @param {any} form

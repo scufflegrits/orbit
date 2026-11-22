@@ -10,6 +10,7 @@ import { hooks } from '../hooks.js';
 import { showBackupReminder } from '../notices/backup.js';
 import { offerDueRoutines } from '../notices/routine-offer.js';
 import { modes } from '../page-modes.js';
+import { groups } from '../page.js';
 
 /**
  * @param {any} base

@@ -6,6 +6,7 @@ import { layoutOrbits, updateMapLabelSizes } from '../layout/orbits.js';
 import { modes } from '../page-modes.js';
 import { renderHome } from './galaxy.js';
 import { renderDetail } from './system.js';
+import { groups } from '../page.js';
 
 export function render() {
   // A render replaces the nodes a drag is holding, so the gesture ends first.

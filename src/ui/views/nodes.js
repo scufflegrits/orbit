@@ -9,6 +9,7 @@ import { counted, descriptionNode, element, safeColor, tagPath } from '../dom.js
 import { GALAXY_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
 import { askForVariables } from '../dialogs/placeholder.js';
 import { modes } from '../page-modes.js';
+import { rdpLaunchMode, rdpPresets, showSiteIcons } from '../page.js';
 
 /**
  * The site's own icon, when Show site icons is on. Hidden if it fails to load.

@@ -9,6 +9,7 @@ import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
 import { element } from '../dom.js';
 import { nav } from './nav.js';
+import { groups, menuContent, setStorageWarning, storageWarning } from '../page.js';
 
 /**
  * The full-page editor's tree, or null when it isn't open.
@@ -91,7 +92,7 @@ export function applyEditorChange(nextGroups, showNext, options = {}) {
       ...(options.rdpPresets !== undefined ? { rdpPresets: options.rdpPresets } : {}) },
     options.label || 'Edit links change', { undoRecord: options.undoRecord, clearUndo: options.clearUndo });
     store.clearWarning();
-    storageWarning = '';
+    setStorageWarning('');
     showNext();
     nav.renderEditorTree();
   } catch (error) {
@@ -233,4 +234,14 @@ export function profileRows(text) {
 export function editPath(path) {
   if (path.length === 3) nav.showMoonEditor(path[0], path[1], path[2]);
   else nav.showPlanetEditor(path[0], path[1]);
+}
+
+/** Put back the last removed sun, planet, or moon (the header's Undo removal). */
+export function undoRemoval() {
+  try {
+    if (!store.undoRemoval()) return editorError('There is no removal to undo.');
+    nav.showSunList();
+  } catch (error) {
+    editorError(`Could not undo removal: ${/** @type {Error} */ (error).message}`);
+  }
 }

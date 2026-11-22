@@ -7,6 +7,7 @@ import { routineItems, runRoutine } from '../../views/open.js';
 import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorField, editorHeader } from '../kit.js';
 import { nav } from '../nav.js';
 import { shareRoutine } from './packs.js';
+import { groups, menuContent, routines } from '../../page.js';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEKDAYS = [1, 2, 3, 4, 5];

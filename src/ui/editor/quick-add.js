@@ -8,6 +8,7 @@ import { nav } from './nav.js';
 import { openEditorPage } from './page.js';
 import { openMenu } from '../menu/menu.js';
 import { modes } from '../page-modes.js';
+import { groups, menuContent } from '../page.js';
 
 /**
  * A typed web address, or null. "www.example.com" becomes https://.

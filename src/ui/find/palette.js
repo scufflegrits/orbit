@@ -17,6 +17,7 @@ import { modes } from '../page-modes.js';
 import { favoriteItems } from '../views/favorites.js';
 import { openAll, openAllFavorites, openDestination, runRoutine } from '../views/open.js';
 import { render } from '../views/render.js';
+import { galaxyView, groups, routines, setGalaxyView } from '../page.js';
 
 /**
  * @typedef {{kind: string, label: string, detail?: string, match?: any, run: () => void}} PaletteEntry

@@ -1,68 +1,29 @@
-// Entry point for orbit.js. During the rewrite the old classic scripts still
-// start the app (app.js init); this only publishes the bridge and, in the test
-// bundle, the test hook. ORBIT_TEST is set by build.mjs: false for the release
-// bundle, which removes the test hook entirely.
+// Entry point for orbit.js, the whole app since rewrite phase 8. index.html
+// loads it in <head>, after the map data: it installs the listeners that
+// don't need the page (in the order 2.2.1's scripts added them), then starts
+// the app once the page has loaded. ORBIT_TEST is set by build.mjs: false for
+// the release bundle, which removes the test hook entirely.
 import { APP_VERSION } from './version.js';
-import { publishBridge, publishPageGlobals } from './legacy-bridge.js';
+import { start } from './start.js';
 import { installTestHook } from './test-hook.js';
-import * as bookmarks from '../core/bookmarks.js';
-import * as destination from '../core/destination.js';
-import * as mapOps from '../core/map-ops.js';
-import * as rdp from '../core/rdp.js';
-import * as schema from '../core/schema.js';
-import * as search from '../core/search.js';
-import * as templates from '../core/templates.js';
-import * as words from '../core/words.js';
-import * as backup from '../state/backup.js';
-import * as history from '../state/history.js';
-import * as prefs from '../state/prefs.js';
-import * as storage from '../state/storage.js';
-import * as workspaces from '../state/workspaces.js';
-import { activeWorkspace, store } from '../state/page-store.js';
-import { modes } from '../ui/page-modes.js';
-import * as dom from '../ui/dom.js';
-import * as find from '../ui/find/palette.js';
-import { fitOrbitSizes, installLayout, layoutOrbits } from '../ui/layout/orbits.js';
-import { confirmed } from '../ui/dialogs/confirm.js';
-import * as placeholder from '../ui/dialogs/placeholder.js';
+import { store } from '../state/page-store.js';
+import { installDrag } from '../ui/drag/drag.js';
 import { installEditor } from '../ui/editor/index.js';
-import { editorError } from '../ui/editor/kit.js';
-import { openEditorAt, openEditorPage } from '../ui/editor/page.js';
-import * as quickAdd from '../ui/editor/quick-add.js';
-import { exportMap, showSunList } from '../ui/editor/screens.js';
-import * as menuWorkspaces from '../ui/menu/workspaces.js';
-import { loadTeamMap, team } from '../ui/team-map.js';
-import * as packs from '../ui/editor/tools/packs.js';
+import { exportMap } from '../ui/editor/screens.js';
 import { hooks } from '../ui/hooks.js';
-import * as menu from '../ui/menu/menu.js';
-import { noticeArea, showOpenAllNotice } from '../ui/notices/area.js';
-import * as backupNotice from '../ui/notices/backup.js';
-import { installRoutineOffers, offerDueRoutines } from '../ui/notices/routine-offer.js';
-import { checkTeamUpdates } from '../ui/notices/team-updates.js';
-import * as dragUi from '../ui/drag/drag.js';
 import { installKeys } from '../ui/keys/keys.js';
+import { installLayout } from '../ui/layout/orbits.js';
+import * as menu from '../ui/menu/menu.js';
+import { installRoutineOffers } from '../ui/notices/routine-offer.js';
+import { setVersion } from '../ui/page.js';
+import { modes } from '../ui/page-modes.js';
 import { installClicks } from '../ui/views/clicks.js';
-import * as favorites from '../ui/views/favorites.js';
-import { quickBar, refreshQuickBar } from '../ui/views/galaxy.js';
-import * as open from '../ui/views/open.js';
-import { destinationNode, siteIcon } from '../ui/views/nodes.js';
+import { refreshQuickBar } from '../ui/views/galaxy.js';
 import { render } from '../ui/views/render.js';
-import * as fileIo from '../services/file-io.js';
-import * as linkCheck from '../services/link-check.js';
-import * as opener from '../services/opener.js';
-import * as rdpLaunch from '../services/rdp-launch.js';
 import * as schedule from '../services/schedule.js';
-import * as sources from '../services/sources.js';
 
+setVersion(APP_VERSION);
 
-publishBridge({
-  version: APP_VERSION,
-  core: Object.freeze({ ...templates, ...destination, ...search, ...rdp, ...schema, ...mapOps, ...bookmarks, ...words }),
-  store,
-  modes,
-  state: Object.freeze({ storage, workspaces, prefs, history, backup }),
-  services: Object.freeze({ sources, opener, rdpLaunch, linkCheck, fileIo, schedule }),
-});
 // Calls lower screen modules make into higher ones.
 hooks.render = render;
 hooks.refreshQuickBar = refreshQuickBar;
@@ -71,54 +32,14 @@ hooks.showMenuPanel = menu.showMenuPanel;
 hooks.exportMap = exportMap;
 installEditor();
 
-// What the removed old scripts defined, for the old scripts still loaded and
-// the page checks that call them by name: render.js and palette.js (phase
-// 5); menu.js, variables.js, sharing.js, and favorites.js (phase 6a).
-publishPageGlobals({
-  element: dom.element, counted: dom.counted, tagPath: dom.tagPath, tagChips: dom.tagChips,
-  descriptionNode: dom.descriptionNode, siteIcon, destinationNode, quickBar, render, layoutOrbits, fitOrbitSizes,
-  addressText: search.addressText,
-  /** @param {string} query */
-  findMatches: query => search.findMatches(groups, query),
-  openPalette: find.openPalette, closePalette: find.closePalette, paletteOpened: find.paletteOpened,
-  paletteClosed: find.paletteClosed, handlePaletteKey: find.handlePaletteKey, handlePaletteShortcut: find.handlePaletteShortcut,
-  openMenu: menu.openMenu, closeMenu: menu.closeMenu, menuHidden: menu.menuHidden, showMenuPanel: menu.showMenuPanel,
-  askForVariables: placeholder.askForVariables, variableFormOpened: placeholder.variableFormOpened,
-  variableFormClosed: placeholder.variableFormClosed, closeVariableDialog: placeholder.closeVariableDialog,
-  typedAddress: quickAdd.typedAddress, showQuickAdd: quickAdd.showQuickAdd,
-  shareRoutine: packs.shareRoutine, shareFavorites: packs.shareFavorites, showPackImport: packs.showPackImport,
-  checkTeamUpdates, noticeArea, showOpenAllNotice, offerDueRoutines,
-  noteBackupMade: backupNotice.noteBackupMade, backupDue: backupNotice.backupDue, showBackupReminder: backupNotice.showBackupReminder,
-  backupReminder: backupNotice.backupReminder,
-  isFavorite: favorites.isFavorite, setFavorite: favorites.setFavorite, favoriteItems: favorites.favoriteItems,
-  noteOpened: favorites.noteOpened, recentItems: favorites.recentItems,
-  openDestination: open.openDestination, openLinks: open.openLinks, openAll: open.openAll,
-  openAllFavorites: open.openAllFavorites, routineItems: open.routineItems, runRoutine: open.runRoutine, confirmed,
-  /** @param {string} key */
-  pathsForKey: key => destination.pathsForKey(groups, key),
-  /** @param {number[]} path */
-  itemAt: path => destination.itemAt(groups, path),
-  // editor.js, editor-page.js, team.js, workspaces.js (phase 6b), for app.js and drag.js.
-  editorError, showSunList, openEditorPage, openEditorAt, exportMap, loadTeamMap,
-  workspaceKey: menuWorkspaces.workspaceKey, updateWorkspaceSwitch: menuWorkspaces.updateWorkspaceSwitch,
-  switchWorkspace: menuWorkspaces.switchWorkspace, loadWorkspaces: workspaces.loadWorkspaces,
-  // drag.js and keys.js (phase 7), for app.js's mode subscriber and the page checks.
-  orbitModes: modes, gestureEnded: dragUi.gestureEnded, showEditMode: dragUi.showEditMode,
-  setEditMode: dragUi.setEditMode, cancelDrag: dragUi.cancelDrag, updateEditBar: dragUi.updateEditBar,
-  moveMapItem: mapOps.moveMapItem,
-  // Read by tests/data_compat_check.py.
-  loadVariables: prefs.readVariables, readOffered: prefs.readOffered, loadRecent: prefs.readRecent, clearRecent: prefs.clearRecent,
-  readBackupState: backup.readBackupState,
-  readStoredSet: prefs.readStoredSet, writeStoredSet: prefs.writeStoredSet, hiddenTeamSuns: prefs.hiddenTeamSuns,
-});
-// State the old scripts still read by name, kept in one place: the team map
-// and the active workspace (the store's).
-Object.defineProperty(window, 'teamGroups', { get: () => team.groups, configurable: true });
-Object.defineProperty(window, 'activeWorkspace', { get: () => activeWorkspace(), configurable: true });
-// Listeners the moved code installed when its script loaded.
+// Listeners that don't need the page's elements, in 2.2.1's order.
 installLayout();
 installClicks();
 installRoutineOffers();
-dragUi.installDrag();
+installDrag();
 installKeys();
+
 if (ORBIT_TEST) installTestHook(store, { schedule, modes });
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+else start();

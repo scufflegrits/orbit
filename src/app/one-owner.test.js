@@ -92,7 +92,7 @@ export function problemsIn(name, text) {
     for (const [what, pattern] of RULES) {
       if (pattern.test(line)) problems.push(`${name}:${index + 1}: ${what}: ${line.trim()}`);
     }
-    if (/menuOverlay\.hidden/.test(line) && !(name === 'app.js' && /^\s*menuOverlay\.hidden = !menu\(next\);$/.test(line))) {
+    if (/menuOverlay\.hidden/.test(line) && !(name === 'src/app/start.js' && /^\s*page\.menuOverlay\.hidden = !menu\(next\);$/.test(line))) {
       problems.push(`${name}:${index + 1}: menuOverlay.hidden outside the mode subscriber: ${line.trim()}`);
     }
   });
@@ -100,14 +100,14 @@ export function problemsIn(name, text) {
 }
 
 test('one owner: no old flag, no menuOverlay.hidden outside the subscriber, no controller used as a test', () => {
-  assert.ok(OLD.includes('app.js'), `read the script list from tests/helpers.py (${OLD})`);
+  assert.deepEqual(OLD, [], 'no old classic scripts remain (phase 8)');
   const problems = FILES.flatMap(path => problemsIn(relative(ROOT, path), readFileSync(path, 'utf8')));
   assert.deepEqual(problems, []);
 });
 
 test('the subscriber is the one place menuOverlay.hidden is set', () => {
-  const app = codeOnly(readFileSync(join(ROOT, 'app.js'), 'utf8'));
-  assert.equal(app.match(/menuOverlay\.hidden =/g)?.length, 1);
+  const start = codeOnly(readFileSync(join(ROOT, 'src/app/start.js'), 'utf8'));
+  assert.equal(start.match(/menuOverlay\.hidden =/g)?.length, 1);
 });
 
 test('the check catches each kind of second owner', () => {

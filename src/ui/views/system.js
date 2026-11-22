@@ -6,6 +6,7 @@ import { SYSTEM_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
 import { modes } from '../page-modes.js';
 import { openAll } from './open.js';
 import { linkNode, orbitLines, overflowPlanetNode, planetNode } from './nodes.js';
+import { app, findQuery, groups, quickFind, rdpLaunchMode, setFindQuery, settingsTrigger, topbarSearch } from '../page.js';
 
 /**
  * In a System: open a planet together with all of its moons.

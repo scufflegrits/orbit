@@ -1,3 +1,4 @@
+import { app, groups, showSiteIcons } from '../page.js';
 // Sizing and placing the orbits (2.2.1 render.js): one circle size per level
 // shared across the map, label shrinking, the moon fan around a planet, the
 // Galaxy's extra top room, and the System note's offset. Moved in rewrite

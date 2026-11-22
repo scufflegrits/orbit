@@ -6,6 +6,7 @@ import { confirmed } from '../../dialogs/confirm.js';
 import { counted, element } from '../../dom.js';
 import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorField, editorHeader } from '../kit.js';
 import { nav } from '../nav.js';
+import { groups, menuContent, rdpPresets } from '../../page.js';
 
 /** @type {{display: [string, string, string[]][], toggles: [string, string, string][]}} */
 const PRESET_CHOICES = {
