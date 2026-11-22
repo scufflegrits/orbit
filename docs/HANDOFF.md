@@ -89,7 +89,7 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 ## Tests
 
-Local tests use Python Playwright with its Chromium. Each runner checks file mode and server mode.
+Local tests use Python Playwright with its Chromium. Each runner checks file mode and server mode. **`scripts/test-local.sh` runs every check below** (about ten minutes; logs in `.artifacts/local/`), and `scripts/edge/run.sh` runs the browser suites in Edge on the test VM (see "Windows 11 test VM").
 
 | Runner | Covers | Last local result |
 | --- | --- | --- |
@@ -120,35 +120,30 @@ When a defect or flake is found, fix or add the test in the same change, and mut
 
 ## Windows 11 test VM
 
-`win11-lab-test` at `10.31.31.238`, account `sysadmin`, Edge 157, Windows PowerShell 5.1. Disposable; the user gave full control. Remote Desktop was enabled at the user's request (2026-11-19) and is left on, so the VM no longer matches its baseline snapshot `s04`. Restoring a snapshot needs hypervisor access.
+`win11-lab-test` at `10.31.31.238`, account `sysadmin`, Edge 158, Windows PowerShell 5.1. Disposable; the user gave full control. Remote Desktop was enabled at the user's request (2026-11-19) and is left on, so the VM no longer matches its baseline snapshot `s04`. Restoring a snapshot needs hypervisor access.
 
-SSH with the key (`-F /dev/null` works around a permission error in the local SSH config). The verified host key is in `/tmp/orbit-win11-known_hosts`; if that file is gone, verify the fingerprint before accepting a new key.
+SSH uses the key, never the password. The verified host key is in `~/.ssh/orbit-win11-known_hosts`; if that file is gone, check the VM's fingerprint before saving a new one (the scripts print how). Edge's debugging port is reached only through an SSH tunnel to the VM's loopback, never on a public interface.
 
-```sh
-ssh -F /dev/null -i /home/sysadmin/.ssh/id_ed25519 -o BatchMode=yes \
-  -o StrictHostKeyChecking=yes \
-  -o UserKnownHostsFile=/tmp/orbit-win11-known_hosts \
-  sysadmin@10.31.31.238 whoami
-```
+**Scripts** (in `scripts/edge/`; settings and defaults at the top of `env.sh`, overridable with `ORBIT_VM`, `ORBIT_SSH_KEY`, `ORBIT_KNOWN_HOSTS`, `ORBIT_PYTHON`). Each one leaves the VM as it was found, also when it fails, and prints what is left (`cleanup.ps1`). Logs go to `.artifacts/edge/`.
 
-**Headless Edge run:**
+| Script | What it does |
+| --- | --- |
+| `scripts/edge/run.sh` | The browser suites (drag, features, sizes, pending, services, compat) in headless Edge, file and server mode. `--only features,drag`, `--mode file`, `--check f25 --repeat 3` (one features check, repeated), `--visible` (a normal window in the user's Remote Desktop session). About ten minutes for everything. |
+| `scripts/edge/windows-checks.sh` | Windows helper checks B01, B02, B07 against `windows/` at this commit. Refuses to start if the VM already has an `orbit-rdp` key or `%LOCALAPPDATA%\Orbit`. |
+| `scripts/edge/open-all-check.sh start` / `observe` / `stop` | The Open-all hand check: visible Edge with a fresh profile on a planet with two moons; the user confirms one tab plus two reported blocked, then all three after allowing pop-ups. |
+| `scripts/edge/zip-check.sh ZIP` | A release zip, extracted, from file and through its own `serve.py`, in Chromium here and Edge on the VM (`tests/release_zip_check.py`). |
 
-1. Build a clean archive of tracked files only (`git archive --format=zip HEAD`) and write any fixture the runner needs (`--write-fixture DIR`).
-2. Copy them to the guest and expand to a test folder such as `C:\orbit-drag-test`, overwriting `links.json` and `links-data.js` with the fixture.
-3. Start Edge over SSH with `-L 127.0.0.1:9333:127.0.0.1:9333`: `msedge.exe --headless=new --remote-debugging-port=9333 --user-data-dir=C:\orbit-drag-profile about:blank` (add `--window-size=1920,1080` for sizing). Edge is at `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
-4. Run the runner with `--cdp http://127.0.0.1:9333 --url file:///C:/<folder>/index.html`.
-5. For server mode, serve the fixture from this host on loopback, add `-R 127.0.0.1:PORT:127.0.0.1:PORT` (8771–8775 have been used), and pass `--url http://127.0.0.1:PORT/index.html`.
-6. Clean up: `Stop-Process` Edge, wait a few seconds for the profile to unlock, then delete the profile and test folders.
+How the runs work, for changing the scripts:
 
-**Visible-window run:** the user signs in over Remote Desktop and leaves the session open (`query user` shows it). SSH cannot open windows on that desktop, so start Edge (same flags, no `--headless`) through a one-off scheduled task whose principal uses `-LogonType Interactive`, then tunnel 9333 as above. Screen captures from such a task come back white; use Playwright screenshots and ask the user what they see.
+- Fixtures come from each runner's `--write-fixture DIR`; they are copied to `C:\orbit-<suite>-test`. Server mode serves them from this machine on loopback (ports 8772–8779) through `-R` tunnels; the features site and team server is `scripts/edge/serve_features.py` (8774, 8775).
+- Headless Edge is started over SSH with `-L 127.0.0.1:9333:127.0.0.1:9333`. For a visible window, the user signs in over Remote Desktop and leaves the session open (`query user` shows it); SSH can't open windows on that desktop, so `interactive.ps1` starts Edge through a one-off scheduled task with `-LogonType Interactive`. Screen captures from such a task come back white; use Playwright screenshots and ask the user what they see.
+- The runners then take `--cdp http://127.0.0.1:9333 --url file:///C:/<folder>/index.html` (or the server URL).
 
 Tips:
 
-- Run PowerShell as copied `.ps1` files; inline PowerShell loses its quoting over SSH.
+- Run PowerShell as copied `.ps1` files (`run_ps` in `env.sh`); inline PowerShell loses its quoting over SSH.
 - Windows Edge has a 15 px scrollbar, so compare positions against `document.documentElement.clientWidth`.
 - When killing local helpers, use `pgrep`/`pkill` with a `[x]`-style bracket pattern so the command doesn't match its own shell.
-
-Windows-only checks B01, B02 (protocol install and re-install), and B07 (host-only and profile launches through `mstsc.exe`) passed in a PowerShell 5.1 script on the guest. That script refuses to start if an `orbit-rdp` key or `%LOCALAPPDATA%\Orbit` already exists, and it removes both afterwards.
 
 ## Remote Desktop notes
 
@@ -158,4 +153,4 @@ Windows-only checks B01, B02 (protocol install and re-install), and B07 (host-on
 
 ## Open follow-ups
 
-None blocking. Batch 3 (2.2.0) passed in headless Edge in both modes but has not had a visible-window Edge pass; earlier batches have. No deployment or hosting has been done.
+None. Every feature check, including batch 3 (2.2.0), has passed in a visible Edge window (3.0.0, 2026-11-22). No deployment or hosting has been done.

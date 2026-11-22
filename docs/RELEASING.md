@@ -6,7 +6,7 @@ These steps release a new version of Orbit: they set the version, test it, tag i
 
 - **Git**, to get the project, tag the release, and build the zip.
 - **Node**, to rebuild `orbit.js` after changing the version (`npm install` once).
-- **Python 3 with Playwright**, to run the tests, and to check the zip's server mode.
+- **Python 3 with Playwright**, to run the tests, and to check the zip's server mode. The scripts use `ORBIT_PYTHON`, else `~/.venv/bin/python`, else `python3`.
 - The project cloned from GitHub:
 
   ```sh
@@ -46,9 +46,9 @@ Choose the version: the last number for fixes only (3.0.0 → 3.0.1), the middle
 
 A release runs every test, not only the ones for the latest change (see `docs/HANDOFF.md`, "Tests", for each runner):
 
-- `npm run check`, `npm run check:layers`, `npm run check:bundle`, and `npm run test:unit`.
-- Every browser runner in `tests/`, in file and server mode, at the counts in `docs/HANDOFF.md`.
-- Edge on the Windows test VM (`docs/HANDOFF.md`, "Windows 11 test VM").
+- `scripts/test-local.sh`: types, layers, bundle, node tests, and every browser runner in `tests/` in file and server mode. Compare the counts with `docs/HANDOFF.md`.
+- `scripts/edge/run.sh`: the browser suites in Edge on the Windows test VM (`docs/HANDOFF.md`, "Windows 11 test VM").
+- If `windows/` changed: `scripts/edge/windows-checks.sh`. If opening links changed: the Open-all hand check, `scripts/edge/open-all-check.sh`.
 
 Fix anything that fails before going on, and record the results in `docs/TEST_MATRIX.md`.
 
@@ -90,6 +90,8 @@ git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Ver
 The zip is written to an `orbit-dist` folder beside the project, so it never ends up inside the repository. If the command says the tag doesn't exist, step 3 wasn't done. An existing zip of the same version is overwritten without asking, so don't reuse a version number for a different build.
 
 ## 5. Check the zip
+
+`scripts/edge/zip-check.sh ../orbit-dist/orbit-<version>.zip` does items 1–5 below in Chromium and in Edge on the test VM, and deletes what it extracted. Without the VM, do them by hand:
 
 1. **List its contents.** Run `unzip -l ../orbit-dist/orbit-<version>.zip`. In PowerShell, open the zip in File Explorer instead. You should see one `orbit-<version>/` folder holding the files in the table above and nothing else.
 2. **Extract it to a fresh folder** outside the project, such as your Downloads folder.

@@ -1,0 +1,51 @@
+"""Check an extracted release zip in a browser (docs/RELEASING.md, step 5).
+
+    python tests/release_zip_check.py --version 3.0.1 --url file:///path/orbit-3.0.1/index.html
+    python tests/release_zip_check.py --version 3.0.1 --url http://127.0.0.1:8000/index.html --cdp http://127.0.0.1:9333
+
+The page loads with the bundled sample map (9 suns, 106 links), Edit mode switches on,
+About shows the version, there are no page errors, and the release defines no test hook.
+scripts/edge/zip-check.sh runs it in Chromium here and in Edge on the test VM.
+"""
+import argparse
+
+from playwright.sync_api import sync_playwright
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--url", required=True, help="the extracted zip's index.html, as a file:// or http:// URL")
+    parser.add_argument("--version", required=True, help="the version About should show")
+    parser.add_argument("--cdp", help="drive a remote browser over the Chrome DevTools Protocol")
+    args = parser.parse_args()
+    with sync_playwright() as p:
+        if args.cdp:
+            browser = p.chromium.connect_over_cdp(args.cdp)
+            context = browser.contexts[0] if browser.contexts else browser.new_context()
+        else:
+            browser = p.chromium.launch()
+            context = browser.new_context()
+        page = context.new_page()
+        errors = []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(args.url, wait_until="load")
+        page.locator(".home-hub").first.wait_for()
+        count = page.locator("#link-count").inner_text()
+        assert page.locator(".home-hub").count() == 9 and "9 SUNS" in count and "106 LINKS" in count, count
+        page.locator("#edit-toggle").click()
+        assert page.locator("#edit-toggle").get_attribute("aria-pressed") == "true", "Edit mode switches on"
+        page.locator("#edit-done").click()
+        page.locator("#settings-trigger").click()
+        page.locator('[data-menu-panel="About"]').click()
+        about = page.locator("#menu-content").inner_text()
+        assert args.version in about, f"About shows {args.version}: {about}"
+        assert page.evaluate("typeof window.OrbitTest") == "undefined", "the release has no test hook"
+        assert not errors, errors
+        print(f"PASS release zip: 9 suns, 106 links, Edit mode, About shows {args.version}, no test hook ({args.url})")
+        page.close()
+        if not args.cdp:
+            browser.close()
+
+
+if __name__ == "__main__":
+    main()
