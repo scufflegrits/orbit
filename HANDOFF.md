@@ -10,10 +10,11 @@ All released work is on `main`, with no failing or pending test. The 3.0.0 rewri
 
 **Decided by the user (2026-11-21):** phases 4 and 4b approved; Checkpoint B: Continue; delegation stays off; the phase 3 team-index correction stands; proceed through the remaining phases without waiting, logging what needs the user.
 
+**Done with the user (2026-11-22):** the visible-window Open-all check on 3.0.0 passed (one tab, the rest reported blocked; after allowing pop-ups, all three open).
+
 **Waiting for the user:**
-1. **The visible-window Open-all check** (phase 9): sign in to the VM over Remote Desktop; Open all on a planet with moons opens one tab and reports the rest blocked; after "Always allow pop-ups", all open. Done for phase 4 on 2026-11-21; the plan repeats it for the release.
-2. **Approval to merge `rewrite` into `main`**, push, tag `v3.0.0`, and delete the branch (REWRITE_PLAN.md, phase 9).
-3. **A broken commit on `rewrite`, pushed:** `ceafb8c` (phase 5) includes the deletion of `menu.js`, `variables.js`, `sharing.js`, and `favorites.js` while its `index.html` still loads them, so the app doesn't run at that one commit; `90eab6e` (phase 6a) completes the move. Fixing the history needs a force-push of `rewrite` (or a squash when merging); say which you prefer.
+1. **Approval to merge `rewrite` into `main`**, push, tag `v3.0.0`, and delete the branch (REWRITE_PLAN.md, phase 9).
+2. **A broken commit on `rewrite`, pushed:** `ceafb8c` (phase 5) includes the deletion of `menu.js`, `variables.js`, `sharing.js`, and `favorites.js` while its `index.html` still loads them, so the app doesn't run at that one commit; `90eab6e` (phase 6a) completes the move. Fixing the history needs a force-push of `rewrite` (or a squash when merging); say which you prefer.
 
 | Release | Date | What it added | Plan |
 | --- | --- | --- | --- |
