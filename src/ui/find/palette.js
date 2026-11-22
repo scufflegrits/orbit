@@ -1,16 +1,32 @@
-// Command palette (Ctrl+K or Cmd+K): search the whole map and run commands
-// without leaving the keyboard. Loaded as a classic script after drag.js and
-// before keys.js. Uses shared state and helpers from the other scripts only
-// when called.
+// The command palette (Ctrl+K or Cmd+K; 2.2.1 palette.js): search the whole
+// map and run commands without leaving the keyboard. Moved in rewrite phase
+// 5. Whether it is open belongs to the mode store; app.js's mode subscriber
+// calls paletteOpened() and paletteClosed().
+import { findMatches } from '../../core/search.js';
+import { counted, element, tagChips } from '../dom.js';
+import { modes } from '../page-modes.js';
+import { render } from '../views/render.js';
 
-// The palette's controller (DOM nodes, entries, the active row, the element to
-// refocus), or null. Whether the palette is open belongs to
-// src/ui/mode-store.js (rewrite phase 4b), never to this.
-let palette = null;
+/**
+ * @typedef {{kind: string, label: string, detail?: string, match?: any, run: () => void}} PaletteEntry
+ * @typedef {{overlay: HTMLElement, input: HTMLInputElement, list: HTMLElement, status: HTMLElement,
+ *   opener: HTMLElement | null, entries: PaletteEntry[], active: number}} PaletteController
+ */
+
+/**
+ * The palette's controller (DOM nodes, entries, the active row, the element
+ * to refocus). Set exactly while the palette is open; whether it is open is
+ * always asked of the mode store, never read from this.
+ * @type {PaletteController}
+ */
+let palette = /** @type {any} */ (null);
+/** The element to refocus when the palette closes, kept from openPalette() until it is built. */
+/** @type {HTMLElement | null} */
+let paletteOpener = null;
 
 function paletteCommands() {
   return [
-    { label: inEditMode() ? 'Turn off Edit mode' : 'Turn on Edit mode', run: () => setEditMode(!inEditMode()) },
+    { label: modes.inEditMode() ? 'Turn off Edit mode' : 'Turn on Edit mode', run: () => setEditMode(!modes.inEditMode()) },
     { label: 'Open Settings', run: () => { openMenu(); showMenuPanel('Settings'); } },
     { label: 'Edit links', run: () => { openMenu(); openEditorPage(); } },
     { label: 'Help', run: () => { openMenu(); showMenuPanel('Help'); } },
@@ -18,9 +34,9 @@ function paletteCommands() {
       run: () => setGalaxyView(galaxyView === 'list' ? 'orbits' : 'list') },
     { label: 'Return to Galaxy', run: () => { location.hash = ''; } },
     { label: 'Clear recent links', run: () => { clearRecent(); render(); } },
-    ...(favoriteItems().length > 1 && !inEditMode() ? [{ label: 'Open all favorites', run: openAllFavorites }] : []),
+    ...(favoriteItems().length > 1 && !modes.inEditMode() ? [{ label: 'Open all favorites', run: openAllFavorites }] : []),
     ...routines.map((routine, index) => ({ label: `Run routine: ${routine.name}`,
-      run: () => inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
+      run: () => modes.inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
     { label: 'Edit routines', run: () => { openMenu(); openEditorPage(); showRoutines(); } },
     { label: 'Add a link', run: () => showQuickAdd('') },
     ...loadWorkspaces().filter(item => item.id !== activeWorkspace).map(item => ({
@@ -28,50 +44,55 @@ function paletteCommands() {
   ];
 }
 
-function paletteEntries(query) {
-  const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-  const commands = paletteCommands().filter(command =>
-    words.every(word => command.label.toLocaleLowerCase().includes(word)));
-  const matches = query.trim() ? findMatches(query).slice(0, 40) : [];
-  const entries = commands.map(command => ({ kind: 'Command', label: command.label, run: command.run }));
-  const address = typedAddress(query);
-  if (address) entries.unshift({ kind: 'Command', label: `Add ${address}`, run: () => showQuickAdd(address) });
-  for (const match of matches) {
-    entries.push({ kind: match.kind, label: match.name, detail: match.why || match.path, match, run: () => runMatch(match) });
-    // A planet with moons can also be opened together with them.
-    if (match.kind === 'Planet' && !inEditMode()) {
-      const planet = match.destination;
-      if (planet.moons.length) {
-        entries.push({ kind: 'Command', label: `Open all: ${planet.name} + ${counted(planet.moons.length, 'moon')}`,
-          detail: match.path, run: () => openAll(...match.indices) });
-      }
-    }
-  }
-  return entries;
-}
-
+/** @param {any} match */
 function runMatch(match) {
   if (match.id) {
     location.hash = `group/${encodeURIComponent(match.id)}`;
-  } else if (orbitModes.linkOpensEditor('palette')) {
+  } else if (modes.linkOpensEditor('palette')) {
     openEditorAt(match.indices);
   } else {
     openDestination(match.destination);
   }
 }
 
-// The element to refocus when the palette closes, kept from openPalette()
-// until the subscriber builds the palette.
-let paletteOpener = null;
-
-function openPalette() {
-  paletteOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  // Refused while another overlay is open; also drops a pressed or dragged item.
-  orbitModes.send('openPalette');
+/**
+ * Commands whose words all appear, then up to 40 map matches (each planet
+ * with moons followed by its Open all command), with "Add <address>" first
+ * when the query is a web address.
+ * @param {string} query
+ * @returns {PaletteEntry[]}
+ */
+function paletteEntries(query) {
+  const words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const commands = paletteCommands().filter(command =>
+    words.every(word => command.label.toLocaleLowerCase().includes(word)));
+  const matches = query.trim() ? findMatches(groups, query).slice(0, 40) : [];
+  /** @type {PaletteEntry[]} */
+  const entries = commands.map(command => ({ kind: 'Command', label: command.label, run: command.run }));
+  const address = typedAddress(query);
+  if (address) entries.unshift({ kind: 'Command', label: `Add ${address}`, run: () => showQuickAdd(address) });
+  for (const match of /** @type {any[]} */ (matches)) {
+    entries.push({ kind: match.kind, label: match.name, detail: match.why || match.path, match, run: () => runMatch(match) });
+    // A planet with moons can also be opened together with them.
+    if (match.kind === 'Planet' && !modes.inEditMode()) {
+      const planet = match.destination;
+      if (planet.moons.length) {
+        entries.push({ kind: 'Command', label: `Open all: ${planet.name} + ${counted(planet.moons.length, 'moon')}`,
+          detail: match.path, run: () => openAll(match.indices[0], match.indices[1]) });
+      }
+    }
+  }
+  return entries;
 }
 
-// Called only by the mode subscriber, when the palette has opened.
-function paletteOpened() {
+export function openPalette() {
+  paletteOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  // Refused while another overlay is open; also drops a pressed or dragged item.
+  modes.send('openPalette');
+}
+
+/** Called only by the mode subscriber, when the palette has opened. */
+export function paletteOpened() {
   const opener = paletteOpener;
   paletteOpener = null;
   const overlay = element('div', 'palette-overlay');
@@ -105,15 +126,15 @@ function paletteOpened() {
   input.focus();
 }
 
-function closePalette() {
-  if (!orbitModes.overlayIs('palette')) return;
-  orbitModes.send('closeOverlay');
+export function closePalette() {
+  if (!modes.overlayIs('palette')) return;
+  modes.send('closeOverlay');
 }
 
-// Called only by the mode subscriber, when the palette has closed for any reason.
-function paletteClosed() {
+/** Called only by the mode subscriber, when the palette has closed for any reason. */
+export function paletteClosed() {
   const { overlay, opener } = palette;
-  palette = null;
+  palette = /** @type {any} */ (null);
   overlay.remove();
   if (opener && document.contains(opener)) opener.focus();
 }
@@ -141,6 +162,7 @@ function updatePalette() {
   setPaletteActive(0);
 }
 
+/** @param {number} index */
 function setPaletteActive(index) {
   const options = palette.list.children;
   if (!options.length) {
@@ -154,17 +176,22 @@ function setPaletteActive(index) {
   active.scrollIntoView({ block: 'nearest' });
 }
 
+/** @param {number} index */
 function runPaletteEntry(index) {
-  if (!orbitModes.overlayIs('palette')) return;
+  if (!modes.overlayIs('palette')) return;
   const entry = palette.entries[index];
   if (!entry) return;
-  orbitModes.send('runEntry');
+  modes.send('runEntry');
   entry.run();
 }
 
-// Keys while the palette is open. Returns true when the key was handled.
-function handlePaletteKey(event) {
-  if (!orbitModes.overlayIs('palette')) return false;
+/**
+ * Keys while the palette is open. Returns true when the key was handled.
+ * @param {KeyboardEvent} event
+ */
+export function handlePaletteKey(event) {
+  if (!modes.overlayIs('palette')) return false;
+  /** @type {Record<string, number>} */
   const moves = { ArrowDown: 1, ArrowUp: -1, PageDown: 8, PageUp: -8 };
   if (event.key === 'Escape') {
     event.preventDefault();
@@ -190,10 +217,13 @@ function handlePaletteKey(event) {
   return true;
 }
 
-// Ctrl+K or Cmd+K opens the palette unless the menu is open.
-function handlePaletteShortcut(event) {
+/**
+ * Ctrl+K or Cmd+K opens the palette unless the menu is open or Orbit failed to load.
+ * @param {KeyboardEvent} event
+ */
+export function handlePaletteShortcut(event) {
   if (event.key.toLowerCase() !== 'k' || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return false;
-  if (!orbitModes.keyAllowed('commandK')) return false;
+  if (!modes.keyAllowed('commandK')) return false;
   event.preventDefault();
   openPalette();
   return true;

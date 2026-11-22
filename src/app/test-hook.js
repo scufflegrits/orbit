@@ -13,6 +13,9 @@ import { validDestination } from '../core/schema.js';
 import * as history from '../state/history.js';
 import { KEYS } from '../state/storage.js';
 import { workspaceKey } from '../state/workspaces.js';
+import { openPalette } from '../ui/find/palette.js';
+import { destinationNode, siteIcon } from '../ui/views/nodes.js';
+import { render } from '../ui/views/render.js';
 
 const core = { destinationKey, moveMapItem, validDestination };
 

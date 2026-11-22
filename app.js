@@ -15,9 +15,6 @@ let routines = [];
 // Counts every change to the in-memory map; a drag or drag Undo made against
 // an older revision is refused.
 let mapRevision = 0;
-const GALAXY_PLANETS = 5;
-const SYSTEM_PLANETS = 8;
-const VISIBLE_MOONS = 6;
 // Storage keys of the active workspace; Main keeps the original keys.
 let MAP_STORAGE_KEY = workspaceKey('orbit:map:v1');
 let UNDO_STORAGE_KEY = workspaceKey('orbit:undo-removal:v1');

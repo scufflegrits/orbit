@@ -1149,18 +1149,28 @@ Phase 4b closed 2026-11-21.
 
 ### Checkpoint B: after phase 4b (go/no-go)
 
+**Decided 2026-11-21: Continue.** The Lead reported health (every suite in Chromium and Edge, the differential and data-compatibility checks), cost (phases 0–4b in about two days; phases 5–7 are most of the code by volume), value (no visible change yet, by design; one owner for core logic, saved data, services, and modes), performance (speed unchanged; scripts +9.6%, falling as old scripts go), and delegation (off), and recommended Continue. The user wrote "continue".
+
 Same questions and decisions as Checkpoint A, before any screen code moves. By now the store, services, and mode ownership are all in place, so this is the last cheap point to stop. If the rewrite stops here, `main` stays as it is, and the branch is kept for reference.
 
 ### Phase 5: Views and finding
 
-- [ ] `ui/views/`:
-  - Galaxy, System, and list view
+- [x] `ui/views/`:
+  - Galaxy, System, and list view (`galaxy.js`, `system.js`, `nodes.js`, `render.js`)
   - the `data-kind`/`data-sun`/`data-planet`/`data-moon` attributes keep combined indices
-  - click tracking and Shift+click
-- [ ] `ui/layout/`: `fitOrbitSizes`, moon fan, Galaxy top room, System note offset
-- [ ] `ui/find/`: Quick find, the quick add card, and the palette, using `ui/modes.js` as wired in phase 4b
-- [ ] Remove `render.js` and `palette.js` from `index.html` and `APP_SCRIPTS`. The bridge re-exports `render`, `tagPath`, and `fitOrbitSizes` for the old scripts that still call them.
-- [ ] Done when: milestones 1–14 and 19 and sizing (OS01–OS06) pass with those scripts removed, in Chromium in both modes and in Edge (OS07 at 1920×1080)
+  - click tracking and Shift+click (`clicks.js`, moved from `favorites.js`)
+- [x] `ui/layout/`: `fitOrbitSizes`, moon fan, Galaxy top room, System note offset (`orbits.js`, with the `GALAXY_PLANETS`, `SYSTEM_PLANETS`, and `VISIBLE_MOONS` limits moved from `app.js`)
+- [x] `ui/find/`: Quick find's results (`results.js`) and the palette (`palette.js`), using the mode store as wired in phase 4b. The quick add card stays in `variables.js` with Quick add until phase 6a.
+- [x] Remove `render.js` and `palette.js` from `index.html` and `APP_SCRIPTS`. The bridge re-exports `render`, `tagPath`, and `fitOrbitSizes` for the old scripts that still call them. Done: `publishPageGlobals` in `legacy-bridge.js` puts `element`, `counted`, `tagPath`, `tagChips`, `descriptionNode`, `siteIcon`, `destinationNode`, `quickBar`, `render`, `layoutOrbits`, `fitOrbitSizes`, `addressText`, `findMatches`, and the palette's functions on the page.
+- Phase 5 notes:
+  - **Shared helpers** (`element`, `safeColor`, `tagPath`, `tagChips`, `descriptionNode`) are in `ui/dom.js`. The mode store the page uses is `ui/page-modes.js`, so screens import it directly.
+  - **What src/ui still reads from the old scripts** (the map and preferences in `app.js`, favorites, routines, the placeholder form, the editor's entry points) is declared, file by file, in `src/globals.d.ts`. Each declaration goes when its script moves; by phase 8 only the page data remains.
+  - **Listeners** the moved code installed when its script loaded (resize and font load for the layout, click tracking and Shift+click) are installed by `main.js`, in the same order relative to the old scripts' listeners as before.
+- [x] Done when: milestones 1–14 and 19 and sizing (OS01–OS06) pass with those scripts removed, in Chromium in both modes and in Edge (OS07 at 1920×1080)
+
+  Met 2026-11-21, with `render.js` and `palette.js` removed: 180 node tests; every suite in Chromium in both modes with the baseline counts (the full matrix, milestones 1–19, 39; drag 15 and 29; sizes 13; pending 21; features 53), plus mode rules 23, data compatibility, release smoke, behavior 22, and the services check; headless Edge 158 on the VM passed drag phase 2 (14 + 14), features (27 + 27), sizes (7 + 7, including OS07), pending (11 + 11), and the services pop-up checks (6 + 6) in file and server mode.
+
+Phase 5 closed 2026-11-21.
 
 ### Phase 6a: Menu, dialogs, and notices
 

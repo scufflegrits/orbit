@@ -16,8 +16,6 @@ interface Window {
 }
 
 // ---- Old classic-script globals (temporary) -------------------------------------
-declare var editMode: boolean;
-declare var drag: { state: 'pressed' | 'dragging' } | null;
 // A function declaration in a classic script; the test hook swaps it to capture downloads.
 declare var downloadJson: (data: unknown, filename?: string) => void;
 declare function exportMap(): void;
@@ -25,9 +23,53 @@ declare function showSunList(): void;
 declare function openEditorAt(indices: number[]): void;
 declare function setEditMode(on: boolean): void;
 declare function openMenu(): void;
-declare function openPalette(): void;
-declare function render(): void;
 declare function effectiveRdpProfile(item: any): string | null;
 declare function rdpLaunchUrl(item: any): string;
-declare function siteIcon(item: any): HTMLElement | null;
-declare function destinationNode(item: any, className: string, path?: number[]): HTMLElement;
+
+// What src/ui/ (views, find, layout; phase 5) still reads from the old scripts.
+// app.js
+declare const app: HTMLElement;
+declare const quickFind: HTMLInputElement;
+declare const settingsTrigger: HTMLElement;
+declare const topbarSearch: HTMLElement;
+declare let groups: any[];
+declare let routines: any[];
+declare let rdpPresets: any[];
+declare let findQuery: string;
+declare let galaxyView: 'orbits' | 'list';
+declare let showQuickBar: boolean;
+declare let showSiteIcons: boolean;
+declare let rdpLaunchMode: 'download' | 'client';
+declare function setFindQuery(text: string): void;
+declare function setGalaxyView(view: string): void;
+// drag.js
+declare const editToggle: HTMLElement;
+declare function updateEditBar(): void;
+// favorites.js
+declare function favoriteItems(): { path: number[], item: any }[];
+declare function recentItems(): { path: number[], item: any }[];
+declare function isFavorite(item: any, sun: any): boolean;
+declare function setFavorite(path: number[], on: boolean): void;
+declare function noteOpened(item: any): void;
+declare function clearRecent(): void;
+declare function openAll(sunIndex: number, planetIndex: number): unknown;
+declare function openAllFavorites(): unknown;
+declare function openDestination(item: any): unknown;
+// variables.js
+declare function askForVariables(item: any): void;
+declare function typedAddress(text: string): string | null;
+declare function quickAddResult(address: string): HTMLElement;
+declare function showQuickAdd(address?: string): void;
+// routines.js
+declare function routineItems(routine: any): { items: { path: number[], item: any }[], missing: number };
+declare function runRoutine(routine: any): unknown;
+declare function showRoutineEditor(index: number): void;
+declare function showRoutines(): void;
+// menu.js, editor-page.js
+declare function showMenuPanel(name: string): void;
+declare function openEditorPage(): void;
+// workspaces.js
+declare let activeWorkspace: string;
+declare function workspaceName(id?: string): string;
+declare function loadWorkspaces(): { id: string, name: string }[];
+declare function switchWorkspace(id: string): void;

@@ -15,7 +15,7 @@ ARTIFACTS = ROOT / ".artifacts"
 # Classic scripts loaded by index.html (besides links-data.js). Add new split files here.
 APP_SCRIPTS = ("rdp.js", "storage.js", "team.js", "favorites.js", "editor.js", "editor-page.js", "tools.js", "routines.js",
                "variables.js", "workspaces.js", "sharing.js", "presets.js", "menu.js",
-               "render.js", "drag.js", "palette.js", "keys.js", "app.js")
+               "drag.js", "keys.js", "app.js")
 # The bundle built from src/ (build.mjs). Fixtures get the test bundle under this name, so index.html
 # is the same file in tests and in release; the committed release bundle is checked by
 # `npm run check:bundle` and tests/release_smoke.py instead.

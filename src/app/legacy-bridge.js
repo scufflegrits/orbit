@@ -20,3 +20,16 @@
 export function publishBridge(api) {
   window.OrbitNext = Object.freeze({ ...api });
 }
+
+/**
+ * Put functions that moved out of an old script on the page as globals, for
+ * the old scripts still loaded that call them by name (phase 5 on: what
+ * render.js and palette.js defined). Each name goes when its last old caller
+ * moves; phase 8 removes the rest.
+ * @param {Record<string, unknown>} names
+ */
+export function publishPageGlobals(names) {
+  for (const [name, value] of Object.entries(names)) {
+    Object.defineProperty(window, name, { value, writable: true, configurable: true, enumerable: false });
+  }
+}
