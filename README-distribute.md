@@ -24,7 +24,7 @@ These steps make a `.zip` of Orbit that you can give to someone who does not use
 | `links.json`, `links-data.js` | The sample link map, and the generated copy used when `index.html` is opened directly |
 | `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates `links-data.js` (and `team-data.js` with `--team`) |
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
-| `README.md`, `RDP_SIGNING.md` | Instructions for the person using Orbit |
+| `README.md`, `RDP_SIGNING.md`, `CHANGELOG.md` | Instructions for the person using Orbit, and what changed in each version |
 
 Left out: `src/`, `build.mjs`, `package.json`, `package-lock.json`, `jsconfig.json`, `scripts/`, `tests/`, `HANDOFF.md`, `ROADMAP.md`, `DRAG_DROP_PLAN.md`, `FEATURES_PLAN.md`, `REFACTOR_PLAN.md`, `TEST_MATRIX.md`, `.gitignore`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped.
 
@@ -41,7 +41,7 @@ git log --oneline -1
 
 ## 2. Build the zip
 
-The version comes from `APP_VERSION` in `src/app/version.js`, and that is the version shown in Settings → About. To change it, edit that file, run `npm run build` (which rebuilds `orbit.js`), and commit both before a new release.
+The version comes from `APP_VERSION` in `src/app/version.js`, and that is the version shown in Settings → About. To change it, edit that file, run `npm run build` (which rebuilds `orbit.js`), add the new version's section at the top of `CHANGELOG.md`, and commit all three before a new release.
 
 **Linux or macOS:**
 
@@ -50,7 +50,7 @@ VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" HEAD -- \
   index.html styles.css links.json links-data.js orbit.js \
-  serve.py sync.py windows README.md RDP_SIGNING.md
+  serve.py sync.py windows README.md RDP_SIGNING.md CHANGELOG.md
 ```
 
 **Windows (PowerShell):**
@@ -60,7 +60,7 @@ $Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" HEAD -- `
   index.html styles.css links.json links-data.js orbit.js `
-  serve.py sync.py windows README.md RDP_SIGNING.md
+  serve.py sync.py windows README.md RDP_SIGNING.md CHANGELOG.md
 ```
 
 The zip is written to an `orbit-dist` folder beside the project, so it never ends up inside the repository.

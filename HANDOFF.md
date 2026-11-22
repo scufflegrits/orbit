@@ -10,14 +10,7 @@ All work is on `main`, with no failing or pending test. **3.0.0 (2026-11-22) is 
 
 **Waiting for the user:** nothing.
 
-| Release | Date | What it added | Plan |
-| --- | --- | --- | --- |
-| Milestones 1–19, backlog 1–9 | to 2026-11-17 | Galaxy and System views, editor, Remote Desktop links and Windows helper, keyboard navigation, sizing, drag-and-drop | [ROADMAP.md](ROADMAP.md), [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) |
-| 2.0.0 | 2026-11-19 | Recent links and favorites, open all, smarter Quick find, Ctrl/Cmd+K palette, bulk RDP settings, tags, link check, version history, duplicate finder, merge import, read-only team map, bookmark import, site icons, list view | [FEATURES_PLAN.md](FEATURES_PLAN.md) |
-| 2.1.0 | 2026-11-20 | Open all favorites, named routines, routine offers when Orbit opens | FEATURES_PLAN.md |
-| 2.2.0 | 2026-11-20 | Notes, `{placeholder}` links, quick add, workspaces, link packs, backup reminders, team map update notices, RDP presets | FEATURES_PLAN.md |
-| 2.2.1 | 2026-11-20 | Fix: Reset to file data in a workspace other than Main now keeps the file data after a reload (check F27) | TEST_MATRIX.md |
-| 3.0.0 | 2026-11-22 | The rewrite: ES modules in `src/` bundled into `orbit.js`, one store, strict type checks, node tests; no change on screen or in saved data | [REWRITE_PLAN.md](REWRITE_PLAN.md) |
+Release history, version by version: [CHANGELOG.md](CHANGELOG.md). Add a section there with each release (README-distribute step 2). The plan behind each release: [ROADMAP.md](ROADMAP.md) and [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) (milestones), [FEATURES_PLAN.md](FEATURES_PLAN.md) (2.0.0–2.2.0), [REWRITE_PLAN.md](REWRITE_PLAN.md) (3.0.0).
 
 Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and touchscreen dragging.
 
