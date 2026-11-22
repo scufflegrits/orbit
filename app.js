@@ -34,6 +34,8 @@ let showSiteIcons = readBooleanPreference('orbit:site-icons', false);
 let galaxyView = readGalaxyViewPreference();
 let seedData = null;
 let storageWarning = '';
+// Quick find's text. Whether Quick find is empty or filtering belongs to
+// src/ui/mode-store.js; setFindQuery() keeps the two together.
 let findQuery = '';
 let activeMapSource = 'bundled';
 document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
@@ -89,6 +91,33 @@ orbitStore.subscribe((state, kind) => {
   if (kind !== 'switch') render();
 });
 
+function setFindQuery(text) {
+  findQuery = text;
+  orbitModes.send(text ? 'type' : 'clearFind');
+}
+
+// The interaction modes (src/ui/mode-store.js) are owned by the store since
+// rewrite phase 4b. This is the one place that shows them: a held item is
+// tidied away, overlays are shown or removed, and Edit mode is shown,
+// exactly once per change.
+orbitModes.subscribe((next, previous, event) => {
+  const held = state => state.mode === 'pressed' || state.mode === 'dragging';
+  if (held(previous) && !held(next)) gestureEnded(previous.mode === 'dragging', event);
+  if (previous.overlay !== next.overlay) {
+    const menu = state => ['menu', 'menuPanel', 'menuEditor'].includes(state.overlay);
+    if (previous.overlay === 'palette') paletteClosed();
+    if (previous.overlay === 'placeholder') variableFormClosed();
+    if (menu(previous) !== menu(next)) {
+      menuOverlay.hidden = !menu(next);
+      if (!menu(next)) menuHidden();
+    }
+    if (next.overlay === 'palette') paletteOpened();
+    if (next.overlay === 'placeholder') variableFormOpened();
+  }
+  const editing = state => state.mode !== 'browsing';
+  if (editing(previous) !== editing(next)) showEditMode(editing(next));
+});
+
 function undoRemoval() {
   try {
     if (!orbitStore.undoRemoval()) return editorError('There is no removal to undo.');
@@ -109,6 +138,7 @@ async function init() {
     checkTeamUpdates();
     showBackupReminder();
   } catch (error) {
+    orbitModes.send('loadFailed');
     app.className = 'error-view';
     app.replaceChildren(element('h1', '', 'Could not load your links.'));
     app.append(element('p', '', 'Run `python3 sync.py`, then open index.html. You can also use `python3 serve.py` for automatic updates on refresh.'));
@@ -116,11 +146,12 @@ async function init() {
   }
 }
 
-window.addEventListener('hashchange', () => { cancelDrag(); closeMenu(); render(); });
+// A page change drops a held item and closes the menu, not the palette or placeholder form.
+window.addEventListener('hashchange', () => { orbitModes.send('pageChange'); render(); });
 document.querySelector('.brand').addEventListener('click', event => {
   event.preventDefault();
-  findQuery = '';
   quickFind.value = '';
+  setFindQuery('');
   if (location.hash && location.hash !== '#') location.hash = '';
   else render();
 });

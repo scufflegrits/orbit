@@ -4,13 +4,21 @@
 
 let menuOpener = null;
 
+// Whether the menu is open belongs to src/ui/mode-store.js (rewrite phase
+// 4b). These send events; app.js's mode subscriber shows or hides the
+// overlay and calls menuShown() or menuHidden().
 function closeMenu() {
-  if (menuOverlay.hidden) return;
+  if (!menuOpen()) return;
+  orbitModes.send('closeOverlay');
+}
+
+// Called only by the mode subscriber, when the menu has closed for any
+// reason (Close, the scrim, Escape, or a page change).
+function menuHidden() {
   menuOverlay.querySelector('.menu-sheet').classList.remove('editor-page-mode');
   menuOverlay.querySelector('.menu-top h2').textContent = 'Explore the menu';
   menuContent = menuRoot;
   editorTree = null;
-  menuOverlay.hidden = true;
   // Return focus to whatever opened the menu so keyboard users keep their place.
   const target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
   menuOpener = null;
@@ -18,16 +26,18 @@ function closeMenu() {
 }
 
 function openMenu() {
-  cancelDrag();
+  // Opening the menu also drops a pressed or dragged item.
+  orbitModes.send('openMenu');
+  if (!menuOpen()) return;
   menuOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   menuContent = menuRoot;
   menuContent.replaceChildren();
   for (const option of document.querySelectorAll('[data-menu-panel]')) option.classList.remove('active');
-  menuOverlay.hidden = false;
   document.querySelector('[data-menu-panel]').focus();
 }
 
 function showMenuPanel(name) {
+  orbitModes.send('choosePanel');
   menuContent.replaceChildren();
   for (const option of document.querySelectorAll('[data-menu-panel]')) {
     option.classList.toggle('active', option.dataset.menuPanel === name);

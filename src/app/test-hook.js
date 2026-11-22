@@ -21,9 +21,9 @@ const copy = value => (value === undefined ? value : JSON.parse(JSON.stringify(v
 
 /**
  * @param {ReturnType<typeof import('../state/store.js').createStore>} store
- * @param {{schedule: typeof import('../services/schedule.js')}} services
+ * @param {{schedule: typeof import('../services/schedule.js'), modes: ReturnType<typeof import('../ui/mode-store.js').createModeStore>}} parts
  */
-export function installTestHook(store, { schedule }) {
+export function installTestHook(store, { schedule, modes }) {
   window.OrbitTest = {
     /** The combined map (team suns first, as the page numbers them) and the state around it. */
     state() {
@@ -36,8 +36,9 @@ export function installTestHook(store, { schedule }) {
         workspace: state.workspace,
         source: state.source,
         warning: state.warning,
-        editMode,
-        drag: drag ? drag.state : null,
+        editMode: modes.inEditMode(),
+        drag: modes.holding() ? modes.state().mode : null,
+        modes: { ...modes.state() },
       };
     },
 

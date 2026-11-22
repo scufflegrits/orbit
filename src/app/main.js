@@ -19,6 +19,7 @@ import * as prefs from '../state/prefs.js';
 import * as storage from '../state/storage.js';
 import * as workspaces from '../state/workspaces.js';
 import { createStore } from '../state/store.js';
+import { createModeStore } from '../ui/mode-store.js';
 import * as fileIo from '../services/file-io.js';
 import * as linkCheck from '../services/link-check.js';
 import * as opener from '../services/opener.js';
@@ -28,12 +29,15 @@ import * as sources from '../services/sources.js';
 
 // Reads nothing yet: app.js (old) calls store.start() once the link data is loaded.
 const store = createStore();
+// The one owner of the interaction modes (phase 4b on); app.js subscribes to show them.
+const modes = createModeStore();
 
 publishBridge({
   version: APP_VERSION,
   core: Object.freeze({ ...templates, ...destination, ...search, ...rdp, ...schema, ...mapOps, ...bookmarks, ...words }),
   store,
+  modes,
   state: Object.freeze({ storage, workspaces, prefs, history, backup }),
   services: Object.freeze({ sources, opener, rdpLaunch, linkCheck, fileIo, schedule }),
 });
-if (ORBIT_TEST) installTestHook(store, { schedule });
+if (ORBIT_TEST) installTestHook(store, { schedule, modes });

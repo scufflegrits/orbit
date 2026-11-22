@@ -46,7 +46,7 @@ function dueRoutines(now = scheduleService().today()) { return scheduleService()
 // opened by itself.
 function offerDueRoutines() {
   document.querySelector('#routine-banner')?.remove();
-  if (editMode) return;
+  if (!orbitModes.routineOffersAllowed()) return;
   const due = dueRoutines();
   if (!due.length) return;
   const banner = element('section', 'routine-banner');

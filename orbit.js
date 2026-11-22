@@ -1092,6 +1092,141 @@ prompt for credentials:i:1\r
     return store2;
   }
 
+  // src/ui/modes.js
+  function initialModes({ view = "galaxy" } = {}) {
+    return Object.freeze({ overlay: "none", mode: "browsing", view, find: "empty" });
+  }
+  var inEditMode = (state) => state.mode !== "browsing", menuOpen = (state) => state.overlay === "menu" || state.overlay === "menuPanel" || state.overlay === "menuEditor", holding = (state) => state.mode === "pressed" || state.mode === "dragging";
+  function escapeTarget(state) {
+    return state.overlay !== "none" ? "overlay" : holding(state) ? "drag" : state.mode === "editIdle" ? "edit" : state.find === "filtering" ? "find" : state.view === "system" ? "view" : null;
+  }
+  function keyAllowed(state, key) {
+    return key === "escape" ? !0 : state.overlay === "placeholder" ? !1 : key === "commandK" ? !menuOpen(state) && state.view !== "error" : key === "slash" ? !menuOpen(state) : !0;
+  }
+  function linkOpensEditor(state, where) {
+    return inEditMode(state) && where !== "notice";
+  }
+  var routineOffersAllowed = (state) => !inEditMode(state);
+  function transition(state, event) {
+    let to = (changes) => {
+      let next = { ...state, ...changes };
+      return next.overlay === state.overlay && next.mode === state.mode && next.view === state.view && next.find === state.find ? state : Object.freeze(next);
+    }, dropHold = holding(state) ? { mode: (
+      /** @type {Mode} */
+      "editIdle"
+    ) } : {};
+    switch (event) {
+      case "openPalette":
+        return keyAllowed(state, "commandK") && state.overlay === "none" ? to({ overlay: "palette", ...dropHold }) : state;
+      case "openPlaceholder":
+        return state.overlay === "none" || state.overlay === "palette" ? to({ overlay: "placeholder", ...dropHold }) : state;
+      case "openMenu":
+        return state.overlay === "none" ? to({ overlay: "menu", ...dropHold }) : state;
+      case "openEditor":
+        return state.overlay === "placeholder" ? state : to({ overlay: "menuEditor", ...dropHold });
+      case "choosePanel":
+        return state.overlay === "menu" || state.overlay === "menuPanel" || state.overlay === "menuEditor" || state.overlay === "palette" ? to({ overlay: "menuPanel", ...dropHold }) : state;
+      case "backToPanels":
+        return state.overlay === "menuEditor" ? to({ overlay: "menuPanel" }) : state;
+      case "closeOverlay":
+        return to({ overlay: "none" });
+      case "runEntry":
+        return state.overlay === "palette" ? to({ overlay: "none" }) : state;
+      case "editOn":
+        return state.mode === "browsing" ? to({ mode: "editIdle" }) : state;
+      case "editOff":
+        return to({ mode: "browsing" });
+      case "press":
+        return state.mode === "editIdle" && state.overlay === "none" && state.view !== "error" ? to({ mode: "pressed" }) : state;
+      case "passThreshold":
+        return state.mode === "pressed" ? to({ mode: "dragging" }) : state;
+      case "release":
+      case "drop":
+      case "cancelDrag":
+      case "render":
+      case "switchWorkspace":
+        return holding(state) ? to({ mode: "editIdle" }) : state;
+      case "pageChange":
+        return to({ ...dropHold, ...menuOpen(state) ? { overlay: "none" } : {} });
+      case "openSystem":
+        return state.view === "galaxy" ? to({ view: "system" }) : state;
+      case "toGalaxy":
+        return state.view === "system" ? to({ view: "galaxy" }) : state;
+      case "loadFailed":
+        return to({ view: "error", overlay: "none", mode: "browsing" });
+      case "type":
+        return to({ find: "filtering", ...state.view === "system" ? { view: "galaxy" } : {} });
+      case "clearFind":
+        return to({ find: "empty" });
+      case "escape": {
+        let target = escapeTarget(state);
+        return target === "overlay" ? to({ overlay: "none" }) : target === "drag" ? to({ mode: "editIdle" }) : target === "edit" ? to({ mode: "browsing" }) : target === "find" ? to({ find: "empty" }) : target === "view" ? to({ view: "galaxy" }) : state;
+      }
+      default:
+        return state;
+    }
+  }
+
+  // src/ui/mode-store.js
+  function createModeStore(start) {
+    let state = initialModes(start), listeners = [], queue = [], reporting = !1;
+    return {
+      /** The current state (frozen). */
+      state: () => state,
+      /**
+       * Apply an event. Listeners run only when something changed. An event
+       * sent from inside a listener is applied at once, and reported after the
+       * current change has reached every listener, so each listener hears the
+       * changes in the order they happened.
+       * @param {ModeEvent} event
+       * @returns {boolean} Whether the state changed.
+       */
+      send(event) {
+        let previous = state, next = transition(state, event);
+        if (next === previous) return !1;
+        if (state = next, queue.push([next, previous, event]), !reporting) {
+          reporting = !0;
+          try {
+            for (; queue.length; ) {
+              let change = (
+                /** @type {[Modes, Modes, ModeEvent]} */
+                queue.shift()
+              );
+              for (let listener of [...listeners]) listener(...change);
+            }
+          } finally {
+            reporting = !1, queue.length = 0;
+          }
+        }
+        return !0;
+      },
+      /**
+       * @param {ModeListener} listener
+       * @returns {() => void} Unsubscribe.
+       */
+      subscribe(listener) {
+        return listeners.push(listener), () => {
+          let index = listeners.indexOf(listener);
+          index !== -1 && listeners.splice(index, 1);
+        };
+      },
+      // Queries; each reads the current state.
+      inEditMode: () => inEditMode(state),
+      menuOpen: () => menuOpen(state),
+      /** Pressing or dragging an item. */
+      holding: () => state.mode === "pressed" || state.mode === "dragging",
+      dragging: () => state.mode === "dragging",
+      /** @param {import('./modes.js').Overlay} overlay */
+      overlayIs: (overlay) => state.overlay === overlay,
+      escapeTarget: () => escapeTarget(state),
+      /** @param {'commandK'|'slash'|'escape'|'other'} key */
+      keyAllowed: (key) => keyAllowed(state, key),
+      /** @param {'app'|'palette'|'notice'} where */
+      linkOpensEditor: (where) => linkOpensEditor(state, where),
+      routineOffersAllowed: () => routineOffersAllowed(state)
+    };
+  }
+
   // src/services/file-io.js
   var file_io_exports = {};
   __export(file_io_exports, {
@@ -1338,11 +1473,12 @@ prompt for credentials:i:1\r
   }
 
   // src/app/main.js
-  var store = createStore();
+  var store = createStore(), modes = createModeStore();
   publishBridge({
     version: APP_VERSION,
     core: Object.freeze({ ...templates_exports, ...destination_exports, ...search_exports, ...rdp_exports, ...schema_exports, ...map_ops_exports, ...bookmarks_exports, ...words_exports }),
     store,
+    modes,
     state: Object.freeze({ storage: storage_exports, workspaces: workspaces_exports, prefs: prefs_exports, history: history_exports, backup: backup_exports }),
     services: Object.freeze({ sources: sources_exports, opener: opener_exports, rdpLaunch: rdp_launch_exports, linkCheck: link_check_exports, fileIo: file_io_exports, schedule: schedule_exports })
   });

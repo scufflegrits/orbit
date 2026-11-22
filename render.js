@@ -1,6 +1,6 @@
 // Galaxy and System rendering: link, planet, and sun nodes, Quick find results,
 // and the home and detail views. Loaded as a classic script before app.js.
-// Uses shared state from app.js (app, groups, findQuery, preferences) only when
+// Uses shared state from app.js (app, groups, findQuery, preferences) and the modes (drag.js) only when
 // called.
 
 function element(tag, className, text) {
@@ -262,7 +262,7 @@ function linkNode(link, className, path) {
   const node = destinationNode(link, className, path);
   if (path) {
     tagPath(node, path.length === 3 ? 'moon' : 'planet', ...path);
-    if (editMode) {
+    if (inEditMode()) {
       node.title = `Drag ${link.name} to move it`;
       node.setAttribute('aria-label', `${link.name}. Links are paused in Edit mode.`);
     }
@@ -457,7 +457,7 @@ function editFindResult(match) {
 }
 
 function findResult(match) {
-  if (editMode && match.indices) return editFindResult(match);
+  if (inEditMode() && match.indices) return editFindResult(match);
   const isRdp = match.destination?.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
   const template = match.destination && !isRdp && templateNames(match.destination.url).length > 0;
@@ -527,7 +527,7 @@ function routineChip(routine, index) {
   chip.type = 'button';
   chip.title = `Open the ${routine.name} routine (${counted(items.length, 'link')})`;
   chip.addEventListener('click', () => {
-    if (editMode) {
+    if (inEditMode()) {
       openMenu();
       openEditorPage();
       showRoutineEditor(index);
@@ -552,7 +552,7 @@ function quickBar() {
     const chips = element('div', 'quick-chips');
     if (label === 'Routines') list.forEach((routine, index) => chips.append(routineChip(routine, index)));
     else list.forEach(entry => chips.append(quickChip(entry)));
-    if (label === 'Favorites' && list.length > 1 && !editMode) {
+    if (label === 'Favorites' && list.length > 1 && !inEditMode()) {
       const all = element('button', 'quick-open-all', `Open all (${list.length})`);
       all.type = 'button';
       all.title = 'Open every favorite in new tabs';
@@ -568,7 +568,7 @@ function quickBar() {
 // The dense alternative to the orbits: every sun with its planets and moons.
 function galaxyList() {
   const list = element('div', 'galaxy-list');
-  if (editMode) {
+  if (inEditMode()) {
     list.append(element('p', 'list-note', 'Dragging works in the Orbits view. Use Edit links, or switch back to Orbits, to rearrange.'));
   }
   groups.forEach((sun, sunIndex) => {
@@ -629,7 +629,7 @@ function renderHome() {
   if (!listView) groups.forEach((group, index) => grid.append(homeGroup(group, index)));
   const bar = quickBar();
   const updateFind = () => {
-    findQuery = quickFind.value;
+    setFindQuery(quickFind.value);
     const active = Boolean(findQuery.trim());
     grid.hidden = active;
     const currentBar = app.querySelector(':scope > .quick-bar');
@@ -667,7 +667,7 @@ function renderHome() {
 
 // In a System: open a planet together with all of its moons.
 function openAllActions(group, sunIndex) {
-  if (editMode) return null;
+  if (inEditMode()) return null;
   const planets = group.links.map((planet, planetIndex) => ({ planet, planetIndex }))
     .filter(({ planet }) => planet.moons.length);
   if (!planets.length) return null;
@@ -690,7 +690,8 @@ function renderDetail(group) {
   topbarSearch.hidden = false;
   quickFind.value = findQuery;
   quickFind.oninput = () => {
-    findQuery = quickFind.value;
+    // Typing in a System returns to the Galaxy (src/ui/modes.js MR09).
+    setFindQuery(quickFind.value);
     location.hash = '';
   };
   const top = element('div', 'detail-top');
@@ -723,7 +724,7 @@ function renderDetail(group) {
   stage.append(hub);
   visible.forEach((link, i) => stage.append(planetNode(link, 'detail', points[i], 640, i, sunIndex)));
 
-  const note = element('p', 'detail-note', editMode
+  const note = element('p', 'detail-note', inEditMode()
     ? 'Edit mode is on. Drag a planet or moon to move or reorder it; links stay closed until you turn Edit mode off.'
     : group.links.some(link => link.type === 'rdp')
     ? rdpLaunchMode === 'client'
@@ -761,12 +762,13 @@ function renderDetail(group) {
 }
 
 function render() {
-  // A render replaces the nodes a drag is holding, so end the gesture first.
-  cancelDrag();
+  // A render replaces the nodes a drag is holding, so the gesture ends first.
+  orbitModes.send('render');
   updateMapLabelSizes();
   const route = decodeURIComponent(location.hash.slice(1));
   const id = route.startsWith('group/') ? route.slice(6) : null;
   const group = groups.find(item => item.id === id);
+  orbitModes.send(group ? 'openSystem' : 'toGalaxy');
   if (group) renderDetail(group);
   else renderHome();
   layoutOrbits();

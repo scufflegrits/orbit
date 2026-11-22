@@ -19,7 +19,8 @@ function workspaceName(id = activeWorkspace) { return stateWorkspaces().workspac
 
 function switchWorkspace(id) {
   if (!loadWorkspaces().some(item => item.id === id)) return;
-  cancelDrag();
+  // A workspace switch drops a pressed or dragged item.
+  orbitModes.send('switchWorkspace');
   // The store loads the workspace's map; its subscriber copies it but leaves
   // the redraw to this function.
   if (!window.OrbitNext.store.switchWorkspace(id)) return;

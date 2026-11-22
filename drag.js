@@ -10,8 +10,18 @@ const editStatus = document.querySelector('#edit-status');
 const editUndo = document.querySelector('#edit-undo');
 const DRAG_THRESHOLD = 6;
 const DWELL_MS = 350;
-let editMode = false;
+// Interaction modes are owned by src/ui/mode-store.js from rewrite phase 4b
+// (Edit mode, pressing and dragging, the open overlay, Quick find, and the
+// view). These read it; app.js's mode subscriber shows the result.
+const orbitModes = window.OrbitNext.modes;
+function inEditMode() { return orbitModes.inEditMode(); }
+function menuOpen() { return orbitModes.menuOpen(); }
+// The gesture's details (node, path, item, preview, tray, timers). It exists
+// exactly while the mode is pressed or dragging; whether a gesture is under
+// way is always asked of orbitModes, never read from this.
 let drag = null;
+// The message shown when a drag ends without a drop; cancelDrag() sets it.
+let cancelMessage = null;
 let dragUndo = null;
 let suppressNextClick = false;
 
@@ -54,9 +64,13 @@ function updateEditBar() {
 }
 
 function setEditMode(on) {
-  if (editMode === on) return;
+  if (inEditMode() === on) return;
   cancelDrag();
-  editMode = on;
+  orbitModes.send(on ? 'editOn' : 'editOff');
+}
+
+// Shows Edit mode turning on or off; called only by the mode subscriber.
+function showEditMode(on) {
   document.documentElement.dataset.edit = on ? 'on' : 'off';
   editToggle.setAttribute('aria-pressed', String(on));
   editToggle.querySelector('.edit-toggle-state').textContent = on ? 'On' : 'Off';
@@ -159,7 +173,7 @@ const DRAG_HELP = {
 };
 
 function startDrag(event) {
-  drag.state = 'dragging';
+  orbitModes.send('passThreshold');
   try { drag.node.setPointerCapture(drag.pointerId); } catch { /* Events still bubble to the document. */ }
   window.getSelection()?.removeAllRanges();
   document.documentElement.classList.add('dragging');
@@ -256,7 +270,7 @@ function resolveTarget(under) {
 }
 
 function openDwell(node) {
-  if (!drag || drag.dwellNode !== node) return;
+  if (!orbitModes.holding() || drag.dwellNode !== node) return;
   if (node.matches('.tray-group, .tray-item')) {
     const scope = node.matches('.tray-group') ? '.tray-group.open' : '.tray-item.open';
     for (const other of drag.tray.querySelectorAll(scope)) other.classList.remove('open');
@@ -291,7 +305,7 @@ function updateDwell(under) {
     } else if (!drag.closing.has(reveal)) {
       drag.closing.set(reveal, setTimeout(() => {
         reveal.classList.remove('drag-open', 'drag-reveal');
-        drag?.closing.delete(reveal);
+        if (orbitModes.holding()) drag.closing.delete(reveal);
         refreshDrag();
       }, DWELL_MS));
     }
@@ -355,16 +369,19 @@ function updateDrag(x, y) {
 }
 
 function refreshDrag() {
-  if (drag?.state === 'dragging') updateDrag(drag.x, drag.y);
+  if (orbitModes.dragging()) updateDrag(drag.x, drag.y);
 }
 
-function endGesture() {
+// Clears a gesture's marks and timers. Called only by the mode subscriber,
+// when the mode leaves pressed or dragging (a drop, a release, Escape, a
+// render, an overlay, a page change, a workspace switch, or Edit mode off).
+function endGesture(wasDragging) {
   const gesture = drag;
   clearTimeout(gesture.dwellTimer);
   for (const timer of gesture.closing.values()) clearTimeout(timer);
-  if (gesture.state === 'dragging') hideChoices();
+  if (wasDragging) hideChoices();
   drag = null;
-  if (gesture.state !== 'dragging') return gesture;
+  if (!wasDragging) return gesture;
   try { gesture.node.releasePointerCapture(gesture.pointerId); } catch { /* Already released. */ }
   gesture.preview.remove();
   gesture.tray?.remove();
@@ -380,10 +397,19 @@ function endGesture() {
 
 // Ends any press or drag without changing the map. Returns true if there was one.
 function cancelDrag(message = 'Move cancelled. Nothing changed.') {
-  if (!drag) return false;
-  const gesture = endGesture();
-  if (gesture.state === 'dragging') announce(message);
+  if (!orbitModes.holding()) return false;
+  cancelMessage = message;
+  orbitModes.send('cancelDrag');
   return true;
+}
+
+// The mode subscriber's part for a gesture that ended: tidy up, and say a
+// drag was cancelled unless it ended with a drop.
+function gestureEnded(wasDragging, event) {
+  endGesture(wasDragging);
+  const message = cancelMessage || 'Move cancelled. Nothing changed.';
+  cancelMessage = null;
+  if (wasDragging && event !== 'drop') announce(message);
 }
 
 function commitMove(gesture, target) {
@@ -431,7 +457,7 @@ function undoDrag() {
 
 document.addEventListener('pointerdown', event => {
   suppressNextClick = false;
-  if (!editMode || drag || !menuOverlay.hidden) return;
+  if (orbitModes.state().mode !== 'editIdle' || menuOpen()) return;
   if (event.button !== 0 || !event.isPrimary || event.pointerType === 'touch') return;
   const node = event.target instanceof Element ? event.target.closest('[data-kind]') : null;
   if (!node || !app.contains(node)) return;
@@ -443,13 +469,14 @@ document.addEventListener('pointerdown', event => {
   const item = mapItemAt(groups, path);
   // The System hub is not a source: there is nothing to reorder it against.
   if (!item || (path.kind === 'sun' && !node.classList.contains('home-hub'))) return;
-  drag = { state: 'pressed', pointerId: event.pointerId, node, path, item, closing: new Map(),
+  if (!orbitModes.send('press')) return;
+  drag = { pointerId: event.pointerId, node, path, item, closing: new Map(),
     revision: mapRevision, token: storageToken(), startX: event.clientX, startY: event.clientY };
 });
 
 document.addEventListener('pointermove', event => {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  if (drag.state === 'pressed') {
+  if (!orbitModes.holding() || event.pointerId !== drag.pointerId) return;
+  if (!orbitModes.dragging()) {
     if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < DRAG_THRESHOLD) return;
     startDrag(event);
   }
@@ -457,11 +484,14 @@ document.addEventListener('pointermove', event => {
 });
 
 document.addEventListener('pointerup', event => {
-  if (!drag || event.pointerId !== drag.pointerId) return;
-  if (drag.state === 'dragging') updateDrag(event.clientX, event.clientY);
+  if (!orbitModes.holding() || event.pointerId !== drag.pointerId) return;
+  const dragging = orbitModes.dragging();
+  if (dragging) updateDrag(event.clientX, event.clientY);
   const target = drag.target;
-  const gesture = endGesture();
-  if (gesture.state !== 'dragging') return;
+  const gesture = drag;
+  // The subscriber tidies the gesture away; the result is reported here.
+  orbitModes.send(dragging ? 'drop' : 'release');
+  if (!dragging) return;
   if (target?.status === 'valid') commitMove(gesture, target);
   else if (target?.status === 'same') {
     announce(target.sibling ? `${gesture.item.name} is already in that position. Nothing changed.`
@@ -476,14 +506,14 @@ document.addEventListener('pointerup', event => {
 document.addEventListener('pointerup', () => setTimeout(() => { suppressNextClick = false; }, 0));
 
 document.addEventListener('pointercancel', event => {
-  if (drag && event.pointerId === drag.pointerId) cancelDrag();
+  if (orbitModes.holding() && event.pointerId === drag.pointerId) cancelDrag();
 });
 document.addEventListener('lostpointercapture', event => {
-  if (drag?.state === 'dragging' && event.target === drag.node && event.pointerId === drag.pointerId) cancelDrag();
+  if (orbitModes.dragging() && event.target === drag.node && event.pointerId === drag.pointerId) cancelDrag();
 });
 window.addEventListener('blur', () => cancelDrag('Move cancelled because the window lost focus. Nothing changed.'));
 // Scrolling moves the page under the fixed Before and After choices.
-window.addEventListener('scroll', () => { if (drag?.state === 'dragging') hideChoices(); refreshDrag(); }, { passive: true });
+window.addEventListener('scroll', () => { if (orbitModes.dragging()) hideChoices(); refreshDrag(); }, { passive: true });
 window.addEventListener('resize', refreshDrag);
 window.addEventListener('storage', updateEditBar);
 
@@ -494,7 +524,7 @@ function guardActivation(event) {
     event.stopPropagation();
     return;
   }
-  if (!editMode || !(event.target instanceof Element)) return;
+  if (!orbitModes.linkOpensEditor('app') || !(event.target instanceof Element)) return;
   // Favorites, recent links, and list links open their item in Edit links.
   const shortcut = event.target.closest('[data-edit-path]');
   if (shortcut && app.contains(shortcut)) {
@@ -513,10 +543,10 @@ function guardActivation(event) {
 document.addEventListener('click', guardActivation, true);
 document.addEventListener('auxclick', guardActivation, true);
 document.addEventListener('dragstart', event => {
-  if (editMode && event.target instanceof Node && app.contains(event.target)) event.preventDefault();
+  if (inEditMode() && event.target instanceof Node && app.contains(event.target)) event.preventDefault();
 });
 
-editToggle.addEventListener('click', () => setEditMode(!editMode));
+editToggle.addEventListener('click', () => setEditMode(!inEditMode()));
 editUndo.addEventListener('click', undoDrag);
 document.querySelector('#edit-done').addEventListener('click', () => {
   setEditMode(false);

@@ -2,7 +2,11 @@
 // classic script after routines.js. Uses shared state and helpers from the
 // other scripts only when called.
 
+// The placeholder form's controller ({overlay, opener}), or null. Whether the
+// form is open belongs to src/ui/mode-store.js (rewrite phase 4b), never to this.
 let variableDialog = null;
+// The link to ask about, kept from askForVariables() until the subscriber builds the form.
+let variableItem = null;
 
 // Saved values moved to src/state/prefs.js in rewrite phase 4.
 function loadVariables() { return window.OrbitNext.state.prefs.readVariables(); }
@@ -11,7 +15,15 @@ function saveVariables(values) { window.OrbitNext.state.prefs.saveVariables(valu
 // Ask for each placeholder, prefilled with the value used last, then open the
 // link. The Open click is the user action that lets the browser open a tab.
 function askForVariables(item) {
-  if (variableDialog) closeVariableDialog();
+  if (orbitModes.overlayIs('placeholder')) closeVariableDialog();
+  variableItem = item;
+  orbitModes.send('openPlaceholder');
+}
+
+// Called only by the mode subscriber, when the placeholder form has opened.
+function variableFormOpened() {
+  const item = variableItem;
+  variableItem = null;
   const names = templateNames(item.url);
   const remembered = loadVariables();
   const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -67,7 +79,12 @@ function askForVariables(item) {
 }
 
 function closeVariableDialog() {
-  if (!variableDialog) return;
+  if (!orbitModes.overlayIs('placeholder')) return;
+  orbitModes.send('closeOverlay');
+}
+
+// Called only by the mode subscriber, when the placeholder form has closed.
+function variableFormClosed() {
   const { overlay, opener } = variableDialog;
   variableDialog = null;
   overlay.remove();
@@ -113,7 +130,7 @@ function quickAddResult(address) {
 }
 
 function showQuickAdd(address = '') {
-  if (menuOverlay.hidden) openMenu();
+  if (!menuOpen()) openMenu();
   if (!editorTree) openEditorPage();
   editorHeader('Add a link', showSunList);
   const targets = [];

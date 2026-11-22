@@ -1,6 +1,6 @@
 // Recent links, favorites, and opening a planet with all its moons. Loaded as a
 // classic script after team.js. Uses shared state from app.js (groups,
-// editMode, rdpLaunchMode) only when called.
+// rdpLaunchMode) and the modes (drag.js) only when called.
 
 const RECENT_STORAGE_KEY = 'orbit:recent:v1';
 const RECENT_LIMIT = 10;
@@ -22,7 +22,7 @@ function loadRecent() {
 }
 
 function noteOpened(item) {
-  if (!item || editMode) return;
+  if (!item || inEditMode()) return;
   const key = destinationKey(item);
   const list = [{ key, name: item.name, time: Date.now() }, ...loadRecent().filter(entry => entry.key !== key)];
   try { localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(list.slice(0, RECENT_LIMIT))); } catch { /* Storage may be unavailable. */ }
@@ -171,7 +171,7 @@ document.addEventListener('auxclick', trackDestinationClicks);
 
 // Shift+click on a planet opens it with all its moons.
 document.addEventListener('click', event => {
-  if (!event.shiftKey || editMode || !(event.target instanceof Element)) return;
+  if (!event.shiftKey || inEditMode() || !(event.target instanceof Element)) return;
   const node = event.target.closest('[data-kind="planet"]');
   if (!node || !app.contains(node)) return;
   event.preventDefault();

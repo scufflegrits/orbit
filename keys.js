@@ -1,7 +1,7 @@
 // Keyboard handling: menu focus trap, Escape layers, Quick find keys, and arrow
 // navigation through suns, planets, and moons. Loaded as a classic
 // script before app.js. Uses shared state from app.js and menu.js (menuOverlay,
-// quickFind, findQuery, app) only when a key is pressed.
+// quickFind, app) and the modes (drag.js orbitModes) only when a key is pressed.
 
 function menuFocusables() {
   return [...menuOverlay.querySelectorAll('.menu-sheet :is(button, a[href], input, select, textarea, [tabindex])')]
@@ -27,29 +27,32 @@ function trapMenuFocus(event) {
   }
 }
 
-// Escape closes the command palette (handled in palette.js), then the menu,
-// then cancels a drag, then leaves Edit mode, then clears Quick find, then
-// leaves a System.
+// Escape handles the topmost layer, as src/ui/modes.js orders them: an
+// overlay (the palette and placeholder form handle their own Escape, so
+// here it is the menu), then a pressed or dragged item, then Edit mode, then
+// Quick find, then a System.
 function handleEscape(event) {
-  if (!menuOverlay.hidden) {
+  const target = orbitModes.escapeTarget();
+  if (target === 'overlay') {
     event.preventDefault();
     closeMenu();
-  } else if (cancelDrag()) {
+  } else if (target === 'drag') {
     event.preventDefault();
-  } else if (editMode) {
+    cancelDrag();
+  } else if (target === 'edit') {
     event.preventDefault();
     const inBar = editBar.contains(document.activeElement);
     setEditMode(false);
     if (inBar) editToggle.focus();
-  } else if (quickFind.value || findQuery) {
+  } else if (target === 'find') {
     event.preventDefault();
     // Keep keyboard users in the search box when the result they were on disappears.
     if (document.activeElement.closest('.find-results')) quickFind.focus();
-    findQuery = '';
     quickFind.value = '';
+    setFindQuery('');
     // On the Galaxy the input handler refreshes results; in a System it would leave the System.
     if (app.classList.contains('home-view')) quickFind.dispatchEvent(new Event('input'));
-  } else if (location.hash && location.hash !== '#') {
+  } else if (target === 'view') {
     location.hash = '';
   }
 }
@@ -62,7 +65,7 @@ function typingInField(target) {
 // "/" jumps to Quick find unless the user is typing, a menu is open, or Quick find is hidden.
 function handleSlash(event) {
   if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return false;
-  if (typingInField(event.target) || !menuOverlay.hidden || topbarSearch.hidden) return false;
+  if (typingInField(event.target) || !orbitModes.keyAllowed('slash') || topbarSearch.hidden) return false;
   event.preventDefault();
   quickFind.focus();
   quickFind.select();
@@ -139,7 +142,7 @@ function moonTarget(moon, [dx, dy]) {
 function handleMapArrows(event) {
   const direction = ARROWS[event.key];
   if (!direction || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-  if (!menuOverlay.hidden) return;
+  if (menuOpen()) return;
   const active = document.activeElement;
   let target = null;
   if (active.classList.contains('home-hub')) {
@@ -157,11 +160,11 @@ function handleMapArrows(event) {
 
 window.addEventListener('keydown', event => {
   if (event.defaultPrevented) return;
-  // The command palette takes every key while it is open.
-  if (handlePaletteKey(event) || palette || variableDialog) return;
+  // The command palette takes every key while it is open, and the placeholder form handles its own.
+  if (handlePaletteKey(event) || orbitModes.overlayIs('palette') || !orbitModes.keyAllowed('other')) return;
   if (handlePaletteShortcut(event)) return;
   if (event.key === 'Tab') {
-    if (!menuOverlay.hidden) trapMenuFocus(event);
+    if (menuOpen()) trapMenuFocus(event);
   } else if (event.key === 'Escape') {
     handleEscape(event);
   } else if (!handleSlash(event) && !handleFindArrows(event)) {

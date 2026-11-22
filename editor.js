@@ -362,8 +362,8 @@ function showSunList() {
     const list = element('div', 'tag-list');
     tags.forEach(([tag, count]) => list.append(editorButton(`#${tag} · ${count}`, () => {
       closeMenu();
-      findQuery = `#${tag}`;
-      quickFind.value = findQuery;
+      quickFind.value = `#${tag}`;
+      setFindQuery(quickFind.value);
       if (location.hash && location.hash !== '#') location.hash = '';
       else render();
     }, 'tag-button')));

@@ -3,11 +3,14 @@
 // before keys.js. Uses shared state and helpers from the other scripts only
 // when called.
 
+// The palette's controller (DOM nodes, entries, the active row, the element to
+// refocus), or null. Whether the palette is open belongs to
+// src/ui/mode-store.js (rewrite phase 4b), never to this.
 let palette = null;
 
 function paletteCommands() {
   return [
-    { label: editMode ? 'Turn off Edit mode' : 'Turn on Edit mode', run: () => setEditMode(!editMode) },
+    { label: inEditMode() ? 'Turn off Edit mode' : 'Turn on Edit mode', run: () => setEditMode(!inEditMode()) },
     { label: 'Open Settings', run: () => { openMenu(); showMenuPanel('Settings'); } },
     { label: 'Edit links', run: () => { openMenu(); openEditorPage(); } },
     { label: 'Help', run: () => { openMenu(); showMenuPanel('Help'); } },
@@ -15,9 +18,9 @@ function paletteCommands() {
       run: () => setGalaxyView(galaxyView === 'list' ? 'orbits' : 'list') },
     { label: 'Return to Galaxy', run: () => { location.hash = ''; } },
     { label: 'Clear recent links', run: () => { clearRecent(); render(); } },
-    ...(favoriteItems().length > 1 && !editMode ? [{ label: 'Open all favorites', run: openAllFavorites }] : []),
+    ...(favoriteItems().length > 1 && !inEditMode() ? [{ label: 'Open all favorites', run: openAllFavorites }] : []),
     ...routines.map((routine, index) => ({ label: `Run routine: ${routine.name}`,
-      run: () => editMode ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
+      run: () => inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
     { label: 'Edit routines', run: () => { openMenu(); openEditorPage(); showRoutines(); } },
     { label: 'Add a link', run: () => showQuickAdd('') },
     ...loadWorkspaces().filter(item => item.id !== activeWorkspace).map(item => ({
@@ -36,7 +39,7 @@ function paletteEntries(query) {
   for (const match of matches) {
     entries.push({ kind: match.kind, label: match.name, detail: match.why || match.path, match, run: () => runMatch(match) });
     // A planet with moons can also be opened together with them.
-    if (match.kind === 'Planet' && !editMode) {
+    if (match.kind === 'Planet' && !inEditMode()) {
       const planet = match.destination;
       if (planet.moons.length) {
         entries.push({ kind: 'Command', label: `Open all: ${planet.name} + ${counted(planet.moons.length, 'moon')}`,
@@ -50,17 +53,27 @@ function paletteEntries(query) {
 function runMatch(match) {
   if (match.id) {
     location.hash = `group/${encodeURIComponent(match.id)}`;
-  } else if (editMode) {
+  } else if (orbitModes.linkOpensEditor('palette')) {
     openEditorAt(match.indices);
   } else {
     openDestination(match.destination);
   }
 }
 
+// The element to refocus when the palette closes, kept from openPalette()
+// until the subscriber builds the palette.
+let paletteOpener = null;
+
 function openPalette() {
-  if (palette) return;
-  cancelDrag();
-  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  paletteOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  // Refused while another overlay is open; also drops a pressed or dragged item.
+  orbitModes.send('openPalette');
+}
+
+// Called only by the mode subscriber, when the palette has opened.
+function paletteOpened() {
+  const opener = paletteOpener;
+  paletteOpener = null;
   const overlay = element('div', 'palette-overlay');
   const scrim = element('div', 'palette-scrim');
   const dialog = element('section', 'palette');
@@ -93,7 +106,12 @@ function openPalette() {
 }
 
 function closePalette() {
-  if (!palette) return;
+  if (!orbitModes.overlayIs('palette')) return;
+  orbitModes.send('closeOverlay');
+}
+
+// Called only by the mode subscriber, when the palette has closed for any reason.
+function paletteClosed() {
   const { overlay, opener } = palette;
   palette = null;
   overlay.remove();
@@ -137,15 +155,16 @@ function setPaletteActive(index) {
 }
 
 function runPaletteEntry(index) {
-  const entry = palette?.entries[index];
+  if (!orbitModes.overlayIs('palette')) return;
+  const entry = palette.entries[index];
   if (!entry) return;
-  closePalette();
+  orbitModes.send('runEntry');
   entry.run();
 }
 
 // Keys while the palette is open. Returns true when the key was handled.
 function handlePaletteKey(event) {
-  if (!palette) return false;
+  if (!orbitModes.overlayIs('palette')) return false;
   const moves = { ArrowDown: 1, ArrowUp: -1, PageDown: 8, PageUp: -8 };
   if (event.key === 'Escape') {
     event.preventDefault();
@@ -174,7 +193,7 @@ function handlePaletteKey(event) {
 // Ctrl+K or Cmd+K opens the palette unless the menu is open.
 function handlePaletteShortcut(event) {
   if (event.key.toLowerCase() !== 'k' || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return false;
-  if (!menuOverlay.hidden || app.classList.contains('error-view')) return false;
+  if (!orbitModes.keyAllowed('commandK')) return false;
   event.preventDefault();
   openPalette();
   return true;

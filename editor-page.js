@@ -3,6 +3,7 @@
 let editorTree = null;
 
 function openEditorPage() {
+  orbitModes.send('openEditor');
   const sheet = menuOverlay.querySelector('.menu-sheet');
   sheet.classList.add('editor-page-mode');
   sheet.querySelector('.menu-top h2').textContent = 'Edit your Galaxy';
@@ -27,6 +28,7 @@ function openEditorAt(indices) {
 }
 
 function leaveEditorPage() {
+  orbitModes.send('backToPanels');
   menuOverlay.querySelector('.menu-sheet').classList.remove('editor-page-mode');
   menuOverlay.querySelector('.menu-top h2').textContent = 'Explore the menu';
   editorTree = null;

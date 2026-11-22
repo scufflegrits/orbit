@@ -225,6 +225,7 @@ Each module's own dependencies:
 | **ui/drag** (Edit mode, pointer drag, tray, drag undo) | `state/store`, `ui/editor`, `ui/modes`, `core/map-ops` |
 | **ui/keys** (focus trap, Escape, arrows) | `ui/views`, `ui/find`, `ui/menu`, `ui/drag`, `ui/modes` |
 | **ui/modes** | nothing (pure) |
+| **ui/mode-store** (phase 4b: the current mode state, `send(event)`, queries, `subscribe`) | `ui/modes` |
 | **services/opener** | `state/prefs` (placeholder values), `services/rdp-launch`, `core/templates`, `core/words`; opens browser tabs. Phase 4: the map and presets come in as arguments, so it doesn't read the store |
 | **services/rdp-launch** | `core/rdp`, `services/file-io` (the download); `orbit-rdp://` URLs |
 | **services/sources** | `core/schema`; `links-data.js`/`links.json`, `team-data.js`/`team.json` |
@@ -490,7 +491,7 @@ Mode state follows the same rule as the map: **one owner at a time**, never two 
 | Phases | Owner | `ui/modes.js` |
 | --- | --- | --- |
 | 0–4 | The old flags, as in 2.2.1 | Built and tested in phase 3, but **not loaded into the page's decisions**: nothing reads or writes it |
-| 4b (cut-over) onward | `ui/modes.js` | The only owner. Old code may not keep its own copy of any mode |
+| 4b (cut-over) onward | `ui/modes.js`, held by `ui/mode-store.js` | The only owner. Old code may not keep its own copy of any mode. The old scripts reach it as `window.OrbitNext.modes` (`orbitModes` in `drag.js`) |
 
 **Phase 4b, the cut-over, is one change made by the Lead, not delegated:**
 
@@ -1130,9 +1131,21 @@ Phase 4 closed 2026-11-21.
 
 ### Phase 4b: Interaction-mode cut-over (Lead only)
 
-- [ ] Steps 1–5 of "Who owns mode state during the migration", as one change
-- [ ] The one-owner check passes
-- [ ] Done when: every browser suite passes in Chromium in both modes and in Edge (file and server), especially K01–K08, DD01–DD17, and the palette, placeholder, and menu checks (F04, F20)
+- [x] Steps 1–5 of "Who owns mode state during the migration", as one change. Done:
+  1. **Events.** `openMenu`, `closeMenu`, `showMenuPanel`, `openEditorPage`, `leaveEditorPage`, `openPalette`, `closePalette`, `runPaletteEntry`, `askForVariables`, `closeVariableDialog`, `setEditMode`, the drag controller (press, threshold, drop, release, cancel), `render` (render, then openSystem or toGalaxy), Quick find (`setFindQuery` in `app.js`, used by typing, Escape, the logo, and tag buttons), `hashchange` (pageChange), a workspace switch, and a failed load each send an event to `src/ui/mode-store.js`, which holds the `ui/modes.js` state. The old scripts reach it as `orbitModes`.
+  2. **State and controllers.** `editMode` and the gesture's own `state` field are deleted; reads use `inEditMode()`, `menuOpen()`, and `orbitModes` queries. `palette`, `variableDialog`, and `drag` are controllers only: they hold DOM nodes and gesture details and exist exactly while their mode does.
+  3. **One subscriber** in `app.js` shows every change: it tidies away an ended gesture (and says "Move cancelled" unless it was a drop), builds or removes the palette and placeholder form, shows or hides the menu overlay, and shows Edit mode turning on or off.
+  4. **`handleEscape`** acts on `orbitModes.escapeTarget()`.
+  5. **The one-owner check** is `src/app/one-owner.test.js` (see below).
+- [x] The one-owner check passes: no use of `editMode` or a gesture's `state`, `menuOverlay.hidden` set only in the subscriber and read nowhere, and no controller used as a true-or-false test. The check also proves it catches each kind of second owner on planted lines.
+- Phase 4b notes:
+  - **Notifications are queued.** An event sent from inside the subscriber (showing Edit mode renders, and a render sends events) is applied at once but reported after the current change, so every change is shown in the order it happened. Found by the mode store's own test before the cut-over.
+  - **Two corners now follow the model, not 2.2.1's flags,** and neither can be reached from the page: the palette or placeholder form can't open over the menu (2.2.1 refused these only at the keyboard shortcut, and no button reaches them), and Escape on an address with an unknown System (`#group/x`, shown as the Galaxy) no longer clears the address, because the view is the Galaxy.
+- [x] Done when: every browser suite passes in Chromium in both modes and in Edge (file and server), especially K01–K08, DD01–DD17, and the palette, placeholder, and menu checks (F04, F20)
+
+  Met 2026-11-21: 180 node tests (the mode store and the one-owner check added); every suite in Chromium in both modes with the baseline counts (39, 15, 29, 13, 21, 53), plus mode rules 23, data compatibility, release smoke, behavior 22, and the services check; headless Edge 158 on the VM passed drag phase 2 (14 + 14), features (27 + 27), sizes (7 + 7), pending (11 + 11), and the services pop-up checks (6 + 6) in file and server mode. A deliberate break of the Escape order (Quick find before Edit mode) failed MR01 in both modes. No speed or size change worth measuring: the cut-over moved flags, not work.
+
+Phase 4b closed 2026-11-21.
 
 ### Checkpoint B: after phase 4b (go/no-go)
 
@@ -1221,6 +1234,7 @@ Filled in by the Lead at the end of each phase.
 | 2 | 3 | 3 | 0 | 0 | Trial; see below |
 | 3 | 0 | | | | Lead only (delegation off) |
 | 4 | 0 | | | | Lead only (delegation off) |
+| 4b | 0 | | | | Lead only, as the plan requires |
 
 Phase 2 trial, per card (2026-11-21). Worker time is wall-clock; Lead time covers writing the card, reading the diff, running the commands, the Reviewer, and merging; "direct" is the Lead's estimate for porting the module itself with the same tests.
 
