@@ -4,6 +4,7 @@
 import { counted, descriptionNode, element, safeColor, tagPath } from '../dom.js';
 import { SYSTEM_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
 import { modes } from '../page-modes.js';
+import { openAll } from './open.js';
 import { linkNode, orbitLines, overflowPlanetNode, planetNode } from './nodes.js';
 
 /**

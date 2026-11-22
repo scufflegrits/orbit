@@ -4,7 +4,11 @@
 import { findMatches } from '../../core/search.js';
 import { counted, descriptionNode, element, safeColor, tagChips } from '../dom.js';
 import { findRow } from '../find/results.js';
+import { quickAddResult, typedAddress } from '../editor/quick-add.js';
+import { openMenu } from '../menu/menu.js';
 import { modes } from '../page-modes.js';
+import { favoriteItems, isFavorite, recentItems } from './favorites.js';
+import { openAllFavorites, routineItems, runRoutine } from './open.js';
 import { destinationNode, homeGroup } from './nodes.js';
 
 /**
@@ -122,6 +126,18 @@ function galaxyList() {
     list.append(section);
   });
   return list;
+}
+
+/** Replace only the quick bar, so the rest of the Galaxy keeps its state. */
+export function refreshQuickBar() {
+  if (!app.classList.contains('home-view')) return;
+  const old = app.querySelector(':scope > .quick-bar');
+  const next = quickBar();
+  const searching = Boolean(quickFind.value.trim());
+  if (next) next.hidden = searching;
+  if (old && next) old.replaceWith(next);
+  else if (old) old.remove();
+  else if (next) app.querySelector(':scope > .find-results')?.after(next);
 }
 
 export function renderHome() {

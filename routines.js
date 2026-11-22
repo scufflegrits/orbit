@@ -6,82 +6,13 @@
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEKDAYS = [1, 2, 3, 4, 5];
 
-// The routine's links that are still on the map, in its order.
-function routineItems(routine) {
-  const items = [];
-  let missing = 0;
-  for (const link of routine.links) {
-    const path = pathsForKey(link.key)[0];
-    if (path) items.push({ path, item: itemAt(path) });
-    else missing++;
-  }
-  return { items, missing };
-}
-
-function runRoutine(routine) {
-  const { items, missing } = routineItems(routine);
-  const extra = missing ? ` ${counted(missing, 'link')} in this routine ${missing === 1 ? 'is' : 'are'} no longer on the map.` : '';
-  if (!items.length) return showOpenAllNotice(`${routine.name} has no links on the map.${extra}`, true);
-  // Choosing a routine by name already says what will open.
-  return openLinks(items.map(entry => entry.item), routine.name, { confirm: false, extra });
-}
+// routineItems and runRoutine moved to src/ui/views/open.js in rewrite phase 6a.
 
 // Add incoming routines whose names are new (ignoring case). Moved to
 // src/core/map-ops.js in rewrite phase 2.
 function mergeRoutines(current, incoming) { return window.OrbitNext.core.mergeRoutines(current, incoming); }
 
-// ---- Arrival offer ------------------------------------------------------
-
-// The schedule moved to src/services/schedule.js, and the saved offers to
-// src/state/prefs.js, in rewrite phase 4.
-const scheduleService = () => window.OrbitNext.services.schedule;
-function localDay(date) { return scheduleService().localDay(date); }
-function readOffered() { return window.OrbitNext.state.prefs.readOffered(); }
-function markOffered(id) { window.OrbitNext.state.prefs.markOffered(id, localDay(scheduleService().today())); }
-
-// Scheduled routines that are due today and not yet opened or dismissed.
-function dueRoutines(now = scheduleService().today()) { return scheduleService().dueRoutines(routines, readOffered(), now); }
-
-// Browsers only open tabs after a click, so a due routine is offered, never
-// opened by itself.
-function offerDueRoutines() {
-  document.querySelector('#routine-banner')?.remove();
-  if (!orbitModes.routineOffersAllowed()) return;
-  const due = dueRoutines();
-  if (!due.length) return;
-  const banner = element('section', 'routine-banner');
-  banner.id = 'routine-banner';
-  banner.setAttribute('role', 'region');
-  banner.setAttribute('aria-label', 'Routines ready to open');
-  for (const routine of due) {
-    const { items } = routineItems(routine);
-    const row = element('div', 'routine-offer');
-    row.append(element('p', 'routine-offer-copy', `Time for ${routine.name}: ${counted(items.length, 'link')}.`));
-    const open = element('button', 'routine-offer-open', `Open ${routine.name}`);
-    open.type = 'button';
-    open.addEventListener('click', () => {
-      markOffered(routine.id);
-      row.remove();
-      if (!banner.querySelector('.routine-offer')) banner.remove();
-      runRoutine(routine);
-    });
-    const later = element('button', 'routine-offer-dismiss', 'Not today');
-    later.type = 'button';
-    later.addEventListener('click', () => {
-      markOffered(routine.id);
-      row.remove();
-      if (!banner.querySelector('.routine-offer')) banner.remove();
-    });
-    row.append(open, later);
-    banner.append(row);
-  }
-  noticeArea().prepend(banner);
-}
-
-// A page left open overnight offers the routine when it is looked at again.
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && groups.length) offerDueRoutines();
-});
+// The arrival offer moved to src/ui/notices/routine-offer.js in rewrite phase 6a.
 
 // ---- Edit links screens ---------------------------------------------------
 

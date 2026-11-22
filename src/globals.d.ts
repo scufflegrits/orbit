@@ -26,12 +26,16 @@ declare function openMenu(): void;
 declare function effectiveRdpProfile(item: any): string | null;
 declare function rdpLaunchUrl(item: any): string;
 
-// What src/ui/ (views, find, layout; phase 5) still reads from the old scripts.
+// What src/ui/ still reads from the old scripts (phases 5 and 6a), by script.
 // app.js
+declare const APP_VERSION: string;
 declare const app: HTMLElement;
 declare const quickFind: HTMLInputElement;
 declare const settingsTrigger: HTMLElement;
 declare const topbarSearch: HTMLElement;
+declare const menuOverlay: HTMLElement;
+declare const menuRoot: HTMLElement;
+declare let menuContent: HTMLElement;
 declare let groups: any[];
 declare let routines: any[];
 declare let rdpPresets: any[];
@@ -40,36 +44,45 @@ declare let galaxyView: 'orbits' | 'list';
 declare let showQuickBar: boolean;
 declare let showSiteIcons: boolean;
 declare let rdpLaunchMode: 'download' | 'client';
+declare let activeTheme: string;
+declare let activeFontSize: string;
+declare let animationsEnabled: boolean;
+declare let alwaysShowMoons: boolean;
+declare let storageWarning: string;
 declare function setFindQuery(text: string): void;
 declare function setGalaxyView(view: string): void;
+declare function dataSourceLabel(): string;
+// storage.js
+declare function saveMap(data: any, label?: string | false): void;
+// team.js
+declare let teamGroups: any[];
+declare let teamSource: string;
+declare let teamError: string;
+declare function setTeamSunHidden(id: string, hidden: boolean): void;
 // drag.js
 declare const editToggle: HTMLElement;
 declare function updateEditBar(): void;
-// favorites.js
-declare function favoriteItems(): { path: number[], item: any }[];
-declare function recentItems(): { path: number[], item: any }[];
-declare function isFavorite(item: any, sun: any): boolean;
-declare function setFavorite(path: number[], on: boolean): void;
-declare function noteOpened(item: any): void;
-declare function clearRecent(): void;
-declare function openAll(sunIndex: number, planetIndex: number): unknown;
-declare function openAllFavorites(): unknown;
-declare function openDestination(item: any): unknown;
-// variables.js
-declare function askForVariables(item: any): void;
-declare function typedAddress(text: string): string | null;
-declare function quickAddResult(address: string): HTMLElement;
-declare function showQuickAdd(address?: string): void;
+// editor.js, editor-page.js
+declare let editorTree: HTMLElement | null;
+declare function openEditorPage(): void;
+declare function editorHeader(title: string, back: () => void): void;
+declare function editorActions(): HTMLElement;
+declare function editorButton(label: string, action: () => void, className?: string): HTMLButtonElement;
+declare function editorField(label: string, value: string, type?: string): { wrapper: HTMLElement, input: HTMLInputElement };
+declare function editorError(message: string): void;
+declare function copyGroups(): any[];
+declare function applyEditorChange(next: any[], after: () => void, options?: any): void;
+declare function selectJsonFile(onData: (data: any) => void): void;
+declare function showSunList(): void;
+declare function showSunEditor(index: number | null): void;
+declare function showPlanetEditor(sunIndex: number, planetIndex: number): void;
+declare function showMoonEditor(sunIndex: number, planetIndex: number, moonIndex: number): void;
 // routines.js
-declare function routineItems(routine: any): { items: { path: number[], item: any }[], missing: number };
-declare function runRoutine(routine: any): unknown;
 declare function showRoutineEditor(index: number): void;
 declare function showRoutines(): void;
-// menu.js, editor-page.js
-declare function showMenuPanel(name: string): void;
-declare function openEditorPage(): void;
 // workspaces.js
 declare let activeWorkspace: string;
 declare function workspaceName(id?: string): string;
+declare function workspaceSettings(): HTMLElement;
 declare function loadWorkspaces(): { id: string, name: string }[];
 declare function switchWorkspace(id: string): void;

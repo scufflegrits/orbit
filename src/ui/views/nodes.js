@@ -7,6 +7,7 @@ import { PLACEHOLDER, templateNames } from '../../core/templates.js';
 import { downloadRdp } from '../../services/rdp-launch.js';
 import { counted, descriptionNode, element, safeColor, tagPath } from '../dom.js';
 import { GALAXY_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
+import { askForVariables } from '../dialogs/placeholder.js';
 import { modes } from '../page-modes.js';
 
 /**

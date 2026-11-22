@@ -3,8 +3,13 @@
 // 5. Whether it is open belongs to the mode store; app.js's mode subscriber
 // calls paletteOpened() and paletteClosed().
 import { findMatches } from '../../core/search.js';
+import { clearRecent } from '../../state/prefs.js';
 import { counted, element, tagChips } from '../dom.js';
+import { showQuickAdd, typedAddress } from '../editor/quick-add.js';
+import { openMenu, showMenuPanel } from '../menu/menu.js';
 import { modes } from '../page-modes.js';
+import { favoriteItems } from '../views/favorites.js';
+import { openAll, openAllFavorites, openDestination, runRoutine } from '../views/open.js';
 import { render } from '../views/render.js';
 
 /**

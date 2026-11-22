@@ -1174,11 +1174,18 @@ Phase 5 closed 2026-11-21.
 
 ### Phase 6a: Menu, dialogs, and notices
 
-- [ ] `ui/menu/`: Settings, Help, About, workspace switch
-- [ ] `ui/dialogs/`: placeholder form (handles its own Escape, swallows other keys) and the confirm questions moved out of services
-- [ ] `ui/notices/`: routine offer, backup reminder, team updates, open-all report, removal undo, storage warning
-- [ ] Remove `menu.js`, `variables.js`, `sharing.js`, and `favorites.js` from `index.html` and `APP_SCRIPTS`, after moving their remaining parts (Quick add and link packs) per the "Old file → new home" table
-- [ ] Done when: the checks covering these screens pass with those scripts removed, in Chromium in both modes and in Edge. Phase 0's baseline run lists which F, B, and milestone checks those are.
+- [x] `ui/menu/`: Settings, Help, About, workspace switch (`menu.js`; the workspace list itself is still `workspaceSettings` in `workspaces.js` until 6b)
+- [x] `ui/dialogs/`: placeholder form (handles its own Escape, swallows other keys) and the confirm questions moved out of services (`placeholder.js`, `confirm.js`)
+- [x] `ui/notices/`: routine offer, backup reminder, team updates, open-all report (`area.js`, `routine-offer.js`, `backup.js`, `team-updates.js`). Removal undo and the storage warning are shown inside the editor and Settings, so they move with those screens.
+- [x] Remove `menu.js`, `variables.js`, `sharing.js`, and `favorites.js` from `index.html` and `APP_SCRIPTS`, after moving their remaining parts (Quick add and link packs) per the "Old file → new home" table. Done: Quick add is `ui/editor/quick-add.js` and link packs `ui/editor/tools/packs.js`; favorites and recent links are `ui/views/favorites.js` (recents are stored by `state/prefs.js`); opening links, a planet with its moons, favorites, and routines is `ui/views/open.js`. The routine offer moved out of `routines.js` and the backup reminder out of `workspaces.js` too.
+- Phase 6a notes:
+  - **Late-bound calls.** `ui/hooks.js` holds `render` and `refreshQuickBar`, filled in by `main.js`, so favorites and the menu can redraw the Galaxy without an import cycle (the Galaxy shows favorites and reaches the menu through Quick add).
+  - **Page globals** now also cover what the four removed scripts defined, including the old one-argument `pathsForKey(key)` and `itemAt(path)`, and the readers `tests/data_compat_check.py` calls (`loadVariables`, `readOffered`, `loadRecent`, `readBackupState`). The first Chromium run caught two missing ones (`readBackupState`, and `backupReminder` used by the editor); both were added.
+- [x] Done when: the checks covering these screens pass with those scripts removed, in Chromium in both modes and in Edge. Phase 0's baseline run lists which F, B, and milestone checks those are.
+
+  Met 2026-11-21 with all four scripts removed (run as the full set, not only the covering checks): every suite in Chromium in both modes with the baseline counts (39, 15, 29, 13, 21, 53), plus mode rules 23, data compatibility, release smoke, behavior 22, and the services check; headless Edge 158 on the VM passed drag phase 2 (14 + 14), features (27 + 27), sizes (7 + 7), pending (11 + 11), and the services pop-up checks (6 + 6) in file and server mode.
+
+Phase 6a closed 2026-11-21.
 
 ### Phase 6b: Editor and tools
 

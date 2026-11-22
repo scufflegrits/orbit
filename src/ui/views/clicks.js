@@ -3,6 +3,8 @@
 // open it with all its moons. Moved in rewrite phase 5.
 import { itemAt } from '../../core/destination.js';
 import { modes } from '../page-modes.js';
+import { noteOpened } from './favorites.js';
+import { openAll } from './open.js';
 
 /** @param {MouseEvent} event */
 function trackDestinationClicks(event) {

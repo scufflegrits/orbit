@@ -21,7 +21,7 @@ These steps make a `.zip` of Orbit that you can give to someone who does not use
 | --- | --- |
 | `index.html`, `styles.css` | The page |
 | `orbit.js` | The bundle built from `src/` by `npm run build` (committed, so no build is needed to ship) |
-| `rdp.js`, `storage.js`, `team.js`, `favorites.js`, `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `variables.js`, `workspaces.js`, `sharing.js`, `presets.js`, `menu.js`, `drag.js`, `keys.js`, `app.js` | The app scripts that `index.html` loads |
+| `rdp.js`, `storage.js`, `team.js`, `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `workspaces.js`, `presets.js`, `drag.js`, `keys.js`, `app.js` | The app scripts that `index.html` loads |
 | `links.json`, `links-data.js` | The sample link map, and the generated copy used when `index.html` is opened directly |
 | `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates `links-data.js` (and `team-data.js` with `--team`) |
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
@@ -51,7 +51,7 @@ VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" HEAD -- \
   index.html styles.css links.json links-data.js orbit.js \
-  rdp.js storage.js team.js favorites.js editor.js editor-page.js tools.js routines.js variables.js workspaces.js sharing.js presets.js menu.js drag.js keys.js app.js \
+  rdp.js storage.js team.js editor.js editor-page.js tools.js routines.js workspaces.js presets.js drag.js keys.js app.js \
   serve.py sync.py windows README.md RDP_SIGNING.md
 ```
 
@@ -62,7 +62,7 @@ $Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" HEAD -- `
   index.html styles.css links.json links-data.js orbit.js `
-  rdp.js storage.js team.js favorites.js editor.js editor-page.js tools.js routines.js variables.js workspaces.js sharing.js presets.js menu.js drag.js keys.js app.js `
+  rdp.js storage.js team.js editor.js editor-page.js tools.js routines.js workspaces.js presets.js drag.js keys.js app.js `
   serve.py sync.py windows README.md RDP_SIGNING.md
 ```
 

@@ -2,7 +2,7 @@
 // storage.js, team.js). Formats are 2.2.1's: booleans are the strings 'true'
 // and 'false', unknown values fall back to the default, and a write that
 // fails is ignored.
-import { KEYS, readJson, readSafely, writeSafely } from './storage.js';
+import { KEYS, readJson, readSafely, remove, writeSafely } from './storage.js';
 
 /**
  * @param {string} key
@@ -108,4 +108,32 @@ export function readTeamSeen() {
 /** @param {{key: string, name: string}[]} entries */
 export function rememberTeam(entries) {
   writeSafely(KEYS.teamSeen, JSON.stringify(entries.map(({ key, name }) => ({ key, name }))));
+}
+
+/** How many recent links are kept. */
+export const RECENT_LIMIT = 10;
+
+/**
+ * Recently opened links, newest first; entries without a string key are
+ * skipped (2.2.1 favorites.js loadRecent).
+ * @returns {{key: string, name: string, time: number}[]}
+ */
+export function readRecent() {
+  const list = readJson(KEYS.recent, []);
+  return Array.isArray(list) ? list.filter(entry => entry && typeof entry.key === 'string') : [];
+}
+
+/**
+ * Put a link first in the recent list (once), keeping 10.
+ * @param {string} key
+ * @param {string} name
+ * @param {number} time
+ */
+export function recordRecent(key, name, time) {
+  const list = [{ key, name, time }, ...readRecent().filter(entry => entry.key !== key)];
+  writeSafely(KEYS.recent, JSON.stringify(list.slice(0, RECENT_LIMIT)));
+}
+
+export function clearRecent() {
+  try { remove(KEYS.recent); } catch { /* Storage may be unavailable. */ }
 }
