@@ -108,14 +108,22 @@ def stored(page):
     return json.loads(text)["groups"] if text else None
 
 
-def popups(page, action):
-    """Run `action` and return the URLs of the tabs it opened."""
+def popups(page, action, expect=0):
+    """Run `action` and return the URLs of the tabs it opened.
+
+    With `expect`, wait up to 5 s for that many tabs before the usual 700 ms
+    settle (which catches extra tabs), so a slow browser isn't read as no tab.
+    """
     opened = []
 
     def collect(tab):
         opened.append(tab)
     page.context.on("page", collect)
     action()
+    for _ in range(50):
+        if len(opened) >= expect:
+            break
+        page.wait_for_timeout(100)
     page.wait_for_timeout(700)
     page.context.remove_listener("page", collect)
     urls = []
@@ -124,6 +132,11 @@ def popups(page, action):
             tab.wait_for_load_state("domcontentloaded", timeout=5000)
         except Exception:  # noqa: BLE001 - a blocked or failed load still counts as opened
             pass
+        # A new tab can report about:blank until its navigation starts.
+        for _ in range(50):
+            if tab.url != "about:blank":
+                break
+            page.wait_for_timeout(100)
         urls.append(tab.url)
         tab.close()
     return urls
@@ -158,7 +171,7 @@ def f01_recent_favorites(ctx):
     fresh(ctx)
     check(page.locator(".quick-bar").count() == 0, f"{mode}: no quick bar before anything is opened")
     search(page, "docs portal")
-    urls = popups(page, lambda: page.locator("a.find-item").filter(has_text="Docs Portal").first.click())
+    urls = popups(page, lambda: page.locator("a.find-item").filter(has_text="Docs Portal").first.click(), expect=1)
     check(urls and urls[0].rstrip("/").endswith("/ok"), f"{mode}: the result opened ({urls})")
     search(page, "guide")
     page.locator(".find-row").filter(has_text="Guide").locator(".favorite-toggle").click()
@@ -171,7 +184,7 @@ def f01_recent_favorites(ctx):
     page.locator(".quick-chip").first.wait_for()
     check(page.locator(".quick-chip").count() == 2, f"{mode}: favorites and recent survive a reload")
     # A chip opens its link and moves to the front of Recent.
-    urls = popups(page, lambda: page.locator(".quick-chip").filter(has_text="Guide").click())
+    urls = popups(page, lambda: page.locator(".quick-chip").filter(has_text="Guide").click(), expect=1)
     check(urls and urls[0].endswith("/ok/guide.html"), f"{mode}: a chip opens its link")
     check(page.locator(".quick-row").nth(1).locator(".quick-chip").all_inner_texts() == ["Guide", "Docs Portal"],
           f"{mode}: the opened link is first in Recent")
@@ -214,11 +227,11 @@ def f02_open_all(ctx):
             return notice == f"Opened {total} tabs for {name}."
         blocked = total - len(urls)
         return f"blocked {blocked} tab{'s' if blocked != 1 else ''}" in notice and "Allow pop-ups" in notice
-    urls = popups(page, lambda: row.get_by_role("button", name="Docs Portal + 2 moons").click())
+    urls = popups(page, lambda: row.get_by_role("button", name="Docs Portal + 2 moons").click(), expect=1)
     check(urls and urls[0].rstrip("/").endswith("/ok") and opened_or_reported(urls, 3, "Docs Portal"),
           f"{mode}: the planet and its moons open, or blocked tabs are reported ({urls})")
     # Shift+click a planet does the same.
-    urls = popups(page, lambda: page.locator('.detail-satellite[data-planet="1"]').click(modifiers=["Shift"]))
+    urls = popups(page, lambda: page.locator('.detail-satellite[data-planet="1"]').click(modifiers=["Shift"]), expect=1)
     check(urls and urls[0].rstrip("/") == "https://status.example.test" and opened_or_reported(urls, 2, "Status"),
           f"{mode}: Shift+click opens a planet with its moons ({urls})")
     # Remote Desktop links are left out.
@@ -275,7 +288,7 @@ def f04_palette(ctx):
     page.keyboard.type("guide")
     options = page.locator(".palette-option strong").all_inner_texts()
     check(options[:1] == ["Guide"], f"{mode}: the palette finds a moon ({options})")
-    urls = popups(page, lambda: page.keyboard.press("Enter"))
+    urls = popups(page, lambda: page.keyboard.press("Enter"), expect=1)
     check(urls and urls[0].endswith("/ok/guide.html") and not palette.count(), f"{mode}: Enter opens it and closes ({urls})")
     page.keyboard.press("Control+k")
     page.keyboard.type("docs portal")
@@ -677,7 +690,7 @@ def f15_list(ctx):
     check(names == ["Ops", "Alpha", "Beta"], f"{mode}: the list shows every sun ({names})")
     check(page.locator(".list-link").count() == 2 + 8 + 2, f"{mode}: and every planet and moon")
     check(page.locator("#view-toggle").get_attribute("aria-pressed") == "true", f"{mode}: the toggle shows its state")
-    urls = popups(page, lambda: page.locator(".list-link").filter(has_text="Guide").click())
+    urls = popups(page, lambda: page.locator(".list-link").filter(has_text="Guide").click(), expect=1)
     check(urls and urls[0].endswith("/ok/guide.html"), f"{mode}: a list link opens ({urls})")
     page.locator(".list-link").filter(has_text="Docs Portal").focus()
     page.keyboard.press("Tab")
@@ -715,7 +728,7 @@ def f16_open_all_favorites(ctx):
     search(page, "")
     button = page.locator(".quick-open-all")
     check(button.inner_text() == "Open all (2)", f"{mode}: the Favorites row offers Open all")
-    urls = popups(page, button.click)
+    urls = popups(page, button.click, expect=1)
     notice = page.locator("#open-all-notice").inner_text()
     check(urls and (notice == "Opened 2 tabs for your favorites." or "blocked 1 tab" in notice),
           f"{mode}: Open all opens every favorite or reports blocked tabs ({urls}, {notice})")
@@ -771,7 +784,7 @@ def f17_routines(ctx):
     chip = page.locator(".routine-chip")
     check(page.locator(".quick-label").first.inner_text() == "Routines" and chip.inner_text() == "Morning",
           f"{mode}: the quick bar has a Routines row")
-    urls = popups(page, chip.click)
+    urls = popups(page, chip.click, expect=1)
     notice = page.locator("#open-all-notice").inner_text()
     check(urls and ("Opened 2 tabs for Morning." in notice or "blocked 1 tab" in notice) and
           "1 Remote Desktop link left out" in notice and "1 link in this routine is no longer on the map" in notice,
@@ -842,7 +855,7 @@ def f18_arrival(ctx):
     page.locator(".home-hub").first.wait_for()
     check(page.locator("#routine-banner").count() == 0, f"{mode}: it is not offered again today")
     set_routines(page, [{"name": "Morning", "links": links, "schedule": {"time": "00:00", "days": every_day}}])
-    urls = popups(page, lambda: page.get_by_role("button", name="Open Morning").click())
+    urls = popups(page, lambda: page.get_by_role("button", name="Open Morning").click(), expect=1)
     notice = page.locator("#open-all-notice").inner_text()
     check(urls and ("Opened 2 tabs for Morning." in notice or "blocked 1 tab" in notice), f"{mode}: Open opens the routine ({urls})")
     page.reload(wait_until="load")
@@ -941,7 +954,7 @@ def f20_variables(ctx):
     page.get_by_label("env", exact=True).fill("prod")
     check(page.locator(".variable-preview").inner_text() == "https://jira.example.test/browse/ABC%2012?env=prod",
           f"{mode}: the preview fills and encodes the values")
-    urls = popups(page, lambda: dialog.get_by_role("button", name="Open").click())
+    urls = popups(page, lambda: dialog.get_by_role("button", name="Open").click(), expect=1)
     check(urls == ["https://jira.example.test/browse/ABC%2012?env=prod"], f"{mode}: Open opens the filled address ({urls})")
     check(page.locator(".variable-form").count() == 0, f"{mode}: the form closes")
     search(page, "")
@@ -1201,8 +1214,8 @@ def f25_team_updates(ctx):
     box.get_by_role("button", name="Show what’s new").click()
     check(box.locator(".team-update-link").inner_text() == "Pager" and "in Ops → Runbook" in box.inner_text()
           and "Old page" in box.inner_text(), f"{mode}: the list shows new and removed links")
-    urls = popups(page, lambda: box.locator(".team-update-link").click())
-    check(urls and urls[0].rstrip("/") == "https://pager.example.test", f"{mode}: a new link opens from the list")
+    urls = popups(page, lambda: box.locator(".team-update-link").click(), expect=1)
+    check(urls and urls[0].rstrip("/") == "https://pager.example.test", f"{mode}: a new link opens from the list ({urls})")
     box.get_by_role("button", name="Dismiss").click()
     page.reload(wait_until="load")
     page.locator(".home-hub").first.wait_for()
