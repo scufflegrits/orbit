@@ -11,7 +11,7 @@ import { validateMap } from '../core/schema.js';
 import { personalGroups, uniqueSunId } from '../core/map-ops.js';
 import { KEYS, read, readSafely, remove, write } from './storage.js';
 import { MAIN, WORKSPACE_KEYS, loadWorkspaces, newWorkspace, readActiveWorkspace, saveActiveWorkspace, saveWorkspaces, workspaceKey } from './workspaces.js';
-import { hiddenTeamSuns, writeStoredSet } from './prefs.js';
+import { forgetOffered, hiddenTeamSuns, writeStoredSet } from './prefs.js';
 import { recordHistory } from './history.js';
 import { countChange, forgetWorkspace } from './backup.js';
 
@@ -274,8 +274,8 @@ export function createStore() {
     },
 
     /**
-     * Remove a workspace (never Main): its map, undo, and history keys, and its
-     * backup entry. Returns true if it was the open one; the caller then
+     * Remove a workspace (never Main): its map, undo, and history keys, its
+     * backup entry, and its routine offer marks. Returns true if it was the open one; the caller then
      * switches to Main.
      * @param {string} id
      */
@@ -283,6 +283,7 @@ export function createStore() {
       if (id === MAIN) return false;
       for (const base of WORKSPACE_KEYS) remove(workspaceKey(base, id));
       forgetWorkspace(id);
+      forgetOffered(id);
       saveWorkspaces(loadWorkspaces().filter(item => item.id !== id));
       return state.workspace === id;
     },

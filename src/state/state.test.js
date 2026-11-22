@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { oracle } from '../../tests/oracle/oracle.mjs';
 import { KEYS, MIGRATIONS, memoryStorage, migrate, onExternalChange, readJson, useBackend, write, writeSafely } from './storage.js';
 import { loadWorkspaces, newWorkspace, readActiveWorkspace, renameWorkspace, workspaceKey, workspaceName } from './workspaces.js';
-import { hiddenTeamSuns, markOffered, readBoolean, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
+import { hiddenTeamSuns, markOffered, offeredIn, readBoolean, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
 import { HISTORY_LIMIT, loadHistory, recordHistory } from './history.js';
 import { countChange, forgetWorkspace, noteBackupMade, readBackupState } from './backup.js';
 
@@ -132,6 +132,19 @@ test('prefs: placeholder values and routine offers read as 2.2.1 loadVariables a
     assert.deepEqual(JSON.parse(JSON.stringify(readVariables())), old.call('loadVariables'), text);
     assert.deepEqual(JSON.parse(JSON.stringify(readOffered())), old.call('readOffered'), text);
   }
+});
+
+test('prefs: routine offers are per workspace; Main keeps the plain routine id (3.0.1)', () => {
+  markOffered('morning', '2026-11-22');
+  markOffered('morning', '2026-11-21', 'home');
+  assert.deepEqual(JSON.parse(storage.getItem(KEYS.routineOffered)), { morning: '2026-11-22', 'morning:home': '2026-11-21' });
+  assert.equal(offeredIn('main').morning, '2026-11-22');
+  assert.deepEqual(offeredIn('home'), { morning: '2026-11-21' });
+  assert.deepEqual(offeredIn('work'), {});
+  // A mark saved by 2.x or 3.0.0 (plain id) still counts for Main.
+  storage.setItem(KEYS.routineOffered, '{"standup":"2026-11-22"}');
+  assert.deepEqual(offeredIn('main'), { standup: '2026-11-22' });
+  assert.deepEqual(offeredIn('home'), {});
 });
 
 test('prefs: saving placeholder values keeps the others; offers record the day; a full storage is ignored', () => {

@@ -2,6 +2,10 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
+## 3.0.1 — 2026-11-22
+
+- **Fixed:** a routine dismissed or opened from its offer in one workspace is no longer hidden in another workspace that has a routine with the same name. Each workspace now remembers its own offers, and removing a workspace forgets its offers. Offers already made today in Main still count; in other workspaces, a routine may be offered once more on the day you update.
+
 ## 3.0.0 — 2026-11-22
 
 **Nothing changes for you.** Orbit looks and works exactly as in 2.2.1. Your saved links, routines, workspaces, and settings carry over untouched: a snapshot of 2.2 saved data reads back exactly as 2.2.1 read it. Orbit still opens by double-clicking `index.html`, with no install or server.

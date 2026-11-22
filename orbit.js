@@ -3,7 +3,7 @@
 "use strict";
 (() => {
   // src/app/version.js
-  var APP_VERSION = "3.0.0";
+  var APP_VERSION = "3.0.1";
 
   // src/core/words.js
   function counted(amount, word, plural = `${word}s`) {
@@ -531,9 +531,19 @@ prompt for credentials:i:1\r
     writeSafely(KEYS.variables, JSON.stringify({ ...readVariables(), ...values }));
   }
   var readOffered = () => readObject(KEYS.routineOffered);
-  function markOffered(id, day) {
+  function offeredIn(workspace) {
+    let all = readOffered();
+    if (workspace === MAIN) return all;
+    let suffix = `:${workspace}`;
+    return Object.fromEntries(Object.entries(all).filter(([key]) => key.endsWith(suffix)).map(([key, day]) => [key.slice(0, -suffix.length), day]));
+  }
+  function markOffered(id, day, workspace = MAIN) {
     let offered2 = readOffered();
-    offered2[id] = day, writeSafely(KEYS.routineOffered, JSON.stringify(offered2));
+    offered2[workspaceKey(id, workspace)] = day, writeSafely(KEYS.routineOffered, JSON.stringify(offered2));
+  }
+  function forgetOffered(workspace) {
+    let suffix = `:${workspace}`, offered2 = readOffered(), kept = Object.fromEntries(Object.entries(offered2).filter(([key]) => !key.endsWith(suffix)));
+    Object.keys(kept).length !== Object.keys(offered2).length && writeSafely(KEYS.routineOffered, JSON.stringify(kept));
   }
   function readTeamSeen() {
     let value = readJson(KEYS.teamSeen, null);
@@ -798,15 +808,15 @@ prompt for credentials:i:1\r
         return write(workspaceKey(KEYS.map, added.id), JSON.stringify(validateMap(map))), saveWorkspaces([...loadWorkspaces(), added]), added.id;
       },
       /**
-       * Remove a workspace (never Main): its map, undo, and history keys, and its
-       * backup entry. Returns true if it was the open one; the caller then
+       * Remove a workspace (never Main): its map, undo, and history keys, its
+       * backup entry, and its routine offer marks. Returns true if it was the open one; the caller then
        * switches to Main.
        * @param {string} id
        */
       removeWorkspace(id) {
         if (id === MAIN) return !1;
         for (let base of WORKSPACE_KEYS) remove(workspaceKey(base, id));
-        return forgetWorkspace(id), saveWorkspaces(loadWorkspaces().filter((item) => item.id !== id)), state.workspace === id;
+        return forgetWorkspace(id), forgetOffered(id), saveWorkspaces(loadWorkspaces().filter((item) => item.id !== id)), state.workspace === id;
       },
       /**
        * Where a combined index points: a team sun or a personal one.
@@ -1771,10 +1781,10 @@ prompt for credentials:i:1\r
   }
 
   // src/ui/notices/routine-offer.js
-  var offered = (id) => markOffered(id, localDay(today()));
+  var offered = (id) => markOffered(id, localDay(today()), activeWorkspace());
   function offerDueRoutines() {
     if (document.querySelector("#routine-banner")?.remove(), !modes.routineOffersAllowed()) return;
-    let due = dueRoutines(routines, readOffered());
+    let due = dueRoutines(routines, offeredIn(activeWorkspace()));
     if (!due.length) return;
     let banner = element("section", "routine-banner");
     banner.id = "routine-banner", banner.setAttribute("role", "region"), banner.setAttribute("aria-label", "Routines ready to open");

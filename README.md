@@ -10,7 +10,7 @@ The bundled map has nine sample suns, including **Stocks & Investing**, **Scienc
 
 ## What's new in 3.0.0
 
-Nothing changes for you. Orbit looks and works exactly as in 2.2.1, and your saved links, routines, workspaces, and settings carry over untouched. 3.0.0 rebuilds the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. It is just as fast: the Galaxy draws 2% faster, typing in Quick find is unchanged, and the code is 1.5% larger. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md).
+Nothing changes for you. Orbit looks and works exactly as in 2.2.1, and your saved links, routines, workspaces, and settings carry over untouched. 3.0.0 rebuilds the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. It is just as fast: the Galaxy draws 2% faster, typing in Quick find is unchanged, and the code is 1.5% larger. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md). 3.0.1 fixes routine offers in workspaces other than Main (see the changelog).
 
 To go back to 2.2.1, use its release: in a git copy, run `git checkout v2.2.1`; otherwise unpack the 2.2.1 zip over this folder. Your data stays where it is, in the browser, and 2.2.1 reads it as before.
 
@@ -116,7 +116,7 @@ A **routine** is a named set of links you open together, such as the sites you s
 
 Routines remember links by their address, so renaming or moving a link on the map keeps the routine working; a link you remove is skipped and counted. Routines are saved with your map: Export JSON includes them, Import JSON merges routines with new names, and History restores them.
 
-Tick **Offer this routine when Orbit opens** to give a routine a time and days (weekdays by default). When Orbit opens on one of those days at or after that time, a banner offers **Open <routine>** or **Not today**. Browsers open tabs only after a click, so Orbit asks instead of opening them by itself, and it asks once a day.
+Tick **Offer this routine when Orbit opens** to give a routine a time and days (weekdays by default). When Orbit opens on one of those days at or after that time, a banner offers **Open <routine>** or **Not today**. Browsers open tabs only after a click, so Orbit asks instead of opening them by itself, and it asks once a day in each workspace.
 
 To make this your morning start:
 

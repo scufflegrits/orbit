@@ -3,6 +3,7 @@
 // and 'false', unknown values fall back to the default, and a write that
 // fails is ignored.
 import { KEYS, readJson, readSafely, remove, writeSafely } from './storage.js';
+import { MAIN, workspaceKey } from './workspaces.js';
 
 /**
  * @param {string} key
@@ -82,17 +83,48 @@ export function saveVariables(values) {
   writeSafely(KEYS.variables, JSON.stringify({ ...readVariables(), ...values }));
 }
 
-/** The local day (YYYY-MM-DD) each routine was last offered, by routine id. */
+/**
+ * Every stored offer mark, as saved: the local day (YYYY-MM-DD) each routine
+ * was last offered. Main's routines use the plain routine id, as 2.x did;
+ * other workspaces add `:<workspace id>`, like their storage keys (3.0.1;
+ * before, two workspaces' routines with the same id shared one mark).
+ */
 export const readOffered = () => readObject(KEYS.routineOffered);
 
 /**
- * @param {string} id
- * @param {string} day YYYY-MM-DD
+ * One workspace's offer marks, by routine id.
+ * @param {string} workspace
+ * @returns {Record<string, string>}
  */
-export function markOffered(id, day) {
+export function offeredIn(workspace) {
+  const all = readOffered();
+  if (workspace === MAIN) return all;
+  const suffix = `:${workspace}`;
+  return Object.fromEntries(Object.entries(all).filter(([key]) => key.endsWith(suffix))
+    .map(([key, day]) => [key.slice(0, -suffix.length), day]));
+}
+
+/**
+ * @param {string} id Routine id.
+ * @param {string} day YYYY-MM-DD
+ * @param {string} [workspace] The routine's workspace (Main by default).
+ */
+export function markOffered(id, day, workspace = MAIN) {
   const offered = readOffered();
-  offered[id] = day;
+  offered[workspaceKey(id, workspace)] = day;
   writeSafely(KEYS.routineOffered, JSON.stringify(offered));
+}
+
+/**
+ * Drop a removed workspace's offer marks, so a new workspace with the same id
+ * starts fresh. Never called for Main.
+ * @param {string} workspace
+ */
+export function forgetOffered(workspace) {
+  const suffix = `:${workspace}`;
+  const offered = readOffered();
+  const kept = Object.fromEntries(Object.entries(offered).filter(([key]) => !key.endsWith(suffix)));
+  if (Object.keys(kept).length !== Object.keys(offered).length) writeSafely(KEYS.routineOffered, JSON.stringify(kept));
 }
 
 /**

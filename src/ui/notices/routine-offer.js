@@ -3,7 +3,8 @@
 // tabs after a click. Due is services/schedule.js; offers are remembered in
 // state/prefs.js. Moved in rewrite phase 6a.
 import { dueRoutines, localDay, today } from '../../services/schedule.js';
-import { markOffered, readOffered } from '../../state/prefs.js';
+import { activeWorkspace } from '../../state/page-store.js';
+import { markOffered, offeredIn } from '../../state/prefs.js';
 import { counted, element } from '../dom.js';
 import { modes } from '../page-modes.js';
 import { routineItems, runRoutine } from '../views/open.js';
@@ -11,12 +12,12 @@ import { noticeArea } from './area.js';
 import { groups, routines } from '../page.js';
 
 /** @param {string} id */
-const offered = id => markOffered(id, localDay(today()));
+const offered = id => markOffered(id, localDay(today()), activeWorkspace());
 
 export function offerDueRoutines() {
   document.querySelector('#routine-banner')?.remove();
   if (!modes.routineOffersAllowed()) return;
-  const due = dueRoutines(routines, readOffered());
+  const due = dueRoutines(routines, offeredIn(activeWorkspace()));
   if (!due.length) return;
   const banner = element('section', 'routine-banner');
   banner.id = 'routine-banner';

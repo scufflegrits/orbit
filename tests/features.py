@@ -1112,6 +1112,38 @@ def f27_reset_workspace(ctx):
     print(f"PASS F27 reset in a workspace ({mode})")
 
 
+def f28_offers_per_workspace(ctx):
+    """A routine dismissed in one workspace is still offered in another with the same routine id."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    links = [{"key": "https://status.example.test", "name": "Status"}, {"key": "https://wiki.example.test", "name": "Wiki"}]
+    morning = [{"name": "Morning", "links": links, "schedule": {"time": "00:00", "days": list(range(7))}}]
+    set_routines(page, morning)
+    banner = page.locator("#routine-banner")
+    check(banner.is_visible(), f"{mode}: Main offers Morning")
+    page.get_by_role("button", name="Not today").click()
+    add_workspace(page, "Home", "An empty map")
+    # Home gets its own routine named Morning, so the same id; the offer marks are kept.
+    page.evaluate("list => OrbitTest.saveMap(OrbitTest.groups(), { routines: list, label: 'test routines' })", morning)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    page.wait_for_timeout(200)
+    check(page.locator("#workspace-switch").input_value() == "home" and
+          [routine["id"] for routine in json.loads(page.evaluate("localStorage.getItem('orbit:map:v1:home')"))["routines"]] == ["morning"],
+          f"{mode}: Home has its own Morning routine with the same id")
+    # Home's map is empty, so none of the routine's links are on it: "0 links".
+    check(banner.is_visible() and banner.locator(".routine-offer-copy").inner_text().startswith("Time for Morning:"),
+          f"{mode}: Home offers its Morning although Main's was dismissed today")
+    page.get_by_role("button", name="Not today").click()
+    page.locator("#workspace-switch").select_option(label="Main")
+    page.wait_for_timeout(200)
+    check(page.locator("#routine-banner").count() == 0, f"{mode}: Main's Morning stays dismissed")
+    offered = json.loads(page.evaluate("localStorage.getItem('orbit:routine-offered:v1')"))
+    check(sorted(offered) == ["morning", "morning:home"] and len(set(offered.values())) == 1,
+          f"{mode}: Main keeps the plain routine id; Home's mark adds :home ({offered})")
+    print(f"PASS F28 routine offers per workspace ({mode})")
+
+
 # ---- F23 Link packs -------------------------------------------------------------
 
 def f23_link_packs(ctx):
@@ -1280,7 +1312,8 @@ def f26_presets(ctx):
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
-          f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace)
+          f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
+          f28_offers_per_workspace)
 
 
 def run_checks(make_ctx, only):

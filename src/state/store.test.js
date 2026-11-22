@@ -205,10 +205,12 @@ test('workspaces: add (empty, copy, bundled), switch, and remove', () => {
   assert.deepEqual(store.state().groups.map(s => s.id), ['team:ops', 'team:hr', 'mine']);
   store.saveMap({ groups: [sun('changed')] }, 'Changed');
   assert.deepEqual(stored().groups.map(s => s.id), ['mine'], 'Main untouched');
+  storage.setItem('orbit:routine-offered:v1', JSON.stringify({ morning: '2026-11-22', 'morning:copy': '2026-11-22', 'morning:empty': '2026-11-22' }));
   assert.equal(store.removeWorkspace('copy'), true, 'it was the open one');
   assert.equal(storage.getItem('orbit:map:v1:copy'), null);
   assert.equal(storage.getItem('orbit:history:v1:copy'), null);
   assert.equal(readBackupState().copy, undefined);
+  assert.deepEqual(stored('orbit:routine-offered:v1'), { morning: '2026-11-22', 'morning:empty': '2026-11-22' }, 'its routine offer marks go too (3.0.1)');
   assert.equal(store.removeWorkspace('main'), false);
   assert.equal(store.removeWorkspace('empty'), false);
 });

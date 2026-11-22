@@ -575,7 +575,7 @@ The rewrite reads all of these exactly as 2.2.0 writes them. Key names and forma
 | `orbit:workspaces:v1`, `orbit:workspace` | Shared | |
 | `orbit:recent:v1` | Shared | |
 | `orbit:variables:v1` | Shared | Last value of each placeholder |
-| `orbit:routine-offered:v1` | Shared, keyed by routine id | Known clash: routines with the same id in two workspaces share one "offered today" mark. Keep as is; record it in the behavior inventory. |
+| `orbit:routine-offered:v1` | Shared, keyed by routine id | Known clash: routines with the same id in two workspaces share one "offered today" mark (fixed after the rewrite, in 3.0.1: other workspaces' marks add `:<workspace>`). Keep as is; record it in the behavior inventory. |
 | `orbit:team-favorites`, `orbit:team-hidden`, `orbit:team-seen:v1` | Shared | |
 | `orbit:theme`, `orbit:animations`, `orbit:always-show-moons`, `orbit:font-size`, `orbit:rdp-launch`, `orbit:quick-bar`, `orbit:galaxy-view`, `orbit:site-icons`, `orbit:backup-reminders` | Shared | Booleans stored as the strings `'true'`/`'false'`. Theme ids `alabama`/`auburn` (Red/Blue). Unknown values fall back to the default. |
 
