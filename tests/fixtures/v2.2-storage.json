@@ -1,0 +1,76 @@
+{
+  "about": "Synthetic Orbit 2.2 browser data for the rewrite's data-compatibility check. Written by tests/make_v22_fixture.py; do not edit by hand.",
+  "links": {
+    "groups": [
+      {
+        "id": "bundled",
+        "name": "Bundled",
+        "description": "From links.json",
+        "color": "#79d9f8",
+        "links": [
+          {
+            "name": "Example",
+            "url": "https://example.test/",
+            "moons": []
+          }
+        ]
+      }
+    ]
+  },
+  "team": {
+    "groups": [
+      {
+        "id": "ops",
+        "name": "Ops",
+        "description": "Team links",
+        "color": "#f8d779",
+        "links": [
+          {
+            "name": "Status",
+            "url": "https://status.example.test/",
+            "moons": []
+          },
+          {
+            "name": "Runbook",
+            "url": "https://runbook.example.test/",
+            "moons": []
+          }
+        ]
+      },
+      {
+        "id": "hidden-team",
+        "name": "Hidden team sun",
+        "description": "",
+        "color": "#cccccc",
+        "links": []
+      }
+    ]
+  },
+  "storage": {
+    "orbit:workspaces:v1": "[{\"id\": \"main\", \"name\": \"Main\"}, {\"id\": \"home\", \"name\": \"Home\"}, {\"id\": \"broken\", \"name\": \"Broken\"}]",
+    "orbit:workspace": "main",
+    "orbit:map:v1": "{\"groups\": [{\"id\": \"work\", \"name\": \"Work\", \"description\": \"Daily tools\", \"color\": \"#79d9f8\", \"icon\": \"🛠️\", \"links\": [{\"name\": \"Jira\", \"url\": \"https://jira.example.test/browse/{ticket}\", \"tags\": [\"daily\", \"tickets\"], \"favorite\": true, \"note\": \"Use the sprint board\", \"moons\": [{\"name\": \"Board\", \"url\": \"https://jira.example.test/board\", \"tags\": [\"daily\"]}]}, {\"name\": \"Docs\", \"url\": \"https://docs.example.test/\", \"moons\": []}]}, {\"id\": \"labs\", \"name\": \"Labs\", \"description\": \"\", \"color\": \"#a979f8\", \"links\": [{\"name\": \"lab1\", \"type\": \"rdp\", \"host\": \"lab1\", \"rdpProfile\": \"full address:s:lab1\\r\\nscreen mode id:i:2\\r\\nsession bpp:i:32\\r\\n\", \"moons\": [{\"name\": \"lab1 full screen\", \"type\": \"rdp\", \"host\": \"lab1:3390\", \"rdpPreset\": \"full-screen\"}]}]}], \"routines\": [{\"id\": \"morning\", \"name\": \"Morning\", \"links\": [{\"key\": \"https://docs.example.test\", \"name\": \"Docs\"}, {\"key\": \"https://status.example.test\", \"name\": \"Status\"}, {\"key\": \"https://gone.example.test\", \"name\": \"No longer on the map\"}], \"schedule\": {\"time\": \"08:00\", \"days\": [1, 2, 3, 4, 5]}}, {\"id\": \"evening\", \"name\": \"Evening\", \"links\": [{\"key\": \"https://jira.example.test/board\", \"name\": \"Board\"}]}], \"rdpPresets\": [{\"id\": \"full-screen\", \"name\": \"Full screen\", \"settings\": \"screen mode id:i:2\\r\\nuse multimon:i:1\"}]}",
+    "orbit:map:v1:home": "{\"groups\": [{\"name\": \"Home stuff\", \"links\": [{\"name\": \"Mail\", \"url\": \" https://mail.example.test/ \", \"tags\": \"Personal, personal\", \"moons\": [{\"name\": \"Calendar\", \"url\": \"https://calendar.example.test/\"}]}, {\"name\": \"News\", \"url\": \"https://news.example.test/\", \"favorite\": \"yes\", \"note\": \"   \"}]}, {\"name\": \"Home stuff\", \"color\": \"#123456\", \"links\": []}]}",
+    "orbit:map:v1:broken": "{\"groups\": [{\"id\": \"bad\", \"name\": \"Bad\", \"color\": null, \"links\": []}]}",
+    "orbit:undo-removal:v1": "{\"kind\": \"planet\", \"index\": 1, \"label\": \"Wiki\", \"item\": {\"name\": \"Wiki\", \"url\": \"https://wiki.example.test/\", \"moons\": []}, \"sunId\": \"work\", \"planetUrl\": null, \"planetHost\": null, \"planetName\": null, \"planetIndex\": null}",
+    "orbit:undo-removal:v1:home": "{\"kind\": \"sun\", \"index\": 0, \"label\": \"Old sun\", \"item\": {\"id\": \"old\", \"name\": \"Old sun\", \"description\": \"\", \"color\": \"#79d9f8\", \"links\": []}}",
+    "orbit:history:v1": "[{\"time\": 1763513600000, \"label\": \"Renamed Docs\", \"groups\": [{\"id\": \"work\", \"name\": \"Work\", \"description\": \"Daily tools\", \"color\": \"#79d9f8\", \"icon\": \"🛠️\", \"links\": [{\"name\": \"Jira\", \"url\": \"https://jira.example.test/browse/{ticket}\", \"tags\": [\"daily\", \"tickets\"], \"favorite\": true, \"note\": \"Use the sprint board\", \"moons\": [{\"name\": \"Board\", \"url\": \"https://jira.example.test/board\", \"tags\": [\"daily\"]}]}, {\"name\": \"Docs\", \"url\": \"https://docs.example.test/\", \"moons\": []}]}, {\"id\": \"labs\", \"name\": \"Labs\", \"description\": \"\", \"color\": \"#a979f8\", \"links\": [{\"name\": \"lab1\", \"type\": \"rdp\", \"host\": \"lab1\", \"rdpProfile\": \"full address:s:lab1\\r\\nscreen mode id:i:2\\r\\nsession bpp:i:32\\r\\n\", \"moons\": [{\"name\": \"lab1 full screen\", \"type\": \"rdp\", \"host\": \"lab1:3390\", \"rdpPreset\": \"full-screen\"}]}]}], \"routines\": [{\"id\": \"morning\", \"name\": \"Morning\", \"links\": [{\"key\": \"https://docs.example.test\", \"name\": \"Docs\"}, {\"key\": \"https://status.example.test\", \"name\": \"Status\"}, {\"key\": \"https://gone.example.test\", \"name\": \"No longer on the map\"}], \"schedule\": {\"time\": \"08:00\", \"days\": [1, 2, 3, 4, 5]}}, {\"id\": \"evening\", \"name\": \"Evening\", \"links\": [{\"key\": \"https://jira.example.test/board\", \"name\": \"Board\"}]}], \"rdpPresets\": [{\"id\": \"full-screen\", \"name\": \"Full screen\", \"settings\": \"screen mode id:i:2\\r\\nuse multimon:i:1\"}]}, {\"time\": 1763427200000, \"label\": \"Added Labs\", \"groups\": [{\"id\": \"work\", \"name\": \"Work\", \"description\": \"Daily tools\", \"color\": \"#79d9f8\", \"icon\": \"🛠️\", \"links\": [{\"name\": \"Jira\", \"url\": \"https://jira.example.test/browse/{ticket}\", \"tags\": [\"daily\", \"tickets\"], \"favorite\": true, \"note\": \"Use the sprint board\", \"moons\": [{\"name\": \"Board\", \"url\": \"https://jira.example.test/board\", \"tags\": [\"daily\"]}]}, {\"name\": \"Docs\", \"url\": \"https://docs.example.test/\", \"moons\": []}]}]}, {\"label\": \"Ignored: no groups list\"}]",
+    "orbit:history:v1:home": "[{\"time\": 1763513600000, \"label\": \"Imported\", \"groups\": []}]",
+    "orbit:backup:v1": "{\"main\": {\"changes\": 3, \"since\": 1763427200000}, \"home\": {\"changes\": 0, \"lastExport\": 1763513600000}, \"broken\": {\"changes\": 1, \"since\": 1763600000000, \"snoozeUntil\": 1763859200000}}",
+    "orbit:theme": "auburn",
+    "orbit:animations": "false",
+    "orbit:always-show-moons": "true",
+    "orbit:font-size": "huge",
+    "orbit:rdp-launch": "client",
+    "orbit:quick-bar": "false",
+    "orbit:galaxy-view": "list",
+    "orbit:site-icons": "true",
+    "orbit:backup-reminders": "false",
+    "orbit:recent:v1": "[{\"key\": \"https://docs.example.test\", \"name\": \"Docs\", \"time\": 1763600000000}, {\"key\": \"rdp:lab1\", \"name\": \"lab1\", \"time\": 1763599999000}, {\"name\": \"no key, ignored\"}]",
+    "orbit:variables:v1": "{\"ticket\": \"ABC-123\"}",
+    "orbit:routine-offered:v1": "{\"morning\": \"2025-11-19\"}",
+    "orbit:team-favorites": "[\"https://status.example.test\"]",
+    "orbit:team-hidden": "[\"team:hidden-team\"]",
+    "orbit:team-seen:v1": "[{\"key\": \"https://status.example.test\", \"name\": \"Status\"}, {\"key\": \"https://old.example.test\", \"name\": \"Removed from the team map\"}]"
+  }
+}

@@ -1,0 +1,2 @@
+# The committed bundle is compared byte for byte with a fresh build, so keep LF everywhere.
+orbit.js text eol=lf

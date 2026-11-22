@@ -1,10 +1,14 @@
 # Orbit handoff
 
-Last updated 2026-11-20, at version 2.2.1.
+Last updated 2026-11-22, at version 3.0.0.
 
 ## Status
 
-All released work is on `main`, with no failing or pending test. The 3.0.0 rewrite is being planned on the `rewrite` branch ([REWRITE_PLAN.md](https://github.com/scufflegrits/orbit/blob/rewrite/REWRITE_PLAN.md) there); no phase starts without the user's go-ahead.
+All work is on `main`, with no failing or pending test. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](REWRITE_PLAN.md).
+
+**3.0.0 checks:** every suite passes in Chromium and in Edge (headless, and a visible window in the user's Remote Desktop session) in both modes; the 2.2 storage fixture reads back exactly as 2.2.1 read it; speed is unchanged (first render −2%, keystroke +0%) and the scripts are +1.5%; the user confirmed Open all by hand in visible Edge.
+
+**Waiting for the user:** nothing.
 
 | Release | Date | What it added | Plan |
 | --- | --- | --- | --- |
@@ -13,13 +17,14 @@ All released work is on `main`, with no failing or pending test. The 3.0.0 rewri
 | 2.1.0 | 2026-11-20 | Open all favorites, named routines, routine offers when Orbit opens | FEATURES_PLAN.md |
 | 2.2.0 | 2026-11-20 | Notes, `{placeholder}` links, quick add, workspaces, link packs, backup reminders, team map update notices, RDP presets | FEATURES_PLAN.md |
 | 2.2.1 | 2026-11-20 | Fix: Reset to file data in a workspace other than Main now keeps the file data after a reload (check F27) | TEST_MATRIX.md |
+| 3.0.0 | 2026-11-22 | The rewrite: ES modules in `src/` bundled into `orbit.js`, one store, strict type checks, node tests; no change on screen or in saved data | [REWRITE_PLAN.md](REWRITE_PLAN.md) |
 
 Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and touchscreen dragging.
 
 ## How the user wants work done
 
 - **The change cycle, unprompted:** local tests → Edge on the Windows VM → fix what fails → update the docs → commit and push. Do not ask before each step.
-- **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`. **Exception:** the 3.0.0 rewrite lives only on the `rewrite` branch, and [REWRITE_PLAN.md](REWRITE_PLAN.md) overrides this rule for rewrite work (push with `git push main rewrite`; merging into `main` needs the user's approval).
+- **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`.
 - **Plans** for multi-part work go in a Markdown file with `[ ]` checkboxes, ticked as items land; testing may wait until every item is built.
 - **Tests are focused**, not full-matrix: check changed behavior and its direct dependencies (see [TEST_MATRIX.md](TEST_MATRIX.md)). Run the full matrix only for app-wide changes, a release, or an explicit request.
 
@@ -111,6 +116,12 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/orbit_sizes.py` | OS01–OS06 at 1920×1080 | 13 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
 | `tests/features.py` | F01–F27, no F05 | all passed |
+| `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
+| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 180 passed |
+| `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
+| `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
+| `tests/data_compat_check.py` | The 2.2 storage fixture reads back as recorded | passed |
+| `tests/perf_compare.py` | The performance recipe (`--baseline`, `--against REF [--quick]`) | baseline recorded |
 
 `drag_drop.py`, `orbit_sizes.py`, `pending_checks.py`, and `features.py` accept `--cdp URL` and `--url PAGE` to drive a remote browser; `features.py` also takes `--target`, `--server-mode`, and `--write-fixture DIR`, and the drag and sizing runners take `--write-fixture DIR`.
 

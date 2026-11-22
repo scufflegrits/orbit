@@ -1,0 +1,309 @@
+{
+  "shared": {
+    "preferences": {
+      "theme": "auburn",
+      "fontSize": "standard",
+      "animations": false,
+      "alwaysShowMoons": true,
+      "rdpLaunch": "client",
+      "quickBar": false,
+      "siteIcons": true,
+      "galaxyView": "list",
+      "backupReminders": false,
+      "htmlTheme": "auburn",
+      "htmlFontSize": "standard"
+    },
+    "workspaces": [
+      {
+        "id": "main",
+        "name": "Main"
+      },
+      {
+        "id": "home",
+        "name": "Home"
+      },
+      {
+        "id": "broken",
+        "name": "Broken"
+      }
+    ],
+    "recent": [
+      {
+        "key": "https://docs.example.test",
+        "name": "Docs",
+        "time": 1763600000000
+      },
+      {
+        "key": "rdp:lab1",
+        "name": "lab1",
+        "time": 1763599999000
+      }
+    ],
+    "variables": {
+      "ticket": "ABC-123"
+    },
+    "offered": {
+      "morning": "2025-11-19"
+    },
+    "teamFavorites": [
+      "https://status.example.test"
+    ],
+    "teamHidden": [
+      "team:hidden-team"
+    ],
+    "teamSeen": [
+      {
+        "key": "https://status.example.test",
+        "name": "Status"
+      },
+      {
+        "key": "https://old.example.test",
+        "name": "Removed from the team map"
+      }
+    ],
+    "backup": {
+      "main": {
+        "changes": 3,
+        "since": 1763427200000
+      },
+      "home": {
+        "changes": 0,
+        "lastExport": 1763513600000
+      },
+      "broken": {
+        "changes": 1,
+        "since": 1763600000000,
+        "snoozeUntil": 1763859200000
+      }
+    }
+  },
+  "workspaces": {
+    "main": {
+      "workspace": "main",
+      "personal": [
+        {
+          "id": "work",
+          "name": "Work",
+          "description": "Daily tools",
+          "color": "#79d9f8",
+          "icon": "🛠️",
+          "links": [
+            {
+              "name": "Jira",
+              "url": "https://jira.example.test/browse/{ticket}",
+              "tags": [
+                "daily",
+                "tickets"
+              ],
+              "favorite": true,
+              "note": "Use the sprint board",
+              "moons": [
+                {
+                  "name": "Board",
+                  "url": "https://jira.example.test/board",
+                  "tags": [
+                    "daily"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Docs",
+              "url": "https://docs.example.test/",
+              "moons": []
+            }
+          ]
+        },
+        {
+          "id": "labs",
+          "name": "Labs",
+          "description": "",
+          "color": "#a979f8",
+          "links": [
+            {
+              "name": "lab1",
+              "type": "rdp",
+              "host": "lab1",
+              "rdpProfile": "full address:s:lab1\r\nscreen mode id:i:2\r\nsession bpp:i:32\r\n",
+              "moons": [
+                {
+                  "name": "lab1 full screen",
+                  "type": "rdp",
+                  "host": "lab1:3390",
+                  "rdpPreset": "full-screen"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "teamShown": [
+        "team:ops"
+      ],
+      "routines": [
+        {
+          "id": "morning",
+          "name": "Morning",
+          "links": [
+            {
+              "key": "https://docs.example.test",
+              "name": "Docs"
+            },
+            {
+              "key": "https://status.example.test",
+              "name": "Status"
+            },
+            {
+              "key": "https://gone.example.test",
+              "name": "No longer on the map"
+            }
+          ],
+          "schedule": {
+            "time": "08:00",
+            "days": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          }
+        },
+        {
+          "id": "evening",
+          "name": "Evening",
+          "links": [
+            {
+              "key": "https://jira.example.test/board",
+              "name": "Board"
+            }
+          ]
+        }
+      ],
+      "rdpPresets": [
+        {
+          "id": "full-screen",
+          "name": "Full screen",
+          "settings": "screen mode id:i:2\r\nuse multimon:i:1"
+        }
+      ],
+      "source": "browser",
+      "warning": "",
+      "undo": {
+        "kind": "planet",
+        "index": 1,
+        "label": "Wiki",
+        "item": {
+          "name": "Wiki",
+          "url": "https://wiki.example.test/",
+          "moons": []
+        },
+        "sunId": "work",
+        "planetUrl": null,
+        "planetHost": null,
+        "planetName": null,
+        "planetIndex": null
+      },
+      "history": [
+        {
+          "time": 1763513600000,
+          "label": "Renamed Docs",
+          "suns": 2,
+          "routines": 2,
+          "rdpPresets": 1
+        },
+        {
+          "time": 1763427200000,
+          "label": "Added Labs",
+          "suns": 1,
+          "routines": 0,
+          "rdpPresets": 0
+        }
+      ],
+      "storedMapUnchanged": true
+    },
+    "home": {
+      "workspace": "home",
+      "personal": [
+        {
+          "id": "home-stuff",
+          "name": "Home stuff",
+          "description": "",
+          "color": "#79d9f8",
+          "links": [
+            {
+              "name": "Mail",
+              "url": "https://mail.example.test/",
+              "tags": [
+                "personal"
+              ],
+              "moons": [
+                {
+                  "name": "Calendar",
+                  "url": "https://calendar.example.test/"
+                }
+              ]
+            },
+            {
+              "name": "News",
+              "url": "https://news.example.test/",
+              "moons": []
+            }
+          ]
+        },
+        {
+          "id": "home-stuff-2",
+          "name": "Home stuff",
+          "description": "",
+          "color": "#123456",
+          "links": []
+        }
+      ],
+      "teamShown": [
+        "team:ops"
+      ],
+      "routines": [],
+      "rdpPresets": [],
+      "source": "browser",
+      "warning": "",
+      "undo": {
+        "kind": "sun",
+        "index": 0,
+        "label": "Old sun",
+        "item": {
+          "id": "old",
+          "name": "Old sun",
+          "description": "",
+          "color": "#79d9f8",
+          "links": []
+        }
+      },
+      "history": [
+        {
+          "time": 1763513600000,
+          "label": "Imported",
+          "suns": 0,
+          "routines": 0,
+          "rdpPresets": 0
+        }
+      ],
+      "storedMapUnchanged": true
+    },
+    "broken": {
+      "workspace": "broken",
+      "personal": [],
+      "teamShown": [
+        "team:ops"
+      ],
+      "routines": [],
+      "rdpPresets": [],
+      "source": "browser",
+      "warning": "Saved browser data could not be loaded: Bad needs a six-digit hex color.",
+      "undo": null,
+      "history": [],
+      "storedMapUnchanged": true
+    }
+  },
+  "storageChangedByLoading": [],
+  "storageChangedBySwitching": []
+}

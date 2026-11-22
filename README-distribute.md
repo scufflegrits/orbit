@@ -20,13 +20,13 @@ These steps make a `.zip` of Orbit that you can give to someone who does not use
 | Included | Why |
 | --- | --- |
 | `index.html`, `styles.css` | The page |
-| `rdp.js`, `storage.js`, `team.js`, `favorites.js`, `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `variables.js`, `workspaces.js`, `sharing.js`, `presets.js`, `menu.js`, `render.js`, `drag.js`, `palette.js`, `keys.js`, `app.js` | The app scripts that `index.html` loads |
+| `orbit.js` | The app: the bundle built from `src/` by `npm run build` (committed, so no build is needed to ship) |
 | `links.json`, `links-data.js` | The sample link map, and the generated copy used when `index.html` is opened directly |
 | `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates `links-data.js` (and `team-data.js` with `--team`) |
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
 | `README.md`, `RDP_SIGNING.md` | Instructions for the person using Orbit |
 
-Left out: `tests/`, `HANDOFF.md`, `ROADMAP.md`, `DRAG_DROP_PLAN.md`, `FEATURES_PLAN.md`, `REFACTOR_PLAN.md`, `TEST_MATRIX.md`, `.gitignore`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped.
+Left out: `src/`, `build.mjs`, `package.json`, `package-lock.json`, `jsconfig.json`, `scripts/`, `tests/`, `HANDOFF.md`, `ROADMAP.md`, `DRAG_DROP_PLAN.md`, `FEATURES_PLAN.md`, `REFACTOR_PLAN.md`, `TEST_MATRIX.md`, `.gitignore`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped.
 
 The zip is built from the last commit, never from your working folder. Files you have not committed are left out, including private ones such as `tests/rdptest01.rdp`. Commit any change you want to ship before you build.
 
@@ -37,31 +37,29 @@ git status
 git log --oneline -1
 ```
 
-`git status` should show nothing to commit, except files you intend to keep out of the zip. Make sure `links.json` and `links-data.js` agree; if you changed `links.json`, run `python3 sync.py` and commit the result.
+`git status` should show nothing to commit, except files you intend to keep out of the zip. Make sure `links.json` and `links-data.js` agree; if you changed `links.json`, run `python3 sync.py` and commit the result. If you have Node, also run `npm run check:bundle`: it confirms the committed `orbit.js` matches `src/`.
 
 ## 2. Build the zip
 
-The version comes from `APP_VERSION` in `app.js`, and that is the version shown in Settings → About. Update it and commit before a new release.
+The version comes from `APP_VERSION` in `src/app/version.js`, and that is the version shown in Settings → About. To change it, edit that file, run `npm run build` (which rebuilds `orbit.js`), and commit both before a new release.
 
 **Linux or macOS:**
 
 ```sh
-VERSION=$(sed -n "s/^const APP_VERSION = '\(.*\)';/\1/p" app.js)
+VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.js)
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" HEAD -- \
-  index.html styles.css links.json links-data.js \
-  rdp.js storage.js team.js favorites.js editor.js editor-page.js tools.js routines.js variables.js workspaces.js sharing.js presets.js menu.js render.js drag.js palette.js keys.js app.js \
+  index.html styles.css links.json links-data.js orbit.js \
   serve.py sync.py windows README.md RDP_SIGNING.md
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-$Version = (Select-String -Path app.js -Pattern "APP_VERSION = '(.+)'").Matches[0].Groups[1].Value
+$Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)'").Matches[0].Groups[1].Value
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" HEAD -- `
-  index.html styles.css links.json links-data.js `
-  rdp.js storage.js team.js favorites.js editor.js editor-page.js tools.js routines.js variables.js workspaces.js sharing.js presets.js menu.js render.js drag.js palette.js keys.js app.js `
+  index.html styles.css links.json links-data.js orbit.js `
   serve.py sync.py windows README.md RDP_SIGNING.md
 ```
 

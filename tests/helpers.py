@@ -1,6 +1,7 @@
 """Shared constants, fixtures, and page helpers for Orbit's browser checks."""
 
 import ast
+import hashlib
 import json
 import shutil
 import subprocess
@@ -8,11 +9,43 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACTS = Path("/tmp/orbit-browser-tests")
-# Classic scripts loaded by index.html (besides links-data.js). Add new split files here.
-APP_SCRIPTS = ("rdp.js", "storage.js", "team.js", "favorites.js", "editor.js", "editor-page.js", "tools.js", "routines.js",
-               "variables.js", "workspaces.js", "sharing.js", "presets.js", "menu.js",
-               "render.js", "drag.js", "palette.js", "keys.js", "app.js")
+# Screenshots and other test output, inside the checkout running the tests (git-ignored),
+# so separate checkouts and worktrees never overwrite each other's files.
+ARTIFACTS = ROOT / ".artifacts"
+# Classic scripts loaded by index.html besides the data files. None since rewrite phase 8: the app is
+# the bundle. Kept so a future split file can be added here.
+APP_SCRIPTS = ()
+# The bundle built from src/ (build.mjs). Fixtures get the test bundle under this name, so index.html
+# is the same file in tests and in release; the committed release bundle is checked by
+# `npm run check:bundle` and tests/release_smoke.py instead.
+BUNDLE = "orbit.js"
+TEST_BUNDLE = ROOT / "orbit.test.js"
+_test_bundle_built = False
+
+
+def build_inputs_fingerprint():
+    """SHA-256 of every build input, computed exactly as build.mjs fingerprint() does."""
+    files = sorted({str(path.relative_to(ROOT).as_posix()) for path in (ROOT / "src").rglob("*") if path.is_file()}
+                   | {"build.mjs", "package.json", "package-lock.json"})
+    digest = hashlib.sha256()
+    for name in files:
+        digest.update(name.encode() + b"\0" + (ROOT / name).read_bytes() + b"\0")
+    esbuild_version = json.loads((ROOT / "node_modules" / "esbuild" / "package.json").read_text())["version"]
+    digest.update(f"esbuild@{esbuild_version}".encode())
+    return digest.hexdigest()
+
+
+def test_bundle():
+    """Build the test bundle once per run, then refuse it unless its fingerprint matches the current inputs."""
+    global _test_bundle_built
+    if not _test_bundle_built:
+        subprocess.run(["node", "build.mjs", "--test"], cwd=ROOT, check=True, capture_output=True)
+        _test_bundle_built = True
+    first_line = TEST_BUNDLE.read_text().split("\n", 1)[0] if TEST_BUNDLE.exists() else ""
+    expected = f"/* orbit-build-inputs: {build_inputs_fingerprint()} */"
+    if first_line != expected:
+        raise RuntimeError("orbit.test.js is missing or was built from different inputs; run `npm run build:test`")
+    return TEST_BUNDLE
 
 
 class QuietHandler(SimpleHTTPRequestHandler):
@@ -31,7 +64,7 @@ def run_data_checks():
     check(json.loads(generated.removesuffix(";\n")) == data, "generated data matches JSON")
     for name in ("serve.py", "sync.py", "tests/browser_matrix.py"):
         ast.parse((ROOT / name).read_text())
-    for name in (*APP_SCRIPTS, "links-data.js"):
+    for name in (*APP_SCRIPTS, BUNDLE, "links-data.js"):
         subprocess.run(["node", "--check", str(ROOT / name)], check=True, capture_output=True)
     print("PASS shared (data and syntax)")
 
@@ -75,6 +108,7 @@ def write_fixture(directory, data):
     fixture = Path(directory)
     for name in ("index.html", "styles.css", *APP_SCRIPTS):
         shutil.copy2(ROOT / name, fixture / name)
+    shutil.copy2(test_bundle(), fixture / BUNDLE)
     (fixture / "links.json").write_text(json.dumps(data))
     (fixture / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(data) + ";\n")
     return fixture

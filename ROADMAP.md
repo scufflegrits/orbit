@@ -246,6 +246,10 @@ Progress (2026-11-16): priority 1 is implemented and awaits a Windows registry b
 - **D. Folder drop [9]:** resolved 2026-11-16: keep it a browser page where files or a folder can be picked or dropped into the editor.
 - **E. Sizing [16]:** resolved 2026-11-16: use one shared size per label level across the whole Galaxy. The user wants every sun at the same size and a two-line “Confluence ABC” to fit a sun.
 
+## 3.0.0 — the rewrite (2026-11-22)
+
+Orbit's code moved from 20 classic scripts sharing globals into ES modules under `src/`, bundled into the committed `orbit.js`, with no change in what users see or in saved data. Built and tested on the `rewrite` branch in phases 0–9 (kept under tag `rewrite-history`; merged as one commit) against the frozen 2.2.1 code; see [REWRITE_PLAN.md](REWRITE_PLAN.md).
+
 ## Delivery approach
 
 Implement and review one milestone at a time. Update `README.md` and sample data when behavior or the data format changes. Check the behavior changed by the milestone and its direct dependencies; use file and server modes only when both are relevant. Inspect affected pointer, keyboard, window-size, or reduced-motion behavior as appropriate. Do not replay unrelated milestones after a small edit or as a routine commit gate. Reserve the full browser matrix for shared architectural changes, a release or deployment, or an explicit request. Repeat checks only to investigate a concrete failure or timing risk. Commit each completed milestone separately after its focused checks pass, with a message naming the milestone. Touch interaction is outside this roadmap.

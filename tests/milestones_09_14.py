@@ -369,26 +369,26 @@ def run_milestone_13(page, url, mode):
     page.locator(".editor-back").click()
     page.locator(".editor-back").click()
 
-    original = page.evaluate("JSON.stringify(groups)")
+    original = page.evaluate("JSON.stringify(OrbitTest.groups())")
     upload_json(page, "Import sun", planet_file)
     page.locator(".editor-error").filter(has_text="Choose an Orbit sun export file").wait_for()
-    check(page.evaluate("JSON.stringify(groups)") == original,
+    check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: mismatched item file leaves Galaxy unchanged")
     upload_json(page, "Import sun", b"{bad")
     page.locator(".editor-error").filter(has_text="Import failed").wait_for()
-    check(page.evaluate("JSON.stringify(groups)") == original,
+    check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: malformed item file leaves Galaxy unchanged")
     upload_json(page, "Import sun", sun_file)
     page.locator(".editor-header h3").filter(has_text="Review sun import").wait_for()
     check("Add to the Galaxy" in page.locator("#menu-content").inner_text(),
           f"{mode}: sun review shows target")
     page.get_by_role("button", name="Cancel").click()
-    check(page.evaluate("JSON.stringify(groups)") == original,
+    check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: cancelling a valid item import leaves Galaxy unchanged")
     upload_json(page, "Import sun", sun_file)
     page.locator(".editor-header h3").filter(has_text="Review sun import").wait_for()
     page.get_by_role("button", name="Add sun", exact=True).click()
-    suns = page.evaluate("groups.map(sun => sun.id)")
+    suns = page.evaluate("OrbitTest.groups().map(sun => sun.id)")
     check(len(suns) == 10 and suns.count("labs") == 1 and "labs-2" in suns,
           f"{mode}: imported duplicate sun gets a unique ID")
     page.locator(".editor-back").click()
@@ -398,27 +398,29 @@ def run_milestone_13(page, url, mode):
     check("Tech sun" in page.locator("#menu-content").inner_text(),
           f"{mode}: planet review shows chosen sun")
     page.get_by_role("button", name="Add planet", exact=True).click()
-    check(page.evaluate("groups.find(sun => sun.id === 'tech').links.at(-1).moons.length") == 5,
+    check(page.evaluate("OrbitTest.groups().find(sun => sun.id === 'tech').links.at(-1).moons.length") == 5,
           f"{mode}: imported planet keeps its moons")
     page.locator(".editor-back").click()
     page.locator(".editor-list-row").filter(has_text="Engadget").get_by_role("button", name="Edit").click()
-    before_moons = page.evaluate("groups.find(sun => sun.id === 'tech').links[0].moons.length")
+    before_moons = page.evaluate("OrbitTest.groups().find(sun => sun.id === 'tech').links[0].moons.length")
     bad_moon = {**moon_file, "item": {"name": "Unsafe", "url": "javascript:alert(1)"}}
     upload_json(page, "Import moon", bad_moon)
     page.locator(".editor-error").filter(has_text="http or https URL").wait_for()
-    check(page.evaluate("groups.find(sun => sun.id === 'tech').links[0].moons.length") == before_moons,
+    check(page.evaluate("OrbitTest.groups().find(sun => sun.id === 'tech').links[0].moons.length") == before_moons,
           f"{mode}: invalid moon leaves the chosen planet unchanged")
     upload_json(page, "Import moon", moon_file)
     page.locator(".editor-header h3").filter(has_text="Review moon import").wait_for()
     check("Tech sun → Engadget planet" in page.locator("#menu-content").inner_text(),
           f"{mode}: moon review shows chosen planet")
     page.get_by_role("button", name="Add moon", exact=True).click()
-    check(page.evaluate("groups.find(sun => sun.id === 'tech').links[0].moons.at(-1).host") == "lab1-server1",
+    check(page.evaluate("OrbitTest.groups().find(sun => sun.id === 'tech').links[0].moons.at(-1).host") == "lab1-server1",
           f"{mode}: imported moon appends to chosen planet")
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
+    # Server mode renders after fetching links.json; wait for the suns before counting them.
+    page.locator(".home-hub").nth(9).wait_for()
     check(page.locator(".home-hub").count() == 10 and
-          page.evaluate("groups.find(sun => sun.id === 'tech').links.at(-1).moons.length") == 5,
+          page.evaluate("OrbitTest.groups().find(sun => sun.id === 'tech').links.at(-1).moons.length") == 5,
           f"{mode}: scoped imports persist after reload")
     page.locator(".home-hub").filter(has_text="Tech").click()
     page.locator(".detail-view").wait_for()
@@ -436,10 +438,10 @@ def run_milestone_13(page, url, mode):
           f"{mode}: full export includes scoped imports")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Reset to file data").click()
-    check(page.evaluate("groups.length") == 9, f"{mode}: reset removes scoped imports")
+    check(page.evaluate("OrbitTest.groups().length") == 9, f"{mode}: reset removes scoped imports")
     upload_json(page, "Import JSON", full_file)
     page.get_by_role("button", name="Replace my map").click()
-    check(page.evaluate("groups.length") == 10, f"{mode}: full import restores scoped imports")
+    check(page.evaluate("OrbitTest.groups().length") == 10, f"{mode}: full import restores scoped imports")
     print(f"PASS milestone 13 ({mode})")
 
 
@@ -454,15 +456,15 @@ def run_milestone_14(page, url, mode):
             {"name": "Lab Server", "type": "rdp", "host": "shared-lab:3390"},
         ],
     }}
-    original = page.evaluate("JSON.stringify(groups)")
+    original = page.evaluate("JSON.stringify(OrbitTest.groups())")
     upload_json(page, "Import planet as sun", {**shared_planet, "kind": "moon"})
     page.locator(".editor-error").filter(has_text="Choose an Orbit planet export file").wait_for()
-    check(page.evaluate("JSON.stringify(groups)") == original,
+    check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: wrong item type does not change Galaxy")
     invalid = {**shared_planet, "item": {**shared_planet["item"], "url": "javascript:alert(1)"}}
     upload_json(page, "Import planet as sun", invalid)
     page.locator(".editor-error").filter(has_text="http or https URL").wait_for()
-    check(page.evaluate("JSON.stringify(groups)") == original,
+    check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: invalid planet does not change Galaxy")
     upload_json(page, "Import planet as sun", shared_planet)
     page.locator(".editor-header h3").filter(has_text="Review planet as sun").wait_for()
@@ -473,19 +475,21 @@ def run_milestone_14(page, url, mode):
     page.screenshot(path=str(ARTIFACTS / f"milestone14-review-{mode}-900.png"))
     page.set_viewport_size({"width": 1280, "height": 900})
     page.get_by_role("button", name="Cancel").click()
-    check(page.evaluate("JSON.stringify(groups)") == original,
+    check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: cancelled conversion leaves Galaxy unchanged")
     for expected_id in ("shared-research", "shared-research-2"):
         upload_json(page, "Import planet as sun", shared_planet)
         page.locator(".editor-header h3").filter(has_text="Review planet as sun").wait_for()
         page.get_by_role("button", name="Add sun", exact=True).click()
-        saved = page.evaluate("groups.at(-1)")
+        saved = page.evaluate("OrbitTest.groups().at(-1)")
         check(saved["id"] == expected_id and saved["name"] == "Shared Research" and
               saved["links"] == [shared_planet["item"]] and saved["color"] == "#79d9f8",
               f"{mode}: converted sun preserves planet and moons with unique ID")
         page.locator(".editor-back").click()
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
+    # Server mode renders after fetching links.json; wait for the suns before counting them.
+    page.locator(".home-hub").nth(10).wait_for()
     check(page.locator(".home-hub").count() == 11,
           f"{mode}: both converted suns persist after reload")
     page.locator(".home-hub").filter(has_text="Shared Research").first.click()

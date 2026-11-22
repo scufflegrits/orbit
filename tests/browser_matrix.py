@@ -5,11 +5,13 @@ Shared helpers live in helpers.py; milestone checks live in milestones_*.py.
 """
 
 import argparse
+import json
+import tempfile
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 from playwright.sync_api import sync_playwright
-from helpers import ARTIFACTS, QuietHandler, ROOT, run_data_checks, run_shared
+from helpers import ARTIFACTS, QuietHandler, ROOT, run_data_checks, run_shared, write_fixture
 from milestones_01_08 import (
     run_extra_sun_fixture,
     run_milestone_1,
@@ -53,7 +55,11 @@ def main():
 def run_once(args):
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     run_data_checks()
-    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(ROOT)))
+    # Test a fixture copy (with the test bundle), never the repo folder itself; see REWRITE_PLAN.md,
+    # "Builds and what tests run". The committed release bundle is covered by tests/release_smoke.py.
+    fixture_directory = tempfile.TemporaryDirectory(prefix="orbit-matrix-")
+    fixture = write_fixture(fixture_directory.name, json.loads((ROOT / "links.json").read_text()))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(fixture)))
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -64,7 +70,7 @@ def run_once(args):
             )
             try:
                 for mode, url in (
-                    ("file", (ROOT / "index.html").as_uri()),
+                    ("file", (fixture / "index.html").as_uri()),
                     ("server", f"http://127.0.0.1:{server.server_port}/index.html"),
                 ):
                     page = browser.new_page(viewport={"width": 1280, "height": 900})
@@ -114,6 +120,7 @@ def run_once(args):
                 browser.close()
     finally:
         server.shutdown()
+        fixture_directory.cleanup()
         server.server_close()
 
 

@@ -1,0 +1,6166 @@
+{
+ "seed": 2026,
+ "personal": {
+  "groups": [
+   {
+    "id": "harbor-umber-1",
+    "name": "Harbor Umber 1",
+    "description": "Generated sun 1",
+    "color": "#4ae5cc",
+    "links": [
+     {
+      "name": "Glacier Glacier 1",
+      "url": "https://harbor-umber-1.example.test/glacier-glacier-1",
+      "moons": [
+       {
+        "name": "Onyx 1",
+        "url": "https://harbor-umber-1.example.test/onyx-1"
+       },
+       {
+        "name": "Atlas 2",
+        "url": "https://harbor-umber-1.example.test/atlas-2"
+       },
+       {
+        "name": "Fjord 3",
+        "url": "https://harbor-umber-1.example.test/fjord-3"
+       },
+       {
+        "name": "Pioneer 4",
+        "url": "https://harbor-umber-1.example.test/pioneer-4",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Granite 5",
+        "url": "https://harbor-umber-1.example.test/granite-5"
+       },
+       {
+        "name": "Relay 6",
+        "url": "https://harbor-umber-1.example.test/relay-6"
+       },
+       {
+        "name": "Zephyr 7",
+        "url": "https://harbor-umber-1.example.test/zephyr-7",
+        "tags": [
+         "lab",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Ember 8",
+        "url": "https://harbor-umber-1.example.test/ember-8",
+        "note": "Check island before the summit review"
+       }
+      ]
+     },
+     {
+      "name": "Summit Drift 2",
+      "url": "https://harbor-umber-1.example.test/summit-drift-2",
+      "tags": [
+       "daily",
+       "metrics"
+      ],
+      "moons": [
+       {
+        "name": "Xenon 1",
+        "url": "https://harbor-umber-1.example.test/xenon-1",
+        "note": "Check lantern before the juniper review"
+       },
+       {
+        "name": "Fjord 2",
+        "url": "https://harbor-umber-1.example.test/fjord-2"
+       },
+       {
+        "name": "Mosaic 3",
+        "url": "https://harbor-umber-1.example.test/mosaic-3"
+       },
+       {
+        "name": "Horizon 4",
+        "url": "https://harbor-umber-1.example.test/horizon-4",
+        "tags": [
+         "review",
+         "team"
+        ]
+       },
+       {
+        "name": "Bravo 5",
+        "url": "https://harbor-umber-1.example.test/bravo-5"
+       },
+       {
+        "name": "Delta 6",
+        "url": "https://harbor-umber-1.example.test/delta-6"
+       },
+       {
+        "name": "Quill 7",
+        "url": "https://harbor-umber-1.example.test/quill-7",
+        "tags": [
+         "docs",
+         "team"
+        ]
+       },
+       {
+        "name": "Onyx 8",
+        "url": "https://harbor-umber-1.example.test/onyx-8",
+        "note": "Check sierra before the drift review"
+       }
+      ]
+     },
+     {
+      "name": "Relay Echo 3",
+      "url": "https://harbor-umber-1.example.test/relay-echo-3",
+      "moons": [
+       {
+        "name": "Island 1",
+        "url": "https://harbor-umber-1.example.test/island-1",
+        "tags": [
+         "review",
+         "team"
+        ]
+       },
+       {
+        "name": "Glacier 2",
+        "url": "https://harbor-umber-1.example.test/glacier-2"
+       },
+       {
+        "name": "Zephyr 3",
+        "url": "https://harbor-umber-1.example.test/zephyr-3"
+       },
+       {
+        "name": "Raven 4",
+        "url": "https://harbor-umber-1.example.test/raven-4",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Fjord 5",
+        "url": "https://harbor-umber-1.example.test/fjord-5"
+       },
+       {
+        "name": "Sierra 6",
+        "url": "https://harbor-umber-1.example.test/sierra-6"
+       },
+       {
+        "name": "Fjord 7",
+        "url": "https://harbor-umber-1.example.test/fjord-7"
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://harbor-umber-1.example.test/cobalt-8"
+       }
+      ]
+     },
+     {
+      "name": "Granite Cinder 4",
+      "url": "https://harbor-umber-1.example.test/granite-cinder-4",
+      "moons": [
+       {
+        "name": "Glacier 1",
+        "url": "https://harbor-umber-1.example.test/glacier-1",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Echo 2",
+        "url": "https://harbor-umber-1.example.test/echo-2"
+       },
+       {
+        "name": "Fjord 3",
+        "url": "https://harbor-umber-1.example.test/fjord-3"
+       },
+       {
+        "name": "Atlas 4",
+        "url": "https://harbor-umber-1.example.test/atlas-4",
+        "tags": [
+         "docs"
+        ],
+        "note": "Check lantern before the island review"
+       },
+       {
+        "name": "Falcon 5",
+        "url": "https://harbor-umber-1.example.test/falcon-5"
+       },
+       {
+        "name": "Harbor 6",
+        "url": "https://harbor-umber-1.example.test/harbor-6"
+       },
+       {
+        "name": "Raven 7",
+        "url": "https://harbor-umber-1.example.test/raven-7"
+       },
+       {
+        "name": "Jasper 8",
+        "url": "https://harbor-umber-1.example.test/jasper-8",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Lantern Indigo 5",
+      "url": "https://harbor-umber-1.example.test/lantern-indigo-5",
+      "moons": [
+       {
+        "name": "Glacier 1",
+        "url": "https://harbor-umber-1.example.test/glacier-1",
+        "tags": [
+         "docs",
+         "ops"
+        ]
+       },
+       {
+        "name": "Lantern 2",
+        "url": "https://harbor-umber-1.example.test/lantern-2"
+       },
+       {
+        "name": "Jasper 3",
+        "url": "https://harbor-umber-1.example.test/jasper-3"
+       },
+       {
+        "name": "Alpha 4",
+        "url": "https://harbor-umber-1.example.test/alpha-4"
+       },
+       {
+        "name": "Ember 5",
+        "url": "https://harbor-umber-1.example.test/ember-5",
+        "tags": [
+         "lab",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Bravo 6",
+        "url": "https://harbor-umber-1.example.test/bravo-6"
+       },
+       {
+        "name": "Tundra 7",
+        "url": "https://harbor-umber-1.example.test/tundra-7"
+       },
+       {
+        "name": "Fjord 8",
+        "url": "https://harbor-umber-1.example.test/fjord-8"
+       }
+      ]
+     },
+     {
+      "name": "Kestrel Jasper 6",
+      "url": "https://harbor-umber-1.example.test/kestrel-jasper-6",
+      "moons": [
+       {
+        "name": "Nectar 1",
+        "url": "https://harbor-umber-1.example.test/nectar-1"
+       },
+       {
+        "name": "Relay 2",
+        "url": "https://harbor-umber-1.example.test/relay-2"
+       },
+       {
+        "name": "Cobalt 3",
+        "url": "https://harbor-umber-1.example.test/cobalt-3",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Delta 4",
+        "url": "https://harbor-umber-1.example.test/delta-4"
+       },
+       {
+        "name": "Meridian 5",
+        "url": "https://harbor-umber-1.example.test/meridian-5"
+       },
+       {
+        "name": "Bravo 6",
+        "url": "https://harbor-umber-1.example.test/bravo-6",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Lumen 7",
+        "url": "https://harbor-umber-1.example.test/lumen-7"
+       },
+       {
+        "name": "Atlas 8",
+        "url": "https://harbor-umber-1.example.test/atlas-8"
+       }
+      ]
+     },
+     {
+      "name": "Lumen Willow 7",
+      "url": "https://harbor-umber-1.example.test/lumen-willow-7",
+      "tags": [
+       "metrics",
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Summit 1",
+        "url": "https://harbor-umber-1.example.test/summit-1"
+       },
+       {
+        "name": "Echo 2",
+        "url": "https://harbor-umber-1.example.test/echo-2"
+       },
+       {
+        "name": "Horizon 3",
+        "url": "https://harbor-umber-1.example.test/horizon-3"
+       },
+       {
+        "name": "Nimbus 4",
+        "url": "https://harbor-umber-1.example.test/nimbus-4",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Atlas 5",
+        "url": "https://harbor-umber-1.example.test/atlas-5"
+       },
+       {
+        "name": "Quill 6",
+        "url": "https://harbor-umber-1.example.test/quill-6",
+        "tags": [
+         "lab"
+        ]
+       },
+       {
+        "name": "Willow 7",
+        "url": "https://harbor-umber-1.example.test/willow-7"
+       },
+       {
+        "name": "Island 8",
+        "url": "https://harbor-umber-1.example.test/island-8",
+        "tags": [
+         "build",
+         "review"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Raven Quill 8",
+      "url": "https://harbor-umber-1.example.test/raven-quill-8",
+      "note": "Check quartz before the granite review",
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://harbor-umber-1.example.test/beacon-1",
+        "tags": [
+         "lab"
+        ]
+       },
+       {
+        "name": "Lumen 2",
+        "url": "https://harbor-umber-1.example.test/lumen-2",
+        "note": "Check umber before the raven review"
+       },
+       {
+        "name": "Lantern 3",
+        "url": "https://harbor-umber-1.example.test/lantern-3"
+       },
+       {
+        "name": "Umber 4",
+        "url": "https://harbor-umber-1.example.test/umber-4",
+        "tags": [
+         "daily",
+         "docs"
+        ]
+       },
+       {
+        "name": "Quartz 5",
+        "url": "https://harbor-umber-1.example.test/quartz-5",
+        "note": "Check granite before the pioneer review"
+       },
+       {
+        "name": "Bravo 6",
+        "url": "https://harbor-umber-1.example.test/bravo-6",
+        "note": "Check juniper before the keystone review"
+       },
+       {
+        "name": "Willow 7",
+        "url": "https://harbor-umber-1.example.test/willow-7"
+       },
+       {
+        "name": "Orbit 8",
+        "url": "https://harbor-umber-1.example.test/orbit-8"
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Umber 9",
+      "url": "https://harbor-umber-1.example.test/zephyr-umber-9",
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://harbor-umber-1.example.test/beacon-1"
+       },
+       {
+        "name": "Relay 2",
+        "url": "https://harbor-umber-1.example.test/relay-2"
+       },
+       {
+        "name": "Quartz 3",
+        "url": "https://harbor-umber-1.example.test/quartz-3"
+       },
+       {
+        "name": "Willow 4",
+        "url": "https://harbor-umber-1.example.test/willow-4",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       },
+       {
+        "name": "Summit 5",
+        "url": "https://harbor-umber-1.example.test/summit-5"
+       },
+       {
+        "name": "Harbor 6",
+        "url": "https://harbor-umber-1.example.test/harbor-6",
+        "tags": [
+         "lab",
+         "review"
+        ]
+       },
+       {
+        "name": "Island 7",
+        "url": "https://harbor-umber-1.example.test/island-7"
+       },
+       {
+        "name": "Delta 8",
+        "url": "https://harbor-umber-1.example.test/delta-8",
+        "note": "Check nectar before the harbor review"
+       }
+      ]
+     },
+     {
+      "name": "Harbor Cobalt 10",
+      "url": "https://harbor-umber-1.example.test/harbor-cobalt-10",
+      "tags": [
+       "daily",
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Indigo 1",
+        "url": "https://harbor-umber-1.example.test/indigo-1"
+       },
+       {
+        "name": "Pioneer 2",
+        "url": "https://harbor-umber-1.example.test/pioneer-2"
+       },
+       {
+        "name": "Indigo 3",
+        "url": "https://harbor-umber-1.example.test/indigo-3",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Jasper 4",
+        "url": "https://harbor-umber-1.example.test/jasper-4",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Atlas 5",
+        "url": "https://harbor-umber-1.example.test/atlas-5",
+        "tags": [
+         "lab",
+         "ops"
+        ]
+       },
+       {
+        "name": "Lumen 6",
+        "url": "https://harbor-umber-1.example.test/lumen-6"
+       },
+       {
+        "name": "Glacier 7",
+        "url": "https://harbor-umber-1.example.test/glacier-7"
+       },
+       {
+        "name": "Horizon 8",
+        "url": "https://harbor-umber-1.example.test/horizon-8"
+       }
+      ]
+     },
+     {
+      "name": "Quill Alpha 11",
+      "url": "https://harbor-umber-1.example.test/quill-alpha-11",
+      "moons": [
+       {
+        "name": "Delta 1",
+        "url": "https://harbor-umber-1.example.test/delta-1"
+       },
+       {
+        "name": "Jasper 2",
+        "url": "https://harbor-umber-1.example.test/jasper-2"
+       },
+       {
+        "name": "Zephyr 3",
+        "url": "https://harbor-umber-1.example.test/zephyr-3"
+       },
+       {
+        "name": "Onyx 4",
+        "url": "https://harbor-umber-1.example.test/onyx-4"
+       },
+       {
+        "name": "Meridian 5",
+        "url": "https://harbor-umber-1.example.test/meridian-5"
+       },
+       {
+        "name": "Drift 6",
+        "url": "https://harbor-umber-1.example.test/drift-6"
+       },
+       {
+        "name": "Relay 7",
+        "url": "https://harbor-umber-1.example.test/relay-7"
+       },
+       {
+        "name": "Orbit 8",
+        "url": "https://harbor-umber-1.example.test/orbit-8"
+       }
+      ]
+     },
+     {
+      "name": "Alpha Willow 12",
+      "url": "https://harbor-umber-1.example.test/alpha-willow-12",
+      "moons": [
+       {
+        "name": "Sierra 1",
+        "url": "https://harbor-umber-1.example.test/sierra-1",
+        "note": "Check lumen before the falcon review"
+       },
+       {
+        "name": "Tundra 2",
+        "url": "https://harbor-umber-1.example.test/tundra-2"
+       },
+       {
+        "name": "Indigo 3",
+        "url": "https://harbor-umber-1.example.test/indigo-3",
+        "note": "Check bravo before the island review"
+       },
+       {
+        "name": "Nimbus 4",
+        "url": "https://harbor-umber-1.example.test/nimbus-4"
+       },
+       {
+        "name": "Tundra 5",
+        "url": "https://harbor-umber-1.example.test/tundra-5"
+       },
+       {
+        "name": "Yarrow 6",
+        "url": "https://harbor-umber-1.example.test/yarrow-6"
+       },
+       {
+        "name": "Prism 7",
+        "url": "https://harbor-umber-1.example.test/prism-7"
+       },
+       {
+        "name": "Granite 8",
+        "url": "https://harbor-umber-1.example.test/granite-8",
+        "tags": [
+         "lab",
+         "review"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "lantern-quill-2",
+    "name": "Lantern Quill 2",
+    "description": "Generated sun 2",
+    "color": "#f6af39",
+    "links": [
+     {
+      "name": "Meridian Kestrel 1",
+      "url": "https://lantern-quill-2.example.test/meridian-kestrel-1",
+      "moons": [
+       {
+        "name": "Summit 1",
+        "url": "https://lantern-quill-2.example.test/summit-1"
+       },
+       {
+        "name": "Meridian 2",
+        "url": "https://lantern-quill-2.example.test/meridian-2"
+       },
+       {
+        "name": "Mosaic 3",
+        "url": "https://lantern-quill-2.example.test/mosaic-3"
+       },
+       {
+        "name": "Willow 4",
+        "url": "https://lantern-quill-2.example.test/willow-4"
+       },
+       {
+        "name": "Island 5",
+        "url": "https://lantern-quill-2.example.test/island-5",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Jasper 6",
+        "url": "https://lantern-quill-2.example.test/jasper-6",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Ember 7",
+        "url": "https://lantern-quill-2.example.test/ember-7"
+       },
+       {
+        "name": "Jasper 8",
+        "url": "https://lantern-quill-2.example.test/jasper-8"
+       }
+      ]
+     },
+     {
+      "name": "Granite Umber 2",
+      "url": "https://lantern-quill-2.example.test/granite-umber-2",
+      "moons": [
+       {
+        "name": "Ember 1",
+        "url": "https://lantern-quill-2.example.test/ember-1"
+       },
+       {
+        "name": "Prism 2",
+        "url": "https://lantern-quill-2.example.test/prism-2",
+        "tags": [
+         "daily",
+         "team"
+        ]
+       },
+       {
+        "name": "Pioneer 3",
+        "url": "https://lantern-quill-2.example.test/pioneer-3"
+       },
+       {
+        "name": "Drift 4",
+        "url": "https://lantern-quill-2.example.test/drift-4"
+       },
+       {
+        "name": "Ember 5",
+        "url": "https://lantern-quill-2.example.test/ember-5",
+        "note": "Check fjord before the tundra review"
+       },
+       {
+        "name": "Quartz 6",
+        "url": "https://lantern-quill-2.example.test/quartz-6"
+       },
+       {
+        "name": "Umber 7",
+        "url": "https://lantern-quill-2.example.test/umber-7"
+       },
+       {
+        "name": "Umber 8",
+        "url": "https://lantern-quill-2.example.test/umber-8"
+       }
+      ]
+     },
+     {
+      "name": "Fjord Zephyr 3",
+      "url": "https://lantern-quill-2.example.test/fjord-zephyr-3",
+      "moons": [
+       {
+        "name": "Drift 1",
+        "url": "https://lantern-quill-2.example.test/drift-1",
+        "tags": [
+         "build",
+         "lab"
+        ]
+       },
+       {
+        "name": "Lantern 2",
+        "url": "https://lantern-quill-2.example.test/lantern-2"
+       },
+       {
+        "name": "Keystone 3",
+        "url": "https://lantern-quill-2.example.test/keystone-3",
+        "note": "Check raven before the vertex review"
+       },
+       {
+        "name": "Harbor 4",
+        "url": "https://lantern-quill-2.example.test/harbor-4"
+       },
+       {
+        "name": "Cinder 5",
+        "url": "https://lantern-quill-2.example.test/cinder-5",
+        "tags": [
+         "build",
+         "ops"
+        ]
+       },
+       {
+        "name": "Juniper 6",
+        "url": "https://lantern-quill-2.example.test/juniper-6"
+       },
+       {
+        "name": "Keystone 7",
+        "url": "https://lantern-quill-2.example.test/keystone-7"
+       },
+       {
+        "name": "Bravo 8",
+        "url": "https://lantern-quill-2.example.test/bravo-8"
+       }
+      ]
+     },
+     {
+      "name": "Atlas Vertex 4",
+      "url": "https://lantern-quill-2.example.test/atlas-vertex-4",
+      "tags": [
+       "build",
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Vertex 1",
+        "url": "https://lantern-quill-2.example.test/vertex-1",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       },
+       {
+        "name": "Sierra 2",
+        "url": "https://lantern-quill-2.example.test/sierra-2",
+        "tags": [
+         "metrics",
+         "team"
+        ]
+       },
+       {
+        "name": "Echo 3",
+        "url": "https://lantern-quill-2.example.test/echo-3"
+       },
+       {
+        "name": "Alpha 4",
+        "url": "https://lantern-quill-2.example.test/alpha-4",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Raven 5",
+        "url": "https://lantern-quill-2.example.test/raven-5"
+       },
+       {
+        "name": "Drift 6",
+        "url": "https://lantern-quill-2.example.test/drift-6"
+       },
+       {
+        "name": "Xenon 7",
+        "url": "https://lantern-quill-2.example.test/xenon-7",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Jasper 8",
+        "url": "https://lantern-quill-2.example.test/jasper-8"
+       }
+      ]
+     },
+     {
+      "name": "Drift Nimbus 5",
+      "url": "https://lantern-quill-2.example.test/drift-nimbus-5",
+      "moons": [
+       {
+        "name": "Tundra 1",
+        "url": "https://lantern-quill-2.example.test/tundra-1",
+        "tags": [
+         "daily",
+         "ops"
+        ],
+        "note": "Check atlas before the cobalt review"
+       },
+       {
+        "name": "Lumen 2",
+        "url": "https://lantern-quill-2.example.test/lumen-2"
+       },
+       {
+        "name": "Onyx 3",
+        "url": "https://lantern-quill-2.example.test/onyx-3"
+       },
+       {
+        "name": "Quill 4",
+        "url": "https://lantern-quill-2.example.test/quill-4"
+       },
+       {
+        "name": "Umber 5",
+        "url": "https://lantern-quill-2.example.test/umber-5"
+       },
+       {
+        "name": "Umber 6",
+        "url": "https://lantern-quill-2.example.test/umber-6",
+        "note": "Check fjord before the indigo review"
+       },
+       {
+        "name": "Bravo 7",
+        "url": "https://lantern-quill-2.example.test/bravo-7"
+       },
+       {
+        "name": "Drift 8",
+        "url": "https://lantern-quill-2.example.test/drift-8",
+        "tags": [
+         "metrics",
+         "ops"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Delta Atlas 6",
+      "url": "https://lantern-quill-2.example.test/delta-atlas-6",
+      "moons": [
+       {
+        "name": "Prism 1",
+        "url": "https://lantern-quill-2.example.test/prism-1"
+       },
+       {
+        "name": "Tundra 2",
+        "url": "https://lantern-quill-2.example.test/tundra-2"
+       },
+       {
+        "name": "Glacier 3",
+        "url": "https://lantern-quill-2.example.test/glacier-3"
+       },
+       {
+        "name": "Fjord 4",
+        "url": "https://lantern-quill-2.example.test/fjord-4"
+       },
+       {
+        "name": "Lumen 5",
+        "url": "https://lantern-quill-2.example.test/lumen-5",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Horizon 6",
+        "url": "https://lantern-quill-2.example.test/horizon-6"
+       },
+       {
+        "name": "Granite 7",
+        "url": "https://lantern-quill-2.example.test/granite-7"
+       },
+       {
+        "name": "Bravo 8",
+        "url": "https://lantern-quill-2.example.test/bravo-8"
+       }
+      ]
+     },
+     {
+      "name": "Glacier Horizon 7",
+      "url": "https://lantern-quill-2.example.test/glacier-horizon-7",
+      "tags": [
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Fjord 1",
+        "url": "https://lantern-quill-2.example.test/fjord-1",
+        "tags": [
+         "lab",
+         "team"
+        ]
+       },
+       {
+        "name": "Nectar 2",
+        "url": "https://lantern-quill-2.example.test/nectar-2"
+       },
+       {
+        "name": "Mosaic 3",
+        "url": "https://lantern-quill-2.example.test/mosaic-3"
+       },
+       {
+        "name": "Jasper 4",
+        "url": "https://lantern-quill-2.example.test/jasper-4",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Tundra 5",
+        "url": "https://lantern-quill-2.example.test/tundra-5"
+       },
+       {
+        "name": "Raven 6",
+        "url": "https://lantern-quill-2.example.test/raven-6"
+       },
+       {
+        "name": "Indigo 7",
+        "url": "https://lantern-quill-2.example.test/indigo-7"
+       },
+       {
+        "name": "Delta 8",
+        "url": "https://lantern-quill-2.example.test/delta-8"
+       }
+      ]
+     },
+     {
+      "name": "Atlas Prism 8",
+      "url": "https://lantern-quill-2.example.test/atlas-prism-8",
+      "moons": [
+       {
+        "name": "Bravo 1",
+        "url": "https://lantern-quill-2.example.test/bravo-1"
+       },
+       {
+        "name": "Island 2",
+        "url": "https://lantern-quill-2.example.test/island-2",
+        "tags": [
+         "ops",
+         "team"
+        ],
+        "note": "Check glacier before the cobalt review"
+       },
+       {
+        "name": "Echo 3",
+        "url": "https://lantern-quill-2.example.test/echo-3",
+        "tags": [
+         "lab"
+        ]
+       },
+       {
+        "name": "Sierra 4",
+        "url": "https://lantern-quill-2.example.test/sierra-4"
+       },
+       {
+        "name": "Bravo 5",
+        "url": "https://lantern-quill-2.example.test/bravo-5",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Beacon 6",
+        "url": "https://lantern-quill-2.example.test/beacon-6",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Fjord 7",
+        "url": "https://lantern-quill-2.example.test/fjord-7",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Drift 8",
+        "url": "https://lantern-quill-2.example.test/drift-8"
+       }
+      ]
+     },
+     {
+      "name": "Tundra Orbit 9",
+      "url": "https://lantern-quill-2.example.test/tundra-orbit-9",
+      "moons": [
+       {
+        "name": "Juniper 1",
+        "url": "https://lantern-quill-2.example.test/juniper-1",
+        "note": "Check nimbus before the meridian review"
+       },
+       {
+        "name": "Harbor 2",
+        "url": "https://lantern-quill-2.example.test/harbor-2"
+       },
+       {
+        "name": "Relay 3",
+        "url": "https://lantern-quill-2.example.test/relay-3"
+       },
+       {
+        "name": "Lumen 4",
+        "url": "https://lantern-quill-2.example.test/lumen-4",
+        "tags": [
+         "build",
+         "team"
+        ],
+        "note": "Check jasper before the prism review"
+       },
+       {
+        "name": "Orbit 5",
+        "url": "https://lantern-quill-2.example.test/orbit-5"
+       },
+       {
+        "name": "Xenon 6",
+        "url": "https://lantern-quill-2.example.test/xenon-6"
+       },
+       {
+        "name": "Drift 7",
+        "url": "https://lantern-quill-2.example.test/drift-7"
+       },
+       {
+        "name": "Fjord 8",
+        "url": "https://lantern-quill-2.example.test/fjord-8",
+        "note": "Check jasper before the juniper review"
+       }
+      ]
+     },
+     {
+      "name": "Onyx Willow 10",
+      "url": "https://lantern-quill-2.example.test/onyx-willow-10",
+      "moons": [
+       {
+        "name": "Lantern 1",
+        "url": "https://lantern-quill-2.example.test/lantern-1",
+        "tags": [
+         "lab",
+         "review"
+        ],
+        "note": "Check drift before the willow review"
+       },
+       {
+        "name": "Island 2",
+        "url": "https://lantern-quill-2.example.test/island-2"
+       },
+       {
+        "name": "Horizon 3",
+        "url": "https://lantern-quill-2.example.test/horizon-3"
+       },
+       {
+        "name": "Summit 4",
+        "url": "https://lantern-quill-2.example.test/summit-4",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Cinder 5",
+        "url": "https://lantern-quill-2.example.test/cinder-5"
+       },
+       {
+        "name": "Prism 6",
+        "url": "https://lantern-quill-2.example.test/prism-6"
+       },
+       {
+        "name": "Nectar 7",
+        "url": "https://lantern-quill-2.example.test/nectar-7",
+        "note": "Check umber before the indigo review"
+       },
+       {
+        "name": "Bravo 8",
+        "url": "https://lantern-quill-2.example.test/bravo-8",
+        "tags": [
+         "ops"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Quartz Bravo 11",
+      "url": "https://lantern-quill-2.example.test/quartz-bravo-11",
+      "moons": [
+       {
+        "name": "Ember 1",
+        "url": "https://lantern-quill-2.example.test/ember-1"
+       },
+       {
+        "name": "Vertex 2",
+        "url": "https://lantern-quill-2.example.test/vertex-2"
+       },
+       {
+        "name": "Echo 3",
+        "url": "https://lantern-quill-2.example.test/echo-3",
+        "tags": [
+         "build",
+         "team"
+        ]
+       },
+       {
+        "name": "Umber 4",
+        "url": "https://lantern-quill-2.example.test/umber-4"
+       },
+       {
+        "name": "Mosaic 5",
+        "url": "https://lantern-quill-2.example.test/mosaic-5",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Lantern 6",
+        "url": "https://lantern-quill-2.example.test/lantern-6"
+       },
+       {
+        "name": "Fjord 7",
+        "url": "https://lantern-quill-2.example.test/fjord-7"
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://lantern-quill-2.example.test/cobalt-8"
+       }
+      ]
+     },
+     {
+      "name": "Summit Pioneer 12",
+      "url": "https://lantern-quill-2.example.test/summit-pioneer-12",
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://lantern-quill-2.example.test/beacon-1"
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://lantern-quill-2.example.test/willow-2"
+       },
+       {
+        "name": "Horizon 3",
+        "url": "https://lantern-quill-2.example.test/horizon-3",
+        "tags": [
+         "build",
+         "review"
+        ],
+        "note": "Check kestrel before the drift review"
+       },
+       {
+        "name": "Zephyr 4",
+        "url": "https://lantern-quill-2.example.test/zephyr-4"
+       },
+       {
+        "name": "Atlas 5",
+        "url": "https://lantern-quill-2.example.test/atlas-5",
+        "note": "Check meridian before the delta review"
+       },
+       {
+        "name": "Quartz 6",
+        "url": "https://lantern-quill-2.example.test/quartz-6"
+       },
+       {
+        "name": "Raven 7",
+        "url": "https://lantern-quill-2.example.test/raven-7",
+        "note": "Check kestrel before the cobalt review"
+       },
+       {
+        "name": "Nimbus 8",
+        "url": "https://lantern-quill-2.example.test/nimbus-8"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "juniper-harbor-3",
+    "name": "Juniper Harbor 3",
+    "description": "Generated sun 3",
+    "color": "#81d1e4",
+    "links": [
+     {
+      "name": "Cinder Juniper 1",
+      "url": "https://juniper-harbor-3.example.test/cinder-juniper-1",
+      "moons": [
+       {
+        "name": "Sierra 1",
+        "url": "https://juniper-harbor-3.example.test/sierra-1"
+       },
+       {
+        "name": "Orbit 2",
+        "url": "https://juniper-harbor-3.example.test/orbit-2"
+       },
+       {
+        "name": "Meridian 3",
+        "url": "https://juniper-harbor-3.example.test/meridian-3"
+       },
+       {
+        "name": "Delta 4",
+        "url": "https://juniper-harbor-3.example.test/delta-4",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Alpha 5",
+        "url": "https://juniper-harbor-3.example.test/alpha-5",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Ember 6",
+        "url": "https://juniper-harbor-3.example.test/ember-6"
+       },
+       {
+        "name": "Kestrel 7",
+        "url": "https://juniper-harbor-3.example.test/kestrel-7"
+       },
+       {
+        "name": "Island 8",
+        "url": "https://juniper-harbor-3.example.test/island-8",
+        "tags": [
+         "lab"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Drift 2",
+      "url": "https://juniper-harbor-3.example.test/zephyr-drift-2",
+      "tags": [
+       "daily"
+      ],
+      "moons": [
+       {
+        "name": "Juniper 1",
+        "url": "https://juniper-harbor-3.example.test/juniper-1",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Juniper 2",
+        "url": "https://juniper-harbor-3.example.test/juniper-2",
+        "tags": [
+         "metrics",
+         "ops"
+        ]
+       },
+       {
+        "name": "Prism 3",
+        "url": "https://juniper-harbor-3.example.test/prism-3",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Indigo 4",
+        "url": "https://juniper-harbor-3.example.test/indigo-4"
+       },
+       {
+        "name": "Horizon 5",
+        "url": "https://juniper-harbor-3.example.test/horizon-5"
+       },
+       {
+        "name": "Echo 6",
+        "url": "https://juniper-harbor-3.example.test/echo-6",
+        "note": "Check umber before the lumen review"
+       },
+       {
+        "name": "Fjord 7",
+        "url": "https://juniper-harbor-3.example.test/fjord-7",
+        "note": "Check yarrow before the falcon review"
+       },
+       {
+        "name": "Sierra 8",
+        "url": "https://juniper-harbor-3.example.test/sierra-8"
+       }
+      ]
+     },
+     {
+      "name": "Keystone Vertex 3",
+      "url": "https://juniper-harbor-3.example.test/keystone-vertex-3",
+      "moons": [
+       {
+        "name": "Relay 1",
+        "url": "https://juniper-harbor-3.example.test/relay-1"
+       },
+       {
+        "name": "Pioneer 2",
+        "url": "https://juniper-harbor-3.example.test/pioneer-2",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Keystone 3",
+        "url": "https://juniper-harbor-3.example.test/keystone-3"
+       },
+       {
+        "name": "Tundra 4",
+        "url": "https://juniper-harbor-3.example.test/tundra-4",
+        "note": "Check bravo before the vertex review"
+       },
+       {
+        "name": "Lumen 5",
+        "url": "https://juniper-harbor-3.example.test/lumen-5"
+       },
+       {
+        "name": "Pioneer 6",
+        "url": "https://juniper-harbor-3.example.test/pioneer-6"
+       },
+       {
+        "name": "Kestrel 7",
+        "url": "https://juniper-harbor-3.example.test/kestrel-7"
+       },
+       {
+        "name": "Quill 8",
+        "url": "https://juniper-harbor-3.example.test/quill-8",
+        "note": "Check alpha before the nectar review"
+       }
+      ]
+     },
+     {
+      "name": "Horizon Tundra 4",
+      "url": "https://juniper-harbor-3.example.test/horizon-tundra-4",
+      "tags": [
+       "build",
+       "daily"
+      ],
+      "moons": [
+       {
+        "name": "Jasper 1",
+        "url": "https://juniper-harbor-3.example.test/jasper-1"
+       },
+       {
+        "name": "Cinder 2",
+        "url": "https://juniper-harbor-3.example.test/cinder-2",
+        "note": "Check umber before the cinder review"
+       },
+       {
+        "name": "Ember 3",
+        "url": "https://juniper-harbor-3.example.test/ember-3"
+       },
+       {
+        "name": "Cinder 4",
+        "url": "https://juniper-harbor-3.example.test/cinder-4"
+       },
+       {
+        "name": "Tundra 5",
+        "url": "https://juniper-harbor-3.example.test/tundra-5",
+        "tags": [
+         "ops",
+         "team"
+        ]
+       },
+       {
+        "name": "Kestrel 6",
+        "url": "https://juniper-harbor-3.example.test/kestrel-6",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Sierra 7",
+        "url": "https://juniper-harbor-3.example.test/sierra-7",
+        "tags": [
+         "build",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Umber 8",
+        "url": "https://juniper-harbor-3.example.test/umber-8",
+        "tags": [
+         "build"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Mosaic Vertex 5",
+      "url": "https://juniper-harbor-3.example.test/mosaic-vertex-5",
+      "moons": [
+       {
+        "name": "Nectar 1",
+        "url": "https://juniper-harbor-3.example.test/nectar-1"
+       },
+       {
+        "name": "Island 2",
+        "url": "https://juniper-harbor-3.example.test/island-2"
+       },
+       {
+        "name": "Willow 3",
+        "url": "https://juniper-harbor-3.example.test/willow-3"
+       },
+       {
+        "name": "Lumen 4",
+        "url": "https://juniper-harbor-3.example.test/lumen-4",
+        "note": "Check nectar before the meridian review"
+       },
+       {
+        "name": "Tundra 5",
+        "url": "https://juniper-harbor-3.example.test/tundra-5",
+        "tags": [
+         "build",
+         "ops"
+        ]
+       },
+       {
+        "name": "Orbit 6",
+        "url": "https://juniper-harbor-3.example.test/orbit-6",
+        "note": "Check tundra before the cobalt review"
+       },
+       {
+        "name": "Mosaic 7",
+        "url": "https://juniper-harbor-3.example.test/mosaic-7"
+       },
+       {
+        "name": "Atlas 8",
+        "url": "https://juniper-harbor-3.example.test/atlas-8",
+        "tags": [
+         "lab",
+         "metrics"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Yarrow Horizon 6",
+      "url": "https://juniper-harbor-3.example.test/yarrow-horizon-6",
+      "tags": [
+       "build",
+       "metrics"
+      ],
+      "moons": [
+       {
+        "name": "Xenon 1",
+        "url": "https://juniper-harbor-3.example.test/xenon-1"
+       },
+       {
+        "name": "Juniper 2",
+        "url": "https://juniper-harbor-3.example.test/juniper-2"
+       },
+       {
+        "name": "Bravo 3",
+        "url": "https://juniper-harbor-3.example.test/bravo-3",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Zephyr 4",
+        "url": "https://juniper-harbor-3.example.test/zephyr-4"
+       },
+       {
+        "name": "Beacon 5",
+        "url": "https://juniper-harbor-3.example.test/beacon-5"
+       },
+       {
+        "name": "Island 6",
+        "url": "https://juniper-harbor-3.example.test/island-6",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Harbor 7",
+        "url": "https://juniper-harbor-3.example.test/harbor-7"
+       },
+       {
+        "name": "Horizon 8",
+        "url": "https://juniper-harbor-3.example.test/horizon-8"
+       }
+      ]
+     },
+     {
+      "name": "Atlas Pioneer 7",
+      "url": "https://juniper-harbor-3.example.test/atlas-pioneer-7",
+      "moons": [
+       {
+        "name": "Granite 1",
+        "url": "https://juniper-harbor-3.example.test/granite-1"
+       },
+       {
+        "name": "Quill 2",
+        "url": "https://juniper-harbor-3.example.test/quill-2",
+        "tags": [
+         "docs",
+         "lab"
+        ],
+        "note": "Check meridian before the juniper review"
+       },
+       {
+        "name": "Fjord 3",
+        "url": "https://juniper-harbor-3.example.test/fjord-3"
+       },
+       {
+        "name": "Falcon 4",
+        "url": "https://juniper-harbor-3.example.test/falcon-4",
+        "note": "Check drift before the granite review"
+       },
+       {
+        "name": "Juniper 5",
+        "url": "https://juniper-harbor-3.example.test/juniper-5"
+       },
+       {
+        "name": "Indigo 6",
+        "url": "https://juniper-harbor-3.example.test/indigo-6",
+        "tags": [
+         "daily",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Delta 7",
+        "url": "https://juniper-harbor-3.example.test/delta-7"
+       },
+       {
+        "name": "Granite 8",
+        "url": "https://juniper-harbor-3.example.test/granite-8"
+       }
+      ]
+     },
+     {
+      "name": "Beacon Orbit 8",
+      "url": "https://juniper-harbor-3.example.test/beacon-orbit-8",
+      "tags": [
+       "metrics"
+      ],
+      "note": "Check kestrel before the alpha review",
+      "moons": [
+       {
+        "name": "Jasper 1",
+        "url": "https://juniper-harbor-3.example.test/jasper-1"
+       },
+       {
+        "name": "Quartz 2",
+        "url": "https://juniper-harbor-3.example.test/quartz-2"
+       },
+       {
+        "name": "Granite 3",
+        "url": "https://juniper-harbor-3.example.test/granite-3"
+       },
+       {
+        "name": "Ember 4",
+        "url": "https://juniper-harbor-3.example.test/ember-4"
+       },
+       {
+        "name": "Keystone 5",
+        "url": "https://juniper-harbor-3.example.test/keystone-5"
+       },
+       {
+        "name": "Beacon 6",
+        "url": "https://juniper-harbor-3.example.test/beacon-6"
+       },
+       {
+        "name": "Tundra 7",
+        "url": "https://juniper-harbor-3.example.test/tundra-7",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Juniper 8",
+        "url": "https://juniper-harbor-3.example.test/juniper-8"
+       }
+      ]
+     },
+     {
+      "name": "Summit Atlas 9",
+      "url": "https://juniper-harbor-3.example.test/summit-atlas-9",
+      "moons": [
+       {
+        "name": "Nimbus 1",
+        "url": "https://juniper-harbor-3.example.test/nimbus-1"
+       },
+       {
+        "name": "Lantern 2",
+        "url": "https://juniper-harbor-3.example.test/lantern-2"
+       },
+       {
+        "name": "Horizon 3",
+        "url": "https://juniper-harbor-3.example.test/horizon-3"
+       },
+       {
+        "name": "Harbor 4",
+        "url": "https://juniper-harbor-3.example.test/harbor-4"
+       },
+       {
+        "name": "Meridian 5",
+        "url": "https://juniper-harbor-3.example.test/meridian-5"
+       },
+       {
+        "name": "Umber 6",
+        "url": "https://juniper-harbor-3.example.test/umber-6"
+       },
+       {
+        "name": "Harbor 7",
+        "url": "https://juniper-harbor-3.example.test/harbor-7"
+       },
+       {
+        "name": "Beacon 8",
+        "url": "https://juniper-harbor-3.example.test/beacon-8"
+       }
+      ]
+     },
+     {
+      "name": "Relay Granite 10",
+      "url": "https://juniper-harbor-3.example.test/relay-granite-10",
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://juniper-harbor-3.example.test/beacon-1"
+       },
+       {
+        "name": "Umber 2",
+        "url": "https://juniper-harbor-3.example.test/umber-2"
+       },
+       {
+        "name": "Willow 3",
+        "url": "https://juniper-harbor-3.example.test/willow-3"
+       },
+       {
+        "name": "Quartz 4",
+        "url": "https://juniper-harbor-3.example.test/quartz-4",
+        "note": "Check atlas before the drift review"
+       },
+       {
+        "name": "Cobalt 5",
+        "url": "https://juniper-harbor-3.example.test/cobalt-5"
+       },
+       {
+        "name": "Summit 6",
+        "url": "https://juniper-harbor-3.example.test/summit-6"
+       },
+       {
+        "name": "Delta 7",
+        "url": "https://juniper-harbor-3.example.test/delta-7",
+        "tags": [
+         "metrics",
+         "ops"
+        ]
+       },
+       {
+        "name": "Quartz 8",
+        "url": "https://juniper-harbor-3.example.test/quartz-8",
+        "tags": [
+         "daily"
+        ],
+        "note": "Check lumen before the delta review"
+       }
+      ]
+     },
+     {
+      "name": "Xenon Nectar 11",
+      "url": "https://juniper-harbor-3.example.test/xenon-nectar-11",
+      "note": "Check nectar before the island review",
+      "moons": [
+       {
+        "name": "Horizon 1",
+        "url": "https://juniper-harbor-3.example.test/horizon-1",
+        "note": "Check indigo before the granite review"
+       },
+       {
+        "name": "Atlas 2",
+        "url": "https://juniper-harbor-3.example.test/atlas-2",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Ember 3",
+        "url": "https://juniper-harbor-3.example.test/ember-3"
+       },
+       {
+        "name": "Yarrow 4",
+        "url": "https://juniper-harbor-3.example.test/yarrow-4",
+        "tags": [
+         "daily",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Summit 5",
+        "url": "https://juniper-harbor-3.example.test/summit-5"
+       },
+       {
+        "name": "Relay 6",
+        "url": "https://juniper-harbor-3.example.test/relay-6"
+       },
+       {
+        "name": "Delta 7",
+        "url": "https://juniper-harbor-3.example.test/delta-7",
+        "note": "Check orbit before the island review"
+       },
+       {
+        "name": "Kestrel 8",
+        "url": "https://juniper-harbor-3.example.test/kestrel-8"
+       }
+      ]
+     },
+     {
+      "name": "Ember Drift 12",
+      "url": "https://juniper-harbor-3.example.test/ember-drift-12",
+      "moons": [
+       {
+        "name": "Echo 1",
+        "url": "https://juniper-harbor-3.example.test/echo-1"
+       },
+       {
+        "name": "Alpha 2",
+        "url": "https://juniper-harbor-3.example.test/alpha-2",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Raven 3",
+        "url": "https://juniper-harbor-3.example.test/raven-3"
+       },
+       {
+        "name": "Nectar 4",
+        "url": "https://juniper-harbor-3.example.test/nectar-4",
+        "tags": [
+         "metrics",
+         "ops"
+        ]
+       },
+       {
+        "name": "Summit 5",
+        "url": "https://juniper-harbor-3.example.test/summit-5",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Ember 6",
+        "url": "https://juniper-harbor-3.example.test/ember-6"
+       },
+       {
+        "name": "Alpha 7",
+        "url": "https://juniper-harbor-3.example.test/alpha-7"
+       },
+       {
+        "name": "Raven 8",
+        "url": "https://juniper-harbor-3.example.test/raven-8"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "falcon-tundra-4",
+    "name": "Falcon Tundra 4",
+    "description": "Generated sun 4",
+    "color": "#c294cf",
+    "links": [
+     {
+      "name": "Island Juniper 1",
+      "url": "https://falcon-tundra-4.example.test/island-juniper-1",
+      "tags": [
+       "build"
+      ],
+      "moons": [
+       {
+        "name": "Willow 1",
+        "url": "https://falcon-tundra-4.example.test/willow-1"
+       },
+       {
+        "name": "Kestrel 2",
+        "url": "https://falcon-tundra-4.example.test/kestrel-2",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       },
+       {
+        "name": "Prism 3",
+        "url": "https://falcon-tundra-4.example.test/prism-3"
+       },
+       {
+        "name": "Lumen 4",
+        "url": "https://falcon-tundra-4.example.test/lumen-4"
+       },
+       {
+        "name": "Orbit 5",
+        "url": "https://falcon-tundra-4.example.test/orbit-5"
+       },
+       {
+        "name": "Summit 6",
+        "url": "https://falcon-tundra-4.example.test/summit-6"
+       },
+       {
+        "name": "Delta 7",
+        "url": "https://falcon-tundra-4.example.test/delta-7"
+       },
+       {
+        "name": "Onyx 8",
+        "url": "https://falcon-tundra-4.example.test/onyx-8"
+       }
+      ]
+     },
+     {
+      "name": "Cobalt Tundra 2",
+      "url": "https://falcon-tundra-4.example.test/cobalt-tundra-2",
+      "tags": [
+       "metrics",
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Granite 1",
+        "url": "https://falcon-tundra-4.example.test/granite-1",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Atlas 2",
+        "url": "https://falcon-tundra-4.example.test/atlas-2",
+        "tags": [
+         "ops",
+         "review"
+        ],
+        "note": "Check sierra before the delta review"
+       },
+       {
+        "name": "Ember 3",
+        "url": "https://falcon-tundra-4.example.test/ember-3",
+        "tags": [
+         "docs",
+         "team"
+        ]
+       },
+       {
+        "name": "Island 4",
+        "url": "https://falcon-tundra-4.example.test/island-4",
+        "tags": [
+         "build",
+         "daily"
+        ]
+       },
+       {
+        "name": "Umber 5",
+        "url": "https://falcon-tundra-4.example.test/umber-5",
+        "tags": [
+         "lab",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Nectar 6",
+        "url": "https://falcon-tundra-4.example.test/nectar-6",
+        "tags": [
+         "lab",
+         "team"
+        ]
+       },
+       {
+        "name": "Beacon 7",
+        "url": "https://falcon-tundra-4.example.test/beacon-7",
+        "tags": [
+         "docs",
+         "lab"
+        ]
+       },
+       {
+        "name": "Quartz 8",
+        "url": "https://falcon-tundra-4.example.test/quartz-8"
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Island 3",
+      "url": "https://falcon-tundra-4.example.test/zephyr-island-3",
+      "note": "Check prism before the bravo review",
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://falcon-tundra-4.example.test/beacon-1"
+       },
+       {
+        "name": "Prism 2",
+        "url": "https://falcon-tundra-4.example.test/prism-2"
+       },
+       {
+        "name": "Quill 3",
+        "url": "https://falcon-tundra-4.example.test/quill-3",
+        "note": "Check prism before the willow review"
+       },
+       {
+        "name": "Harbor 4",
+        "url": "https://falcon-tundra-4.example.test/harbor-4",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Nimbus 5",
+        "url": "https://falcon-tundra-4.example.test/nimbus-5",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Alpha 6",
+        "url": "https://falcon-tundra-4.example.test/alpha-6",
+        "tags": [
+         "docs",
+         "lab"
+        ]
+       },
+       {
+        "name": "Prism 7",
+        "url": "https://falcon-tundra-4.example.test/prism-7",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Beacon 8",
+        "url": "https://falcon-tundra-4.example.test/beacon-8",
+        "tags": [
+         "docs",
+         "metrics"
+        ],
+        "note": "Check yarrow before the xenon review"
+       }
+      ]
+     },
+     {
+      "name": "Nimbus Mosaic 4",
+      "url": "https://falcon-tundra-4.example.test/nimbus-mosaic-4",
+      "moons": [
+       {
+        "name": "Fjord 1",
+        "url": "https://falcon-tundra-4.example.test/fjord-1",
+        "tags": [
+         "build",
+         "lab"
+        ]
+       },
+       {
+        "name": "Vertex 2",
+        "url": "https://falcon-tundra-4.example.test/vertex-2"
+       },
+       {
+        "name": "Raven 3",
+        "url": "https://falcon-tundra-4.example.test/raven-3",
+        "tags": [
+         "docs",
+         "ops"
+        ]
+       },
+       {
+        "name": "Onyx 4",
+        "url": "https://falcon-tundra-4.example.test/onyx-4"
+       },
+       {
+        "name": "Drift 5",
+        "url": "https://falcon-tundra-4.example.test/drift-5",
+        "note": "Check raven before the summit review"
+       },
+       {
+        "name": "Sierra 6",
+        "url": "https://falcon-tundra-4.example.test/sierra-6",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Drift 7",
+        "url": "https://falcon-tundra-4.example.test/drift-7"
+       },
+       {
+        "name": "Yarrow 8",
+        "url": "https://falcon-tundra-4.example.test/yarrow-8"
+       }
+      ]
+     },
+     {
+      "name": "Umber Atlas 5",
+      "url": "https://falcon-tundra-4.example.test/umber-atlas-5",
+      "tags": [
+       "docs",
+       "lab"
+      ],
+      "note": "Check indigo before the pioneer review",
+      "moons": [
+       {
+        "name": "Umber 1",
+        "url": "https://falcon-tundra-4.example.test/umber-1"
+       },
+       {
+        "name": "Onyx 2",
+        "url": "https://falcon-tundra-4.example.test/onyx-2",
+        "tags": [
+         "daily",
+         "lab"
+        ]
+       },
+       {
+        "name": "Kestrel 3",
+        "url": "https://falcon-tundra-4.example.test/kestrel-3"
+       },
+       {
+        "name": "Echo 4",
+        "url": "https://falcon-tundra-4.example.test/echo-4",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Raven 5",
+        "url": "https://falcon-tundra-4.example.test/raven-5"
+       },
+       {
+        "name": "Falcon 6",
+        "url": "https://falcon-tundra-4.example.test/falcon-6"
+       },
+       {
+        "name": "Juniper 7",
+        "url": "https://falcon-tundra-4.example.test/juniper-7"
+       },
+       {
+        "name": "Alpha 8",
+        "url": "https://falcon-tundra-4.example.test/alpha-8",
+        "tags": [
+         "daily"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Orbit Indigo 6",
+      "url": "https://falcon-tundra-4.example.test/orbit-indigo-6",
+      "tags": [
+       "daily",
+       "metrics"
+      ],
+      "note": "Check granite before the cinder review",
+      "moons": [
+       {
+        "name": "Delta 1",
+        "url": "https://falcon-tundra-4.example.test/delta-1",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Onyx 2",
+        "url": "https://falcon-tundra-4.example.test/onyx-2",
+        "tags": [
+         "daily",
+         "docs"
+        ],
+        "note": "Check horizon before the glacier review"
+       },
+       {
+        "name": "Echo 3",
+        "url": "https://falcon-tundra-4.example.test/echo-3"
+       },
+       {
+        "name": "Granite 4",
+        "url": "https://falcon-tundra-4.example.test/granite-4"
+       },
+       {
+        "name": "Zephyr 5",
+        "url": "https://falcon-tundra-4.example.test/zephyr-5"
+       },
+       {
+        "name": "Tundra 6",
+        "url": "https://falcon-tundra-4.example.test/tundra-6"
+       },
+       {
+        "name": "Falcon 7",
+        "url": "https://falcon-tundra-4.example.test/falcon-7",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://falcon-tundra-4.example.test/cobalt-8",
+        "tags": [
+         "daily",
+         "lab"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Alpha Tundra 7",
+      "url": "https://falcon-tundra-4.example.test/alpha-tundra-7",
+      "tags": [
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://falcon-tundra-4.example.test/beacon-1"
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://falcon-tundra-4.example.test/willow-2",
+        "tags": [
+         "daily"
+        ],
+        "note": "Check indigo before the atlas review"
+       },
+       {
+        "name": "Cinder 3",
+        "url": "https://falcon-tundra-4.example.test/cinder-3",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Cinder 4",
+        "url": "https://falcon-tundra-4.example.test/cinder-4"
+       },
+       {
+        "name": "Fjord 5",
+        "url": "https://falcon-tundra-4.example.test/fjord-5"
+       },
+       {
+        "name": "Nectar 6",
+        "url": "https://falcon-tundra-4.example.test/nectar-6",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Delta 7",
+        "url": "https://falcon-tundra-4.example.test/delta-7"
+       },
+       {
+        "name": "Relay 8",
+        "url": "https://falcon-tundra-4.example.test/relay-8"
+       }
+      ]
+     },
+     {
+      "name": "Harbor Xenon 8",
+      "url": "https://falcon-tundra-4.example.test/harbor-xenon-8",
+      "note": "Check lantern before the mosaic review",
+      "moons": [
+       {
+        "name": "Mosaic 1",
+        "url": "https://falcon-tundra-4.example.test/mosaic-1",
+        "tags": [
+         "daily",
+         "team"
+        ]
+       },
+       {
+        "name": "Echo 2",
+        "url": "https://falcon-tundra-4.example.test/echo-2"
+       },
+       {
+        "name": "Island 3",
+        "url": "https://falcon-tundra-4.example.test/island-3",
+        "note": "Check zephyr before the onyx review"
+       },
+       {
+        "name": "Vertex 4",
+        "url": "https://falcon-tundra-4.example.test/vertex-4",
+        "tags": [
+         "metrics",
+         "team"
+        ]
+       },
+       {
+        "name": "Jasper 5",
+        "url": "https://falcon-tundra-4.example.test/jasper-5"
+       },
+       {
+        "name": "Lantern 6",
+        "url": "https://falcon-tundra-4.example.test/lantern-6"
+       },
+       {
+        "name": "Falcon 7",
+        "url": "https://falcon-tundra-4.example.test/falcon-7",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Relay 8",
+        "url": "https://falcon-tundra-4.example.test/relay-8"
+       }
+      ]
+     },
+     {
+      "name": "Yarrow Quartz 9",
+      "url": "https://falcon-tundra-4.example.test/yarrow-quartz-9",
+      "tags": [
+       "metrics",
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Kestrel 1",
+        "url": "https://falcon-tundra-4.example.test/kestrel-1"
+       },
+       {
+        "name": "Nectar 2",
+        "url": "https://falcon-tundra-4.example.test/nectar-2"
+       },
+       {
+        "name": "Horizon 3",
+        "url": "https://falcon-tundra-4.example.test/horizon-3"
+       },
+       {
+        "name": "Indigo 4",
+        "url": "https://falcon-tundra-4.example.test/indigo-4"
+       },
+       {
+        "name": "Orbit 5",
+        "url": "https://falcon-tundra-4.example.test/orbit-5",
+        "tags": [
+         "build",
+         "ops"
+        ]
+       },
+       {
+        "name": "Onyx 6",
+        "url": "https://falcon-tundra-4.example.test/onyx-6"
+       },
+       {
+        "name": "Bravo 7",
+        "url": "https://falcon-tundra-4.example.test/bravo-7"
+       },
+       {
+        "name": "Mosaic 8",
+        "url": "https://falcon-tundra-4.example.test/mosaic-8"
+       }
+      ]
+     },
+     {
+      "name": "Yarrow Delta 10",
+      "url": "https://falcon-tundra-4.example.test/yarrow-delta-10",
+      "moons": [
+       {
+        "name": "Island 1",
+        "url": "https://falcon-tundra-4.example.test/island-1"
+       },
+       {
+        "name": "Juniper 2",
+        "url": "https://falcon-tundra-4.example.test/juniper-2"
+       },
+       {
+        "name": "Umber 3",
+        "url": "https://falcon-tundra-4.example.test/umber-3",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Orbit 4",
+        "url": "https://falcon-tundra-4.example.test/orbit-4",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Beacon 5",
+        "url": "https://falcon-tundra-4.example.test/beacon-5"
+       },
+       {
+        "name": "Prism 6",
+        "url": "https://falcon-tundra-4.example.test/prism-6"
+       },
+       {
+        "name": "Indigo 7",
+        "url": "https://falcon-tundra-4.example.test/indigo-7"
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://falcon-tundra-4.example.test/cobalt-8",
+        "note": "Check sierra before the lantern review"
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Orbit 11",
+      "url": "https://falcon-tundra-4.example.test/zephyr-orbit-11",
+      "tags": [
+       "build"
+      ],
+      "moons": [
+       {
+        "name": "Willow 1",
+        "url": "https://falcon-tundra-4.example.test/willow-1"
+       },
+       {
+        "name": "Bravo 2",
+        "url": "https://falcon-tundra-4.example.test/bravo-2",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Sierra 3",
+        "url": "https://falcon-tundra-4.example.test/sierra-3"
+       },
+       {
+        "name": "Vertex 4",
+        "url": "https://falcon-tundra-4.example.test/vertex-4",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Zephyr 5",
+        "url": "https://falcon-tundra-4.example.test/zephyr-5"
+       },
+       {
+        "name": "Cobalt 6",
+        "url": "https://falcon-tundra-4.example.test/cobalt-6",
+        "tags": [
+         "daily",
+         "docs"
+        ]
+       },
+       {
+        "name": "Delta 7",
+        "url": "https://falcon-tundra-4.example.test/delta-7"
+       },
+       {
+        "name": "Fjord 8",
+        "url": "https://falcon-tundra-4.example.test/fjord-8"
+       }
+      ]
+     },
+     {
+      "name": "Echo Ember 12",
+      "url": "https://falcon-tundra-4.example.test/echo-ember-12",
+      "note": "Check raven before the onyx review",
+      "moons": [
+       {
+        "name": "Pioneer 1",
+        "url": "https://falcon-tundra-4.example.test/pioneer-1",
+        "note": "Check vertex before the juniper review"
+       },
+       {
+        "name": "Xenon 2",
+        "url": "https://falcon-tundra-4.example.test/xenon-2",
+        "tags": [
+         "daily",
+         "metrics"
+        ],
+        "note": "Check quartz before the nimbus review"
+       },
+       {
+        "name": "Granite 3",
+        "url": "https://falcon-tundra-4.example.test/granite-3",
+        "note": "Check orbit before the bravo review"
+       },
+       {
+        "name": "Jasper 4",
+        "url": "https://falcon-tundra-4.example.test/jasper-4",
+        "tags": [
+         "ops"
+        ],
+        "note": "Check kestrel before the alpha review"
+       },
+       {
+        "name": "Xenon 5",
+        "url": "https://falcon-tundra-4.example.test/xenon-5",
+        "note": "Check raven before the island review"
+       },
+       {
+        "name": "Indigo 6",
+        "url": "https://falcon-tundra-4.example.test/indigo-6"
+       },
+       {
+        "name": "Harbor 7",
+        "url": "https://falcon-tundra-4.example.test/harbor-7"
+       },
+       {
+        "name": "Summit 8",
+        "url": "https://falcon-tundra-4.example.test/summit-8",
+        "tags": [
+         "ops"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "zephyr-orbit-5",
+    "name": "Zephyr Orbit 5",
+    "description": "Generated sun 5",
+    "color": "#8ae192",
+    "links": [
+     {
+      "name": "Ember Onyx 1",
+      "url": "https://zephyr-orbit-5.example.test/ember-onyx-1",
+      "note": "Check harbor before the indigo review",
+      "moons": [
+       {
+        "name": "Lumen 1",
+        "url": "https://zephyr-orbit-5.example.test/lumen-1",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Island 2",
+        "url": "https://zephyr-orbit-5.example.test/island-2"
+       },
+       {
+        "name": "Summit 3",
+        "url": "https://zephyr-orbit-5.example.test/summit-3"
+       },
+       {
+        "name": "Kestrel 4",
+        "url": "https://zephyr-orbit-5.example.test/kestrel-4",
+        "tags": [
+         "lab",
+         "ops"
+        ]
+       },
+       {
+        "name": "Quartz 5",
+        "url": "https://zephyr-orbit-5.example.test/quartz-5",
+        "tags": [
+         "metrics",
+         "ops"
+        ]
+       },
+       {
+        "name": "Ember 6",
+        "url": "https://zephyr-orbit-5.example.test/ember-6"
+       },
+       {
+        "name": "Orbit 7",
+        "url": "https://zephyr-orbit-5.example.test/orbit-7"
+       },
+       {
+        "name": "Orbit 8",
+        "url": "https://zephyr-orbit-5.example.test/orbit-8"
+       }
+      ]
+     },
+     {
+      "name": "Raven Drift 2",
+      "url": "https://zephyr-orbit-5.example.test/raven-drift-2",
+      "tags": [
+       "metrics"
+      ],
+      "moons": [
+       {
+        "name": "Quill 1",
+        "url": "https://zephyr-orbit-5.example.test/quill-1",
+        "note": "Check keystone before the zephyr review"
+       },
+       {
+        "name": "Xenon 2",
+        "url": "https://zephyr-orbit-5.example.test/xenon-2",
+        "note": "Check atlas before the delta review"
+       },
+       {
+        "name": "Vertex 3",
+        "url": "https://zephyr-orbit-5.example.test/vertex-3"
+       },
+       {
+        "name": "Onyx 4",
+        "url": "https://zephyr-orbit-5.example.test/onyx-4",
+        "tags": [
+         "build",
+         "ops"
+        ]
+       },
+       {
+        "name": "Echo 5",
+        "url": "https://zephyr-orbit-5.example.test/echo-5",
+        "note": "Check mosaic before the zephyr review"
+       },
+       {
+        "name": "Summit 6",
+        "url": "https://zephyr-orbit-5.example.test/summit-6",
+        "tags": [
+         "metrics",
+         "review"
+        ]
+       },
+       {
+        "name": "Pioneer 7",
+        "url": "https://zephyr-orbit-5.example.test/pioneer-7",
+        "note": "Check atlas before the island review"
+       },
+       {
+        "name": "Pioneer 8",
+        "url": "https://zephyr-orbit-5.example.test/pioneer-8"
+       }
+      ]
+     },
+     {
+      "name": "Atlas Yarrow 3",
+      "url": "https://zephyr-orbit-5.example.test/atlas-yarrow-3",
+      "moons": [
+       {
+        "name": "Echo 1",
+        "url": "https://zephyr-orbit-5.example.test/echo-1"
+       },
+       {
+        "name": "Yarrow 2",
+        "url": "https://zephyr-orbit-5.example.test/yarrow-2"
+       },
+       {
+        "name": "Tundra 3",
+        "url": "https://zephyr-orbit-5.example.test/tundra-3"
+       },
+       {
+        "name": "Horizon 4",
+        "url": "https://zephyr-orbit-5.example.test/horizon-4",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Lumen 5",
+        "url": "https://zephyr-orbit-5.example.test/lumen-5",
+        "tags": [
+         "metrics",
+         "review"
+        ]
+       },
+       {
+        "name": "Nectar 6",
+        "url": "https://zephyr-orbit-5.example.test/nectar-6",
+        "note": "Check bravo before the keystone review"
+       },
+       {
+        "name": "Horizon 7",
+        "url": "https://zephyr-orbit-5.example.test/horizon-7"
+       },
+       {
+        "name": "Quill 8",
+        "url": "https://zephyr-orbit-5.example.test/quill-8",
+        "tags": [
+         "ops"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Alpha Fjord 4",
+      "url": "https://zephyr-orbit-5.example.test/alpha-fjord-4",
+      "tags": [
+       "metrics"
+      ],
+      "moons": [
+       {
+        "name": "Jasper 1",
+        "url": "https://zephyr-orbit-5.example.test/jasper-1"
+       },
+       {
+        "name": "Tundra 2",
+        "url": "https://zephyr-orbit-5.example.test/tundra-2",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       },
+       {
+        "name": "Jasper 3",
+        "url": "https://zephyr-orbit-5.example.test/jasper-3",
+        "tags": [
+         "build",
+         "daily"
+        ]
+       },
+       {
+        "name": "Cinder 4",
+        "url": "https://zephyr-orbit-5.example.test/cinder-4",
+        "tags": [
+         "docs",
+         "review"
+        ]
+       },
+       {
+        "name": "Nimbus 5",
+        "url": "https://zephyr-orbit-5.example.test/nimbus-5",
+        "tags": [
+         "build",
+         "team"
+        ]
+       },
+       {
+        "name": "Falcon 6",
+        "url": "https://zephyr-orbit-5.example.test/falcon-6",
+        "tags": [
+         "build",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Summit 7",
+        "url": "https://zephyr-orbit-5.example.test/summit-7",
+        "tags": [
+         "docs",
+         "team"
+        ]
+       },
+       {
+        "name": "Lumen 8",
+        "url": "https://zephyr-orbit-5.example.test/lumen-8",
+        "tags": [
+         "build"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Ember Indigo 5",
+      "url": "https://zephyr-orbit-5.example.test/ember-indigo-5",
+      "moons": [
+       {
+        "name": "Glacier 1",
+        "url": "https://zephyr-orbit-5.example.test/glacier-1"
+       },
+       {
+        "name": "Kestrel 2",
+        "url": "https://zephyr-orbit-5.example.test/kestrel-2",
+        "note": "Check horizon before the meridian review"
+       },
+       {
+        "name": "Harbor 3",
+        "url": "https://zephyr-orbit-5.example.test/harbor-3",
+        "tags": [
+         "daily",
+         "team"
+        ]
+       },
+       {
+        "name": "Bravo 4",
+        "url": "https://zephyr-orbit-5.example.test/bravo-4"
+       },
+       {
+        "name": "Orbit 5",
+        "url": "https://zephyr-orbit-5.example.test/orbit-5"
+       },
+       {
+        "name": "Jasper 6",
+        "url": "https://zephyr-orbit-5.example.test/jasper-6",
+        "note": "Check summit before the kestrel review"
+       },
+       {
+        "name": "Vertex 7",
+        "url": "https://zephyr-orbit-5.example.test/vertex-7"
+       },
+       {
+        "name": "Keystone 8",
+        "url": "https://zephyr-orbit-5.example.test/keystone-8"
+       }
+      ]
+     },
+     {
+      "name": "Fjord Sierra 6",
+      "url": "https://zephyr-orbit-5.example.test/fjord-sierra-6",
+      "moons": [
+       {
+        "name": "Jasper 1",
+        "url": "https://zephyr-orbit-5.example.test/jasper-1"
+       },
+       {
+        "name": "Beacon 2",
+        "url": "https://zephyr-orbit-5.example.test/beacon-2"
+       },
+       {
+        "name": "Alpha 3",
+        "url": "https://zephyr-orbit-5.example.test/alpha-3",
+        "note": "Check summit before the xenon review"
+       },
+       {
+        "name": "Nectar 4",
+        "url": "https://zephyr-orbit-5.example.test/nectar-4"
+       },
+       {
+        "name": "Cobalt 5",
+        "url": "https://zephyr-orbit-5.example.test/cobalt-5"
+       },
+       {
+        "name": "Xenon 6",
+        "url": "https://zephyr-orbit-5.example.test/xenon-6"
+       },
+       {
+        "name": "Vertex 7",
+        "url": "https://zephyr-orbit-5.example.test/vertex-7"
+       },
+       {
+        "name": "Bravo 8",
+        "url": "https://zephyr-orbit-5.example.test/bravo-8"
+       }
+      ]
+     },
+     {
+      "name": "Horizon Umber 7",
+      "url": "https://zephyr-orbit-5.example.test/horizon-umber-7",
+      "tags": [
+       "daily",
+       "docs"
+      ],
+      "note": "Check pioneer before the ember review",
+      "moons": [
+       {
+        "name": "Xenon 1",
+        "url": "https://zephyr-orbit-5.example.test/xenon-1"
+       },
+       {
+        "name": "Relay 2",
+        "url": "https://zephyr-orbit-5.example.test/relay-2",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Ember 3",
+        "url": "https://zephyr-orbit-5.example.test/ember-3"
+       },
+       {
+        "name": "Sierra 4",
+        "url": "https://zephyr-orbit-5.example.test/sierra-4"
+       },
+       {
+        "name": "Alpha 5",
+        "url": "https://zephyr-orbit-5.example.test/alpha-5",
+        "tags": [
+         "lab"
+        ]
+       },
+       {
+        "name": "Summit 6",
+        "url": "https://zephyr-orbit-5.example.test/summit-6"
+       },
+       {
+        "name": "Ember 7",
+        "url": "https://zephyr-orbit-5.example.test/ember-7"
+       },
+       {
+        "name": "Fjord 8",
+        "url": "https://zephyr-orbit-5.example.test/fjord-8"
+       }
+      ]
+     },
+     {
+      "name": "Nectar Orbit 8",
+      "url": "https://zephyr-orbit-5.example.test/nectar-orbit-8",
+      "moons": [
+       {
+        "name": "Delta 1",
+        "url": "https://zephyr-orbit-5.example.test/delta-1"
+       },
+       {
+        "name": "Keystone 2",
+        "url": "https://zephyr-orbit-5.example.test/keystone-2",
+        "note": "Check orbit before the nectar review"
+       },
+       {
+        "name": "Kestrel 3",
+        "url": "https://zephyr-orbit-5.example.test/kestrel-3"
+       },
+       {
+        "name": "Juniper 4",
+        "url": "https://zephyr-orbit-5.example.test/juniper-4"
+       },
+       {
+        "name": "Delta 5",
+        "url": "https://zephyr-orbit-5.example.test/delta-5",
+        "tags": [
+         "build",
+         "daily"
+        ]
+       },
+       {
+        "name": "Lumen 6",
+        "url": "https://zephyr-orbit-5.example.test/lumen-6",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Prism 7",
+        "url": "https://zephyr-orbit-5.example.test/prism-7"
+       },
+       {
+        "name": "Umber 8",
+        "url": "https://zephyr-orbit-5.example.test/umber-8",
+        "note": "Check horizon before the umber review"
+       }
+      ]
+     },
+     {
+      "name": "Summit Jasper 9",
+      "url": "https://zephyr-orbit-5.example.test/summit-jasper-9",
+      "tags": [
+       "lab",
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Vertex 1",
+        "url": "https://zephyr-orbit-5.example.test/vertex-1"
+       },
+       {
+        "name": "Glacier 2",
+        "url": "https://zephyr-orbit-5.example.test/glacier-2",
+        "tags": [
+         "lab",
+         "ops"
+        ]
+       },
+       {
+        "name": "Willow 3",
+        "url": "https://zephyr-orbit-5.example.test/willow-3"
+       },
+       {
+        "name": "Indigo 4",
+        "url": "https://zephyr-orbit-5.example.test/indigo-4"
+       },
+       {
+        "name": "Raven 5",
+        "url": "https://zephyr-orbit-5.example.test/raven-5"
+       },
+       {
+        "name": "Ember 6",
+        "url": "https://zephyr-orbit-5.example.test/ember-6"
+       },
+       {
+        "name": "Atlas 7",
+        "url": "https://zephyr-orbit-5.example.test/atlas-7"
+       },
+       {
+        "name": "Prism 8",
+        "url": "https://zephyr-orbit-5.example.test/prism-8",
+        "note": "Check xenon before the fjord review"
+       }
+      ]
+     },
+     {
+      "name": "Xenon Bravo 10",
+      "url": "https://zephyr-orbit-5.example.test/xenon-bravo-10",
+      "moons": [
+       {
+        "name": "Kestrel 1",
+        "url": "https://zephyr-orbit-5.example.test/kestrel-1"
+       },
+       {
+        "name": "Nectar 2",
+        "url": "https://zephyr-orbit-5.example.test/nectar-2",
+        "note": "Check tundra before the quill review"
+       },
+       {
+        "name": "Nimbus 3",
+        "url": "https://zephyr-orbit-5.example.test/nimbus-3",
+        "tags": [
+         "docs",
+         "ops"
+        ]
+       },
+       {
+        "name": "Bravo 4",
+        "url": "https://zephyr-orbit-5.example.test/bravo-4"
+       },
+       {
+        "name": "Cinder 5",
+        "url": "https://zephyr-orbit-5.example.test/cinder-5"
+       },
+       {
+        "name": "Juniper 6",
+        "url": "https://zephyr-orbit-5.example.test/juniper-6"
+       },
+       {
+        "name": "Keystone 7",
+        "url": "https://zephyr-orbit-5.example.test/keystone-7",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Sierra 8",
+        "url": "https://zephyr-orbit-5.example.test/sierra-8",
+        "tags": [
+         "docs",
+         "metrics"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Prism Quartz 11",
+      "url": "https://zephyr-orbit-5.example.test/prism-quartz-11",
+      "tags": [
+       "build",
+       "lab"
+      ],
+      "moons": [
+       {
+        "name": "Granite 1",
+        "url": "https://zephyr-orbit-5.example.test/granite-1"
+       },
+       {
+        "name": "Lantern 2",
+        "url": "https://zephyr-orbit-5.example.test/lantern-2"
+       },
+       {
+        "name": "Raven 3",
+        "url": "https://zephyr-orbit-5.example.test/raven-3"
+       },
+       {
+        "name": "Harbor 4",
+        "url": "https://zephyr-orbit-5.example.test/harbor-4"
+       },
+       {
+        "name": "Willow 5",
+        "url": "https://zephyr-orbit-5.example.test/willow-5"
+       },
+       {
+        "name": "Fjord 6",
+        "url": "https://zephyr-orbit-5.example.test/fjord-6",
+        "tags": [
+         "build",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Kestrel 7",
+        "url": "https://zephyr-orbit-5.example.test/kestrel-7"
+       },
+       {
+        "name": "Alpha 8",
+        "url": "https://zephyr-orbit-5.example.test/alpha-8",
+        "tags": [
+         "docs",
+         "lab"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Vertex Juniper 12",
+      "url": "https://zephyr-orbit-5.example.test/vertex-juniper-12",
+      "tags": [
+       "lab"
+      ],
+      "moons": [
+       {
+        "name": "Drift 1",
+        "url": "https://zephyr-orbit-5.example.test/drift-1"
+       },
+       {
+        "name": "Cinder 2",
+        "url": "https://zephyr-orbit-5.example.test/cinder-2"
+       },
+       {
+        "name": "Yarrow 3",
+        "url": "https://zephyr-orbit-5.example.test/yarrow-3"
+       },
+       {
+        "name": "Quartz 4",
+        "url": "https://zephyr-orbit-5.example.test/quartz-4"
+       },
+       {
+        "name": "Zephyr 5",
+        "url": "https://zephyr-orbit-5.example.test/zephyr-5",
+        "note": "Check mosaic before the drift review"
+       },
+       {
+        "name": "Island 6",
+        "url": "https://zephyr-orbit-5.example.test/island-6"
+       },
+       {
+        "name": "Umber 7",
+        "url": "https://zephyr-orbit-5.example.test/umber-7"
+       },
+       {
+        "name": "Alpha 8",
+        "url": "https://zephyr-orbit-5.example.test/alpha-8"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "prism-horizon-6",
+    "name": "Prism Horizon 6",
+    "description": "Generated sun 6",
+    "color": "#e85a37",
+    "links": [
+     {
+      "name": "Meridian Quill 1",
+      "url": "https://prism-horizon-6.example.test/meridian-quill-1",
+      "moons": [
+       {
+        "name": "Sierra 1",
+        "url": "https://prism-horizon-6.example.test/sierra-1"
+       },
+       {
+        "name": "Island 2",
+        "url": "https://prism-horizon-6.example.test/island-2"
+       },
+       {
+        "name": "Vertex 3",
+        "url": "https://prism-horizon-6.example.test/vertex-3",
+        "tags": [
+         "ops",
+         "team"
+        ]
+       },
+       {
+        "name": "Horizon 4",
+        "url": "https://prism-horizon-6.example.test/horizon-4"
+       },
+       {
+        "name": "Quartz 5",
+        "url": "https://prism-horizon-6.example.test/quartz-5"
+       },
+       {
+        "name": "Atlas 6",
+        "url": "https://prism-horizon-6.example.test/atlas-6",
+        "note": "Check meridian before the indigo review"
+       },
+       {
+        "name": "Alpha 7",
+        "url": "https://prism-horizon-6.example.test/alpha-7",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Indigo 8",
+        "url": "https://prism-horizon-6.example.test/indigo-8"
+       }
+      ]
+     },
+     {
+      "name": "Umber Drift 2",
+      "url": "https://prism-horizon-6.example.test/umber-drift-2",
+      "moons": [
+       {
+        "name": "Cobalt 1",
+        "url": "https://prism-horizon-6.example.test/cobalt-1"
+       },
+       {
+        "name": "Glacier 2",
+        "url": "https://prism-horizon-6.example.test/glacier-2"
+       },
+       {
+        "name": "Sierra 3",
+        "url": "https://prism-horizon-6.example.test/sierra-3"
+       },
+       {
+        "name": "Falcon 4",
+        "url": "https://prism-horizon-6.example.test/falcon-4",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       },
+       {
+        "name": "Horizon 5",
+        "url": "https://prism-horizon-6.example.test/horizon-5",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       },
+       {
+        "name": "Raven 6",
+        "url": "https://prism-horizon-6.example.test/raven-6",
+        "note": "Check raven before the nimbus review"
+       },
+       {
+        "name": "Umber 7",
+        "url": "https://prism-horizon-6.example.test/umber-7",
+        "note": "Check keystone before the nimbus review"
+       },
+       {
+        "name": "Fjord 8",
+        "url": "https://prism-horizon-6.example.test/fjord-8"
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Zephyr 3",
+      "url": "https://prism-horizon-6.example.test/zephyr-zephyr-3",
+      "moons": [
+       {
+        "name": "Sierra 1",
+        "url": "https://prism-horizon-6.example.test/sierra-1"
+       },
+       {
+        "name": "Tundra 2",
+        "url": "https://prism-horizon-6.example.test/tundra-2"
+       },
+       {
+        "name": "Onyx 3",
+        "url": "https://prism-horizon-6.example.test/onyx-3",
+        "tags": [
+         "docs",
+         "lab"
+        ]
+       },
+       {
+        "name": "Juniper 4",
+        "url": "https://prism-horizon-6.example.test/juniper-4"
+       },
+       {
+        "name": "Harbor 5",
+        "url": "https://prism-horizon-6.example.test/harbor-5",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       },
+       {
+        "name": "Alpha 6",
+        "url": "https://prism-horizon-6.example.test/alpha-6",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Horizon 7",
+        "url": "https://prism-horizon-6.example.test/horizon-7",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Nimbus 8",
+        "url": "https://prism-horizon-6.example.test/nimbus-8",
+        "tags": [
+         "build"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Granite Orbit 4",
+      "url": "https://prism-horizon-6.example.test/granite-orbit-4",
+      "tags": [
+       "ops",
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Summit 1",
+        "url": "https://prism-horizon-6.example.test/summit-1",
+        "tags": [
+         "build",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Prism 2",
+        "url": "https://prism-horizon-6.example.test/prism-2"
+       },
+       {
+        "name": "Xenon 3",
+        "url": "https://prism-horizon-6.example.test/xenon-3",
+        "note": "Check tundra before the orbit review"
+       },
+       {
+        "name": "Jasper 4",
+        "url": "https://prism-horizon-6.example.test/jasper-4"
+       },
+       {
+        "name": "Falcon 5",
+        "url": "https://prism-horizon-6.example.test/falcon-5"
+       },
+       {
+        "name": "Yarrow 6",
+        "url": "https://prism-horizon-6.example.test/yarrow-6",
+        "tags": [
+         "build",
+         "ops"
+        ]
+       },
+       {
+        "name": "Nectar 7",
+        "url": "https://prism-horizon-6.example.test/nectar-7"
+       },
+       {
+        "name": "Ember 8",
+        "url": "https://prism-horizon-6.example.test/ember-8",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Willow 5",
+      "url": "https://prism-horizon-6.example.test/zephyr-willow-5",
+      "moons": [
+       {
+        "name": "Bravo 1",
+        "url": "https://prism-horizon-6.example.test/bravo-1",
+        "note": "Check orbit before the glacier review"
+       },
+       {
+        "name": "Onyx 2",
+        "url": "https://prism-horizon-6.example.test/onyx-2",
+        "tags": [
+         "team"
+        ],
+        "note": "Check yarrow before the umber review"
+       },
+       {
+        "name": "Xenon 3",
+        "url": "https://prism-horizon-6.example.test/xenon-3"
+       },
+       {
+        "name": "Lumen 4",
+        "url": "https://prism-horizon-6.example.test/lumen-4"
+       },
+       {
+        "name": "Raven 5",
+        "url": "https://prism-horizon-6.example.test/raven-5"
+       },
+       {
+        "name": "Onyx 6",
+        "url": "https://prism-horizon-6.example.test/onyx-6",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Vertex 7",
+        "url": "https://prism-horizon-6.example.test/vertex-7",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Glacier 8",
+        "url": "https://prism-horizon-6.example.test/glacier-8"
+       }
+      ]
+     },
+     {
+      "name": "Vertex Lantern 6",
+      "url": "https://prism-horizon-6.example.test/vertex-lantern-6",
+      "note": "Check beacon before the harbor review",
+      "moons": [
+       {
+        "name": "Nectar 1",
+        "url": "https://prism-horizon-6.example.test/nectar-1",
+        "tags": [
+         "lab",
+         "ops"
+        ]
+       },
+       {
+        "name": "Vertex 2",
+        "url": "https://prism-horizon-6.example.test/vertex-2"
+       },
+       {
+        "name": "Quartz 3",
+        "url": "https://prism-horizon-6.example.test/quartz-3",
+        "tags": [
+         "lab",
+         "review"
+        ]
+       },
+       {
+        "name": "Mosaic 4",
+        "url": "https://prism-horizon-6.example.test/mosaic-4"
+       },
+       {
+        "name": "Xenon 5",
+        "url": "https://prism-horizon-6.example.test/xenon-5"
+       },
+       {
+        "name": "Mosaic 6",
+        "url": "https://prism-horizon-6.example.test/mosaic-6"
+       },
+       {
+        "name": "Island 7",
+        "url": "https://prism-horizon-6.example.test/island-7",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Falcon 8",
+        "url": "https://prism-horizon-6.example.test/falcon-8"
+       }
+      ]
+     },
+     {
+      "name": "Cinder Nimbus 7",
+      "url": "https://prism-horizon-6.example.test/cinder-nimbus-7",
+      "tags": [
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Atlas 1",
+        "url": "https://prism-horizon-6.example.test/atlas-1"
+       },
+       {
+        "name": "Horizon 2",
+        "url": "https://prism-horizon-6.example.test/horizon-2",
+        "note": "Check harbor before the relay review"
+       },
+       {
+        "name": "Prism 3",
+        "url": "https://prism-horizon-6.example.test/prism-3"
+       },
+       {
+        "name": "Quill 4",
+        "url": "https://prism-horizon-6.example.test/quill-4",
+        "note": "Check vertex before the pioneer review"
+       },
+       {
+        "name": "Lantern 5",
+        "url": "https://prism-horizon-6.example.test/lantern-5"
+       },
+       {
+        "name": "Lumen 6",
+        "url": "https://prism-horizon-6.example.test/lumen-6"
+       },
+       {
+        "name": "Sierra 7",
+        "url": "https://prism-horizon-6.example.test/sierra-7",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Glacier 8",
+        "url": "https://prism-horizon-6.example.test/glacier-8",
+        "tags": [
+         "metrics"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Cinder Drift 8",
+      "url": "https://prism-horizon-6.example.test/cinder-drift-8",
+      "tags": [
+       "metrics",
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Kestrel 1",
+        "url": "https://prism-horizon-6.example.test/kestrel-1"
+       },
+       {
+        "name": "Atlas 2",
+        "url": "https://prism-horizon-6.example.test/atlas-2"
+       },
+       {
+        "name": "Raven 3",
+        "url": "https://prism-horizon-6.example.test/raven-3",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Granite 4",
+        "url": "https://prism-horizon-6.example.test/granite-4"
+       },
+       {
+        "name": "Raven 5",
+        "url": "https://prism-horizon-6.example.test/raven-5",
+        "note": "Check vertex before the granite review"
+       },
+       {
+        "name": "Umber 6",
+        "url": "https://prism-horizon-6.example.test/umber-6",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Vertex 7",
+        "url": "https://prism-horizon-6.example.test/vertex-7"
+       },
+       {
+        "name": "Willow 8",
+        "url": "https://prism-horizon-6.example.test/willow-8"
+       }
+      ]
+     },
+     {
+      "name": "Atlas Bravo 9",
+      "url": "https://prism-horizon-6.example.test/atlas-bravo-9",
+      "moons": [
+       {
+        "name": "Falcon 1",
+        "url": "https://prism-horizon-6.example.test/falcon-1"
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://prism-horizon-6.example.test/willow-2"
+       },
+       {
+        "name": "Meridian 3",
+        "url": "https://prism-horizon-6.example.test/meridian-3"
+       },
+       {
+        "name": "Lantern 4",
+        "url": "https://prism-horizon-6.example.test/lantern-4",
+        "note": "Check cinder before the echo review"
+       },
+       {
+        "name": "Cobalt 5",
+        "url": "https://prism-horizon-6.example.test/cobalt-5"
+       },
+       {
+        "name": "Falcon 6",
+        "url": "https://prism-horizon-6.example.test/falcon-6"
+       },
+       {
+        "name": "Yarrow 7",
+        "url": "https://prism-horizon-6.example.test/yarrow-7",
+        "tags": [
+         "build",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Tundra 8",
+        "url": "https://prism-horizon-6.example.test/tundra-8"
+       }
+      ]
+     },
+     {
+      "name": "Mosaic Cinder 10",
+      "url": "https://prism-horizon-6.example.test/mosaic-cinder-10",
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://prism-horizon-6.example.test/beacon-1"
+       },
+       {
+        "name": "Harbor 2",
+        "url": "https://prism-horizon-6.example.test/harbor-2"
+       },
+       {
+        "name": "Beacon 3",
+        "url": "https://prism-horizon-6.example.test/beacon-3"
+       },
+       {
+        "name": "Summit 4",
+        "url": "https://prism-horizon-6.example.test/summit-4"
+       },
+       {
+        "name": "Umber 5",
+        "url": "https://prism-horizon-6.example.test/umber-5"
+       },
+       {
+        "name": "Sierra 6",
+        "url": "https://prism-horizon-6.example.test/sierra-6"
+       },
+       {
+        "name": "Relay 7",
+        "url": "https://prism-horizon-6.example.test/relay-7"
+       },
+       {
+        "name": "Vertex 8",
+        "url": "https://prism-horizon-6.example.test/vertex-8",
+        "tags": [
+         "daily",
+         "review"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Summit Fjord 11",
+      "url": "https://prism-horizon-6.example.test/summit-fjord-11",
+      "moons": [
+       {
+        "name": "Orbit 1",
+        "url": "https://prism-horizon-6.example.test/orbit-1",
+        "tags": [
+         "build",
+         "team"
+        ]
+       },
+       {
+        "name": "Yarrow 2",
+        "url": "https://prism-horizon-6.example.test/yarrow-2"
+       },
+       {
+        "name": "Tundra 3",
+        "url": "https://prism-horizon-6.example.test/tundra-3",
+        "tags": [
+         "docs"
+        ],
+        "note": "Check glacier before the pioneer review"
+       },
+       {
+        "name": "Nimbus 4",
+        "url": "https://prism-horizon-6.example.test/nimbus-4",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Alpha 5",
+        "url": "https://prism-horizon-6.example.test/alpha-5"
+       },
+       {
+        "name": "Tundra 6",
+        "url": "https://prism-horizon-6.example.test/tundra-6"
+       },
+       {
+        "name": "Lumen 7",
+        "url": "https://prism-horizon-6.example.test/lumen-7",
+        "tags": [
+         "build",
+         "daily"
+        ]
+       },
+       {
+        "name": "Summit 8",
+        "url": "https://prism-horizon-6.example.test/summit-8",
+        "tags": [
+         "docs"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Atlas Echo 12",
+      "url": "https://prism-horizon-6.example.test/atlas-echo-12",
+      "moons": [
+       {
+        "name": "Fjord 1",
+        "url": "https://prism-horizon-6.example.test/fjord-1"
+       },
+       {
+        "name": "Orbit 2",
+        "url": "https://prism-horizon-6.example.test/orbit-2"
+       },
+       {
+        "name": "Beacon 3",
+        "url": "https://prism-horizon-6.example.test/beacon-3"
+       },
+       {
+        "name": "Fjord 4",
+        "url": "https://prism-horizon-6.example.test/fjord-4",
+        "tags": [
+         "daily",
+         "team"
+        ]
+       },
+       {
+        "name": "Indigo 5",
+        "url": "https://prism-horizon-6.example.test/indigo-5",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Lumen 6",
+        "url": "https://prism-horizon-6.example.test/lumen-6"
+       },
+       {
+        "name": "Atlas 7",
+        "url": "https://prism-horizon-6.example.test/atlas-7"
+       },
+       {
+        "name": "Beacon 8",
+        "url": "https://prism-horizon-6.example.test/beacon-8",
+        "note": "Check yarrow before the lantern review"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "echo-meridian-7",
+    "name": "Echo Meridian 7",
+    "description": "Generated sun 7",
+    "color": "#f3db5a",
+    "links": [
+     {
+      "name": "Ember Beacon 1",
+      "url": "https://echo-meridian-7.example.test/ember-beacon-1",
+      "tags": [
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Bravo 1",
+        "url": "https://echo-meridian-7.example.test/bravo-1"
+       },
+       {
+        "name": "Echo 2",
+        "url": "https://echo-meridian-7.example.test/echo-2"
+       },
+       {
+        "name": "Drift 3",
+        "url": "https://echo-meridian-7.example.test/drift-3",
+        "tags": [
+         "docs",
+         "ops"
+        ]
+       },
+       {
+        "name": "Prism 4",
+        "url": "https://echo-meridian-7.example.test/prism-4",
+        "note": "Check cinder before the harbor review"
+       },
+       {
+        "name": "Juniper 5",
+        "url": "https://echo-meridian-7.example.test/juniper-5"
+       },
+       {
+        "name": "Juniper 6",
+        "url": "https://echo-meridian-7.example.test/juniper-6",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Mosaic 7",
+        "url": "https://echo-meridian-7.example.test/mosaic-7"
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://echo-meridian-7.example.test/cobalt-8"
+       }
+      ]
+     },
+     {
+      "name": "Fjord Quartz 2",
+      "url": "https://echo-meridian-7.example.test/fjord-quartz-2",
+      "tags": [
+       "lab"
+      ],
+      "moons": [
+       {
+        "name": "Keystone 1",
+        "url": "https://echo-meridian-7.example.test/keystone-1"
+       },
+       {
+        "name": "Pioneer 2",
+        "url": "https://echo-meridian-7.example.test/pioneer-2"
+       },
+       {
+        "name": "Nimbus 3",
+        "url": "https://echo-meridian-7.example.test/nimbus-3"
+       },
+       {
+        "name": "Cobalt 4",
+        "url": "https://echo-meridian-7.example.test/cobalt-4",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Falcon 5",
+        "url": "https://echo-meridian-7.example.test/falcon-5"
+       },
+       {
+        "name": "Cobalt 6",
+        "url": "https://echo-meridian-7.example.test/cobalt-6",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       },
+       {
+        "name": "Quill 7",
+        "url": "https://echo-meridian-7.example.test/quill-7",
+        "tags": [
+         "ops",
+         "team"
+        ]
+       },
+       {
+        "name": "Harbor 8",
+        "url": "https://echo-meridian-7.example.test/harbor-8"
+       }
+      ]
+     },
+     {
+      "name": "Bravo Cinder 3",
+      "url": "https://echo-meridian-7.example.test/bravo-cinder-3",
+      "moons": [
+       {
+        "name": "Fjord 1",
+        "url": "https://echo-meridian-7.example.test/fjord-1",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       },
+       {
+        "name": "Orbit 2",
+        "url": "https://echo-meridian-7.example.test/orbit-2"
+       },
+       {
+        "name": "Quartz 3",
+        "url": "https://echo-meridian-7.example.test/quartz-3",
+        "note": "Check kestrel before the prism review"
+       },
+       {
+        "name": "Vertex 4",
+        "url": "https://echo-meridian-7.example.test/vertex-4"
+       },
+       {
+        "name": "Onyx 5",
+        "url": "https://echo-meridian-7.example.test/onyx-5",
+        "note": "Check keystone before the cinder review"
+       },
+       {
+        "name": "Beacon 6",
+        "url": "https://echo-meridian-7.example.test/beacon-6"
+       },
+       {
+        "name": "Summit 7",
+        "url": "https://echo-meridian-7.example.test/summit-7",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Falcon 8",
+        "url": "https://echo-meridian-7.example.test/falcon-8"
+       }
+      ]
+     },
+     {
+      "name": "Mosaic Nectar 4",
+      "url": "https://echo-meridian-7.example.test/mosaic-nectar-4",
+      "moons": [
+       {
+        "name": "Granite 1",
+        "url": "https://echo-meridian-7.example.test/granite-1"
+       },
+       {
+        "name": "Lumen 2",
+        "url": "https://echo-meridian-7.example.test/lumen-2",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Delta 3",
+        "url": "https://echo-meridian-7.example.test/delta-3",
+        "tags": [
+         "ops",
+         "team"
+        ]
+       },
+       {
+        "name": "Cinder 4",
+        "url": "https://echo-meridian-7.example.test/cinder-4",
+        "note": "Check willow before the cobalt review"
+       },
+       {
+        "name": "Lumen 5",
+        "url": "https://echo-meridian-7.example.test/lumen-5"
+       },
+       {
+        "name": "Orbit 6",
+        "url": "https://echo-meridian-7.example.test/orbit-6"
+       },
+       {
+        "name": "Xenon 7",
+        "url": "https://echo-meridian-7.example.test/xenon-7"
+       },
+       {
+        "name": "Echo 8",
+        "url": "https://echo-meridian-7.example.test/echo-8",
+        "note": "Check ember before the alpha review"
+       }
+      ]
+     },
+     {
+      "name": "Glacier Granite 5",
+      "url": "https://echo-meridian-7.example.test/glacier-granite-5",
+      "tags": [
+       "ops"
+      ],
+      "note": "Check nimbus before the delta review",
+      "moons": [
+       {
+        "name": "Beacon 1",
+        "url": "https://echo-meridian-7.example.test/beacon-1"
+       },
+       {
+        "name": "Fjord 2",
+        "url": "https://echo-meridian-7.example.test/fjord-2"
+       },
+       {
+        "name": "Indigo 3",
+        "url": "https://echo-meridian-7.example.test/indigo-3"
+       },
+       {
+        "name": "Beacon 4",
+        "url": "https://echo-meridian-7.example.test/beacon-4",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       },
+       {
+        "name": "Willow 5",
+        "url": "https://echo-meridian-7.example.test/willow-5"
+       },
+       {
+        "name": "Ember 6",
+        "url": "https://echo-meridian-7.example.test/ember-6"
+       },
+       {
+        "name": "Granite 7",
+        "url": "https://echo-meridian-7.example.test/granite-7",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       },
+       {
+        "name": "Bravo 8",
+        "url": "https://echo-meridian-7.example.test/bravo-8",
+        "tags": [
+         "ops"
+        ],
+        "note": "Check orbit before the delta review"
+       }
+      ]
+     },
+     {
+      "name": "Sierra Yarrow 6",
+      "url": "https://echo-meridian-7.example.test/sierra-yarrow-6",
+      "moons": [
+       {
+        "name": "Jasper 1",
+        "url": "https://echo-meridian-7.example.test/jasper-1"
+       },
+       {
+        "name": "Vertex 2",
+        "url": "https://echo-meridian-7.example.test/vertex-2"
+       },
+       {
+        "name": "Onyx 3",
+        "url": "https://echo-meridian-7.example.test/onyx-3"
+       },
+       {
+        "name": "Vertex 4",
+        "url": "https://echo-meridian-7.example.test/vertex-4",
+        "note": "Check relay before the delta review"
+       },
+       {
+        "name": "Falcon 5",
+        "url": "https://echo-meridian-7.example.test/falcon-5",
+        "tags": [
+         "build",
+         "team"
+        ],
+        "note": "Check beacon before the willow review"
+       },
+       {
+        "name": "Sierra 6",
+        "url": "https://echo-meridian-7.example.test/sierra-6",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Juniper 7",
+        "url": "https://echo-meridian-7.example.test/juniper-7",
+        "tags": [
+         "lab",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Lumen 8",
+        "url": "https://echo-meridian-7.example.test/lumen-8",
+        "tags": [
+         "lab"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Glacier Island 7",
+      "url": "https://echo-meridian-7.example.test/glacier-island-7",
+      "tags": [
+       "team"
+      ],
+      "note": "Check meridian before the nimbus review",
+      "moons": [
+       {
+        "name": "Lantern 1",
+        "url": "https://echo-meridian-7.example.test/lantern-1",
+        "tags": [
+         "daily",
+         "docs"
+        ]
+       },
+       {
+        "name": "Kestrel 2",
+        "url": "https://echo-meridian-7.example.test/kestrel-2"
+       },
+       {
+        "name": "Lumen 3",
+        "url": "https://echo-meridian-7.example.test/lumen-3"
+       },
+       {
+        "name": "Harbor 4",
+        "url": "https://echo-meridian-7.example.test/harbor-4"
+       },
+       {
+        "name": "Onyx 5",
+        "url": "https://echo-meridian-7.example.test/onyx-5"
+       },
+       {
+        "name": "Echo 6",
+        "url": "https://echo-meridian-7.example.test/echo-6",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Vertex 7",
+        "url": "https://echo-meridian-7.example.test/vertex-7"
+       },
+       {
+        "name": "Keystone 8",
+        "url": "https://echo-meridian-7.example.test/keystone-8"
+       }
+      ]
+     },
+     {
+      "name": "Harbor Nectar 8",
+      "url": "https://echo-meridian-7.example.test/harbor-nectar-8",
+      "moons": [
+       {
+        "name": "Delta 1",
+        "url": "https://echo-meridian-7.example.test/delta-1"
+       },
+       {
+        "name": "Jasper 2",
+        "url": "https://echo-meridian-7.example.test/jasper-2"
+       },
+       {
+        "name": "Granite 3",
+        "url": "https://echo-meridian-7.example.test/granite-3"
+       },
+       {
+        "name": "Atlas 4",
+        "url": "https://echo-meridian-7.example.test/atlas-4"
+       },
+       {
+        "name": "Juniper 5",
+        "url": "https://echo-meridian-7.example.test/juniper-5"
+       },
+       {
+        "name": "Granite 6",
+        "url": "https://echo-meridian-7.example.test/granite-6"
+       },
+       {
+        "name": "Drift 7",
+        "url": "https://echo-meridian-7.example.test/drift-7",
+        "tags": [
+         "daily",
+         "docs"
+        ]
+       },
+       {
+        "name": "Relay 8",
+        "url": "https://echo-meridian-7.example.test/relay-8",
+        "tags": [
+         "metrics"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Summit Willow 9",
+      "url": "https://echo-meridian-7.example.test/summit-willow-9",
+      "moons": [
+       {
+        "name": "Sierra 1",
+        "url": "https://echo-meridian-7.example.test/sierra-1"
+       },
+       {
+        "name": "Nectar 2",
+        "url": "https://echo-meridian-7.example.test/nectar-2",
+        "note": "Check meridian before the raven review"
+       },
+       {
+        "name": "Bravo 3",
+        "url": "https://echo-meridian-7.example.test/bravo-3"
+       },
+       {
+        "name": "Lantern 4",
+        "url": "https://echo-meridian-7.example.test/lantern-4"
+       },
+       {
+        "name": "Onyx 5",
+        "url": "https://echo-meridian-7.example.test/onyx-5"
+       },
+       {
+        "name": "Nectar 6",
+        "url": "https://echo-meridian-7.example.test/nectar-6",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Ember 7",
+        "url": "https://echo-meridian-7.example.test/ember-7"
+       },
+       {
+        "name": "Quartz 8",
+        "url": "https://echo-meridian-7.example.test/quartz-8"
+       }
+      ]
+     },
+     {
+      "name": "Indigo Cobalt 10",
+      "url": "https://echo-meridian-7.example.test/indigo-cobalt-10",
+      "moons": [
+       {
+        "name": "Bravo 1",
+        "url": "https://echo-meridian-7.example.test/bravo-1"
+       },
+       {
+        "name": "Lantern 2",
+        "url": "https://echo-meridian-7.example.test/lantern-2",
+        "tags": [
+         "lab"
+        ]
+       },
+       {
+        "name": "Onyx 3",
+        "url": "https://echo-meridian-7.example.test/onyx-3"
+       },
+       {
+        "name": "Ember 4",
+        "url": "https://echo-meridian-7.example.test/ember-4"
+       },
+       {
+        "name": "Yarrow 5",
+        "url": "https://echo-meridian-7.example.test/yarrow-5",
+        "note": "Check pioneer before the prism review"
+       },
+       {
+        "name": "Summit 6",
+        "url": "https://echo-meridian-7.example.test/summit-6"
+       },
+       {
+        "name": "Alpha 7",
+        "url": "https://echo-meridian-7.example.test/alpha-7"
+       },
+       {
+        "name": "Drift 8",
+        "url": "https://echo-meridian-7.example.test/drift-8",
+        "note": "Check indigo before the tundra review"
+       }
+      ]
+     },
+     {
+      "name": "Lantern Echo 11",
+      "url": "https://echo-meridian-7.example.test/lantern-echo-11",
+      "note": "Check onyx before the onyx review",
+      "moons": [
+       {
+        "name": "Yarrow 1",
+        "url": "https://echo-meridian-7.example.test/yarrow-1",
+        "note": "Check relay before the delta review"
+       },
+       {
+        "name": "Delta 2",
+        "url": "https://echo-meridian-7.example.test/delta-2",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Cinder 3",
+        "url": "https://echo-meridian-7.example.test/cinder-3"
+       },
+       {
+        "name": "Fjord 4",
+        "url": "https://echo-meridian-7.example.test/fjord-4"
+       },
+       {
+        "name": "Alpha 5",
+        "url": "https://echo-meridian-7.example.test/alpha-5"
+       },
+       {
+        "name": "Willow 6",
+        "url": "https://echo-meridian-7.example.test/willow-6"
+       },
+       {
+        "name": "Granite 7",
+        "url": "https://echo-meridian-7.example.test/granite-7",
+        "tags": [
+         "build",
+         "ops"
+        ],
+        "note": "Check drift before the kestrel review"
+       },
+       {
+        "name": "Indigo 8",
+        "url": "https://echo-meridian-7.example.test/indigo-8"
+       }
+      ]
+     },
+     {
+      "name": "Lantern Keystone 12",
+      "url": "https://echo-meridian-7.example.test/lantern-keystone-12",
+      "tags": [
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Keystone 1",
+        "url": "https://echo-meridian-7.example.test/keystone-1"
+       },
+       {
+        "name": "Meridian 2",
+        "url": "https://echo-meridian-7.example.test/meridian-2",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Jasper 3",
+        "url": "https://echo-meridian-7.example.test/jasper-3"
+       },
+       {
+        "name": "Cobalt 4",
+        "url": "https://echo-meridian-7.example.test/cobalt-4",
+        "note": "Check beacon before the mosaic review"
+       },
+       {
+        "name": "Vertex 5",
+        "url": "https://echo-meridian-7.example.test/vertex-5"
+       },
+       {
+        "name": "Yarrow 6",
+        "url": "https://echo-meridian-7.example.test/yarrow-6"
+       },
+       {
+        "name": "Harbor 7",
+        "url": "https://echo-meridian-7.example.test/harbor-7",
+        "tags": [
+         "lab",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Sierra 8",
+        "url": "https://echo-meridian-7.example.test/sierra-8"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "fjord-keystone-8",
+    "name": "Fjord Keystone 8",
+    "description": "Generated sun 8",
+    "color": "#5fe567",
+    "links": [
+     {
+      "name": "Lantern Xenon 1",
+      "url": "https://fjord-keystone-8.example.test/lantern-xenon-1",
+      "moons": [
+       {
+        "name": "Raven 1",
+        "url": "https://fjord-keystone-8.example.test/raven-1"
+       },
+       {
+        "name": "Indigo 2",
+        "url": "https://fjord-keystone-8.example.test/indigo-2",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Indigo 3",
+        "url": "https://fjord-keystone-8.example.test/indigo-3"
+       },
+       {
+        "name": "Fjord 4",
+        "url": "https://fjord-keystone-8.example.test/fjord-4"
+       },
+       {
+        "name": "Relay 5",
+        "url": "https://fjord-keystone-8.example.test/relay-5",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Juniper 6",
+        "url": "https://fjord-keystone-8.example.test/juniper-6",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Keystone 7",
+        "url": "https://fjord-keystone-8.example.test/keystone-7",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://fjord-keystone-8.example.test/cobalt-8"
+       }
+      ]
+     },
+     {
+      "name": "Lantern Raven 2",
+      "url": "https://fjord-keystone-8.example.test/lantern-raven-2",
+      "tags": [
+       "lab"
+      ],
+      "note": "Check nimbus before the glacier review",
+      "moons": [
+       {
+        "name": "Granite 1",
+        "url": "https://fjord-keystone-8.example.test/granite-1"
+       },
+       {
+        "name": "Sierra 2",
+        "url": "https://fjord-keystone-8.example.test/sierra-2",
+        "note": "Check raven before the cobalt review"
+       },
+       {
+        "name": "Echo 3",
+        "url": "https://fjord-keystone-8.example.test/echo-3"
+       },
+       {
+        "name": "Juniper 4",
+        "url": "https://fjord-keystone-8.example.test/juniper-4"
+       },
+       {
+        "name": "Vertex 5",
+        "url": "https://fjord-keystone-8.example.test/vertex-5"
+       },
+       {
+        "name": "Nectar 6",
+        "url": "https://fjord-keystone-8.example.test/nectar-6"
+       },
+       {
+        "name": "Yarrow 7",
+        "url": "https://fjord-keystone-8.example.test/yarrow-7"
+       },
+       {
+        "name": "Xenon 8",
+        "url": "https://fjord-keystone-8.example.test/xenon-8",
+        "tags": [
+         "metrics"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Vertex Quill 3",
+      "url": "https://fjord-keystone-8.example.test/vertex-quill-3",
+      "note": "Check nimbus before the delta review",
+      "moons": [
+       {
+        "name": "Xenon 1",
+        "url": "https://fjord-keystone-8.example.test/xenon-1",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Vertex 2",
+        "url": "https://fjord-keystone-8.example.test/vertex-2",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Falcon 3",
+        "url": "https://fjord-keystone-8.example.test/falcon-3",
+        "note": "Check pioneer before the prism review"
+       },
+       {
+        "name": "Orbit 4",
+        "url": "https://fjord-keystone-8.example.test/orbit-4"
+       },
+       {
+        "name": "Prism 5",
+        "url": "https://fjord-keystone-8.example.test/prism-5"
+       },
+       {
+        "name": "Zephyr 6",
+        "url": "https://fjord-keystone-8.example.test/zephyr-6",
+        "note": "Check echo before the beacon review"
+       },
+       {
+        "name": "Horizon 7",
+        "url": "https://fjord-keystone-8.example.test/horizon-7"
+       },
+       {
+        "name": "Nimbus 8",
+        "url": "https://fjord-keystone-8.example.test/nimbus-8",
+        "tags": [
+         "team"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Xenon Zephyr 4",
+      "url": "https://fjord-keystone-8.example.test/xenon-zephyr-4",
+      "tags": [
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Sierra 1",
+        "url": "https://fjord-keystone-8.example.test/sierra-1",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Jasper 2",
+        "url": "https://fjord-keystone-8.example.test/jasper-2"
+       },
+       {
+        "name": "Yarrow 3",
+        "url": "https://fjord-keystone-8.example.test/yarrow-3",
+        "note": "Check granite before the echo review"
+       },
+       {
+        "name": "Island 4",
+        "url": "https://fjord-keystone-8.example.test/island-4"
+       },
+       {
+        "name": "Cobalt 5",
+        "url": "https://fjord-keystone-8.example.test/cobalt-5"
+       },
+       {
+        "name": "Nectar 6",
+        "url": "https://fjord-keystone-8.example.test/nectar-6",
+        "tags": [
+         "review",
+         "team"
+        ]
+       },
+       {
+        "name": "Prism 7",
+        "url": "https://fjord-keystone-8.example.test/prism-7",
+        "tags": [
+         "lab"
+        ]
+       },
+       {
+        "name": "Mosaic 8",
+        "url": "https://fjord-keystone-8.example.test/mosaic-8"
+       }
+      ]
+     },
+     {
+      "name": "Nectar Meridian 5",
+      "url": "https://fjord-keystone-8.example.test/nectar-meridian-5",
+      "moons": [
+       {
+        "name": "Yarrow 1",
+        "url": "https://fjord-keystone-8.example.test/yarrow-1"
+       },
+       {
+        "name": "Delta 2",
+        "url": "https://fjord-keystone-8.example.test/delta-2",
+        "note": "Check ember before the cinder review"
+       },
+       {
+        "name": "Lantern 3",
+        "url": "https://fjord-keystone-8.example.test/lantern-3",
+        "note": "Check indigo before the drift review"
+       },
+       {
+        "name": "Fjord 4",
+        "url": "https://fjord-keystone-8.example.test/fjord-4"
+       },
+       {
+        "name": "Jasper 5",
+        "url": "https://fjord-keystone-8.example.test/jasper-5",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       },
+       {
+        "name": "Quartz 6",
+        "url": "https://fjord-keystone-8.example.test/quartz-6",
+        "note": "Check raven before the nimbus review"
+       },
+       {
+        "name": "Sierra 7",
+        "url": "https://fjord-keystone-8.example.test/sierra-7"
+       },
+       {
+        "name": "Nectar 8",
+        "url": "https://fjord-keystone-8.example.test/nectar-8"
+       }
+      ]
+     },
+     {
+      "name": "Nectar Umber 6",
+      "url": "https://fjord-keystone-8.example.test/nectar-umber-6",
+      "moons": [
+       {
+        "name": "Quartz 1",
+        "url": "https://fjord-keystone-8.example.test/quartz-1"
+       },
+       {
+        "name": "Cobalt 2",
+        "url": "https://fjord-keystone-8.example.test/cobalt-2"
+       },
+       {
+        "name": "Juniper 3",
+        "url": "https://fjord-keystone-8.example.test/juniper-3"
+       },
+       {
+        "name": "Glacier 4",
+        "url": "https://fjord-keystone-8.example.test/glacier-4"
+       },
+       {
+        "name": "Indigo 5",
+        "url": "https://fjord-keystone-8.example.test/indigo-5",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       },
+       {
+        "name": "Lumen 6",
+        "url": "https://fjord-keystone-8.example.test/lumen-6"
+       },
+       {
+        "name": "Yarrow 7",
+        "url": "https://fjord-keystone-8.example.test/yarrow-7"
+       },
+       {
+        "name": "Umber 8",
+        "url": "https://fjord-keystone-8.example.test/umber-8"
+       }
+      ]
+     },
+     {
+      "name": "Ember Nimbus 7",
+      "url": "https://fjord-keystone-8.example.test/ember-nimbus-7",
+      "moons": [
+       {
+        "name": "Tundra 1",
+        "url": "https://fjord-keystone-8.example.test/tundra-1"
+       },
+       {
+        "name": "Island 2",
+        "url": "https://fjord-keystone-8.example.test/island-2"
+       },
+       {
+        "name": "Drift 3",
+        "url": "https://fjord-keystone-8.example.test/drift-3"
+       },
+       {
+        "name": "Delta 4",
+        "url": "https://fjord-keystone-8.example.test/delta-4",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       },
+       {
+        "name": "Willow 5",
+        "url": "https://fjord-keystone-8.example.test/willow-5"
+       },
+       {
+        "name": "Willow 6",
+        "url": "https://fjord-keystone-8.example.test/willow-6",
+        "tags": [
+         "docs"
+        ],
+        "note": "Check beacon before the quill review"
+       },
+       {
+        "name": "Raven 7",
+        "url": "https://fjord-keystone-8.example.test/raven-7",
+        "tags": [
+         "docs",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Bravo 8",
+        "url": "https://fjord-keystone-8.example.test/bravo-8",
+        "tags": [
+         "review"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Cobalt Drift 8",
+      "url": "https://fjord-keystone-8.example.test/cobalt-drift-8",
+      "note": "Check jasper before the mosaic review",
+      "moons": [
+       {
+        "name": "Pioneer 1",
+        "url": "https://fjord-keystone-8.example.test/pioneer-1",
+        "tags": [
+         "review"
+        ],
+        "note": "Check juniper before the alpha review"
+       },
+       {
+        "name": "Tundra 2",
+        "url": "https://fjord-keystone-8.example.test/tundra-2",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       },
+       {
+        "name": "Quill 3",
+        "url": "https://fjord-keystone-8.example.test/quill-3"
+       },
+       {
+        "name": "Fjord 4",
+        "url": "https://fjord-keystone-8.example.test/fjord-4",
+        "note": "Check lantern before the yarrow review"
+       },
+       {
+        "name": "Raven 5",
+        "url": "https://fjord-keystone-8.example.test/raven-5"
+       },
+       {
+        "name": "Glacier 6",
+        "url": "https://fjord-keystone-8.example.test/glacier-6",
+        "note": "Check raven before the xenon review"
+       },
+       {
+        "name": "Pioneer 7",
+        "url": "https://fjord-keystone-8.example.test/pioneer-7"
+       },
+       {
+        "name": "Granite 8",
+        "url": "https://fjord-keystone-8.example.test/granite-8",
+        "tags": [
+         "daily"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Tundra Tundra 9",
+      "url": "https://fjord-keystone-8.example.test/tundra-tundra-9",
+      "tags": [
+       "docs"
+      ],
+      "moons": [
+       {
+        "name": "Echo 1",
+        "url": "https://fjord-keystone-8.example.test/echo-1"
+       },
+       {
+        "name": "Xenon 2",
+        "url": "https://fjord-keystone-8.example.test/xenon-2"
+       },
+       {
+        "name": "Lantern 3",
+        "url": "https://fjord-keystone-8.example.test/lantern-3",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Cobalt 4",
+        "url": "https://fjord-keystone-8.example.test/cobalt-4",
+        "tags": [
+         "daily",
+         "team"
+        ]
+       },
+       {
+        "name": "Indigo 5",
+        "url": "https://fjord-keystone-8.example.test/indigo-5"
+       },
+       {
+        "name": "Vertex 6",
+        "url": "https://fjord-keystone-8.example.test/vertex-6"
+       },
+       {
+        "name": "Nectar 7",
+        "url": "https://fjord-keystone-8.example.test/nectar-7"
+       },
+       {
+        "name": "Keystone 8",
+        "url": "https://fjord-keystone-8.example.test/keystone-8"
+       }
+      ]
+     },
+     {
+      "name": "Quartz Delta 10",
+      "url": "https://fjord-keystone-8.example.test/quartz-delta-10",
+      "tags": [
+       "daily",
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Atlas 1",
+        "url": "https://fjord-keystone-8.example.test/atlas-1"
+       },
+       {
+        "name": "Falcon 2",
+        "url": "https://fjord-keystone-8.example.test/falcon-2"
+       },
+       {
+        "name": "Xenon 3",
+        "url": "https://fjord-keystone-8.example.test/xenon-3"
+       },
+       {
+        "name": "Bravo 4",
+        "url": "https://fjord-keystone-8.example.test/bravo-4",
+        "tags": [
+         "review",
+         "team"
+        ]
+       },
+       {
+        "name": "Falcon 5",
+        "url": "https://fjord-keystone-8.example.test/falcon-5"
+       },
+       {
+        "name": "Falcon 6",
+        "url": "https://fjord-keystone-8.example.test/falcon-6",
+        "tags": [
+         "build",
+         "review"
+        ]
+       },
+       {
+        "name": "Juniper 7",
+        "url": "https://fjord-keystone-8.example.test/juniper-7"
+       },
+       {
+        "name": "Island 8",
+        "url": "https://fjord-keystone-8.example.test/island-8"
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Falcon 11",
+      "url": "https://fjord-keystone-8.example.test/zephyr-falcon-11",
+      "moons": [
+       {
+        "name": "Quartz 1",
+        "url": "https://fjord-keystone-8.example.test/quartz-1"
+       },
+       {
+        "name": "Drift 2",
+        "url": "https://fjord-keystone-8.example.test/drift-2"
+       },
+       {
+        "name": "Juniper 3",
+        "url": "https://fjord-keystone-8.example.test/juniper-3",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Raven 4",
+        "url": "https://fjord-keystone-8.example.test/raven-4"
+       },
+       {
+        "name": "Island 5",
+        "url": "https://fjord-keystone-8.example.test/island-5"
+       },
+       {
+        "name": "Prism 6",
+        "url": "https://fjord-keystone-8.example.test/prism-6",
+        "note": "Check quartz before the glacier review"
+       },
+       {
+        "name": "Atlas 7",
+        "url": "https://fjord-keystone-8.example.test/atlas-7"
+       },
+       {
+        "name": "Lumen 8",
+        "url": "https://fjord-keystone-8.example.test/lumen-8",
+        "tags": [
+         "lab"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Drift Raven 12",
+      "url": "https://fjord-keystone-8.example.test/drift-raven-12",
+      "tags": [
+       "build"
+      ],
+      "moons": [
+       {
+        "name": "Fjord 1",
+        "url": "https://fjord-keystone-8.example.test/fjord-1",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Nectar 2",
+        "url": "https://fjord-keystone-8.example.test/nectar-2",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Lantern 3",
+        "url": "https://fjord-keystone-8.example.test/lantern-3",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Quill 4",
+        "url": "https://fjord-keystone-8.example.test/quill-4",
+        "tags": [
+         "build",
+         "metrics"
+        ],
+        "note": "Check prism before the yarrow review"
+       },
+       {
+        "name": "Quartz 5",
+        "url": "https://fjord-keystone-8.example.test/quartz-5",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       },
+       {
+        "name": "Umber 6",
+        "url": "https://fjord-keystone-8.example.test/umber-6",
+        "note": "Check falcon before the nectar review"
+       },
+       {
+        "name": "Sierra 7",
+        "url": "https://fjord-keystone-8.example.test/sierra-7"
+       },
+       {
+        "name": "Fjord 8",
+        "url": "https://fjord-keystone-8.example.test/fjord-8",
+        "tags": [
+         "ops"
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "harbor-nimbus-9",
+    "name": "Harbor Nimbus 9",
+    "description": "Generated sun 9",
+    "color": "#c50d6c",
+    "links": [
+     {
+      "name": "Ember Fjord 1",
+      "url": "https://harbor-nimbus-9.example.test/ember-fjord-1",
+      "moons": [
+       {
+        "name": "Mosaic 1",
+        "url": "https://harbor-nimbus-9.example.test/mosaic-1",
+        "tags": [
+         "metrics",
+         "team"
+        ]
+       },
+       {
+        "name": "Prism 2",
+        "url": "https://harbor-nimbus-9.example.test/prism-2",
+        "note": "Check atlas before the quill review"
+       },
+       {
+        "name": "Atlas 3",
+        "url": "https://harbor-nimbus-9.example.test/atlas-3",
+        "note": "Check lantern before the orbit review"
+       },
+       {
+        "name": "Sierra 4",
+        "url": "https://harbor-nimbus-9.example.test/sierra-4",
+        "note": "Check nimbus before the quartz review"
+       },
+       {
+        "name": "Relay 5",
+        "url": "https://harbor-nimbus-9.example.test/relay-5",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Umber 6",
+        "url": "https://harbor-nimbus-9.example.test/umber-6"
+       },
+       {
+        "name": "Relay 7",
+        "url": "https://harbor-nimbus-9.example.test/relay-7"
+       },
+       {
+        "name": "Kestrel 8",
+        "url": "https://harbor-nimbus-9.example.test/kestrel-8"
+       }
+      ]
+     },
+     {
+      "name": "Atlas Nimbus 2",
+      "url": "https://harbor-nimbus-9.example.test/atlas-nimbus-2",
+      "tags": [
+       "ops"
+      ],
+      "moons": [
+       {
+        "name": "Echo 1",
+        "url": "https://harbor-nimbus-9.example.test/echo-1"
+       },
+       {
+        "name": "Echo 2",
+        "url": "https://harbor-nimbus-9.example.test/echo-2",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Quill 3",
+        "url": "https://harbor-nimbus-9.example.test/quill-3"
+       },
+       {
+        "name": "Quartz 4",
+        "url": "https://harbor-nimbus-9.example.test/quartz-4"
+       },
+       {
+        "name": "Kestrel 5",
+        "url": "https://harbor-nimbus-9.example.test/kestrel-5"
+       },
+       {
+        "name": "Xenon 6",
+        "url": "https://harbor-nimbus-9.example.test/xenon-6"
+       },
+       {
+        "name": "Horizon 7",
+        "url": "https://harbor-nimbus-9.example.test/horizon-7",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Glacier 8",
+        "url": "https://harbor-nimbus-9.example.test/glacier-8",
+        "tags": [
+         "lab"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Umber Quartz 3",
+      "url": "https://harbor-nimbus-9.example.test/umber-quartz-3",
+      "moons": [
+       {
+        "name": "Bravo 1",
+        "url": "https://harbor-nimbus-9.example.test/bravo-1",
+        "note": "Check quill before the jasper review"
+       },
+       {
+        "name": "Lumen 2",
+        "url": "https://harbor-nimbus-9.example.test/lumen-2"
+       },
+       {
+        "name": "Prism 3",
+        "url": "https://harbor-nimbus-9.example.test/prism-3",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Atlas 4",
+        "url": "https://harbor-nimbus-9.example.test/atlas-4",
+        "note": "Check quartz before the onyx review"
+       },
+       {
+        "name": "Quartz 5",
+        "url": "https://harbor-nimbus-9.example.test/quartz-5"
+       },
+       {
+        "name": "Granite 6",
+        "url": "https://harbor-nimbus-9.example.test/granite-6"
+       },
+       {
+        "name": "Harbor 7",
+        "url": "https://harbor-nimbus-9.example.test/harbor-7"
+       },
+       {
+        "name": "Prism 8",
+        "url": "https://harbor-nimbus-9.example.test/prism-8",
+        "note": "Check raven before the nimbus review"
+       }
+      ]
+     },
+     {
+      "name": "Kestrel Sierra 4",
+      "url": "https://harbor-nimbus-9.example.test/kestrel-sierra-4",
+      "tags": [
+       "ops",
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Vertex 1",
+        "url": "https://harbor-nimbus-9.example.test/vertex-1",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Kestrel 2",
+        "url": "https://harbor-nimbus-9.example.test/kestrel-2"
+       },
+       {
+        "name": "Onyx 3",
+        "url": "https://harbor-nimbus-9.example.test/onyx-3"
+       },
+       {
+        "name": "Glacier 4",
+        "url": "https://harbor-nimbus-9.example.test/glacier-4"
+       },
+       {
+        "name": "Lumen 5",
+        "url": "https://harbor-nimbus-9.example.test/lumen-5",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Glacier 6",
+        "url": "https://harbor-nimbus-9.example.test/glacier-6",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Nimbus 7",
+        "url": "https://harbor-nimbus-9.example.test/nimbus-7",
+        "tags": [
+         "docs",
+         "lab"
+        ]
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://harbor-nimbus-9.example.test/cobalt-8"
+       }
+      ]
+     },
+     {
+      "name": "Alpha Island 5",
+      "url": "https://harbor-nimbus-9.example.test/alpha-island-5",
+      "moons": [
+       {
+        "name": "Cinder 1",
+        "url": "https://harbor-nimbus-9.example.test/cinder-1"
+       },
+       {
+        "name": "Tundra 2",
+        "url": "https://harbor-nimbus-9.example.test/tundra-2"
+       },
+       {
+        "name": "Island 3",
+        "url": "https://harbor-nimbus-9.example.test/island-3"
+       },
+       {
+        "name": "Bravo 4",
+        "url": "https://harbor-nimbus-9.example.test/bravo-4"
+       },
+       {
+        "name": "Beacon 5",
+        "url": "https://harbor-nimbus-9.example.test/beacon-5"
+       },
+       {
+        "name": "Tundra 6",
+        "url": "https://harbor-nimbus-9.example.test/tundra-6",
+        "tags": [
+         "ops"
+        ],
+        "note": "Check beacon before the xenon review"
+       },
+       {
+        "name": "Orbit 7",
+        "url": "https://harbor-nimbus-9.example.test/orbit-7",
+        "tags": [
+         "daily",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Horizon 8",
+        "url": "https://harbor-nimbus-9.example.test/horizon-8"
+       }
+      ]
+     },
+     {
+      "name": "Falcon Echo 6",
+      "url": "https://harbor-nimbus-9.example.test/falcon-echo-6",
+      "moons": [
+       {
+        "name": "Raven 1",
+        "url": "https://harbor-nimbus-9.example.test/raven-1"
+       },
+       {
+        "name": "Summit 2",
+        "url": "https://harbor-nimbus-9.example.test/summit-2"
+       },
+       {
+        "name": "Xenon 3",
+        "url": "https://harbor-nimbus-9.example.test/xenon-3",
+        "tags": [
+         "docs",
+         "lab"
+        ]
+       },
+       {
+        "name": "Willow 4",
+        "url": "https://harbor-nimbus-9.example.test/willow-4",
+        "tags": [
+         "docs",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Umber 5",
+        "url": "https://harbor-nimbus-9.example.test/umber-5",
+        "note": "Check vertex before the delta review"
+       },
+       {
+        "name": "Prism 6",
+        "url": "https://harbor-nimbus-9.example.test/prism-6",
+        "note": "Check falcon before the onyx review"
+       },
+       {
+        "name": "Nimbus 7",
+        "url": "https://harbor-nimbus-9.example.test/nimbus-7",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Nectar 8",
+        "url": "https://harbor-nimbus-9.example.test/nectar-8"
+       }
+      ]
+     },
+     {
+      "name": "Keystone Mosaic 7",
+      "url": "https://harbor-nimbus-9.example.test/keystone-mosaic-7",
+      "note": "Check ember before the beacon review",
+      "moons": [
+       {
+        "name": "Summit 1",
+        "url": "https://harbor-nimbus-9.example.test/summit-1"
+       },
+       {
+        "name": "Alpha 2",
+        "url": "https://harbor-nimbus-9.example.test/alpha-2"
+       },
+       {
+        "name": "Quartz 3",
+        "url": "https://harbor-nimbus-9.example.test/quartz-3",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       },
+       {
+        "name": "Orbit 4",
+        "url": "https://harbor-nimbus-9.example.test/orbit-4"
+       },
+       {
+        "name": "Vertex 5",
+        "url": "https://harbor-nimbus-9.example.test/vertex-5",
+        "tags": [
+         "metrics",
+         "ops"
+        ]
+       },
+       {
+        "name": "Granite 6",
+        "url": "https://harbor-nimbus-9.example.test/granite-6",
+        "tags": [
+         "review"
+        ],
+        "note": "Check pioneer before the jasper review"
+       },
+       {
+        "name": "Orbit 7",
+        "url": "https://harbor-nimbus-9.example.test/orbit-7",
+        "note": "Check echo before the horizon review"
+       },
+       {
+        "name": "Pioneer 8",
+        "url": "https://harbor-nimbus-9.example.test/pioneer-8"
+       }
+      ]
+     },
+     {
+      "name": "Yarrow Prism 8",
+      "url": "https://harbor-nimbus-9.example.test/yarrow-prism-8",
+      "moons": [
+       {
+        "name": "Zephyr 1",
+        "url": "https://harbor-nimbus-9.example.test/zephyr-1"
+       },
+       {
+        "name": "Orbit 2",
+        "url": "https://harbor-nimbus-9.example.test/orbit-2"
+       },
+       {
+        "name": "Island 3",
+        "url": "https://harbor-nimbus-9.example.test/island-3"
+       },
+       {
+        "name": "Echo 4",
+        "url": "https://harbor-nimbus-9.example.test/echo-4"
+       },
+       {
+        "name": "Ember 5",
+        "url": "https://harbor-nimbus-9.example.test/ember-5",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       },
+       {
+        "name": "Cinder 6",
+        "url": "https://harbor-nimbus-9.example.test/cinder-6"
+       },
+       {
+        "name": "Keystone 7",
+        "url": "https://harbor-nimbus-9.example.test/keystone-7",
+        "tags": [
+         "lab",
+         "ops"
+        ]
+       },
+       {
+        "name": "Glacier 8",
+        "url": "https://harbor-nimbus-9.example.test/glacier-8"
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Relay 9",
+      "url": "https://harbor-nimbus-9.example.test/zephyr-relay-9",
+      "moons": [
+       {
+        "name": "Yarrow 1",
+        "url": "https://harbor-nimbus-9.example.test/yarrow-1"
+       },
+       {
+        "name": "Quartz 2",
+        "url": "https://harbor-nimbus-9.example.test/quartz-2",
+        "note": "Check kestrel before the nimbus review"
+       },
+       {
+        "name": "Keystone 3",
+        "url": "https://harbor-nimbus-9.example.test/keystone-3"
+       },
+       {
+        "name": "Quill 4",
+        "url": "https://harbor-nimbus-9.example.test/quill-4"
+       },
+       {
+        "name": "Prism 5",
+        "url": "https://harbor-nimbus-9.example.test/prism-5"
+       },
+       {
+        "name": "Xenon 6",
+        "url": "https://harbor-nimbus-9.example.test/xenon-6"
+       },
+       {
+        "name": "Quartz 7",
+        "url": "https://harbor-nimbus-9.example.test/quartz-7",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Lantern 8",
+        "url": "https://harbor-nimbus-9.example.test/lantern-8",
+        "tags": [
+         "daily"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Quartz Lantern 10",
+      "url": "https://harbor-nimbus-9.example.test/quartz-lantern-10",
+      "moons": [
+       {
+        "name": "Harbor 1",
+        "url": "https://harbor-nimbus-9.example.test/harbor-1"
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://harbor-nimbus-9.example.test/willow-2"
+       },
+       {
+        "name": "Quill 3",
+        "url": "https://harbor-nimbus-9.example.test/quill-3",
+        "tags": [
+         "daily",
+         "docs"
+        ],
+        "note": "Check nimbus before the yarrow review"
+       },
+       {
+        "name": "Kestrel 4",
+        "url": "https://harbor-nimbus-9.example.test/kestrel-4"
+       },
+       {
+        "name": "Cobalt 5",
+        "url": "https://harbor-nimbus-9.example.test/cobalt-5"
+       },
+       {
+        "name": "Ember 6",
+        "url": "https://harbor-nimbus-9.example.test/ember-6"
+       },
+       {
+        "name": "Horizon 7",
+        "url": "https://harbor-nimbus-9.example.test/horizon-7"
+       },
+       {
+        "name": "Falcon 8",
+        "url": "https://harbor-nimbus-9.example.test/falcon-8"
+       }
+      ]
+     },
+     {
+      "name": "Meridian Prism 11",
+      "url": "https://harbor-nimbus-9.example.test/meridian-prism-11",
+      "moons": [
+       {
+        "name": "Meridian 1",
+        "url": "https://harbor-nimbus-9.example.test/meridian-1"
+       },
+       {
+        "name": "Beacon 2",
+        "url": "https://harbor-nimbus-9.example.test/beacon-2",
+        "tags": [
+         "metrics",
+         "ops"
+        ],
+        "note": "Check umber before the tundra review"
+       },
+       {
+        "name": "Echo 3",
+        "url": "https://harbor-nimbus-9.example.test/echo-3"
+       },
+       {
+        "name": "Indigo 4",
+        "url": "https://harbor-nimbus-9.example.test/indigo-4"
+       },
+       {
+        "name": "Tundra 5",
+        "url": "https://harbor-nimbus-9.example.test/tundra-5"
+       },
+       {
+        "name": "Jasper 6",
+        "url": "https://harbor-nimbus-9.example.test/jasper-6",
+        "note": "Check indigo before the mosaic review"
+       },
+       {
+        "name": "Glacier 7",
+        "url": "https://harbor-nimbus-9.example.test/glacier-7"
+       },
+       {
+        "name": "Island 8",
+        "url": "https://harbor-nimbus-9.example.test/island-8"
+       }
+      ]
+     },
+     {
+      "name": "Willow Falcon 12",
+      "url": "https://harbor-nimbus-9.example.test/willow-falcon-12",
+      "tags": [
+       "build"
+      ],
+      "note": "Check umber before the keystone review",
+      "moons": [
+       {
+        "name": "Quartz 1",
+        "url": "https://harbor-nimbus-9.example.test/quartz-1"
+       },
+       {
+        "name": "Nectar 2",
+        "url": "https://harbor-nimbus-9.example.test/nectar-2",
+        "tags": [
+         "review",
+         "team"
+        ],
+        "note": "Check atlas before the quill review"
+       },
+       {
+        "name": "Xenon 3",
+        "url": "https://harbor-nimbus-9.example.test/xenon-3",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Pioneer 4",
+        "url": "https://harbor-nimbus-9.example.test/pioneer-4"
+       },
+       {
+        "name": "Juniper 5",
+        "url": "https://harbor-nimbus-9.example.test/juniper-5"
+       },
+       {
+        "name": "Sierra 6",
+        "url": "https://harbor-nimbus-9.example.test/sierra-6"
+       },
+       {
+        "name": "Relay 7",
+        "url": "https://harbor-nimbus-9.example.test/relay-7"
+       },
+       {
+        "name": "Raven 8",
+        "url": "https://harbor-nimbus-9.example.test/raven-8"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "horizon-sierra-10",
+    "name": "Horizon Sierra 10",
+    "description": "Generated sun 10",
+    "color": "#9b42c9",
+    "links": [
+     {
+      "name": "Falcon Juniper 1",
+      "url": "https://horizon-sierra-10.example.test/falcon-juniper-1",
+      "tags": [
+       "metrics"
+      ],
+      "moons": [
+       {
+        "name": "Fjord 1",
+        "url": "https://horizon-sierra-10.example.test/fjord-1"
+       },
+       {
+        "name": "Falcon 2",
+        "url": "https://horizon-sierra-10.example.test/falcon-2"
+       },
+       {
+        "name": "Quill 3",
+        "url": "https://horizon-sierra-10.example.test/quill-3",
+        "note": "Check yarrow before the quartz review"
+       },
+       {
+        "name": "Mosaic 4",
+        "url": "https://horizon-sierra-10.example.test/mosaic-4",
+        "tags": [
+         "ops",
+         "review"
+        ]
+       },
+       {
+        "name": "Atlas 5",
+        "url": "https://horizon-sierra-10.example.test/atlas-5",
+        "tags": [
+         "build",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Meridian 6",
+        "url": "https://horizon-sierra-10.example.test/meridian-6"
+       },
+       {
+        "name": "Nectar 7",
+        "url": "https://horizon-sierra-10.example.test/nectar-7",
+        "tags": [
+         "daily",
+         "docs"
+        ]
+       },
+       {
+        "name": "Onyx 8",
+        "url": "https://horizon-sierra-10.example.test/onyx-8"
+       }
+      ]
+     },
+     {
+      "name": "Juniper Meridian 2",
+      "url": "https://horizon-sierra-10.example.test/juniper-meridian-2",
+      "moons": [
+       {
+        "name": "Umber 1",
+        "url": "https://horizon-sierra-10.example.test/umber-1",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Yarrow 2",
+        "url": "https://horizon-sierra-10.example.test/yarrow-2"
+       },
+       {
+        "name": "Juniper 3",
+        "url": "https://horizon-sierra-10.example.test/juniper-3"
+       },
+       {
+        "name": "Lantern 4",
+        "url": "https://horizon-sierra-10.example.test/lantern-4"
+       },
+       {
+        "name": "Relay 5",
+        "url": "https://horizon-sierra-10.example.test/relay-5"
+       },
+       {
+        "name": "Pioneer 6",
+        "url": "https://horizon-sierra-10.example.test/pioneer-6"
+       },
+       {
+        "name": "Kestrel 7",
+        "url": "https://horizon-sierra-10.example.test/kestrel-7"
+       },
+       {
+        "name": "Alpha 8",
+        "url": "https://horizon-sierra-10.example.test/alpha-8",
+        "note": "Check kestrel before the cobalt review"
+       }
+      ]
+     },
+     {
+      "name": "Cobalt Relay 3",
+      "url": "https://horizon-sierra-10.example.test/cobalt-relay-3",
+      "tags": [
+       "docs",
+       "ops"
+      ],
+      "moons": [
+       {
+        "name": "Horizon 1",
+        "url": "https://horizon-sierra-10.example.test/horizon-1"
+       },
+       {
+        "name": "Kestrel 2",
+        "url": "https://horizon-sierra-10.example.test/kestrel-2",
+        "tags": [
+         "build"
+        ]
+       },
+       {
+        "name": "Glacier 3",
+        "url": "https://horizon-sierra-10.example.test/glacier-3"
+       },
+       {
+        "name": "Pioneer 4",
+        "url": "https://horizon-sierra-10.example.test/pioneer-4",
+        "note": "Check drift before the ember review"
+       },
+       {
+        "name": "Bravo 5",
+        "url": "https://horizon-sierra-10.example.test/bravo-5"
+       },
+       {
+        "name": "Cobalt 6",
+        "url": "https://horizon-sierra-10.example.test/cobalt-6"
+       },
+       {
+        "name": "Harbor 7",
+        "url": "https://horizon-sierra-10.example.test/harbor-7"
+       },
+       {
+        "name": "Summit 8",
+        "url": "https://horizon-sierra-10.example.test/summit-8"
+       }
+      ]
+     },
+     {
+      "name": "Atlas Horizon 4",
+      "url": "https://horizon-sierra-10.example.test/atlas-horizon-4",
+      "moons": [
+       {
+        "name": "Quill 1",
+        "url": "https://horizon-sierra-10.example.test/quill-1",
+        "note": "Check alpha before the relay review"
+       },
+       {
+        "name": "Atlas 2",
+        "url": "https://horizon-sierra-10.example.test/atlas-2",
+        "tags": [
+         "ops",
+         "team"
+        ],
+        "note": "Check bravo before the atlas review"
+       },
+       {
+        "name": "Island 3",
+        "url": "https://horizon-sierra-10.example.test/island-3"
+       },
+       {
+        "name": "Onyx 4",
+        "url": "https://horizon-sierra-10.example.test/onyx-4"
+       },
+       {
+        "name": "Quartz 5",
+        "url": "https://horizon-sierra-10.example.test/quartz-5"
+       },
+       {
+        "name": "Alpha 6",
+        "url": "https://horizon-sierra-10.example.test/alpha-6"
+       },
+       {
+        "name": "Falcon 7",
+        "url": "https://horizon-sierra-10.example.test/falcon-7",
+        "tags": [
+         "team"
+        ],
+        "note": "Check ember before the nimbus review"
+       },
+       {
+        "name": "Atlas 8",
+        "url": "https://horizon-sierra-10.example.test/atlas-8",
+        "note": "Check mosaic before the onyx review"
+       }
+      ]
+     },
+     {
+      "name": "Indigo Fjord 5",
+      "url": "https://horizon-sierra-10.example.test/indigo-fjord-5",
+      "moons": [
+       {
+        "name": "Meridian 1",
+        "url": "https://horizon-sierra-10.example.test/meridian-1",
+        "tags": [
+         "build",
+         "team"
+        ]
+       },
+       {
+        "name": "Onyx 2",
+        "url": "https://horizon-sierra-10.example.test/onyx-2",
+        "tags": [
+         "lab",
+         "ops"
+        ]
+       },
+       {
+        "name": "Island 3",
+        "url": "https://horizon-sierra-10.example.test/island-3"
+       },
+       {
+        "name": "Jasper 4",
+        "url": "https://horizon-sierra-10.example.test/jasper-4"
+       },
+       {
+        "name": "Jasper 5",
+        "url": "https://horizon-sierra-10.example.test/jasper-5",
+        "tags": [
+         "build"
+        ],
+        "note": "Check raven before the glacier review"
+       },
+       {
+        "name": "Nimbus 6",
+        "url": "https://horizon-sierra-10.example.test/nimbus-6"
+       },
+       {
+        "name": "Tundra 7",
+        "url": "https://horizon-sierra-10.example.test/tundra-7"
+       },
+       {
+        "name": "Horizon 8",
+        "url": "https://horizon-sierra-10.example.test/horizon-8"
+       }
+      ]
+     },
+     {
+      "name": "Indigo Tundra 6",
+      "url": "https://horizon-sierra-10.example.test/indigo-tundra-6",
+      "tags": [
+       "metrics",
+       "review"
+      ],
+      "moons": [
+       {
+        "name": "Cinder 1",
+        "url": "https://horizon-sierra-10.example.test/cinder-1"
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://horizon-sierra-10.example.test/willow-2",
+        "tags": [
+         "build",
+         "team"
+        ]
+       },
+       {
+        "name": "Quartz 3",
+        "url": "https://horizon-sierra-10.example.test/quartz-3",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Mosaic 4",
+        "url": "https://horizon-sierra-10.example.test/mosaic-4"
+       },
+       {
+        "name": "Summit 5",
+        "url": "https://horizon-sierra-10.example.test/summit-5"
+       },
+       {
+        "name": "Orbit 6",
+        "url": "https://horizon-sierra-10.example.test/orbit-6",
+        "note": "Check meridian before the lantern review"
+       },
+       {
+        "name": "Fjord 7",
+        "url": "https://horizon-sierra-10.example.test/fjord-7",
+        "note": "Check bravo before the orbit review"
+       },
+       {
+        "name": "Umber 8",
+        "url": "https://horizon-sierra-10.example.test/umber-8",
+        "note": "Check orbit before the ember review"
+       }
+      ]
+     },
+     {
+      "name": "Tundra Granite 7",
+      "url": "https://horizon-sierra-10.example.test/tundra-granite-7",
+      "moons": [
+       {
+        "name": "Quill 1",
+        "url": "https://horizon-sierra-10.example.test/quill-1"
+       },
+       {
+        "name": "Falcon 2",
+        "url": "https://horizon-sierra-10.example.test/falcon-2",
+        "tags": [
+         "ops",
+         "team"
+        ]
+       },
+       {
+        "name": "Quill 3",
+        "url": "https://horizon-sierra-10.example.test/quill-3"
+       },
+       {
+        "name": "Nectar 4",
+        "url": "https://horizon-sierra-10.example.test/nectar-4",
+        "note": "Check island before the nimbus review"
+       },
+       {
+        "name": "Drift 5",
+        "url": "https://horizon-sierra-10.example.test/drift-5",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Orbit 6",
+        "url": "https://horizon-sierra-10.example.test/orbit-6"
+       },
+       {
+        "name": "Jasper 7",
+        "url": "https://horizon-sierra-10.example.test/jasper-7"
+       },
+       {
+        "name": "Orbit 8",
+        "url": "https://horizon-sierra-10.example.test/orbit-8"
+       }
+      ]
+     },
+     {
+      "name": "Orbit Nectar 8",
+      "url": "https://horizon-sierra-10.example.test/orbit-nectar-8",
+      "moons": [
+       {
+        "name": "Summit 1",
+        "url": "https://horizon-sierra-10.example.test/summit-1"
+       },
+       {
+        "name": "Relay 2",
+        "url": "https://horizon-sierra-10.example.test/relay-2",
+        "tags": [
+         "metrics"
+        ]
+       },
+       {
+        "name": "Pioneer 3",
+        "url": "https://horizon-sierra-10.example.test/pioneer-3"
+       },
+       {
+        "name": "Prism 4",
+        "url": "https://horizon-sierra-10.example.test/prism-4",
+        "tags": [
+         "build",
+         "team"
+        ],
+        "note": "Check mosaic before the yarrow review"
+       },
+       {
+        "name": "Quartz 5",
+        "url": "https://horizon-sierra-10.example.test/quartz-5"
+       },
+       {
+        "name": "Relay 6",
+        "url": "https://horizon-sierra-10.example.test/relay-6"
+       },
+       {
+        "name": "Willow 7",
+        "url": "https://horizon-sierra-10.example.test/willow-7",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Echo 8",
+        "url": "https://horizon-sierra-10.example.test/echo-8"
+       }
+      ]
+     },
+     {
+      "name": "Horizon Willow 9",
+      "url": "https://horizon-sierra-10.example.test/horizon-willow-9",
+      "moons": [
+       {
+        "name": "Onyx 1",
+        "url": "https://horizon-sierra-10.example.test/onyx-1",
+        "tags": [
+         "daily",
+         "lab"
+        ]
+       },
+       {
+        "name": "Island 2",
+        "url": "https://horizon-sierra-10.example.test/island-2"
+       },
+       {
+        "name": "Horizon 3",
+        "url": "https://horizon-sierra-10.example.test/horizon-3"
+       },
+       {
+        "name": "Kestrel 4",
+        "url": "https://horizon-sierra-10.example.test/kestrel-4"
+       },
+       {
+        "name": "Pioneer 5",
+        "url": "https://horizon-sierra-10.example.test/pioneer-5"
+       },
+       {
+        "name": "Xenon 6",
+        "url": "https://horizon-sierra-10.example.test/xenon-6"
+       },
+       {
+        "name": "Nimbus 7",
+        "url": "https://horizon-sierra-10.example.test/nimbus-7",
+        "tags": [
+         "lab",
+         "team"
+        ]
+       },
+       {
+        "name": "Cobalt 8",
+        "url": "https://horizon-sierra-10.example.test/cobalt-8",
+        "tags": [
+         "ops"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Fjord Fjord 10",
+      "url": "https://horizon-sierra-10.example.test/fjord-fjord-10",
+      "moons": [
+       {
+        "name": "Cinder 1",
+        "url": "https://horizon-sierra-10.example.test/cinder-1"
+       },
+       {
+        "name": "Xenon 2",
+        "url": "https://horizon-sierra-10.example.test/xenon-2"
+       },
+       {
+        "name": "Sierra 3",
+        "url": "https://horizon-sierra-10.example.test/sierra-3",
+        "tags": [
+         "lab",
+         "metrics"
+        ]
+       },
+       {
+        "name": "Falcon 4",
+        "url": "https://horizon-sierra-10.example.test/falcon-4"
+       },
+       {
+        "name": "Fjord 5",
+        "url": "https://horizon-sierra-10.example.test/fjord-5",
+        "note": "Check indigo before the xenon review"
+       },
+       {
+        "name": "Delta 6",
+        "url": "https://horizon-sierra-10.example.test/delta-6"
+       },
+       {
+        "name": "Lantern 7",
+        "url": "https://horizon-sierra-10.example.test/lantern-7",
+        "tags": [
+         "lab"
+        ],
+        "note": "Check echo before the yarrow review"
+       },
+       {
+        "name": "Island 8",
+        "url": "https://horizon-sierra-10.example.test/island-8"
+       }
+      ]
+     },
+     {
+      "name": "Yarrow Vertex 11",
+      "url": "https://horizon-sierra-10.example.test/yarrow-vertex-11",
+      "moons": [
+       {
+        "name": "Delta 1",
+        "url": "https://horizon-sierra-10.example.test/delta-1",
+        "tags": [
+         "build",
+         "review"
+        ]
+       },
+       {
+        "name": "Mosaic 2",
+        "url": "https://horizon-sierra-10.example.test/mosaic-2"
+       },
+       {
+        "name": "Harbor 3",
+        "url": "https://horizon-sierra-10.example.test/harbor-3"
+       },
+       {
+        "name": "Ember 4",
+        "url": "https://horizon-sierra-10.example.test/ember-4"
+       },
+       {
+        "name": "Lantern 5",
+        "url": "https://horizon-sierra-10.example.test/lantern-5",
+        "tags": [
+         "build",
+         "daily"
+        ]
+       },
+       {
+        "name": "Nimbus 6",
+        "url": "https://horizon-sierra-10.example.test/nimbus-6",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       },
+       {
+        "name": "Xenon 7",
+        "url": "https://horizon-sierra-10.example.test/xenon-7"
+       },
+       {
+        "name": "Harbor 8",
+        "url": "https://horizon-sierra-10.example.test/harbor-8",
+        "tags": [
+         "docs",
+         "metrics"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Meridian Pioneer 12",
+      "url": "https://horizon-sierra-10.example.test/meridian-pioneer-12",
+      "moons": [
+       {
+        "name": "Falcon 1",
+        "url": "https://horizon-sierra-10.example.test/falcon-1"
+       },
+       {
+        "name": "Kestrel 2",
+        "url": "https://horizon-sierra-10.example.test/kestrel-2",
+        "tags": [
+         "ops"
+        ]
+       },
+       {
+        "name": "Vertex 3",
+        "url": "https://horizon-sierra-10.example.test/vertex-3",
+        "note": "Check cinder before the summit review"
+       },
+       {
+        "name": "Bravo 4",
+        "url": "https://horizon-sierra-10.example.test/bravo-4",
+        "note": "Check juniper before the echo review"
+       },
+       {
+        "name": "Lumen 5",
+        "url": "https://horizon-sierra-10.example.test/lumen-5"
+       },
+       {
+        "name": "Umber 6",
+        "url": "https://horizon-sierra-10.example.test/umber-6",
+        "note": "Check lantern before the fjord review"
+       },
+       {
+        "name": "Nimbus 7",
+        "url": "https://horizon-sierra-10.example.test/nimbus-7",
+        "tags": [
+         "docs"
+        ]
+       },
+       {
+        "name": "Bravo 8",
+        "url": "https://horizon-sierra-10.example.test/bravo-8",
+        "tags": [
+         "daily",
+         "ops"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "team": {
+  "groups": [
+   {
+    "id": "team-fjord-zephyr-1",
+    "name": "Team Fjord Zephyr 1",
+    "description": "Generated sun 1",
+    "color": "#6ee222",
+    "links": [
+     {
+      "name": "Xenon Beacon 1",
+      "url": "https://team-fjord-zephyr-1.example.test/xenon-beacon-1",
+      "moons": [
+       {
+        "name": "Raven 1",
+        "url": "https://team-fjord-zephyr-1.example.test/raven-1",
+        "note": "Check yarrow before the echo review"
+       },
+       {
+        "name": "Cinder 2",
+        "url": "https://team-fjord-zephyr-1.example.test/cinder-2"
+       }
+      ]
+     },
+     {
+      "name": "Zephyr Quartz 2",
+      "url": "https://team-fjord-zephyr-1.example.test/zephyr-quartz-2",
+      "tags": [
+       "daily"
+      ],
+      "moons": [
+       {
+        "name": "Mosaic 1",
+        "url": "https://team-fjord-zephyr-1.example.test/mosaic-1"
+       },
+       {
+        "name": "Beacon 2",
+        "url": "https://team-fjord-zephyr-1.example.test/beacon-2",
+        "note": "Check xenon before the atlas review"
+       }
+      ]
+     },
+     {
+      "name": "Prism Mosaic 3",
+      "url": "https://team-fjord-zephyr-1.example.test/prism-mosaic-3",
+      "moons": [
+       {
+        "name": "Granite 1",
+        "url": "https://team-fjord-zephyr-1.example.test/granite-1"
+       },
+       {
+        "name": "Drift 2",
+        "url": "https://team-fjord-zephyr-1.example.test/drift-2"
+       }
+      ]
+     },
+     {
+      "name": "Harbor Yarrow 4",
+      "url": "https://team-fjord-zephyr-1.example.test/harbor-yarrow-4",
+      "moons": [
+       {
+        "name": "Meridian 1",
+        "url": "https://team-fjord-zephyr-1.example.test/meridian-1"
+       },
+       {
+        "name": "Zephyr 2",
+        "url": "https://team-fjord-zephyr-1.example.test/zephyr-2"
+       }
+      ]
+     },
+     {
+      "name": "Echo Cobalt 5",
+      "url": "https://team-fjord-zephyr-1.example.test/echo-cobalt-5",
+      "moons": [
+       {
+        "name": "Lumen 1",
+        "url": "https://team-fjord-zephyr-1.example.test/lumen-1",
+        "note": "Check fjord before the kestrel review"
+       },
+       {
+        "name": "Horizon 2",
+        "url": "https://team-fjord-zephyr-1.example.test/horizon-2",
+        "tags": [
+         "lab",
+         "metrics"
+        ],
+        "note": "Check keystone before the mosaic review"
+       }
+      ]
+     },
+     {
+      "name": "Quill Fjord 6",
+      "url": "https://team-fjord-zephyr-1.example.test/quill-fjord-6",
+      "tags": [
+       "build",
+       "team"
+      ],
+      "moons": [
+       {
+        "name": "Echo 1",
+        "url": "https://team-fjord-zephyr-1.example.test/echo-1",
+        "tags": [
+         "build",
+         "daily"
+        ]
+       },
+       {
+        "name": "Kestrel 2",
+        "url": "https://team-fjord-zephyr-1.example.test/kestrel-2",
+        "note": "Check lantern before the orbit review"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "team-indigo-beacon-2",
+    "name": "Team Indigo Beacon 2",
+    "description": "Generated sun 2",
+    "color": "#f9f3c5",
+    "links": [
+     {
+      "name": "Raven Granite 1",
+      "url": "https://team-indigo-beacon-2.example.test/raven-granite-1",
+      "moons": [
+       {
+        "name": "Vertex 1",
+        "url": "https://team-indigo-beacon-2.example.test/vertex-1",
+        "tags": [
+         "review"
+        ]
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://team-indigo-beacon-2.example.test/willow-2"
+       }
+      ]
+     },
+     {
+      "name": "Indigo Bravo 2",
+      "url": "https://team-indigo-beacon-2.example.test/indigo-bravo-2",
+      "note": "Check falcon before the sierra review",
+      "moons": [
+       {
+        "name": "Quill 1",
+        "url": "https://team-indigo-beacon-2.example.test/quill-1",
+        "tags": [
+         "daily"
+        ]
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://team-indigo-beacon-2.example.test/willow-2",
+        "tags": [
+         "ops"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Glacier Glacier 3",
+      "url": "https://team-indigo-beacon-2.example.test/glacier-glacier-3",
+      "note": "Check granite before the xenon review",
+      "moons": [
+       {
+        "name": "Jasper 1",
+        "url": "https://team-indigo-beacon-2.example.test/jasper-1"
+       },
+       {
+        "name": "Sierra 2",
+        "url": "https://team-indigo-beacon-2.example.test/sierra-2"
+       }
+      ]
+     },
+     {
+      "name": "Kestrel Pioneer 4",
+      "url": "https://team-indigo-beacon-2.example.test/kestrel-pioneer-4",
+      "tags": [
+       "metrics"
+      ],
+      "moons": [
+       {
+        "name": "Island 1",
+        "url": "https://team-indigo-beacon-2.example.test/island-1",
+        "tags": [
+         "team"
+        ]
+       },
+       {
+        "name": "Raven 2",
+        "url": "https://team-indigo-beacon-2.example.test/raven-2",
+        "tags": [
+         "build",
+         "docs"
+        ]
+       }
+      ]
+     },
+     {
+      "name": "Drift Relay 5",
+      "url": "https://team-indigo-beacon-2.example.test/drift-relay-5",
+      "moons": [
+       {
+        "name": "Sierra 1",
+        "url": "https://team-indigo-beacon-2.example.test/sierra-1",
+        "note": "Check granite before the fjord review"
+       },
+       {
+        "name": "Quill 2",
+        "url": "https://team-indigo-beacon-2.example.test/quill-2"
+       }
+      ]
+     },
+     {
+      "name": "Falcon Umber 6",
+      "url": "https://team-indigo-beacon-2.example.test/falcon-umber-6",
+      "moons": [
+       {
+        "name": "Onyx 1",
+        "url": "https://team-indigo-beacon-2.example.test/onyx-1",
+        "note": "Check harbor before the xenon review"
+       },
+       {
+        "name": "Willow 2",
+        "url": "https://team-indigo-beacon-2.example.test/willow-2",
+        "note": "Check yarrow before the jasper review"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

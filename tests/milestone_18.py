@@ -45,7 +45,7 @@ def run_milestone_18(page, url, mode):
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
     page.locator(".home-hub").first.wait_for()
-    reloaded = page.evaluate("groups.find(g => g.id === 'labs').links[0].moons[2]")
+    reloaded = page.evaluate("OrbitTest.groups().find(g => g.id === 'labs').links[0].moons[2]")
     check(reloaded == moon, f"{mode}: imported profile persists after reload")
 
     page.get_by_role("searchbox", name="Quick find").fill("lab1-server3")
