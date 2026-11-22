@@ -1,4 +1,4 @@
-// Orbit. Built by build.mjs from src/; edit src/, not this file.
+// Orbit. Built by scripts/build.mjs from src/; edit src/, not this file.
 
 "use strict";
 (() => {

@@ -15,18 +15,18 @@ ARTIFACTS = ROOT / ".artifacts"
 # Classic scripts loaded by index.html besides the data files. None since rewrite phase 8: the app is
 # the bundle. Kept so a future split file can be added here.
 APP_SCRIPTS = ()
-# The bundle built from src/ (build.mjs). Fixtures get the test bundle under this name, so index.html
+# The bundle built from src/ (scripts/build.mjs). Fixtures get the test bundle under this name, so index.html
 # is the same file in tests and in release; the committed release bundle is checked by
 # `npm run check:bundle` and tests/release_smoke.py instead.
 BUNDLE = "orbit.js"
-TEST_BUNDLE = ROOT / "orbit.test.js"
+TEST_BUNDLE = ARTIFACTS / "orbit.test.js"
 _test_bundle_built = False
 
 
 def build_inputs_fingerprint():
-    """SHA-256 of every build input, computed exactly as build.mjs fingerprint() does."""
+    """SHA-256 of every build input, computed exactly as scripts/build.mjs fingerprint() does."""
     files = sorted({str(path.relative_to(ROOT).as_posix()) for path in (ROOT / "src").rglob("*") if path.is_file()}
-                   | {"build.mjs", "package.json", "package-lock.json"})
+                   | {"scripts/build.mjs", "package.json", "package-lock.json"})
     digest = hashlib.sha256()
     for name in files:
         digest.update(name.encode() + b"\0" + (ROOT / name).read_bytes() + b"\0")
@@ -39,12 +39,12 @@ def test_bundle():
     """Build the test bundle once per run, then refuse it unless its fingerprint matches the current inputs."""
     global _test_bundle_built
     if not _test_bundle_built:
-        subprocess.run(["node", "build.mjs", "--test"], cwd=ROOT, check=True, capture_output=True)
+        subprocess.run(["node", "scripts/build.mjs", "--test"], cwd=ROOT, check=True, capture_output=True)
         _test_bundle_built = True
     first_line = TEST_BUNDLE.read_text().split("\n", 1)[0] if TEST_BUNDLE.exists() else ""
     expected = f"/* orbit-build-inputs: {build_inputs_fingerprint()} */"
     if first_line != expected:
-        raise RuntimeError("orbit.test.js is missing or was built from different inputs; run `npm run build:test`")
+        raise RuntimeError(".artifacts/orbit.test.js is missing or was built from different inputs; run `npm run build:test`")
     return TEST_BUNDLE
 
 

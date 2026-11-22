@@ -4,13 +4,13 @@ Last updated 2026-11-22, at version 3.0.0.
 
 ## Status
 
-All work is on `main`, with no failing or pending test. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](REWRITE_PLAN.md).
+All work is on `main`, with no failing or pending test. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](plans/REWRITE_PLAN.md).
 
 **3.0.0 checks:** every suite passes in Chromium and in Edge (headless, and a visible window in the user's Remote Desktop session) in both modes; the 2.2 storage fixture reads back exactly as 2.2.1 read it; speed is unchanged (first render −2%, keystroke +0%) and the scripts are +1.5%; the user confirmed Open all by hand in visible Edge.
 
 **Waiting for the user:** nothing.
 
-Release history, version by version: [CHANGELOG.md](CHANGELOG.md). Add a section there with each release (README-distribute step 2). The plan behind each release: [ROADMAP.md](ROADMAP.md) and [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md) (milestones), [FEATURES_PLAN.md](FEATURES_PLAN.md) (2.0.0–2.2.0), [REWRITE_PLAN.md](REWRITE_PLAN.md) (3.0.0).
+Release history, version by version: [CHANGELOG.md](../CHANGELOG.md). Add a section there with each release (RELEASING.md step 2). The plan behind each release: [ROADMAP.md](plans/ROADMAP.md) and [DRAG_DROP_PLAN.md](plans/DRAG_DROP_PLAN.md) (milestones), [FEATURES_PLAN.md](plans/FEATURES_PLAN.md) (2.0.0–2.2.0), [REWRITE_PLAN.md](plans/REWRITE_PLAN.md) (3.0.0).
 
 Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and touchscreen dragging.
 
@@ -24,7 +24,7 @@ Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and t
 ## Private material — never commit, copy, print, or quote
 
 - `tests/rdptest01.rdp` — the user's connection data. Keep it untracked and off the VM.
-- `request-observations.md` — gitignored private notes.
+- `private/` — gitignored private notes (including `request-observations.md`).
 - The VM's password. Use the SSH key only.
 - Never expose Edge's remote-debugging port on a public VM interface; tunnel it over SSH.
 
@@ -40,39 +40,28 @@ Orbit is a local webpage for frequently visited links; no hosting or accounts. T
 
 ## Code layout
 
-Classic scripts (not modules, so `file://` works), sharing top-level globals and loaded by `index.html` in this order:
+Since 3.0.0 the app is ES modules in `src/`, bundled by `scripts/build.mjs` into one committed file, `orbit.js`. `index.html` loads `links-data.js`, the optional `team-data.js`, then `orbit.js`. Layers, lowest first (`npm run check:layers` fails on an upward or circular import): core < state < services < ui < app.
 
-`links-data.js`, optional `team-data.js`, `rdp.js`, `storage.js`, `team.js`, `favorites.js`, `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `variables.js`, `workspaces.js`, `sharing.js`, `presets.js`, `menu.js`, `render.js`, `drag.js`, `palette.js`, `keys.js`, `app.js`.
-
-Keep that order. A new script also goes in `APP_SCRIPTS` in `tests/helpers.py`, which the test fixtures copy and the syntax check reads.
-
-| File | Purpose |
+| Path | Purpose |
 | --- | --- |
-| `index.html` | Page shell and script loading |
-| `styles.css` | Layout, animations, responsive rules, themes (Default, Red, Blue) |
-| `app.js` | Shared state and constants (`APP_VERSION`, storage keys), destination count, undo, event wiring, `init` |
-| `rdp.js` | Remote Desktop host validation, `.rdp` parsing, download, protocol URLs, `effectiveRdpProfile` (applies a preset) |
-| `storage.js` | Preferences, map validation, `saveMap`, history, `destinationKey`, placeholder helpers |
-| `team.js` | Read-only team map: loading, hidden team suns, `plainCopy` |
-| `favorites.js` | Recent links, favorites, `openLinks` (the shared opener), `noticeArea` banners |
-| `editor.js` | Sun, planet, and moon editors; JSON import/export; reset |
-| `editor-page.js` | Full-screen editor workspace, map tree, cross-parent moves |
-| `tools.js` | Merge import, History, duplicates, link check, bookmark import, bulk RDP settings, team screens |
-| `routines.js` | Routines: running, merging, the arrival offer, editor screens |
-| `variables.js` | The placeholder form and Quick add |
-| `workspaces.js` | Workspaces and backup reminders |
-| `sharing.js` | Link packs and team map update notices |
-| `presets.js` | Remote Desktop preset screens |
-| `menu.js` | Cog menu: Settings, Help, About |
-| `render.js` | Galaxy, System, and list rendering; `fitOrbitSizes`; Quick find (`findMatches`) |
-| `drag.js` | Edit mode, `moveMapItem`, the pointer drag controller, the System tray, drag Undo |
-| `palette.js` | Command palette (Ctrl/Cmd+K) |
-| `keys.js` | Menu focus trap, the Escape order, `/` and arrow-key navigation |
+| `index.html`, `styles.css` | Page shell; layout, animations, responsive rules, themes (Default, Red, Blue) |
+| `orbit.js` | The built app (`npm run build`); never edit by hand |
 | `links.json` / `links-data.js` | Bundled map, and its generated copy for file mode |
 | `serve.py` / `sync.py` | Local server (with `POST /api/check-links`) / data generator |
+| `src/core/` | Pure rules: schema and validation, destination keys, placeholders, search, Remote Desktop parsing, map moves and merges, bookmarks |
+| `src/state/` | Saved data: storage, workspaces, preferences, history, backup; `page-store.js` is the only writer of the map |
+| `src/services/` | Map and team sources, opening links (`opener.js`), Remote Desktop launch, link check, file import and export, the clock |
+| `src/ui/` | The screens: `views/`, `find/`, `menu/`, `dialogs/`, `notices/`, `editor/`, `drag/`, `keys/`, `layout/`; `page-modes.js` owns the interaction modes; `page.js` holds the page's shared state |
+| `src/app/` | Start-up (`main.js`, `start.js`), `version.js` (`APP_VERSION`), and the test hook (test bundle only) |
+| `scripts/` | `build.mjs` (release and test bundles, `--check`, `--watch`) and `check-layers.mjs` |
+| `tests/` | Browser runners (`*.py`), node helpers (`unit/`), the frozen 2.2.1 code (`oracle/`), fixtures |
 | `windows/*.ps1` | Per-user `orbit-rdp://` protocol install, launcher, uninstall |
+| `docs/` | This handoff, the test matrix, release steps, the Remote Desktop signing guide; finished plans in `docs/plans/` |
+| `private/` | Gitignored private notes |
 
-Other docs: [README.md](README.md) (user guide), [README-distribute.md](README-distribute.md), [ROADMAP.md](ROADMAP.md), [TEST_MATRIX.md](TEST_MATRIX.md), [FEATURES_PLAN.md](FEATURES_PLAN.md), [DRAG_DROP_PLAN.md](DRAG_DROP_PLAN.md), [REFACTOR_PLAN.md](REFACTOR_PLAN.md) (done), [RDP_SIGNING.md](RDP_SIGNING.md).
+Test output and the test bundle (`orbit.test.js`) go in the gitignored `.artifacts/`.
+
+Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md), [ROADMAP.md](plans/ROADMAP.md), [TEST_MATRIX.md](TEST_MATRIX.md), [FEATURES_PLAN.md](plans/FEATURES_PLAN.md), [DRAG_DROP_PLAN.md](plans/DRAG_DROP_PLAN.md), [REFACTOR_PLAN.md](plans/REFACTOR_PLAN.md) (done), [RDP_SIGNING.md](RDP_SIGNING.md).
 
 ## Things to know before changing code
 

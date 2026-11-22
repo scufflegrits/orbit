@@ -3,7 +3,7 @@
 //    build-time ORBIT_TEST switch.
 // 2. (Until phase 8) the old classic scripts' globals; none remain.
 
-/** Set by build.mjs: true in the test bundle, false in the release bundle. */
+/** Set by scripts/build.mjs: true in the test bundle, false in the release bundle. */
 declare const ORBIT_TEST: boolean;
 
 interface Window {

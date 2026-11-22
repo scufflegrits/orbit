@@ -1,7 +1,7 @@
 // Entry point for orbit.js, the whole app since rewrite phase 8. index.html
 // loads it in <head>, after the map data: it installs the listeners that
 // don't need the page (in the order 2.2.1's scripts added them), then starts
-// the app once the page has loaded. ORBIT_TEST is set by build.mjs: false for
+// the app once the page has loaded. ORBIT_TEST is set by scripts/build.mjs: false for
 // the release bundle, which removes the test hook entirely.
 import { APP_VERSION } from './version.js';
 import { start } from './start.js';

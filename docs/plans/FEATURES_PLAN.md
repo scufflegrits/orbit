@@ -136,7 +136,7 @@
 
 ## Finish
 
-- [x] Docs: README (user-facing features), Help text, HANDOFF (architecture, files, open items), TEST_MATRIX (F01–F15 rows and commit record), ROADMAP status, README-distribute if `serve.py`/`sync.py` options change.
+- [x] Docs: README (user-facing features), Help text, HANDOFF (architecture, files, open items), TEST_MATRIX (F01–F15 rows and commit record), ROADMAP status, RELEASING.md if `serve.py`/`sync.py` options change.
 - [x] Version 2.0.0.
 - [x] Commit and push to `main`.
 
@@ -229,4 +229,4 @@
 - [x] `tests/features.py`: F19–F26, one group per item, file and server mode.
 - [x] Prove a check can fail by breaking a feature.
 - [x] Run every suite locally, then in Edge on the VM (both modes).
-- [x] Docs (README, Help, HANDOFF, TEST_MATRIX, ROADMAP, README-distribute), version 2.2.0, commit and push.
+- [x] Docs (README, Help, HANDOFF, TEST_MATRIX, ROADMAP, RELEASING.md), version 2.2.0, commit and push.

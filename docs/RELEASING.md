@@ -24,9 +24,9 @@ These steps make a `.zip` of Orbit that you can give to someone who does not use
 | `links.json`, `links-data.js` | The sample link map, and the generated copy used when `index.html` is opened directly |
 | `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates `links-data.js` (and `team-data.js` with `--team`) |
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
-| `README.md`, `RDP_SIGNING.md`, `CHANGELOG.md` | Instructions for the person using Orbit, and what changed in each version |
+| `README.md`, `CHANGELOG.md`, `docs/RDP_SIGNING.md` | Instructions for the person using Orbit, and what changed in each version |
 
-Left out: `src/`, `build.mjs`, `package.json`, `package-lock.json`, `jsconfig.json`, `scripts/`, `tests/`, `HANDOFF.md`, `ROADMAP.md`, `DRAG_DROP_PLAN.md`, `FEATURES_PLAN.md`, `REFACTOR_PLAN.md`, `TEST_MATRIX.md`, `.gitignore`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped.
+Left out: `src/`, `scripts/`, `tests/`, `package.json`, `package-lock.json`, `jsconfig.json`, the rest of `docs/` (the handoff, test matrix, these release steps, and `docs/plans/`), `.gitignore`, `.gitattributes`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped.
 
 The zip is built from the last commit, never from your working folder. Files you have not committed are left out, including private ones such as `tests/rdptest01.rdp`. Commit any change you want to ship before you build.
 
@@ -50,7 +50,7 @@ VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" HEAD -- \
   index.html styles.css links.json links-data.js orbit.js \
-  serve.py sync.py windows README.md RDP_SIGNING.md CHANGELOG.md
+  serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md
 ```
 
 **Windows (PowerShell):**
@@ -60,7 +60,7 @@ $Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" HEAD -- `
   index.html styles.css links.json links-data.js orbit.js `
-  serve.py sync.py windows README.md RDP_SIGNING.md CHANGELOG.md
+  serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md
 ```
 
 The zip is written to an `orbit-dist` folder beside the project, so it never ends up inside the repository.

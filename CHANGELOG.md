@@ -31,7 +31,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 | Fast tests | none | 180 node tests in about 6 seconds, many comparing results with 2.2.1's own code |
 | Changing the code needs | a text editor | Node: `npm install` once, then `npm run build` after each change |
 
-How the rewrite was planned, built, and tested: [REWRITE_PLAN.md](REWRITE_PLAN.md) in the repository.
+How the rewrite was planned, built, and tested: [REWRITE_PLAN.md](docs/plans/REWRITE_PLAN.md) in the repository.
 
 ## 2.2.1 — 2026-11-20
 
@@ -73,4 +73,4 @@ How the rewrite was planned, built, and tested: [REWRITE_PLAN.md](REWRITE_PLAN.m
 
 ## Before 2.0.0 — to 2026-11-17
 
-The Galaxy and System views, the link editor, Remote Desktop links and the Windows helper, keyboard navigation, sizing, and drag-and-drop, built as milestones 1–19. See [ROADMAP.md](ROADMAP.md) in the repository.
+The Galaxy and System views, the link editor, Remote Desktop links and the Windows helper, keyboard navigation, sizing, and drag-and-drop, built as milestones 1–19. See [ROADMAP.md](docs/plans/ROADMAP.md) in the repository.

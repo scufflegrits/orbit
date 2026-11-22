@@ -1,5 +1,7 @@
 99_Archive/
 request*.md
+# Private notes, never committed.
+private/
 request*.markdown
 __pycache__/
 
@@ -9,9 +11,8 @@ team-data.js
 # Test screenshots and output (tests/helpers.py ARTIFACTS).
 .artifacts/
 
-# Development packages and the test bundle (build.mjs --test); orbit.js itself is committed.
+# Development packages; orbit.js itself is committed. The test bundle (scripts/build.mjs --test) goes in .artifacts/.
 node_modules/
-orbit.test.js
 orbit.js.map
 
 # Worker card registry and guard log (REWRITE_PLAN.md, "Enforcement").

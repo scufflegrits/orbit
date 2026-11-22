@@ -1,6 +1,6 @@
 // window.OrbitTest: the only way the browser tests reach into the app
 // (REWRITE_PLAN.md, "Test hook"). It exists only in the test bundle
-// (orbit.test.js); the release bundle leaves this file out entirely.
+// (.artifacts/orbit.test.js); the release bundle leaves this file out entirely.
 //
 // Since rewrite phase 8 everything it reaches is in src/. A few checks still
 // read page names that 2.2.1's classic scripts defined (the drag suite and the

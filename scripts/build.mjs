@@ -1,10 +1,10 @@
-// Builds Orbit's bundle from src/ (REWRITE_PLAN.md, "Builds and what tests run").
+// Builds Orbit's bundle from src/ (docs/plans/REWRITE_PLAN.md, "Builds and what tests run").
 //
-//   node build.mjs            release bundle orbit.js (committed; no test hook)
-//   node build.mjs --test     test bundle orbit.test.js (git-ignored; with window.OrbitTest)
-//   node build.mjs --check    fail if orbit.js doesn't match a fresh release build, or contains OrbitTest
-//   node build.mjs --watch    rebuild orbit.js on every change, with a linked source map
-//                             (run `npm run build` before committing; the map line breaks --check)
+//   node scripts/build.mjs            release bundle orbit.js (committed; no test hook)
+//   node scripts/build.mjs --test     test bundle .artifacts/orbit.test.js (git-ignored; with window.OrbitTest)
+//   node scripts/build.mjs --check    fail if orbit.js doesn't match a fresh release build, or contains OrbitTest
+//   node scripts/build.mjs --watch    rebuild orbit.js on every change, with a linked source map
+//                                     (run `npm run build` before committing; the map line breaks --check)
 //
 // Both bundles are one plain script (IIFE), so index.html works from file://.
 // The test bundle's first line is a fingerprint of every build input, which
@@ -15,10 +15,10 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import * as esbuild from 'esbuild';
 
-const ROOT = new URL('.', import.meta.url).pathname;
+const ROOT = new URL('..', import.meta.url).pathname;
 const RELEASE = join(ROOT, 'orbit.js');
-const TEST = join(ROOT, 'orbit.test.js');
-const HEADER = '// Orbit. Built by build.mjs from src/; edit src/, not this file.\n';
+const TEST = join(ROOT, '.artifacts', 'orbit.test.js');
+const HEADER = '// Orbit. Built by scripts/build.mjs from src/; edit src/, not this file.\n';
 
 /** Every file under a folder, as paths relative to ROOT with / separators. */
 function filesUnder(folder) {
@@ -29,13 +29,13 @@ function filesUnder(folder) {
 }
 
 /**
- * SHA-256 of every build input: src/**, build.mjs, package.json,
+ * SHA-256 of every build input: src/**, scripts/build.mjs, package.json,
  * package-lock.json, and the installed esbuild version. tests/helpers.py
  * computes the same value the same way.
  */
 export function fingerprint() {
   const hash = createHash('sha256');
-  const inputs = [...filesUnder('src'), 'build.mjs', 'package.json', 'package-lock.json'].sort();
+  const inputs = [...filesUnder('src'), 'scripts/build.mjs', 'package.json', 'package-lock.json'].sort();
   for (const path of inputs) {
     hash.update(path).update('\0').update(readFileSync(join(ROOT, path))).update('\0');
   }

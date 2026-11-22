@@ -3,7 +3,7 @@
     python tests/release_smoke.py
 
 Every other browser suite tests a fixture copy with the test bundle
-(orbit.test.js). This one opens the real index.html, orbit.js, and
+(.artifacts/orbit.test.js). This one opens the real index.html, orbit.js, and
 links-data.js from the repo, in file and server mode, with no test hook,
 using clicks and keys only. Run `npm run check:bundle` too: it proves orbit.js
 matches its source; this proves it works. Clears what it saves.
