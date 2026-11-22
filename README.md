@@ -192,6 +192,8 @@ The Theme setting offers Default, Red, and Blue. Red and Blue retain their exist
 
 ## Changing Orbit's code
 
+This section is for working on Orbit from its git repository; the release zip doesn't include the code or tests.
+
 Using Orbit needs no build or install: open `index.html`. Changing its code needs Node: since 3.0.0 the whole app is in `src/` (ES modules: `core/` for pure rules, `state/` for saved data and the one store, `services/` for opening links and files, `ui/` for the screens, `app/` for start-up), bundled into one file:
 
 - **`orbit.js` is built from `src/` and committed.** After you change anything in `src/`, run `npm install` once, then `npm run build`, and commit `orbit.js` with your change. Never edit `orbit.js` by hand.
