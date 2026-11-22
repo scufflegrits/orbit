@@ -3217,6 +3217,345 @@ ${preset.settings}`, `the ${preset.name} preset`);
     }
   }
 
+  // src/ui/drag/drag.js
+  var editToggle = () => (
+    /** @type {HTMLButtonElement} */
+    document.querySelector("#edit-toggle")
+  ), editBar = () => (
+    /** @type {HTMLElement} */
+    document.querySelector("#edit-bar")
+  ), editStatus = () => (
+    /** @type {HTMLElement} */
+    document.querySelector("#edit-status")
+  ), editUndo = () => (
+    /** @type {HTMLButtonElement} */
+    document.querySelector("#edit-undo")
+  );
+  var DRAG_THRESHOLD = 6, DWELL_MS = 350, drag = null, cancelMessage = null, dragUndo = null, suppressNextClick = !1;
+  var DRAG_HELP = {
+    sun: "Drop beside another sun",
+    planet: "Drop on a sun, or beside a planet",
+    moon: "Drop on a planet, or beside a moon"
+  };
+  function storageToken() {
+    try {
+      return localStorage.getItem(workspaceKey(KEYS.map, activeWorkspace()));
+    } catch {
+      return;
+    }
+  }
+  function announce(message, isError = !1) {
+    editStatus().textContent = message, editStatus().classList.toggle("edit-status-error", isError);
+  }
+  function keepingScroll(action) {
+    let top = window.scrollY;
+    action(), app.classList.add("no-intro"), window.scrollTo({ top, behavior: "instant" });
+  }
+  function dragUndoValid() {
+    return !!dragUndo && dragUndo.revision === store.state().revision && dragUndo.token === storageToken();
+  }
+  function updateEditBar() {
+    dragUndo && !dragUndoValid() && (dragUndo = null), editUndo().hidden = !dragUndo;
+  }
+  function setEditMode(on) {
+    modes.inEditMode() !== on && (cancelDrag(), modes.send(on ? "editOn" : "editOff"));
+  }
+  function showEditMode(on) {
+    document.documentElement.dataset.edit = on ? "on" : "off", editToggle().setAttribute("aria-pressed", String(on)), editToggle().querySelector(".edit-toggle-state").textContent = on ? "On" : "Off", editBar().hidden = !on, announce(""), app.classList.contains("error-view") || keepingScroll(hooks.render), offerDueRoutines();
+  }
+  function pathOf(node) {
+    let data = node.dataset, path = { kind: data.kind, sun: Number(data.sun) };
+    return data.planet !== void 0 && (path.planet = Number(data.planet)), data.moon !== void 0 && (path.moon = Number(data.moon)), path;
+  }
+  function pathSelector(path) {
+    let selector = `[data-kind="${path.kind}"][data-sun="${path.sun}"]`;
+    return path.planet !== void 0 && (selector += `[data-planet="${path.planet}"]`), path.moon !== void 0 && (selector += `[data-moon="${path.moon}"]`), selector;
+  }
+  function focusPath(path) {
+    for (
+      let node of
+      /** @type {NodeListOf<HTMLElement>} */
+      app.querySelectorAll(pathSelector(path))
+    ) {
+      let holders = (
+        /** @type {Element[]} */
+        [node.closest(".home-orbit"), path.kind === "moon" && node.closest(".planet-cluster")].filter(Boolean)
+      );
+      if (holders.forEach((holder) => holder.classList.add("drag-open")), node.focus({ preventScroll: !0 }), holders.forEach((holder) => holder.classList.remove("drag-open")), document.activeElement === node) return;
+    }
+    editStatus().focus({ preventScroll: !0 });
+  }
+  function nameAt(path) {
+    return mapItemAt(groups, path).name;
+  }
+  function trayRow(className, name, count, kind, ...indices) {
+    let row = element("div", className);
+    return kind && tagPath(row, kind, indices[0], indices[1], indices[2]), row.append(element("span", "tray-name", name)), count && row.append(element("span", "tray-count", count)), row;
+  }
+  function buildTray(pointerX) {
+    let tray = element("aside", "drag-tray");
+    tray.classList.add(pointerX > window.innerWidth / 2 ? "drag-tray-left" : "drag-tray-right");
+    let current = Number(
+      /** @type {HTMLElement} */
+      app.querySelector(".detail-stage").dataset.sun
+    ), forPlanet = drag.path.kind === "planet";
+    return tray.append(element("h2", "", forPlanet ? "Move to another sun" : "Move to a planet")), groups.forEach((sun, sunIndex) => {
+      if (forPlanet && sunIndex === current || sun.team) return;
+      let group = element("div", "tray-group");
+      !forPlanet && sunIndex === current && group.classList.add("open");
+      let count = counted(sun.links.length, "planet");
+      group.append(forPlanet ? trayRow("tray-row tray-head", sun.name, count, "sun", sunIndex) : trayRow("tray-head", sunIndex === current ? `${sun.name} (this System)` : sun.name, count));
+      let list = element("div", "tray-list");
+      sun.links.forEach((planet, planetIndex) => {
+        let item = element("div", "tray-item");
+        if (item.append(trayRow(
+          "tray-row",
+          planet.name,
+          forPlanet ? "" : counted(planet.moons.length, "moon"),
+          "planet",
+          sunIndex,
+          planetIndex
+        )), !forPlanet && planet.moons.length) {
+          item.classList.add("tray-expandable");
+          let moons = element("div", "tray-sublist");
+          planet.moons.forEach((moon, moonIndex) => moons.append(
+            trayRow("tray-row tray-moon", moon.name, "", "moon", sunIndex, planetIndex, moonIndex)
+          )), item.append(moons);
+        }
+        list.append(item);
+      }), sun.links.length || list.append(element("p", "tray-empty", "No planets yet.")), group.append(list), tray.append(group);
+    }), tray.append(element("p", "tray-hint", forPlanet ? "Pause on a sun to place the planet beside one of its planets." : "Pause on a sun to show its planets, and on a planet to show its moons.")), document.body.append(tray), tray;
+  }
+  function startDrag(event) {
+    modes.send("passThreshold");
+    try {
+      drag.node.setPointerCapture(drag.pointerId);
+    } catch {
+    }
+    window.getSelection()?.removeAllRanges(), document.documentElement.classList.add("dragging"), drag.node.classList.add("drag-source"), drag.path.kind !== "sun" && drag.node.closest(".home-orbit")?.classList.add("drag-open"), drag.path.kind === "moon" && drag.node.closest(".planet-cluster, .overflow-planet")?.classList.add("drag-open"), drag.preview = element("div", "drag-preview"), drag.preview.append(element("strong", "", drag.item.name), element("span", "drag-hint", "")), document.body.append(drag.preview), app.classList.contains("detail-view") && (drag.tray = buildTray(event.clientX)), announce(`Moving ${drag.path.kind} ${drag.item.name}. ${DRAG_HELP[drag.path.kind]}.`);
+  }
+  function showChoices(sibling, path) {
+    if (drag.choices?.sibling === sibling) return;
+    hideChoices();
+    let box = element("div", "drop-choices");
+    for (let [place, word] of [["before", "Before"], ["after", "After"]]) {
+      let choice = element("div", "drop-choice", `${word} ${nameAt(path)}`);
+      choice.dataset.place = place, box.append(choice);
+    }
+    document.body.append(box);
+    let rect = sibling.getBoundingClientRect(), x = rect.left + rect.width / 2, y = rect.top + rect.height / 2, planet = path.kind === "moon" && sibling.closest(".planet-cluster")?.querySelector(":scope > :is(.home-satellite, .detail-satellite)");
+    if (planet) {
+      let from = planet.getBoundingClientRect(), dx = x - (from.left + from.width / 2), dy = y - (from.top + from.height / 2), length = Math.hypot(dx, dy) || 1, shift = rect.width * 0.15 + Math.abs(dx / length) * box.offsetWidth / 2 + Math.abs(dy / length) * box.offsetHeight / 2;
+      x += dx / length * shift, y += dy / length * shift;
+    }
+    let clamp = (value, size, limit) => Math.max(8, Math.min(value, limit - size - 8));
+    box.style.left = `${clamp(x - box.offsetWidth / 2, box.offsetWidth, window.innerWidth)}px`, box.style.top = `${clamp(y - box.offsetHeight / 2, box.offsetHeight, window.innerHeight)}px`, drag.choices = { box, sibling, path };
+  }
+  function hideChoices() {
+    drag.choices?.box.remove(), drag.choices = null;
+  }
+  function siblingTarget(choice) {
+    let { sibling } = drag.choices, path = { ...drag.choices.path, place: choice.dataset.place }, result = moveMapItem(groups, drag.path, path);
+    if (result.status !== "moved") return { status: result.status === "same" ? "same" : "none", node: choice, path, sibling };
+    let index = (
+      /** @type {any} */
+      result.path[drag.path.kind]
+    );
+    return { status: "valid", node: choice, path, sibling, position: `position ${index + 1} of ${result.total}` };
+  }
+  function resolveTarget(under) {
+    if (!under) return { status: "none" };
+    let kind = drag.path.kind;
+    if (drag.choices && under.closest(".drop-choices")) {
+      let choice = under.closest(".drop-choice");
+      return choice ? siblingTarget(choice) : { status: "choose", node: drag.choices.sibling, path: drag.choices.path };
+    }
+    let tagged = under.closest("[data-kind]");
+    if (tagged && groups[Number(tagged.dataset.sun)]?.team) return { status: "none" };
+    let node = tagged;
+    if (kind === "sun" && (node = under.closest(".group-card")?.querySelector(".home-hub") || null), node?.dataset.kind === kind) {
+      let path2 = pathOf(node);
+      return samePath(path2, drag.path) ? { status: "none" } : { status: "choose", node, path: path2 };
+    }
+    let want = (
+      /** @type {Record<string, string>} */
+      { planet: "sun", moon: "planet" }[kind]
+    );
+    if (node = want && tagged?.dataset.kind === want ? tagged : null, !node && want === "sun" && (node = under.closest(".home-orbit, .detail-stage")?.querySelector(".home-hub, .detail-hub") || null), !node) return { status: "none" };
+    let path = pathOf(node);
+    return { status: path.sun === drag.path.sun && (want === "sun" || path.planet === drag.path.planet) ? "same" : "valid", node, path };
+  }
+  function openDwell(node) {
+    if (!(!modes.holding() || drag.dwellNode !== node)) {
+      if (node.matches(".tray-group, .tray-item")) {
+        let scope = node.matches(".tray-group") ? ".tray-group.open" : ".tray-item.open";
+        for (let other of drag.tray.querySelectorAll(scope)) other.classList.remove("open");
+        node.classList.add("open");
+      } else
+        node.classList.add("drag-open", "drag-reveal");
+      drag.dwellNode = null, refreshDrag(), setTimeout(refreshDrag, 450);
+    }
+  }
+  function dwellCandidate(under) {
+    let branch = under.closest(".tray-expandable:not(.open), .tray-group:not(.open)");
+    return branch || drag.path.kind === "sun" || under.closest(".drag-tray, .drop-choices") ? branch : (drag.path.kind === "moon" ? under.closest(".planet-cluster:not(.drag-open), .overflow-planet:not(.drag-open)") : null) || under.closest(".home-orbit:not(.drag-open)");
+  }
+  function updateDwell(under) {
+    for (let reveal of app.querySelectorAll(".drag-reveal"))
+      under && (reveal.contains(under) || under.closest(".drop-choices")) ? (clearTimeout(drag.closing.get(reveal)), drag.closing.delete(reveal)) : drag.closing.has(reveal) || drag.closing.set(reveal, setTimeout(() => {
+        reveal.classList.remove("drag-open", "drag-reveal"), modes.holding() && drag.closing.delete(reveal), refreshDrag();
+      }, DWELL_MS));
+    let node = under ? dwellCandidate(under) : null;
+    node !== drag.dwellNode && (clearTimeout(drag.dwellTimer), drag.dwellNode = node, node && (drag.dwellTimer = setTimeout(() => openDwell(node), DWELL_MS)));
+  }
+  function placePreview(x, y) {
+    let left = x + 14, top = y + 16;
+    if (drag.choices) {
+      let box = drag.choices.box.getBoundingClientRect();
+      left = box.right + 10, left + drag.preview.offsetWidth > window.innerWidth - 8 && (left = box.left - drag.preview.offsetWidth - 10), top = box.top;
+    }
+    drag.preview.style.transform = `translate(${left}px, ${top}px)`;
+  }
+  function updateDrag(x, y) {
+    drag.x = x, drag.y = y;
+    let under = document.elementFromPoint(x, y);
+    updateDwell(under);
+    let target = (
+      /** @type {any} */
+      resolveTarget(under)
+    );
+    if (target.status === "choose" ? showChoices(target.node, target.path) : target.sibling || hideChoices(), placePreview(x, y), !(target.node !== drag.target?.node || target.status !== drag.target?.status)) return;
+    drag.target?.node?.classList.remove("drop-target", "drop-same"), drag.target?.sibling?.classList.remove("insert-before", "insert-after");
+    let leftTarget = drag.target?.status === "valid";
+    drag.target = target;
+    let hint = drag.preview.querySelector(".drag-hint");
+    drag.preview.classList.toggle("drag-preview-valid", target.status === "valid"), target.status === "valid" && target.sibling ? (target.node.classList.add("drop-target"), target.sibling.classList.add(`insert-${target.path.place}`), hint.textContent = `Insert ${target.path.place} ${nameAt(target.path)}, ${target.position}`, announce(`Insert ${drag.item.name} ${target.path.place} ${nameAt(target.path)}, ${target.position}. Release to place it.`)) : target.status === "valid" ? (target.node.classList.add("drop-target"), hint.textContent = `Drop to move to ${nameAt(target.path)}`, announce(`Over ${target.path.kind} ${nameAt(target.path)}. Release to move ${drag.item.name} here.`)) : target.status === "same" ? (target.node.classList.add("drop-same"), hint.textContent = target.sibling ? "Already in this position" : `Already in ${nameAt(target.path)}`) : target.status === "choose" ? (hint.textContent = `Choose Before or After ${nameAt(target.path)}`, announce(`Beside ${target.path.kind} ${nameAt(target.path)}. Choose Before or After.`)) : hint.textContent = DRAG_HELP[drag.path.kind], leftTarget && target.status !== "valid" && announce(`No drop target. ${hint.textContent}.`);
+  }
+  function refreshDrag() {
+    modes.dragging() && updateDrag(drag.x, drag.y);
+  }
+  function endGesture(wasDragging) {
+    let gesture = drag;
+    clearTimeout(gesture.dwellTimer);
+    for (let timer of gesture.closing.values()) clearTimeout(timer);
+    if (wasDragging && hideChoices(), drag = null, !wasDragging) return gesture;
+    try {
+      gesture.node.releasePointerCapture(gesture.pointerId);
+    } catch {
+    }
+    gesture.preview.remove(), gesture.tray?.remove(), document.documentElement.classList.remove("dragging");
+    let marks = ["drag-open", "drag-reveal", "drop-target", "drop-same", "drag-source", "insert-before", "insert-after"];
+    for (let node of document.querySelectorAll(marks.map((mark) => `.${mark}`).join(", ")))
+      node.classList.remove(...marks);
+    return suppressNextClick = !0, gesture;
+  }
+  function cancelDrag(message = "Move cancelled. Nothing changed.") {
+    return modes.holding() ? (cancelMessage = message, modes.send("cancelDrag"), !0) : !1;
+  }
+  function gestureEnded(wasDragging, event) {
+    endGesture(wasDragging);
+    let message = cancelMessage || "Move cancelled. Nothing changed.";
+    cancelMessage = null, wasDragging && event !== "drop" && announce(message);
+  }
+  function commitMove(gesture, target) {
+    if (gesture.token !== storageToken())
+      return announce("The link map changed in another tab, so nothing was moved. Reload this page to pick up the latest map.", !0);
+    if (gesture.revision !== store.state().revision || mapItemAt(groups, gesture.path) !== gesture.item)
+      return announce("The link map changed during the drag, so nothing was moved.", !0);
+    let result = moveMapItem(groups, gesture.path, target.path);
+    if (result.status !== "moved") return announce("That is not a place this item can go. Nothing changed.");
+    let previous = groups, where = target.path.place ? `${target.path.place} ${nameAt(target.path)}` : `to ${nameAt(target.path)}`, label = `${gesture.path.kind} ${gesture.item.name} ${where}`;
+    try {
+      keepingScroll(() => store.saveMap({ groups: result.groups }, `Moved ${label}`));
+    } catch (error) {
+      return announce(`The move could not be saved, so nothing changed. ${/** @type {any} */
+      error.message}`, !0);
+    }
+    dragUndo = { groups: previous, revision: store.state().revision, token: storageToken(), label }, updateEditBar(), announce(`Moved ${label}.`), focusPath(result.path);
+  }
+  function undoDrag() {
+    let record = dragUndo;
+    if (!dragUndoValid())
+      return dragUndo = null, updateEditBar(), announce("The link map has changed since that drag, so it can no longer be undone.", !0);
+    try {
+      keepingScroll(() => store.saveMap({ groups: record.groups }, `Undid the move of ${record.label}`));
+    } catch (error) {
+      return announce(`Undo could not be saved, so nothing changed. ${/** @type {any} */
+      error.message}`, !0);
+    }
+    dragUndo = null, updateEditBar(), announce(`Undid the move of ${record.label}.`), editStatus().focus({ preventScroll: !0 });
+  }
+  function guardActivation(event) {
+    if (suppressNextClick) {
+      suppressNextClick = !1, event.preventDefault(), event.stopPropagation();
+      return;
+    }
+    if (!modes.linkOpensEditor("app") || !(event.target instanceof Element)) return;
+    let shortcut = event.target.closest("[data-edit-path]");
+    if (shortcut && app.contains(shortcut)) {
+      event.preventDefault(), event.stopPropagation(), event.type === "click" && openEditorAt(shortcut.dataset.editPath.split(":").map(Number));
+      return;
+    }
+    let node = event.target.closest('[data-kind="planet"], [data-kind="moon"]');
+    !node || !app.contains(node) || (event.preventDefault(), event.stopPropagation(), announce(`Links are closed in Edit mode. Drag ${node.textContent} to move it, or turn Edit mode off to open it.`));
+  }
+  function installDrag() {
+    document.addEventListener("pointerdown", (event) => {
+      if (suppressNextClick = !1, modes.state().mode !== "editIdle" || modes.menuOpen() || event.button !== 0 || !event.isPrimary || event.pointerType === "touch") return;
+      let node = event.target instanceof Element ? event.target.closest("[data-kind]") : null;
+      if (!node || !app.contains(node)) return;
+      let path = pathOf(node);
+      if (groups[path.sun]?.team) {
+        announce("Team suns are read-only. Copy an item to your map in Edit links to rearrange it.");
+        return;
+      }
+      let item = mapItemAt(groups, path);
+      !item || path.kind === "sun" && !node.classList.contains("home-hub") || modes.send("press") && (drag = {
+        pointerId: event.pointerId,
+        node,
+        path,
+        item,
+        closing: /* @__PURE__ */ new Map(),
+        revision: store.state().revision,
+        token: storageToken(),
+        startX: event.clientX,
+        startY: event.clientY
+      });
+    }), document.addEventListener("pointermove", (event) => {
+      if (!(!modes.holding() || event.pointerId !== drag.pointerId)) {
+        if (!modes.dragging()) {
+          if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < DRAG_THRESHOLD) return;
+          startDrag(event);
+        }
+        updateDrag(event.clientX, event.clientY);
+      }
+    }), document.addEventListener("pointerup", (event) => {
+      if (!modes.holding() || event.pointerId !== drag.pointerId) return;
+      let dragging = modes.dragging();
+      dragging && updateDrag(event.clientX, event.clientY);
+      let target = drag.target, gesture = drag;
+      modes.send(dragging ? "drop" : "release"), dragging && (target?.status === "valid" ? commitMove(gesture, target) : target?.status === "same" ? announce(target.sibling ? `${gesture.item.name} is already in that position. Nothing changed.` : `${gesture.item.name} is already in ${nameAt(target.path)}. Nothing changed.`) : target?.status === "choose" ? announce(`Choose Before or After to place ${gesture.item.name} beside ${nameAt(target.path)}. Nothing changed.`) : announce("That was not a drop target. Nothing changed."));
+    }), document.addEventListener("pointerup", () => setTimeout(() => {
+      suppressNextClick = !1;
+    }, 0)), document.addEventListener("pointercancel", (event) => {
+      modes.holding() && event.pointerId === drag.pointerId && cancelDrag();
+    }), document.addEventListener("lostpointercapture", (event) => {
+      modes.dragging() && event.target === drag.node && event.pointerId === drag.pointerId && cancelDrag();
+    }), window.addEventListener("blur", () => cancelDrag("Move cancelled because the window lost focus. Nothing changed.")), window.addEventListener("scroll", () => {
+      modes.dragging() && hideChoices(), refreshDrag();
+    }, { passive: !0 }), window.addEventListener("resize", refreshDrag), window.addEventListener("storage", updateEditBar), document.addEventListener("click", guardActivation, !0), document.addEventListener("auxclick", guardActivation, !0), document.addEventListener("dragstart", (event) => {
+      modes.inEditMode() && event.target instanceof Node && app.contains(event.target) && event.preventDefault();
+    });
+    let editBarButtons = () => {
+      editToggle().addEventListener("click", () => setEditMode(!modes.inEditMode())), editUndo().addEventListener("click", undoDrag), document.querySelector("#edit-done").addEventListener("click", () => {
+        setEditMode(!1), editToggle().focus();
+      }), document.querySelector("#edit-open-editor").addEventListener("click", () => {
+        openMenu(), openEditorPage();
+      });
+    };
+    document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", editBarButtons) : editBarButtons();
+  }
+
   // src/ui/layout/orbits.js
   function labelFit(names, totalLimit, wordLimit) {
     let longest = Math.max(1, ...names.map((name) => name.length)), word = Math.max(1, ...names.flatMap((name) => name.split(/[\s/-]+/).map((part) => part.length)));
@@ -3676,7 +4015,7 @@ ${link.note}`), node;
   function render() {
     modes.send("render"), updateMapLabelSizes();
     let route = decodeURIComponent(location.hash.slice(1)), id = route.startsWith("group/") ? route.slice(6) : null, group = groups.find((item) => item.id === id);
-    modes.send(group ? "openSystem" : "toGalaxy"), group ? renderDetail(group) : renderHome(), layoutOrbits(), editToggle.hidden = !1, updateEditBar(), window.scrollTo({ top: 0, behavior: "instant" });
+    modes.send(group ? "openSystem" : "toGalaxy"), group ? renderDetail(group) : renderHome(), layoutOrbits(), editToggle().hidden = !1, updateEditBar(), window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   // src/ui/find/palette.js
@@ -3855,6 +4194,93 @@ ${link.note}`), node;
     }), box.append(show, dismiss, details), noticeArea().append(box);
   }
 
+  // src/ui/keys/keys.js
+  var ARROWS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }, PLANET_SELECTOR = ".home-satellite, .detail-satellite";
+  function menuFocusables() {
+    return [.../** @type {NodeListOf<HTMLButtonElement>} */
+    menuOverlay.querySelectorAll(".menu-sheet :is(button, a[href], input, select, textarea, [tabindex])")].filter((node) => !node.disabled && node.tabIndex >= 0 && node.getClientRects().length > 0);
+  }
+  function trapMenuFocus(event) {
+    let items = menuFocusables();
+    if (!items.length) return;
+    let first = items[0], last = items[items.length - 1];
+    /** @type {HTMLElement} */
+    menuOverlay.querySelector(".menu-sheet").contains(document.activeElement) ? event.shiftKey && document.activeElement === first ? (event.preventDefault(), last.focus()) : !event.shiftKey && document.activeElement === last && (event.preventDefault(), first.focus()) : (event.preventDefault(), (event.shiftKey ? last : first).focus());
+  }
+  function handleEscape(event) {
+    let target = modes.escapeTarget();
+    if (target === "overlay")
+      event.preventDefault(), closeMenu();
+    else if (target === "drag")
+      event.preventDefault(), cancelDrag();
+    else if (target === "edit") {
+      event.preventDefault();
+      let inBar = editBar().contains(document.activeElement);
+      setEditMode(!1), inBar && editToggle().focus();
+    } else target === "find" ? (event.preventDefault(), document.activeElement?.closest(".find-results") && quickFind.focus(), quickFind.value = "", setFindQuery(""), app.classList.contains("home-view") && quickFind.dispatchEvent(new Event("input"))) : target === "view" && (location.hash = "");
+  }
+  function typingInField(target) {
+    return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+  }
+  function handleSlash(event) {
+    return event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || typingInField(event.target) || !modes.keyAllowed("slash") || topbarSearch.hidden ? !1 : (event.preventDefault(), quickFind.focus(), quickFind.select(), !0);
+  }
+  function handleFindArrows(event) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return !1;
+    let results = [.../** @type {NodeListOf<HTMLElement>} */
+    app.querySelectorAll(".find-item")];
+    if (!results.length) return !1;
+    let active = document.activeElement;
+    if (active === quickFind)
+      return event.key === "ArrowUp" ? !1 : (event.preventDefault(), results[0].focus(), !0);
+    let index = results.indexOf(
+      /** @type {HTMLElement} */
+      active
+    );
+    return index === -1 ? !1 : (event.preventDefault(), event.key === "ArrowDown" ? results[Math.min(index + 1, results.length - 1)].focus() : index === 0 ? quickFind.focus() : results[index - 1].focus(), !0);
+  }
+  function centerOf(node) {
+    let box = node.getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  }
+  function nearestInDirection(from, candidates, [dx, dy]) {
+    let origin = centerOf(from), best = null, bestScore = 1 / 0;
+    for (let node of candidates) {
+      if (node === from) continue;
+      let point = centerOf(node), along = (point.x - origin.x) * dx + (point.y - origin.y) * dy;
+      if (along <= 8) continue;
+      let across = Math.abs((point.x - origin.x) * dy - (point.y - origin.y) * dx), score = along + across * 2;
+      score < bestScore && (best = node, bestScore = score);
+    }
+    return best;
+  }
+  function neighbor(list, node, step) {
+    let index = list.indexOf(node);
+    return index === -1 ? null : list[index + step] || null;
+  }
+  function planetTarget(planet, [dx, dy]) {
+    let cluster = planet.closest(".planet-cluster"), container = cluster.parentElement, planets = [...container.querySelectorAll(":scope > .planet-cluster > :is(.home-satellite, .detail-satellite)")];
+    return dx ? neighbor(planets, planet, dx) : dy > 0 ? cluster.querySelector(".moon-link") : container.querySelector(":scope > .home-hub");
+  }
+  function moonTarget(moon, [dx, dy]) {
+    let field = moon.closest(".moon-field");
+    return dx ? neighbor([...field.querySelectorAll(".moon-link")], moon, dx) : dy < 0 ? field.closest(".planet-cluster").querySelector(`:scope > :is(${PLANET_SELECTOR})`) : null;
+  }
+  function handleMapArrows(event) {
+    let direction = ARROWS[event.key];
+    if (!direction || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || modes.menuOpen()) return;
+    let active = (
+      /** @type {HTMLElement} */
+      document.activeElement
+    ), target = null;
+    active.classList.contains("home-hub") ? target = nearestInDirection(active, [...app.querySelectorAll(".home-hub")], direction) : active.matches(PLANET_SELECTOR) ? target = planetTarget(active, direction) : active.classList.contains("moon-link") && (target = moonTarget(active, direction)), target && (event.preventDefault(), target.focus());
+  }
+  function installKeys() {
+    window.addEventListener("keydown", (event) => {
+      event.defaultPrevented || handlePaletteKey(event) || modes.overlayIs("palette") || !modes.keyAllowed("other") || handlePaletteShortcut(event) || (event.key === "Tab" ? modes.menuOpen() && trapMenuFocus(event) : event.key === "Escape" ? handleEscape(event) : !handleSlash(event) && !handleFindArrows(event) && handleMapArrows(event));
+    });
+  }
+
   // src/ui/views/clicks.js
   function trackDestinationClicks(event) {
     if (event.type === "auxclick" && event.button !== 1) return;
@@ -3964,6 +4390,14 @@ ${link.note}`), node;
     updateWorkspaceSwitch,
     switchWorkspace,
     loadWorkspaces,
+    // drag.js and keys.js (phase 7), for app.js's mode subscriber and the page checks.
+    orbitModes: modes,
+    gestureEnded,
+    showEditMode,
+    setEditMode,
+    cancelDrag,
+    updateEditBar,
+    moveMapItem,
     // Read by tests/data_compat_check.py.
     loadVariables: readVariables,
     readOffered,
@@ -3979,4 +4413,6 @@ ${link.note}`), node;
   installLayout();
   installClicks();
   installRoutineOffers();
+  installDrag();
+  installKeys();
 })();

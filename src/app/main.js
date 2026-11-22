@@ -39,6 +39,8 @@ import { noticeArea, showOpenAllNotice } from '../ui/notices/area.js';
 import * as backupNotice from '../ui/notices/backup.js';
 import { installRoutineOffers, offerDueRoutines } from '../ui/notices/routine-offer.js';
 import { checkTeamUpdates } from '../ui/notices/team-updates.js';
+import * as dragUi from '../ui/drag/drag.js';
+import { installKeys } from '../ui/keys/keys.js';
 import { installClicks } from '../ui/views/clicks.js';
 import * as favorites from '../ui/views/favorites.js';
 import { quickBar, refreshQuickBar } from '../ui/views/galaxy.js';
@@ -100,6 +102,10 @@ publishPageGlobals({
   editorError, showSunList, openEditorPage, openEditorAt, exportMap, loadTeamMap,
   workspaceKey: menuWorkspaces.workspaceKey, updateWorkspaceSwitch: menuWorkspaces.updateWorkspaceSwitch,
   switchWorkspace: menuWorkspaces.switchWorkspace, loadWorkspaces: workspaces.loadWorkspaces,
+  // drag.js and keys.js (phase 7), for app.js's mode subscriber and the page checks.
+  orbitModes: modes, gestureEnded: dragUi.gestureEnded, showEditMode: dragUi.showEditMode,
+  setEditMode: dragUi.setEditMode, cancelDrag: dragUi.cancelDrag, updateEditBar: dragUi.updateEditBar,
+  moveMapItem: mapOps.moveMapItem,
   // Read by tests/data_compat_check.py.
   loadVariables: prefs.readVariables, readOffered: prefs.readOffered, loadRecent: prefs.readRecent, clearRecent: prefs.clearRecent,
   readBackupState: backup.readBackupState,
@@ -113,4 +119,6 @@ Object.defineProperty(window, 'activeWorkspace', { get: () => activeWorkspace(),
 installLayout();
 installClicks();
 installRoutineOffers();
+dragUi.installDrag();
+installKeys();
 if (ORBIT_TEST) installTestHook(store, { schedule, modes });

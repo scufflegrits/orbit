@@ -12,6 +12,7 @@ import { openMenu, showMenuPanel } from '../menu/menu.js';
 import { switchWorkspace } from '../menu/workspaces.js';
 import { activeWorkspace, store } from '../../state/page-store.js';
 import * as workspaces from '../../state/workspaces.js';
+import { setEditMode } from '../drag/drag.js';
 import { modes } from '../page-modes.js';
 import { favoriteItems } from '../views/favorites.js';
 import { openAll, openAllFavorites, openDestination, runRoutine } from '../views/open.js';

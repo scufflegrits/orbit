@@ -1205,11 +1205,18 @@ Phase 6b closed 2026-11-21.
 
 ### Phase 7: Drag and keyboard
 
-- [ ] `ui/drag/`: Edit mode, the pointer drag, the tray, drag undo, the revision check through `expectRevision`, and the external-change signal. The pressed and dragging states stay in `ui/modes.js` (owner since phase 4b); the drag module keeps only pointer geometry
-- [ ] `ui/keys/`: focus trap, arrow navigation, and Escape (which already asks `ui/modes.js`, since phase 4b)
-- [ ] Browser check of what overlays block: with the placeholder form open, other keys do nothing; with the menu open, Ctrl/Cmd+K and `/` do nothing; opening the menu or palette cancels a drag
-- [ ] Remove `drag.js` and `keys.js` from `index.html` and `APP_SCRIPTS`
-- [ ] Done when: DD01–DD17 and K01–K08 pass with those scripts removed, in Chromium in both modes and in Edge
+- [x] `ui/drag/`: Edit mode, the pointer drag, the tray, drag undo, the revision check through `expectRevision`, and the external-change signal. The pressed and dragging states stay in `ui/modes.js` (owner since phase 4b); the drag module keeps only pointer geometry. Done as `ui/drag/drag.js`, ported like 6b. The revision and storage checks read the store (`store.state().revision`, the active workspace's map key) instead of `app.js`'s copies; the cross-tab `storage` event still refreshes the Edit bar, as in 2.2.1.
+- [x] `ui/keys/`: focus trap, arrow navigation, and Escape (which already asks `ui/modes.js`, since phase 4b). Done as `ui/keys/keys.js`.
+- [x] Browser check of what overlays block: with the placeholder form open, other keys do nothing; with the menu open, Ctrl/Cmd+K and `/` do nothing; opening the menu or palette cancels a drag. Covered by `tests/mode_rules_check.py` (MR03, MR06, MR07, MR08), which passes with the scripts removed.
+- [x] Remove `drag.js` and `keys.js` from `index.html` and `APP_SCRIPTS`
+- Phase 7 notes:
+  - **Listeners in the same order.** `main.js` installs the drag module's document and window listeners after the layout, click, and routine-offer ones, as the scripts' load order did, so the Edit mode guard still runs after Shift+click in the capture phase. The Edit bar's buttons are wired once the page has loaded, because the bundle runs in `<head>`.
+  - **One test read a page variable.** `tests/drag_drop.py` cancels a pointer using `drag.pointerId`; the test hook gives it a read-only `drag` getter, in the test bundle only. The first Chromium run caught it.
+- [x] Done when: DD01–DD17 and K01–K08 pass with those scripts removed, in Chromium in both modes and in Edge
+
+  Met 2026-11-21 with `drag.js` and `keys.js` removed: 180 node tests; every suite in Chromium in both modes with the baseline counts (the full matrix with K01–K08, 39; drag 15 and 29, DD01–DD16; sizes 13; pending 21; features 53), plus mode rules 23, data compatibility, release smoke, behavior 22, and the services check; headless Edge 158 on the VM passed drag phase 2 (14 + 14, with DD17), features (27 + 27), sizes (7 + 7), pending (11 + 11), and the services pop-up checks (6 + 6) in file and server mode.
+
+Phase 7 closed 2026-11-21.
 
 ### Phase 8: Remove the old code and harden
 

@@ -100,7 +100,7 @@ export function problemsIn(name, text) {
 }
 
 test('one owner: no old flag, no menuOverlay.hidden outside the subscriber, no controller used as a test', () => {
-  assert.ok(OLD.includes('app.js') && OLD.includes('drag.js'), `read the script list from tests/helpers.py (${OLD})`);
+  assert.ok(OLD.includes('app.js'), `read the script list from tests/helpers.py (${OLD})`);
   const problems = FILES.flatMap(path => problemsIn(relative(ROOT, path), readFileSync(path, 'utf8')));
   assert.deepEqual(problems, []);
 });

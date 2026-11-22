@@ -17,7 +17,7 @@ interface Window {
 
 // ---- Old classic-script globals (temporary) -------------------------------------
 // What src/ still reads from the old scripts that remain (app.js, storage.js,
-// rdp.js, drag.js, keys.js), by script. Phase 8 moves the last of them.
+// rdp.js), by script. Phase 8 moves the last of them.
 // app.js
 declare const APP_VERSION: string;
 declare const app: HTMLElement;
@@ -44,10 +44,6 @@ declare function setFindQuery(text: string): void;
 declare function setGalaxyView(view: string): void;
 declare function dataSourceLabel(): string;
 declare function undoRemoval(): void;
-// drag.js
-declare const editToggle: HTMLElement;
-declare function updateEditBar(): void;
-declare function setEditMode(on: boolean): void;
 // rdp.js
 declare function effectiveRdpProfile(item: any): string | null;
 declare function rdpLaunchUrl(item: any): string;

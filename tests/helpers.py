@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # so separate checkouts and worktrees never overwrite each other's files.
 ARTIFACTS = ROOT / ".artifacts"
 # Classic scripts loaded by index.html (besides links-data.js). Add new split files here.
-APP_SCRIPTS = ("rdp.js", "storage.js", "drag.js", "keys.js", "app.js")
+APP_SCRIPTS = ("rdp.js", "storage.js", "app.js")
 # The bundle built from src/ (build.mjs). Fixtures get the test bundle under this name, so index.html
 # is the same file in tests and in release; the committed release bundle is checked by
 # `npm run check:bundle` and tests/release_smoke.py instead.

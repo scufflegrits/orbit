@@ -1,20 +1,29 @@
-// Keyboard handling: menu focus trap, Escape layers, Quick find keys, and arrow
-// navigation through suns, planets, and moons. Loaded as a classic
-// script before app.js. Uses shared state from app.js and menu.js (menuOverlay,
-// quickFind, app) and the modes (drag.js orbitModes) only when a key is pressed.
+// Keyboard handling (2.2.1 keys.js): the menu's focus trap, Escape by the
+// mode store's topmost layer, / for Quick find, arrows through the results,
+// and arrows between suns, planets, and moons. Moved in rewrite phase 7.
+import { cancelDrag, editBar, editToggle, setEditMode } from '../drag/drag.js';
+import { handlePaletteKey, handlePaletteShortcut } from '../find/palette.js';
+import { closeMenu } from '../menu/menu.js';
+import { modes } from '../page-modes.js';
+
+/** @type {Record<string, [number, number]>} */
+const ARROWS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
+const PLANET_SELECTOR = '.home-satellite, .detail-satellite';
 
 function menuFocusables() {
-  return [...menuOverlay.querySelectorAll('.menu-sheet :is(button, a[href], input, select, textarea, [tabindex])')]
+  return [.../** @type {NodeListOf<HTMLButtonElement>} */ (menuOverlay.querySelectorAll('.menu-sheet :is(button, a[href], input, select, textarea, [tabindex])'))]
     .filter(node => !node.disabled && node.tabIndex >= 0 && node.getClientRects().length > 0);
 }
 
-// Keep Tab and Shift+Tab inside the open menu.
+/**
+ * @param {any} event
+ */
 function trapMenuFocus(event) {
   const items = menuFocusables();
   if (!items.length) return;
   const first = items[0];
   const last = items[items.length - 1];
-  const inside = menuOverlay.querySelector('.menu-sheet').contains(document.activeElement);
+  const inside = /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-sheet')).contains(document.activeElement);
   if (!inside) {
     event.preventDefault();
     (event.shiftKey ? last : first).focus();
@@ -27,12 +36,11 @@ function trapMenuFocus(event) {
   }
 }
 
-// Escape handles the topmost layer, as src/ui/modes.js orders them: an
-// overlay (the palette and placeholder form handle their own Escape, so
-// here it is the menu), then a pressed or dragged item, then Edit mode, then
-// Quick find, then a System.
+/**
+ * @param {any} event
+ */
 function handleEscape(event) {
-  const target = orbitModes.escapeTarget();
+  const target = modes.escapeTarget();
   if (target === 'overlay') {
     event.preventDefault();
     closeMenu();
@@ -41,13 +49,13 @@ function handleEscape(event) {
     cancelDrag();
   } else if (target === 'edit') {
     event.preventDefault();
-    const inBar = editBar.contains(document.activeElement);
+    const inBar = editBar().contains(document.activeElement);
     setEditMode(false);
-    if (inBar) editToggle.focus();
+    if (inBar) editToggle().focus();
   } else if (target === 'find') {
     event.preventDefault();
     // Keep keyboard users in the search box when the result they were on disappears.
-    if (document.activeElement.closest('.find-results')) quickFind.focus();
+    if (document.activeElement?.closest('.find-results')) quickFind.focus();
     quickFind.value = '';
     setFindQuery('');
     // On the Galaxy the input handler refreshes results; in a System it would leave the System.
@@ -57,25 +65,32 @@ function handleEscape(event) {
   }
 }
 
+/**
+ * @param {any} target
+ */
 function typingInField(target) {
   return target instanceof HTMLElement &&
     (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 }
 
-// "/" jumps to Quick find unless the user is typing, a menu is open, or Quick find is hidden.
+/**
+ * @param {any} event
+ */
 function handleSlash(event) {
   if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return false;
-  if (typingInField(event.target) || !orbitModes.keyAllowed('slash') || topbarSearch.hidden) return false;
+  if (typingInField(event.target) || !modes.keyAllowed('slash') || topbarSearch.hidden) return false;
   event.preventDefault();
   quickFind.focus();
   quickFind.select();
   return true;
 }
 
-// Down Arrow leaves Quick find for the results; Up and Down move through them.
+/**
+ * @param {any} event
+ */
 function handleFindArrows(event) {
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return false;
-  const results = [...app.querySelectorAll('.find-item')];
+  const results = [.../** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.find-item'))];
   if (!results.length) return false;
   const active = document.activeElement;
   if (active === quickFind) {
@@ -84,7 +99,7 @@ function handleFindArrows(event) {
     results[0].focus();
     return true;
   }
-  const index = results.indexOf(active);
+  const index = results.indexOf(/** @type {HTMLElement} */ (active));
   if (index === -1) return false;
   event.preventDefault();
   if (event.key === 'ArrowDown') results[Math.min(index + 1, results.length - 1)].focus();
@@ -93,15 +108,19 @@ function handleFindArrows(event) {
   return true;
 }
 
-const ARROWS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
-const PLANET_SELECTOR = '.home-satellite, .detail-satellite';
-
+/**
+ * @param {any} node
+ */
 function centerOf(node) {
   const box = node.getBoundingClientRect();
   return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
 }
 
-// The closest sun in the pressed direction; sideways drift counts double so rows and columns stay put.
+/**
+ * @param {any} from
+ * @param {any} candidates
+ * @param {any} options
+ */
 function nearestInDirection(from, candidates, [dx, dy]) {
   const origin = centerOf(from);
   let best = null;
@@ -118,11 +137,20 @@ function nearestInDirection(from, candidates, [dx, dy]) {
   return best;
 }
 
+/**
+ * @param {any} list
+ * @param {any} node
+ * @param {any} step
+ */
 function neighbor(list, node, step) {
   const index = list.indexOf(node);
   return index === -1 ? null : list[index + step] || null;
 }
 
+/**
+ * @param {any} planet
+ * @param {any} options
+ */
 function planetTarget(planet, [dx, dy]) {
   const cluster = planet.closest('.planet-cluster');
   const container = cluster.parentElement;
@@ -132,6 +160,10 @@ function planetTarget(planet, [dx, dy]) {
   return container.querySelector(':scope > .home-hub');
 }
 
+/**
+ * @param {any} moon
+ * @param {any} options
+ */
 function moonTarget(moon, [dx, dy]) {
   const field = moon.closest('.moon-field');
   if (dx) return neighbor([...field.querySelectorAll('.moon-link')], moon, dx);
@@ -139,11 +171,15 @@ function moonTarget(moon, [dx, dy]) {
   return null;
 }
 
+/**
+ * @param {any} event
+ */
 function handleMapArrows(event) {
   const direction = ARROWS[event.key];
   if (!direction || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-  if (menuOpen()) return;
-  const active = document.activeElement;
+  if (modes.menuOpen()) return;
+  const active = /** @type {HTMLElement} */ (document.activeElement);
+  /** @type {HTMLElement | null} */
   let target = null;
   if (active.classList.contains('home-hub')) {
     target = nearestInDirection(active, [...app.querySelectorAll('.home-hub')], direction);
@@ -158,16 +194,19 @@ function handleMapArrows(event) {
   }
 }
 
-window.addEventListener('keydown', event => {
-  if (event.defaultPrevented) return;
-  // The command palette takes every key while it is open, and the placeholder form handles its own.
-  if (handlePaletteKey(event) || orbitModes.overlayIs('palette') || !orbitModes.keyAllowed('other')) return;
-  if (handlePaletteShortcut(event)) return;
-  if (event.key === 'Tab') {
-    if (menuOpen()) trapMenuFocus(event);
-  } else if (event.key === 'Escape') {
-    handleEscape(event);
-  } else if (!handleSlash(event) && !handleFindArrows(event)) {
-    handleMapArrows(event);
-  }
-});
+/** Listen for keys on the window, as 2.2.1 did. */
+export function installKeys() {
+  window.addEventListener('keydown', event => {
+    if (event.defaultPrevented) return;
+    // The command palette takes every key while it is open, and the placeholder form handles its own.
+    if (handlePaletteKey(event) || modes.overlayIs('palette') || !modes.keyAllowed('other')) return;
+    if (handlePaletteShortcut(event)) return;
+    if (event.key === 'Tab') {
+      if (modes.menuOpen()) trapMenuFocus(event);
+    } else if (event.key === 'Escape') {
+      handleEscape(event);
+    } else if (!handleSlash(event) && !handleFindArrows(event)) {
+      handleMapArrows(event);
+    }
+  });
+}

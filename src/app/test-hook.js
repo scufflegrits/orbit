@@ -17,6 +17,7 @@ import { workspaceKey } from '../state/workspaces.js';
 import { openEditorAt } from '../ui/editor/page.js';
 import { exportMap, showSunList } from '../ui/editor/screens.js';
 import { openMenu } from '../ui/menu/menu.js';
+import { currentGesture, setEditMode } from '../ui/drag/drag.js';
 import { openPalette } from '../ui/find/palette.js';
 import { destinationNode, siteIcon } from '../ui/views/nodes.js';
 import { render } from '../ui/views/render.js';
@@ -31,6 +32,9 @@ const copy = value => (value === undefined ? value : JSON.parse(JSON.stringify(v
  * @param {{schedule: typeof import('../services/schedule.js'), modes: ReturnType<typeof import('../ui/mode-store.js').createModeStore>}} parts
  */
 export function installTestHook(store, { schedule, modes }) {
+  // tests/drag_drop.py reads the gesture's pointer id as `drag`, as it could
+  // when drag.js was a classic script. Read-only, and in the test bundle only.
+  Object.defineProperty(window, 'drag', { get: currentGesture, configurable: true });
   window.OrbitTest = {
     /** The combined map (team suns first, as the page numbers them) and the state around it. */
     state() {
