@@ -100,16 +100,8 @@ function undoRemoval() {
 
 async function init() {
   try {
-    let data;
-    if (location.protocol === 'file:') {
-      data = window.ORBIT_DATA;
-    } else {
-      const response = await fetch('./links.json', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      data = await response.json();
-    }
-    if (!data) throw new Error('Run `python3 sync.py` to generate links-data.js.');
-    const seed = validateMap(data);
+    // window.ORBIT_DATA or links.json, validated (src/services/sources.js, rewrite phase 4).
+    const seed = await window.OrbitNext.services.sources.loadBundledMap();
     await loadTeamMap();
     // Loads the workspace's map; the subscriber above copies it and renders.
     orbitStore.start({ seed, team: teamGroups });

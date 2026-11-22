@@ -6,10 +6,8 @@
 function validRdpHost(host, label) { return window.OrbitNext.core.validRdpHost(host, label); }
 function parseRdpProfile(text, targetHost = null) { return window.OrbitNext.core.parseRdpProfile(text, targetHost); }
 
-async function readRdpText(file) {
-  if (file.size > window.OrbitNext.core.RDP_FILE_LIMIT) throw new Error('The .rdp file is too large to import.');
-  return window.OrbitNext.core.decodeRdpBytes(new Uint8Array(await file.arrayBuffer()));
-}
+// Reading and downloading moved to src/services/ in rewrite phase 4.
+function readRdpText(file) { return window.OrbitNext.services.fileIo.readRdpText(file); }
 
 // The settings a Remote Desktop link opens with: its preset (with its own
 // computer), else its imported profile, else none.
@@ -18,16 +16,7 @@ function effectiveRdpProfile(destination) {
 }
 
 function downloadRdp(destination) {
-  const content = window.OrbitNext.core.rdpFileContent(destination, typeof rdpPresets !== 'undefined' ? rdpPresets : []);
-  const blob = new Blob([content], { type: 'application/x-rdp' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = window.OrbitNext.core.rdpFileName(destination);
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  window.OrbitNext.services.rdpLaunch.downloadRdp(destination, typeof rdpPresets !== 'undefined' ? rdpPresets : []);
 }
 
 function rdpLaunchUrl(destination) {

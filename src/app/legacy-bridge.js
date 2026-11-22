@@ -10,6 +10,8 @@
  *   old scripts' forwarding functions (phase 2 on).
  * @property {ReturnType<typeof import('../state/store.js').createStore>} store The one store (phase 3 on).
  * @property {Readonly<Record<string, any>>} state The state modules (storage, workspaces, prefs, history, backup).
+ * @property {Readonly<Record<string, any>>} services The service modules (sources, opener, rdpLaunch, linkCheck,
+ *   fileIo, schedule), phase 4 on.
  */
 
 /** @param {OrbitNextApi} api */

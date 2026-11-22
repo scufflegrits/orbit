@@ -2,21 +2,11 @@
 // classic script after routines.js. Uses shared state and helpers from the
 // other scripts only when called.
 
-const VARIABLES_KEY = 'orbit:variables:v1';
 let variableDialog = null;
 
-function loadVariables() {
-  try {
-    const value = JSON.parse(localStorage.getItem(VARIABLES_KEY) || '{}');
-    return value && typeof value === 'object' ? value : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveVariables(values) {
-  try { localStorage.setItem(VARIABLES_KEY, JSON.stringify({ ...loadVariables(), ...values })); } catch { /* Storage may be unavailable. */ }
-}
+// Saved values moved to src/state/prefs.js in rewrite phase 4.
+function loadVariables() { return window.OrbitNext.state.prefs.readVariables(); }
+function saveVariables(values) { window.OrbitNext.state.prefs.saveVariables(values); }
 
 // Ask for each placeholder, prefilled with the value used last, then open the
 // link. The Open click is the user action that lets the browser open a tab.
@@ -59,8 +49,7 @@ function askForVariables(item) {
     if (Object.values(values).some(value => !value)) return;
     saveVariables(values);
     closeVariableDialog();
-    const opened = window.open(fillTemplate(item.url, values), '_blank');
-    if (opened) opened.opener = null;
+    window.OrbitNext.services.opener.openTab(fillTemplate(item.url, values));
     noteOpened(item);
   });
   form.addEventListener('keydown', event => {

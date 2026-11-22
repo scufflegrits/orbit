@@ -761,6 +761,15 @@ prompt for credentials:i:1\r
     }), scored.sort((a, b) => b.match.score - a.match.score || a.order - b.order), scored.map((item) => item.match);
   }
 
+  // src/core/words.js
+  var words_exports = {};
+  __export(words_exports, {
+    counted: () => counted
+  });
+  function counted(amount, word, plural = `${word}s`) {
+    return `${amount} ${amount === 1 ? word : plural}`;
+  }
+
   // src/state/backup.js
   var backup_exports = {};
   __export(backup_exports, {
@@ -777,13 +786,13 @@ prompt for credentials:i:1\r
   function writeBackupState(state) {
     writeSafely(KEYS.backup, JSON.stringify(state));
   }
-  function countChange(workspace, now = Date.now()) {
+  function countChange(workspace, now2 = Date.now()) {
     let state = readBackupState(), entry = state[workspace] || {};
-    entry.changes = (entry.changes || 0) + 1, entry.since = entry.since || entry.lastExport || now, state[workspace] = entry, writeBackupState(state);
+    entry.changes = (entry.changes || 0) + 1, entry.since = entry.since || entry.lastExport || now2, state[workspace] = entry, writeBackupState(state);
   }
-  function noteBackupMade(workspace, now = Date.now()) {
+  function noteBackupMade(workspace, now2 = Date.now()) {
     let state = readBackupState();
-    state[workspace] = { changes: 0, lastExport: now }, writeBackupState(state);
+    state[workspace] = { changes: 0, lastExport: now2 }, writeBackupState(state);
   }
   function forgetWorkspace(workspace) {
     let state = readBackupState();
@@ -794,13 +803,19 @@ prompt for credentials:i:1\r
   var prefs_exports = {};
   __export(prefs_exports, {
     hiddenTeamSuns: () => hiddenTeamSuns,
+    markOffered: () => markOffered,
     readBoolean: () => readBoolean,
     readFontSize: () => readFontSize,
     readGalaxyView: () => readGalaxyView,
+    readOffered: () => readOffered,
     readRdpLaunch: () => readRdpLaunch,
     readStoredSet: () => readStoredSet,
+    readTeamSeen: () => readTeamSeen,
     readTheme: () => readTheme,
+    readVariables: () => readVariables,
+    rememberTeam: () => rememberTeam,
     savePreference: () => savePreference,
+    saveVariables: () => saveVariables,
     writeStoredSet: () => writeStoredSet
   });
   function readBoolean(key, fallback) {
@@ -826,6 +841,26 @@ prompt for credentials:i:1\r
     writeSafely(key, JSON.stringify([...set]));
   }
   var hiddenTeamSuns = () => readStoredSet(KEYS.teamHidden);
+  function readObject(key) {
+    let value = readJson(key, {});
+    return value && typeof value == "object" ? value : {};
+  }
+  var readVariables = () => readObject(KEYS.variables);
+  function saveVariables(values) {
+    writeSafely(KEYS.variables, JSON.stringify({ ...readVariables(), ...values }));
+  }
+  var readOffered = () => readObject(KEYS.routineOffered);
+  function markOffered(id, day) {
+    let offered = readOffered();
+    offered[id] = day, writeSafely(KEYS.routineOffered, JSON.stringify(offered));
+  }
+  function readTeamSeen() {
+    let value = readJson(KEYS.teamSeen, null);
+    return Array.isArray(value) ? value : null;
+  }
+  function rememberTeam(entries) {
+    writeSafely(KEYS.teamSeen, JSON.stringify(entries.map(({ key, name }) => ({ key, name }))));
+  }
 
   // src/state/store.js
   function createStore() {
@@ -1057,12 +1092,258 @@ prompt for credentials:i:1\r
     return store2;
   }
 
+  // src/services/file-io.js
+  var file_io_exports = {};
+  __export(file_io_exports, {
+    downloadJson: () => downloadJson2,
+    downloadText: () => downloadText,
+    pickFile: () => pickFile,
+    readBookmarksHtml: () => readBookmarksHtml,
+    readJsonFile: () => readJsonFile,
+    readRdpText: () => readRdpText
+  });
+  function downloadText(text, filename, type) {
+    let page = (
+      /** @type {any} */
+      globalThis
+    ), blob = new Blob([text], { type }), url = page.URL.createObjectURL(blob), anchor = page.document.createElement("a");
+    anchor.href = url, anchor.download = filename, page.document.body.append(anchor), anchor.click(), anchor.remove(), setTimeout(() => page.URL.revokeObjectURL(url), 1e3);
+  }
+  function downloadJson2(data, filename) {
+    downloadText(JSON.stringify(data, null, 2) + `
+`, filename, "application/json");
+  }
+  function pickFile(accept, onFile) {
+    let input = (
+      /** @type {HTMLInputElement} */
+      /** @type {any} */
+      globalThis.document.createElement("input")
+    );
+    input.type = "file", input.accept = accept, input.addEventListener("change", () => {
+      input.files?.length && onFile(input.files[0]);
+    }), input.click();
+  }
+  async function readJsonFile(file) {
+    return JSON.parse(await file.text());
+  }
+  async function readRdpText(file) {
+    if (file.size > 64e3) throw new Error("The .rdp file is too large to import.");
+    return decodeRdpBytes(new Uint8Array(await file.arrayBuffer()));
+  }
+  function readBookmarkFolder(list, name) {
+    let folder = { name, links: [], folders: [] };
+    for (let entry of list.querySelectorAll(":scope > dt, :scope > p > dt")) {
+      let heading = entry.querySelector(":scope > h3"), anchor = entry.querySelector(":scope > a");
+      if (heading) {
+        let sub = entry.querySelector(":scope > dl") || (entry.nextElementSibling?.tagName === "DL" ? entry.nextElementSibling : null);
+        sub && folder.folders.push(readBookmarkFolder(sub, heading.textContent?.trim() || "Folder"));
+      } else anchor && folder.links.push({ name: anchor.textContent?.trim() ?? "", url: anchor.getAttribute("href") || "" });
+    }
+    return folder;
+  }
+  function readBookmarksHtml(text) {
+    let list = new /** @type {any} */
+    globalThis.DOMParser().parseFromString(text, "text/html").querySelector("dl");
+    if (!list) throw new Error("This is not a bookmarks file. Export bookmarks from your browser as HTML.");
+    return readBookmarkFolder(list, "Bookmarks");
+  }
+
+  // src/services/link-check.js
+  var link_check_exports = {};
+  __export(link_check_exports, {
+    BATCH_SIZE: () => BATCH_SIZE,
+    checkLinks: () => checkLinks
+  });
+  var BATCH_SIZE = 50;
+  async function checkLinks(urls, { onProgress = () => {
+  }, fetch = (url, init) => globalThis.fetch(url, init) } = {}) {
+    let answers = {};
+    for (let index = 0; index < urls.length; index += 50) {
+      onProgress(index, urls.length);
+      let response = await fetch("./api/check-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Orbit-Check": "1" },
+        body: JSON.stringify({ urls: urls.slice(index, index + 50) })
+      });
+      if (response.status === 404 || response.status === 501)
+        throw new Error("This server cannot check links. Start Orbit with python3 serve.py from this version.");
+      if (!response.ok) throw new Error(`The server answered HTTP ${response.status}.`);
+      Object.assign(answers, await response.json());
+    }
+    return answers;
+  }
+
+  // src/services/opener.js
+  var opener_exports = {};
+  __export(opener_exports, {
+    openDestination: () => openDestination,
+    openLinks: () => openLinks,
+    openPlan: () => openPlan,
+    openTab: () => openTab,
+    planLinks: () => planLinks
+  });
+
+  // src/services/rdp-launch.js
+  var rdp_launch_exports = {};
+  __export(rdp_launch_exports, {
+    downloadRdp: () => downloadRdp,
+    launchRdp: () => launchRdp
+  });
+  function downloadRdp(destination, presets) {
+    downloadText(rdpFileContent(destination, presets), rdpFileName(destination), "application/x-rdp");
+  }
+  function launchRdp(destination, presets, mode) {
+    mode === "download" ? downloadRdp(destination, presets) : globalThis.location.href = rdpLaunchUrl2(destination, presets);
+  }
+
+  // src/services/opener.js
+  function openTab(url) {
+    let opened = (
+      /** @type {any} */
+      globalThis.open(url, "_blank")
+    );
+    return opened && (opened.opener = null), !!opened;
+  }
+  function openDestination(item, { presets, launchMode }) {
+    return item.type === "rdp" ? (launchRdp(item, presets, launchMode), "rdp") : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
+  }
+  function planLinks(items, label, { question = null, extra = "", values = readVariables() } = {}) {
+    let filled = (item) => item.type !== "rdp" && templateNames(item.url).every((name) => values[name]), all = items.filter((item) => item.type !== "rdp"), web = all.filter(filled).map((item) => ({ item, url: fillTemplate(
+      /** @type {any} */
+      item.url,
+      values
+    ) })), skipped = items.length - all.length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
+    return {
+      web,
+      note,
+      label,
+      question: question ? question(web.length) : `Open ${web.length} tabs for ${label}?`,
+      empty: web.length ? null : `${label} has no website links to open.${note}`
+    };
+  }
+  function openPlan(plan, onOpened = () => {
+  }) {
+    let blocked = 0;
+    for (let { item, url } of plan.web)
+      openTab(url) ? onOpened(item) : blocked++;
+    let message = blocked ? `Your browser blocked ${counted(blocked, "tab")}. Allow pop-ups for Orbit in the browser's address bar, then try again.${plan.note}` : `Opened ${counted(plan.web.length, "tab")} for ${plan.label}.${plan.note}`;
+    return { opened: plan.web.length - blocked, blocked, message, isError: blocked > 0 };
+  }
+  function openLinks(items, label, { confirm = !0, question = null, extra = "", ask, onOpened }) {
+    let plan = planLinks(items, label, { question, extra });
+    if (plan.empty !== null) return { message: plan.empty, isError: !1 };
+    if (confirm && plan.web.length > 1 && !ask(plan.question)) return null;
+    let { message, isError } = openPlan(plan, onOpened);
+    return { message, isError };
+  }
+
+  // src/services/schedule.js
+  var schedule_exports = {};
+  __export(schedule_exports, {
+    BACKUP_CHANGES: () => BACKUP_CHANGES,
+    BACKUP_DAYS: () => BACKUP_DAYS,
+    DAY_MS: () => DAY_MS,
+    SNOOZE_MS: () => SNOOZE_MS,
+    backupDue: () => backupDue,
+    dueRoutines: () => dueRoutines,
+    localDay: () => localDay,
+    now: () => now,
+    setNow: () => setNow,
+    teamChanges: () => teamChanges,
+    teamEntries: () => teamEntries,
+    today: () => today
+  });
+  var BACKUP_CHANGES = 20, BACKUP_DAYS = 14, DAY_MS = 1440 * 60 * 1e3, SNOOZE_MS = 3 * DAY_MS, fixedNow = null, now = () => fixedNow === null ? Date.now() : fixedNow, today = () => new Date(now());
+  function setNow(ms) {
+    fixedNow = ms == null ? null : Number(ms);
+  }
+  function localDay(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
+  function dueRoutines(routines, offered, date = today()) {
+    let time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    return routines.filter((routine) => routine.schedule && routine.schedule.days.includes(date.getDay()) && routine.schedule.time <= time && offered[routine.id] !== localDay(date));
+  }
+  function backupDue(entry, enabled, time = now()) {
+    if (!enabled || !entry?.changes || entry.snoozeUntil && time < entry.snoozeUntil) return null;
+    let days = Math.floor((time - (entry.since || time)) / DAY_MS);
+    return entry.changes >= BACKUP_CHANGES || days >= BACKUP_DAYS ? { changes: entry.changes, days } : null;
+  }
+  function teamEntries(teamGroups) {
+    return teamGroups.flatMap((sun) => sun.links.flatMap((planet) => [
+      { key: destinationKey(planet), name: planet.name, path: sun.name },
+      ...planet.moons.map((moon) => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` }))
+    ]));
+  }
+  function teamChanges(seen, current) {
+    if (!Array.isArray(seen)) return { first: !0 };
+    let seenKeys = new Set(seen.map((entry) => entry.key)), currentKeys = new Set(current.map((entry) => entry.key));
+    return {
+      first: !1,
+      added: current.filter((entry) => !seenKeys.has(entry.key)),
+      removed: seen.filter((entry) => !currentKeys.has(entry.key))
+    };
+  }
+
+  // src/services/sources.js
+  var sources_exports = {};
+  __export(sources_exports, {
+    loadBundledMap: () => loadBundledMap,
+    loadTeamMap: () => loadTeamMap,
+    pageEnv: () => pageEnv
+  });
+  function pageEnv() {
+    let page = (
+      /** @type {any} */
+      globalThis
+    );
+    return {
+      protocol: page.location.protocol,
+      fetch: (url, init) => page.fetch(url, init),
+      bundledData: page.ORBIT_DATA,
+      teamData: page.ORBIT_TEAM_DATA
+    };
+  }
+  async function loadBundledMap(env = pageEnv()) {
+    let data;
+    if (env.protocol === "file:")
+      data = env.bundledData;
+    else {
+      let response = await env.fetch("./links.json", { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      data = await response.json();
+    }
+    if (!data) throw new Error("Run `python3 sync.py` to generate links-data.js.");
+    return validateMap(data);
+  }
+  async function fetchTeamData(env) {
+    if (env.protocol !== "file:")
+      try {
+        let response = await env.fetch("./team.json", { cache: "no-store" });
+        if (response.ok) return { data: await response.json(), source: "team.json from serve.py --team" };
+        if (response.status !== 404) throw new Error(`HTTP ${response.status}`);
+      } catch (error) {
+        if (!env.teamData) throw error;
+      }
+    return env.teamData ? { data: env.teamData, source: "team-data.js" } : null;
+  }
+  async function loadTeamMap(env = pageEnv()) {
+    try {
+      let loaded = await fetchTeamData(env);
+      return loaded ? { groups: validateMap(loaded.data).groups.map((sun) => ({ ...sun, id: `team:${sun.id}`, team: !0 })), source: loaded.source, error: "" } : { groups: [], source: "", error: "" };
+    } catch (error) {
+      return { groups: [], source: "", error: `The team map could not be loaded: ${/** @type {Error} */
+      error.message}` };
+    }
+  }
+
   // src/app/main.js
   var store = createStore();
   publishBridge({
     version: APP_VERSION,
-    core: Object.freeze({ ...templates_exports, ...destination_exports, ...search_exports, ...rdp_exports, ...schema_exports, ...map_ops_exports, ...bookmarks_exports }),
+    core: Object.freeze({ ...templates_exports, ...destination_exports, ...search_exports, ...rdp_exports, ...schema_exports, ...map_ops_exports, ...bookmarks_exports, ...words_exports }),
     store,
-    state: Object.freeze({ storage: storage_exports, workspaces: workspaces_exports, prefs: prefs_exports, history: history_exports, backup: backup_exports })
+    state: Object.freeze({ storage: storage_exports, workspaces: workspaces_exports, prefs: prefs_exports, history: history_exports, backup: backup_exports }),
+    services: Object.freeze({ sources: sources_exports, opener: opener_exports, rdpLaunch: rdp_launch_exports, linkCheck: link_check_exports, fileIo: file_io_exports, schedule: schedule_exports })
   });
 })();

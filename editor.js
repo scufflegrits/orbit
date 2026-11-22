@@ -196,17 +196,9 @@ function editorActions() {
   return actions;
 }
 
-function downloadJson(data, filename) {
-  const blob = new Blob([JSON.stringify(data, null, 2) + '\n'], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+// Files moved to src/services/file-io.js in rewrite phase 4. OrbitTest's
+// captureDownload replaces this function, so callers must use it by name.
+function downloadJson(data, filename) { window.OrbitNext.services.fileIo.downloadJson(data, filename); }
 
 // The team map is never exported with the personal map.
 function exportMap() {
@@ -221,18 +213,14 @@ function exportItem(kind, item) {
 }
 
 function selectJsonFile(onData) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json,application/json';
-  input.addEventListener('change', async () => {
-    if (!input.files.length) return;
+  const fileIo = window.OrbitNext.services.fileIo;
+  fileIo.pickFile('.json,application/json', async file => {
     try {
-      onData(JSON.parse(await input.files[0].text()));
+      onData(await fileIo.readJsonFile(file));
     } catch (error) {
       editorError(`Import failed: ${error.message}`);
     }
   });
-  input.click();
 }
 
 // Review a whole map before adding it. Merge (the default) adds only what is

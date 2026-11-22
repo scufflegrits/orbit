@@ -3,7 +3,6 @@
 // script after tools.js. Routines are saved with the map (`routines` beside
 // `groups`); links are remembered by destination key.
 
-const ROUTINE_OFFERED_KEY = 'orbit:routine-offered:v1';
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEKDAYS = [1, 2, 3, 4, 5];
 
@@ -33,32 +32,15 @@ function mergeRoutines(current, incoming) { return window.OrbitNext.core.mergeRo
 
 // ---- Arrival offer ------------------------------------------------------
 
-function localDay(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function readOffered() {
-  try {
-    const value = JSON.parse(localStorage.getItem(ROUTINE_OFFERED_KEY) || '{}');
-    return value && typeof value === 'object' ? value : {};
-  } catch {
-    return {};
-  }
-}
-
-function markOffered(id) {
-  const offered = readOffered();
-  offered[id] = localDay(new Date());
-  try { localStorage.setItem(ROUTINE_OFFERED_KEY, JSON.stringify(offered)); } catch { /* Storage may be unavailable. */ }
-}
+// The schedule moved to src/services/schedule.js, and the saved offers to
+// src/state/prefs.js, in rewrite phase 4.
+const scheduleService = () => window.OrbitNext.services.schedule;
+function localDay(date) { return scheduleService().localDay(date); }
+function readOffered() { return window.OrbitNext.state.prefs.readOffered(); }
+function markOffered(id) { window.OrbitNext.state.prefs.markOffered(id, localDay(scheduleService().today())); }
 
 // Scheduled routines that are due today and not yet opened or dismissed.
-function dueRoutines(now = new Date()) {
-  const offered = readOffered();
-  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  return routines.filter(routine => routine.schedule && routine.schedule.days.includes(now.getDay()) &&
-    routine.schedule.time <= time && offered[routine.id] !== localDay(now));
-}
+function dueRoutines(now = scheduleService().today()) { return scheduleService().dueRoutines(routines, readOffered(), now); }
 
 // Browsers only open tabs after a click, so a due routine is offered, never
 // opened by itself.

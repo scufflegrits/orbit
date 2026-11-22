@@ -6,6 +6,7 @@
 //   const old = oracle();                  // a fresh sandbox
 //   old.call('validateMap', data)          // result as plain JSON, or { error: message }
 //   old.set('groups', map.groups)          // the globals 2.2.1 functions read
+//   await old.callAsync('loadTeamMap')     // an async 2.2.1 function
 //
 // Results cross the sandbox boundary as JSON, so they compare equal with
 // assert.deepStrictEqual against objects made here.
@@ -13,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const HERE = new URL('.', import.meta.url);
-const FILES = ['rdp.js', 'storage.js', 'pure.js'];
+const FILES = ['rdp.js', 'storage.js', 'pure.js', 'services.js'];
 const CODE = FILES.map(name => readFileSync(new URL(name, HERE), 'utf8')).join('\n\n');
 
 /** A fresh 2.2.1 sandbox. Each call builds a new one, so tests can't leak state. */
@@ -41,6 +42,14 @@ export function oracle() {
     call(name, ...args) {
       try {
         return toPlain(context.__get(name)(...args.map(inside)));
+      } catch (error) {
+        return { error: String(error && error.message) };
+      }
+    },
+    /** Like call(), for an async 2.2.1 function: awaits it. */
+    async callAsync(name, ...args) {
+      try {
+        return toPlain(await context.__get(name)(...args.map(inside)));
       } catch (error) {
         return { error: String(error && error.message) };
       }

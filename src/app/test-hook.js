@@ -19,8 +19,11 @@ const core = { destinationKey, moveMapItem, validDestination };
 /** @template T @param {T} value @returns {T} */
 const copy = value => (value === undefined ? value : JSON.parse(JSON.stringify(value)));
 
-/** @param {ReturnType<typeof import('../state/store.js').createStore>} store */
-export function installTestHook(store) {
+/**
+ * @param {ReturnType<typeof import('../state/store.js').createStore>} store
+ * @param {{schedule: typeof import('../services/schedule.js')}} services
+ */
+export function installTestHook(store, { schedule }) {
   window.OrbitTest = {
     /** The combined map (team suns first, as the page numbers them) and the state around it. */
     state() {
@@ -111,6 +114,15 @@ export function installTestHook(store) {
       siteIcon: item => siteIcon(item),
       /** @param {any} item @param {string} className @param {number[]} [path] */
       destinationNode: (item, className, path) => destinationNode(item, className, path),
+    },
+
+    /**
+     * Fix the clock routine offers and backup reminders read, or pass null for
+     * the real time again.
+     * @param {number|null} ms
+     */
+    setNow(ms) {
+      schedule.setNow(ms);
     },
 
     /** Clear Orbit's saved data and reload (file:// pages share one localStorage). */

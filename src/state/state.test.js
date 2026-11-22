@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { oracle } from '../../tests/oracle/oracle.mjs';
 import { KEYS, MIGRATIONS, memoryStorage, migrate, onExternalChange, readJson, useBackend, write, writeSafely } from './storage.js';
 import { loadWorkspaces, newWorkspace, readActiveWorkspace, renameWorkspace, workspaceKey, workspaceName } from './workspaces.js';
-import { hiddenTeamSuns, readBoolean, readFontSize, readGalaxyView, readRdpLaunch, readStoredSet, readTheme, savePreference, writeStoredSet } from './prefs.js';
+import { hiddenTeamSuns, markOffered, readBoolean, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
 import { HISTORY_LIMIT, loadHistory, recordHistory } from './history.js';
 import { countChange, forgetWorkspace, noteBackupMade, readBackupState } from './backup.js';
 
@@ -120,6 +120,39 @@ test('prefs: stored sets (team hidden, team favorites) read as sets of strings',
   assert.deepEqual([...readStoredSet('orbit:team-favorites')], []);
   writeStoredSet('orbit:team-favorites', new Set(['https://a.test']));
   assert.equal(storage.getItem('orbit:team-favorites'), '["https://a.test"]');
+});
+
+test('prefs: placeholder values and routine offers read as 2.2.1 loadVariables and readOffered did', () => {
+  const values = ['{"id":"7"}', '[1,2]', 'null', '"text"', '{', '5'];
+  for (const text of values) {
+    const old = oracle();
+    old.setStorage({ 'orbit:variables:v1': text, 'orbit:routine-offered:v1': text });
+    storage.setItem('orbit:variables:v1', text);
+    storage.setItem('orbit:routine-offered:v1', text);
+    assert.deepEqual(JSON.parse(JSON.stringify(readVariables())), old.call('loadVariables'), text);
+    assert.deepEqual(JSON.parse(JSON.stringify(readOffered())), old.call('readOffered'), text);
+  }
+});
+
+test('prefs: saving placeholder values keeps the others; offers record the day; a full storage is ignored', () => {
+  saveVariables({ id: '7' });
+  saveVariables({ q: 'x' });
+  assert.equal(storage.getItem(KEYS.variables), '{"id":"7","q":"x"}');
+  markOffered('r1', '2026-11-23');
+  assert.deepEqual(readOffered(), { r1: '2026-11-23' });
+  storage.failWrites = true;
+  saveVariables({ id: '8' });
+  markOffered('r1', '2026-11-24');
+  assert.equal(readVariables().id, '7');
+});
+
+test('prefs: team links seen last are null until first remembered, and keep only key and name', () => {
+  assert.equal(readTeamSeen(), null);
+  storage.setItem(KEYS.teamSeen, '{"not":"a list"}');
+  assert.equal(readTeamSeen(), null);
+  rememberTeam([{ key: 'https://a.test', name: 'A', path: 'Ops' }]);
+  assert.equal(storage.getItem(KEYS.teamSeen), '[{"key":"https://a.test","name":"A"}]');
+  assert.deepEqual(readTeamSeen(), [{ key: 'https://a.test', name: 'A' }]);
 });
 
 const map = name => [{ id: name, name, description: '', color: '#79d9f8', links: [] }];

@@ -124,22 +124,11 @@ async function runLinkCheck(byUrl, status, results, start) {
   start.disabled = true;
   results.replaceChildren();
   const urls = [...byUrl.keys()];
-  const answers = {};
+  let answers;
   try {
-    for (let index = 0; index < urls.length; index += 50) {
-      status.textContent = `Checked ${index} of ${urls.length}…`;
-      const batch = urls.slice(index, index + 50);
-      const response = await fetch('./api/check-links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Orbit-Check': '1' },
-        body: JSON.stringify({ urls: batch }),
-      });
-      if (response.status === 404 || response.status === 501) {
-        throw new Error('This server cannot check links. Start Orbit with python3 serve.py from this version.');
-      }
-      if (!response.ok) throw new Error(`The server answered HTTP ${response.status}.`);
-      Object.assign(answers, await response.json());
-    }
+    // The requests moved to src/services/link-check.js in rewrite phase 4.
+    answers = await window.OrbitNext.services.linkCheck.checkLinks(urls,
+      { onProgress: (done, total) => { status.textContent = `Checked ${done} of ${total}…`; } });
   } catch (error) {
     status.textContent = `The check stopped: ${error.message}`;
     start.disabled = false;
@@ -171,39 +160,15 @@ async function runLinkCheck(byUrl, status, results, start) {
 
 const BOOKMARK_LIMIT = window.OrbitNext.core.BOOKMARK_LIMIT;
 
-// The Netscape bookmark format nests <DL> lists under <DT><H3> folders; the
-// parser may put each list inside its <DT> or right after it.
-function readBookmarkFolder(list, name) {
-  const folder = { name, links: [], folders: [] };
-  for (const entry of list.querySelectorAll(':scope > dt, :scope > p > dt')) {
-    const heading = entry.querySelector(':scope > h3');
-    const anchor = entry.querySelector(':scope > a');
-    if (heading) {
-      const sub = entry.querySelector(':scope > dl') ||
-        (entry.nextElementSibling?.tagName === 'DL' ? entry.nextElementSibling : null);
-      if (sub) folder.folders.push(readBookmarkFolder(sub, heading.textContent.trim() || 'Folder'));
-    } else if (anchor) {
-      folder.links.push({ name: anchor.textContent.trim(), url: anchor.getAttribute('href') || '' });
-    }
-  }
-  return folder;
-}
-
 // Folder tree to suns moved to src/core/bookmarks.js in rewrite phase 2.
 function bookmarksToMap(root) { return window.OrbitNext.core.bookmarksToMap(root); }
 
 function importBookmarks() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.html,.htm,text/html';
-  input.addEventListener('change', async () => {
-    if (!input.files.length) return;
+  // Reading the file moved to src/services/file-io.js in rewrite phase 4.
+  const fileIo = window.OrbitNext.services.fileIo;
+  fileIo.pickFile('.html,.htm,text/html', async file => {
     try {
-      const text = await input.files[0].text();
-      const doc = new DOMParser().parseFromString(text, 'text/html');
-      const list = doc.querySelector('dl');
-      if (!list) throw new Error('This is not a bookmarks file. Export bookmarks from your browser as HTML.');
-      const { map, stats } = bookmarksToMap(readBookmarkFolder(list, 'Bookmarks'));
+      const { map, stats } = bookmarksToMap(fileIo.readBookmarksHtml(await file.text()));
       if (!map.groups.length) throw new Error('The file has no website bookmarks.');
       const note = `Read ${counted(stats.links, 'website bookmark')}${stats.skipped ? `; skipped ${counted(stats.skipped, 'other link')} (not http or https)` : ''}${stats.truncated ? `; stopped at ${BOOKMARK_LIMIT}` : ''}. Each folder becomes a sun; a subfolder becomes a planet with its links as moons.`;
       showImportReview(map, { title: 'Review bookmarks', replace: false, label: 'Imported browser bookmarks', note });
@@ -211,7 +176,6 @@ function importBookmarks() {
       editorError(`Bookmark import failed: ${error.message}`);
     }
   });
-  input.click();
 }
 
 // ---- Bulk Remote Desktop settings -----------------------------------------

@@ -96,16 +96,13 @@ function setFavorite(path, on) {
 
 // ---- Opening links ------------------------------------------------------
 
+// Opening moved to src/services/opener.js in rewrite phase 4; these show
+// the placeholder form and the report.
+const openerService = () => window.OrbitNext.services.opener;
+
 // Open one destination the way its circle on the map would.
 function openDestination(item) {
-  if (item.type !== 'rdp' && templateNames(item.url).length) return askForVariables(item);
-  if (item.type === 'rdp') {
-    if (rdpLaunchMode === 'download') downloadRdp(item);
-    else window.location.href = rdpLaunchUrl(item);
-  } else {
-    const opened = window.open(item.url, '_blank');
-    if (opened) opened.opener = null;
-  }
+  if (openerService().openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode }) === 'ask') return askForVariables(item);
   noteOpened(item);
 }
 
@@ -114,31 +111,9 @@ function openDestination(item) {
 // more than one tab would open (`question(count)` words it); `extra` is added
 // to the notice.
 function openLinks(items, label, { confirm = true, question = null, extra = '' } = {}) {
-  // Links with {placeholders} use the values entered last; without one they wait.
-  const remembered = loadVariables();
-  const filled = item => templateNames(item.url).every(name => remembered[name]);
-  const all = items.filter(item => item.type !== 'rdp');
-  const web = all.filter(filled).map(item => ({ item, url: fillTemplate(item.url, remembered) }));
-  const skipped = items.length - all.length;
-  const unfilled = all.length - web.length;
-  const note = `${skipped ? ` ${counted(skipped, 'Remote Desktop link')} left out.` : ''}${unfilled ? ` ${counted(unfilled, 'link')} with {placeholders} left out until you open ${unfilled === 1 ? 'it' : 'them'} once.` : ''}${extra}`;
-  if (!web.length) return showOpenAllNotice(`${label} has no website links to open.${note}`);
-  const ask = question ? question(web.length) : `Open ${web.length} tabs for ${label}?`;
-  if (confirm && web.length > 1 && !window.confirm(ask)) return null;
-  let blocked = 0;
-  for (const { item, url } of web) {
-    const opened = window.open(url, '_blank');
-    if (opened) {
-      opened.opener = null;
-      noteOpened(item);
-    } else {
-      blocked++;
-    }
-  }
-  const message = blocked
-    ? `Your browser blocked ${counted(blocked, 'tab')}. Allow pop-ups for Orbit in the browser's address bar, then try again.${note}`
-    : `Opened ${counted(web.length, 'tab')} for ${label}.${note}`;
-  return showOpenAllNotice(message, blocked > 0);
+  const result = openerService().openLinks(items, label,
+    { confirm, question, extra, ask: text => window.confirm(text), onOpened: noteOpened });
+  return result ? showOpenAllNotice(result.message, result.isError) : null;
 }
 
 // A planet with all its moons.

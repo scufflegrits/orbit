@@ -13,34 +13,13 @@ function readStoredSet(key) { return window.OrbitNext.state.prefs.readStoredSet(
 function writeStoredSet(key, set) { window.OrbitNext.state.prefs.writeStoredSet(key, set); }
 function hiddenTeamSuns() { return window.OrbitNext.state.prefs.hiddenTeamSuns(); }
 
-async function fetchTeamData() {
-  if (location.protocol !== 'file:') {
-    try {
-      const response = await fetch('./team.json', { cache: 'no-store' });
-      if (response.ok) return { data: await response.json(), source: 'team.json from serve.py --team' };
-      if (response.status !== 404) throw new Error(`HTTP ${response.status}`);
-    } catch (error) {
-      if (!window.ORBIT_TEAM_DATA) throw error;
-    }
-  }
-  return window.ORBIT_TEAM_DATA ? { data: window.ORBIT_TEAM_DATA, source: 'team-data.js' } : null;
-}
-
-// Load the team map; a problem is reported in Settings and never blocks the
-// personal map.
+// Loading moved to src/services/sources.js in rewrite phase 4. A problem is
+// reported in Settings and never blocks the personal map.
 async function loadTeamMap() {
-  teamGroups = [];
-  teamSource = '';
-  teamError = '';
-  try {
-    const loaded = await fetchTeamData();
-    if (!loaded) return;
-    // Team ids are prefixed so they can never collide with personal sun ids.
-    teamGroups = validateMap(loaded.data).groups.map(sun => ({ ...sun, id: `team:${sun.id}`, team: true }));
-    teamSource = loaded.source;
-  } catch (error) {
-    teamError = `The team map could not be loaded: ${error.message}`;
-  }
+  const loaded = await window.OrbitNext.services.sources.loadTeamMap();
+  teamGroups = loaded.groups;
+  teamSource = loaded.source;
+  teamError = loaded.error;
 }
 
 // Hiding a team sun goes through the store, which redraws (rewrite phase 3).

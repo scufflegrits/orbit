@@ -225,12 +225,12 @@ Each module's own dependencies:
 | **ui/drag** (Edit mode, pointer drag, tray, drag undo) | `state/store`, `ui/editor`, `ui/modes`, `core/map-ops` |
 | **ui/keys** (focus trap, Escape, arrows) | `ui/views`, `ui/find`, `ui/menu`, `ui/drag`, `ui/modes` |
 | **ui/modes** | nothing (pure) |
-| **services/opener** | `state/store`, `state/prefs`, `services/rdp-launch`, `core/templates`, `core/destination`; opens browser tabs |
-| **services/rdp-launch** | `core/rdp`; `.rdp` downloads and `orbit-rdp://` URLs |
+| **services/opener** | `state/prefs` (placeholder values), `services/rdp-launch`, `core/templates`, `core/words`; opens browser tabs. Phase 4: the map and presets come in as arguments, so it doesn't read the store |
+| **services/rdp-launch** | `core/rdp`, `services/file-io` (the download); `orbit-rdp://` URLs |
 | **services/sources** | `core/schema`; `links-data.js`/`links.json`, `team-data.js`/`team.json` |
 | **services/link-check** | `serve.py` `/api/check-links` |
-| **services/file-io** (pick, read, download, bookmark HTML to folder tree, `.rdp` text) | the user's files |
-| **services/schedule** (due routines, backup due, team diff, clock) | `state/store`, `state/prefs`, `state/backup`, `core/destination` |
+| **services/file-io** (pick, read, download, bookmark HTML to folder tree, `.rdp` text) | `core/rdp` (size limit, decoding); the user's files |
+| **services/schedule** (due routines, backup due, team diff, clock) | `core/destination`. Phase 4: routines, offers, the backup entry, and the seen team links come in as arguments, so the decisions are pure apart from the clock |
 | **state/store** | `state/storage`, `state/workspaces`, `state/history`, `state/backup`, `core/schema`, `core/map-ops` |
 | **state/workspaces**, **state/prefs**, **state/history**, **state/backup** | `state/storage` |
 | **state/storage** | localStorage |
@@ -238,7 +238,7 @@ Each module's own dependencies:
 | **core/map-ops** | `core/schema`, `core/destination` |
 | **core/search** | `core/destination` |
 | **core/bookmarks** | `core/schema` (added in phase 2: imported bookmarks are validated as links) |
-| **core/destination**, **core/templates**, **core/rdp** | nothing |
+| **core/destination**, **core/templates**, **core/rdp**, **core/words** (`counted`, added in phase 4) | nothing |
 
 `scripts/check-layers.mjs` checks the real imports against this table's layer rule. The table is the intent; if the code needs an edge that isn't here, the Lead adds it to the table first.
 
@@ -664,11 +664,11 @@ The hook exists only in the test bundle (see "Builds and what tests run"). Tests
 
 ### Checks added by the review
 
-- [ ] **Pop-up allowance, in three layers.** Playwright's Chromium never blocks pop-ups, so no single automated check proves Edge will allow the tabs.
+- [x] **Pop-up allowance, in three layers.** All three done in phase 4 (layer 1 in `src/services/opener.test.js`, layer 2 in `tests/services_check.py`, layer 3 by hand in visible Edge, 2026-11-21); layer 3 is repeated in phase 9. Playwright's Chromium never blocks pop-ups, so no single automated check proves Edge will allow the tabs.
   1. **Unit test (phase 4):** `services/opener.js` is called with a fake `window.open`, and the test asserts every call happened **before the function returned**, so there's no `await` or timer between the click and the first `window.open`.
   2. **Browser check (supporting evidence only):** a `window.open` stub records `navigator.userActivation.isActive` for each call. A `true` result is consistent with a user gesture still being active. It doesn't prove there was no asynchronous step, and it doesn't prove what Edge will allow.
   3. **The actual proof: a visible-window Edge check** with the user signed in over Remote Desktop. Open all on a three-link group opens the first tab and reports the others as blocked; after allowing pop-ups for the site, all three open. The user confirms by hand, as for 2.x (2026-11-20). Required in phase 9; in phase 4 too if the user can sign in, otherwise recorded as deferred to phase 9.
-- [ ] **Team map in server mode:** a case where `team.json` differs from `team-data.js` (to prove which one loaded), and one where `/team.json` returns 500 (checking the error text).
+- [x] **Team map in server mode** (phase 4, `tests/services_check.py`; a 500 with `team-data.js` present falls back to it, as in 2.2.1, so the error text is checked with no `team-data.js`): a case where `team.json` differs from `team-data.js` (to prove which one loaded), and one where `/team.json` returns 500 (checking the error text).
 - [ ] **Performance (phase 8):** measured by `tests/perf_compare.py`, against 2.2.1. See "Performance recipe".
 
 ### Performance recipe
@@ -1101,24 +1101,32 @@ Phase 3 closed 2026-11-21.
 
 Tests use fake `window.open`, `fetch`, storage, and clock.
 
-- [ ] Tests first, then `services/sources.js`:
+- [x] Tests first, then `services/sources.js`:
   - the bundled map from `window.ORBIT_DATA` or `links.json`
   - the team map: `/team.json` before `ORBIT_TEAM_DATA`, with the 404 fallback and the error text
-- [ ] Tests first, then `services/opener.js`:
+- [x] Tests first, then `services/opener.js`:
   - open all, favorites, routines
   - placeholder values reused or skipped and counted
   - Remote Desktop links left out
   - `window.open` called synchronously and looked up at call time
   - the confirm question and the blocked-tab report returned to the UI rather than shown
-- [ ] Tests first, then `services/rdp-launch.js`, `services/link-check.js` (headers `X-Orbit-Check: 1` and JSON content type), `services/file-io.js` (JSON, `.rdp` text, bookmark HTML to folder tree, downloads), and `services/schedule.js` (due routines, backup due, team diff, `now()`)
-- [ ] `OrbitTest.setNow(ms)`, overriding `services/schedule.js`'s clock (moved here from phase 1)
-- [ ] Bridge: the old opener, team loading, file reading, and download functions forward to services
-- [ ] Pop-up allowance check and team server-mode checks (see "Checks added by the review")
-- [ ] Done when:
+- [x] Tests first, then `services/rdp-launch.js`, `services/link-check.js` (headers `X-Orbit-Check: 1` and JSON content type), `services/file-io.js` (JSON, `.rdp` text, bookmark HTML to folder tree, downloads), and `services/schedule.js` (due routines, backup due, team diff, `now()`)
+- [x] `OrbitTest.setNow(ms)`, overriding `services/schedule.js`'s clock (moved here from phase 1)
+- [x] Bridge: the old opener, team loading, file reading, and download functions forward to services. Done: `openDestination`, `openLinks`, the placeholder form's open, `loadTeamMap`, `readRdpText`, `downloadRdp`, `downloadJson`, `selectJsonFile`, bookmark reading, the link check's requests, `dueRoutines`, `markOffered`, `backupDue`, the backup snooze, and the team-update diff all call `window.OrbitNext.services`. The old `fetchTeamData` and `readBookmarkFolder` are gone. Placeholder values, routine offers, and the team links seen last moved to `state/prefs.js`. The old function names stay as one-line forwarders, so `OrbitTest.captureDownload` (which replaces `downloadJson`) and `tests/data_compat_check.py` (which calls `loadVariables` and `readOffered`) work unchanged.
+- [x] Pop-up allowance check and team server-mode checks (see "Checks added by the review"): `tests/services_check.py`
+- Phase 4 notes:
+  - **Services take their inputs as arguments.** The opener gets the presets and launch mode, and the schedule gets routines, offers, the backup entry, and the seen team links, so the services don't read the store or the old globals. The module table above was updated to match. `counted` moved to the new `core/words.js`, because the opener's messages need it.
+  - **The confirm question stays with the screen.** `opener.openLinks` takes an `ask(question)` function (the old script passes `window.confirm`) and returns the report instead of showing it, so the opener never touches the page and stays synchronous.
+  - **Tests:** 32 new node tests (173 in all). Differential tests run 2.2.1's own code (frozen in `tests/oracle/services.js`) against the new services: 400 random lists through Open all, comparing the tabs, the question, the report, and the links recorded as opened; 300 random team-map situations (file or served, every `/team.json` answer, with or without `team-data.js`); 400 each for due routines and backup due. Seven deliberate mutations: six were caught at once; the seventh (a routine due at exactly its minute) survived, so an example test was added and now catches it.
+- [x] Done when:
   - node tests pass
   - every browser suite passes in Chromium in both modes
   - Edge passes the features suite in both modes
   - The visible-window Open-all check (layer 3 above) is done if the user can sign in over Remote Desktop, or recorded as deferred to phase 9
+
+  Met 2026-11-21: 173 node tests; every suite in Chromium in both modes with the baseline counts (39, 15, 29, 13, 21, 53), plus mode rules 23, data compatibility, release smoke, behavior 22, and the new services check (pop-up layer 2 for five ways of opening links, and four team-map cases); headless Edge 158 on the VM passed drag phase 2 (14 + 14), features (27 + 27), sizes (7 + 7), pending (11 + 11), and the services pop-up checks (6 + 6) in file and server mode. The visible-window check was done with the user signed in over Remote Desktop: with a fresh profile, Open all on a planet with two moons opened the first tab and reported 2 blocked; after "Always allow pop-ups", all three opened and Orbit reported "Opened 3 tabs for Docs." (confirmed by the user, and the three tabs seen over CDP). Quick performance check: first render −1%, keystroke −1%. **To watch:** app scripts are 271,872 bytes, +9.6% against 2.2.1, while the bundle and the old scripts overlap; it falls as screens move and their old scripts are removed (phases 5–7), and phase 8 allows at most 10%. All 20 old scripts still loaded.
+
+Phase 4 closed 2026-11-21.
 
 ### Phase 4b: Interaction-mode cut-over (Lead only)
 
@@ -1211,6 +1219,8 @@ Filled in by the Lead at the end of each phase.
 | 0 | 0 | | | | Lead only |
 | 1 | 0 | | | | Lead only |
 | 2 | 3 | 3 | 0 | 0 | Trial; see below |
+| 3 | 0 | | | | Lead only (delegation off) |
+| 4 | 0 | | | | Lead only (delegation off) |
 
 Phase 2 trial, per card (2026-11-21). Worker time is wall-clock; Lead time covers writing the card, reading the diff, running the commands, the Reviewer, and merging; "direct" is the Lead's estimate for porting the module itself with the same tests.
 

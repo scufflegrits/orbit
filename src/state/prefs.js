@@ -58,3 +58,54 @@ export function writeStoredSet(key, set) {
 
 /** Ids of hidden team suns, with their `team:` prefix. */
 export const hiddenTeamSuns = () => readStoredSet(KEYS.teamHidden);
+
+/**
+ * A stored JSON object, or {} when missing, unreadable, or not an object
+ * (2.2.1 variables.js loadVariables, routines.js readOffered). As in 2.2.1, an
+ * array counts as an object.
+ * @param {string} key
+ * @returns {Record<string, any>}
+ */
+function readObject(key) {
+  const value = readJson(key, {});
+  return value && typeof value === 'object' ? value : {};
+}
+
+/** The values entered last for each {placeholder}, by name. */
+export const readVariables = () => readObject(KEYS.variables);
+
+/**
+ * Remember placeholder values, keeping the others.
+ * @param {Record<string, string>} values
+ */
+export function saveVariables(values) {
+  writeSafely(KEYS.variables, JSON.stringify({ ...readVariables(), ...values }));
+}
+
+/** The local day (YYYY-MM-DD) each routine was last offered, by routine id. */
+export const readOffered = () => readObject(KEYS.routineOffered);
+
+/**
+ * @param {string} id
+ * @param {string} day YYYY-MM-DD
+ */
+export function markOffered(id, day) {
+  const offered = readOffered();
+  offered[id] = day;
+  writeSafely(KEYS.routineOffered, JSON.stringify(offered));
+}
+
+/**
+ * The team links seen last, or null before the first team map loads (or when
+ * the stored value is unreadable). Not filtered: 2.2.1 used the list as stored.
+ * @returns {any[] | null}
+ */
+export function readTeamSeen() {
+  const value = readJson(KEYS.teamSeen, null);
+  return Array.isArray(value) ? value : null;
+}
+
+/** @param {{key: string, name: string}[]} entries */
+export function rememberTeam(entries) {
+  writeSafely(KEYS.teamSeen, JSON.stringify(entries.map(({ key, name }) => ({ key, name }))));
+}

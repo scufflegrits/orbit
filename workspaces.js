@@ -2,10 +2,6 @@
 // reminders. Loaded as a classic script after variables.js and before app.js,
 // which takes its storage keys from workspaceKey().
 
-const BACKUP_CHANGES = 20;
-const BACKUP_DAYS = 14;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 // The list and keys moved to src/state/workspaces.js, and switching, adding,
 // and removing to the store, in rewrite phase 3. These keep the screen parts.
 const stateWorkspaces = () => window.OrbitNext.state.workspaces;
@@ -139,12 +135,10 @@ function noteBackupMade() {
   document.querySelector('#backup-reminder')?.remove();
 }
 
-function backupDue(now = Date.now()) {
-  if (!readBooleanPreference('orbit:backup-reminders', true)) return null;
-  const entry = readBackupState()[activeWorkspace];
-  if (!entry?.changes || (entry.snoozeUntil && now < entry.snoozeUntil)) return null;
-  const days = Math.floor((now - (entry.since || now)) / DAY_MS);
-  return entry.changes >= BACKUP_CHANGES || days >= BACKUP_DAYS ? { changes: entry.changes, days } : null;
+// The due check moved to src/services/schedule.js in rewrite phase 4.
+function backupDue(now = window.OrbitNext.services.schedule.now()) {
+  return window.OrbitNext.services.schedule.backupDue(readBackupState()[activeWorkspace],
+    readBooleanPreference('orbit:backup-reminders', true), now);
 }
 
 function backupReminder(due) {
@@ -161,7 +155,8 @@ function backupReminder(due) {
   later.type = 'button';
   later.addEventListener('click', () => {
     const state = readBackupState();
-    state[activeWorkspace] = { ...state[activeWorkspace], snoozeUntil: Date.now() + 3 * DAY_MS };
+    const { now, SNOOZE_MS } = window.OrbitNext.services.schedule;
+    state[activeWorkspace] = { ...state[activeWorkspace], snoozeUntil: now() + SNOOZE_MS };
     writeBackupState(state);
     document.querySelector('#backup-reminder')?.remove();
     box.remove();

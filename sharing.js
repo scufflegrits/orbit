@@ -1,8 +1,6 @@
 // Link packs (share a routine or favorites) and team map update notices.
 // Loaded as a classic script after workspaces.js.
 
-const TEAM_SEEN_KEY = 'orbit:team-seen:v1';
-
 // ---- Link packs -----------------------------------------------------------------
 
 // A pack holds the links themselves (never moons, favorites, or passwords),
@@ -101,29 +99,19 @@ function showPackReview(pack) {
 
 // ---- Team map updates -------------------------------------------------------------
 
-function teamEntries() {
-  return teamGroups.flatMap(sun => sun.links.flatMap(planet => [
-    { key: destinationKey(planet), name: planet.name, path: sun.name },
-    ...planet.moons.map(moon => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` })),
-  ]));
-}
-
-function rememberTeam(entries) {
-  try { localStorage.setItem(TEAM_SEEN_KEY, JSON.stringify(entries.map(({ key, name }) => ({ key, name })))); } catch { /* Storage may be unavailable. */ }
-}
+// What changed moved to src/services/schedule.js, and the links seen last to
+// src/state/prefs.js, in rewrite phase 4.
+function teamEntries() { return window.OrbitNext.services.schedule.teamEntries(teamGroups); }
+function rememberTeam(entries) { window.OrbitNext.state.prefs.rememberTeam(entries); }
 
 // The first load records the team links quietly; later loads report changes.
 function checkTeamUpdates() {
   document.querySelector('#team-updates')?.remove();
   if (!teamGroups.length) return;
   const current = teamEntries();
-  let seen;
-  try { seen = JSON.parse(localStorage.getItem(TEAM_SEEN_KEY) || 'null'); } catch { seen = null; }
-  if (!Array.isArray(seen)) return rememberTeam(current);
-  const seenKeys = new Set(seen.map(entry => entry.key));
-  const currentKeys = new Set(current.map(entry => entry.key));
-  const added = current.filter(entry => !seenKeys.has(entry.key));
-  const removed = seen.filter(entry => !currentKeys.has(entry.key));
+  const changes = window.OrbitNext.services.schedule.teamChanges(window.OrbitNext.state.prefs.readTeamSeen(), current);
+  if (changes.first) return rememberTeam(current);
+  const { added, removed } = changes;
   if (!added.length && !removed.length) return;
   const box = element('div', 'routine-offer team-updates');
   box.id = 'team-updates';
