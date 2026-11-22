@@ -7,4 +7,10 @@ export const hooks = {
   render: () => {},
   /** Redraw only the Galaxy's quick bar (ui/views/galaxy.js). */
   refreshQuickBar: () => {},
+  /** Open the menu (ui/menu/menu.js). */
+  openMenu: () => {},
+  /** Show a menu panel (ui/menu/menu.js). @type {(name: string) => void} */
+  showMenuPanel: () => {},
+  /** Export the personal map as JSON (ui/editor/screens.js). */
+  exportMap: () => {},
 };

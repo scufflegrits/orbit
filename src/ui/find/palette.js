@@ -6,7 +6,12 @@ import { findMatches } from '../../core/search.js';
 import { clearRecent } from '../../state/prefs.js';
 import { counted, element, tagChips } from '../dom.js';
 import { showQuickAdd, typedAddress } from '../editor/quick-add.js';
+import { openEditorAt, openEditorPage } from '../editor/page.js';
+import { showRoutineEditor, showRoutines } from '../editor/tools/routines.js';
 import { openMenu, showMenuPanel } from '../menu/menu.js';
+import { switchWorkspace } from '../menu/workspaces.js';
+import { activeWorkspace, store } from '../../state/page-store.js';
+import * as workspaces from '../../state/workspaces.js';
 import { modes } from '../page-modes.js';
 import { favoriteItems } from '../views/favorites.js';
 import { openAll, openAllFavorites, openDestination, runRoutine } from '../views/open.js';
@@ -44,7 +49,7 @@ function paletteCommands() {
       run: () => modes.inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
     { label: 'Edit routines', run: () => { openMenu(); openEditorPage(); showRoutines(); } },
     { label: 'Add a link', run: () => showQuickAdd('') },
-    ...loadWorkspaces().filter(item => item.id !== activeWorkspace).map(item => ({
+    ...workspaces.loadWorkspaces().filter(item => item.id !== activeWorkspace()).map(item => ({
       label: `Switch to workspace: ${item.name}`, run: () => switchWorkspace(item.id) })),
   ];
 }

@@ -10,9 +10,13 @@
 import { destinationKey } from '../core/destination.js';
 import { moveMapItem } from '../core/map-ops.js';
 import { validDestination } from '../core/schema.js';
+import { captureJson } from '../services/file-io.js';
 import * as history from '../state/history.js';
 import { KEYS } from '../state/storage.js';
 import { workspaceKey } from '../state/workspaces.js';
+import { openEditorAt } from '../ui/editor/page.js';
+import { exportMap, showSunList } from '../ui/editor/screens.js';
+import { openMenu } from '../ui/menu/menu.js';
 import { openPalette } from '../ui/find/palette.js';
 import { destinationNode, siteIcon } from '../ui/views/nodes.js';
 import { render } from '../ui/views/render.js';
@@ -78,15 +82,7 @@ export function installTestHook(store, { schedule, modes }) {
      * @param {() => void} action
      */
     captureDownload(action) {
-      let data;
-      const original = downloadJson;
-      downloadJson = value => { data = value; };
-      try {
-        action();
-      } finally {
-        downloadJson = original;
-      }
-      return copy(data);
+      return copy(captureJson(action));
     },
 
     /** App actions the tests drive directly. */

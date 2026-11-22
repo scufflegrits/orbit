@@ -1,30 +1,28 @@
-// Routines: named lists of links opened together, such as a morning set, with
-// an optional schedule that offers them when Orbit opens. Loaded as a classic
-// script after tools.js. Routines are saved with the map (`routines` beside
-// `groups`); links are remembered by destination key.
+// Routines (2.2.1 routines.js): the list, and the editor for a routine's links and schedule.
+// Moved in rewrite phase 6b.
+import { destinationKey } from '../../../core/destination.js';
+import { confirmed } from '../../dialogs/confirm.js';
+import { counted, element } from '../../dom.js';
+import { routineItems, runRoutine } from '../../views/open.js';
+import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorField, editorHeader } from '../kit.js';
+import { nav } from '../nav.js';
+import { shareRoutine } from './packs.js';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEKDAYS = [1, 2, 3, 4, 5];
 
-// routineItems and runRoutine moved to src/ui/views/open.js in rewrite phase 6a.
-
-// Add incoming routines whose names are new (ignoring case). Moved to
-// src/core/map-ops.js in rewrite phase 2.
-function mergeRoutines(current, incoming) { return window.OrbitNext.core.mergeRoutines(current, incoming); }
-
-// The arrival offer moved to src/ui/notices/routine-offer.js in rewrite phase 6a.
-
-// ---- Edit links screens ---------------------------------------------------
-
+/**
+ * @param {any} schedule
+ */
 function scheduleText(schedule) {
   if (!schedule) return 'No schedule';
   const days = schedule.days.join(',') === WEEKDAYS.join(',') ? 'weekdays'
-    : schedule.days.length === 7 ? 'every day' : schedule.days.map(day => DAY_NAMES[day]).join(', ');
+    : schedule.days.length === 7 ? 'every day' : schedule.days.map((/** @type {any} */ day) => DAY_NAMES[day]).join(', ');
   return `Offered at ${schedule.time}, ${days}`;
 }
 
-function showRoutines() {
-  editorHeader('Routines', showSunList);
+export function showRoutines() {
+  editorHeader('Routines', nav.showSunList);
   menuContent.append(element('p', '', 'A routine opens a set of links together, such as the sites you start every morning with. It can also offer itself when Orbit opens at a set time, which works well with Orbit as your browser’s startup page.'));
   if (!routines.length) menuContent.append(element('p', 'editor-note', 'No routines yet.'));
   const list = element('div', 'editor-list');
@@ -44,6 +42,12 @@ function showRoutines() {
   editorActions().append(editorButton('New routine', () => showRoutineEditor(null), 'editor-primary'));
 }
 
+/**
+ * @param {any} item
+ * @param {any} label
+ * @param {any} key
+ * @param {any} checked
+ */
 function routineCheckbox(item, label, key, checked) {
   const row = element('label', 'editor-check routine-choice');
   const box = document.createElement('input');
@@ -56,7 +60,10 @@ function routineCheckbox(item, label, key, checked) {
   return row;
 }
 
-function showRoutineEditor(index) {
+/**
+ * @param {any} index
+ */
+export function showRoutineEditor(index) {
   const isNew = index === null;
   const routine = isNew ? { name: '', links: [], schedule: null } : routines[index];
   editorHeader(isNew ? 'New routine' : `Edit ${routine.name}`, showRoutines);
@@ -95,7 +102,7 @@ function showRoutineEditor(index) {
   form.append(offer, schedule);
   // Links.
   form.append(element('h4', 'editor-section-title', 'Links'));
-  const chosen = new Set(routine.links.map(link => link.key));
+  const chosen = new Set(routine.links.map((/** @type {any} */ link) => link.key));
   const summary = element('p', 'data-source routine-summary');
   const filter = editorField('Filter', '');
   filter.input.setAttribute('aria-label', 'Filter links');
@@ -105,8 +112,8 @@ function showRoutineEditor(index) {
   groups.forEach(sun => {
     const block = element('fieldset', 'routine-sun');
     block.append(element('legend', '', `${sun.name}${sun.team ? ' (team)' : ''}`));
-    sun.links.forEach(planet => {
-      [[planet, planet.name], ...planet.moons.map(moon => [moon, `${planet.name} → ${moon.name}`])].forEach(([item, label]) => {
+    sun.links.forEach((/** @type {any} */ planet) => {
+      [[planet, planet.name], ...planet.moons.map((/** @type {any} */ moon) => [moon, `${planet.name} → ${moon.name}`])].forEach(([item, label]) => {
         const key = destinationKey(item);
         if (seen.has(key)) return;
         seen.add(key);
@@ -122,7 +129,7 @@ function showRoutineEditor(index) {
   choices.addEventListener('change', updateSummary);
   filter.input.addEventListener('input', () => {
     const needle = filter.input.value.trim().toLocaleLowerCase();
-    for (const row of choices.querySelectorAll('.routine-choice')) row.hidden = Boolean(needle) && !row.dataset.search.includes(needle);
+    for (const row of /** @type {NodeListOf<HTMLElement>} */ (choices.querySelectorAll('.routine-choice'))) row.hidden = Boolean(needle) && !/** @type {string} */ (row.dataset.search).includes(needle);
   });
   updateSummary();
   form.append(summary, filter.wrapper, choices);
@@ -132,7 +139,7 @@ function showRoutineEditor(index) {
   actions.append(save);
   if (!isNew) {
     actions.append(editorButton('Remove routine', () => {
-      if (!window.confirm(`Remove the ${routine.name} routine? The links stay on your map.`)) return;
+      if (!confirmed(`Remove the ${routine.name} routine? The links stay on your map.`)) return;
       const next = routines.filter((_, i) => i !== index);
       applyEditorChange(copyGroups(), showRoutines, { routines: next, label: `Removed routine ${routine.name}` });
     }, 'editor-danger'));
@@ -140,14 +147,15 @@ function showRoutineEditor(index) {
   form.append(actions);
   form.addEventListener('submit', event => {
     event.preventDefault();
-    const boxes = [...choices.querySelectorAll('input:checked')];
+    const boxes = [.../** @type {NodeListOf<HTMLInputElement>} */ (choices.querySelectorAll('input:checked'))];
     const picked = new Map(boxes.map(box => [box.value, box.dataset.name]));
     // Keep the existing order, then add new links in map order.
-    const links = routine.links.filter(link => picked.has(link.key));
+    const links = routine.links.filter((/** @type {any} */ link) => picked.has(link.key));
     for (const [key, linkName] of picked) {
-      if (!links.some(link => link.key === key)) links.push({ key, name: linkName });
+      if (!links.some((/** @type {any} */ link) => link.key === key)) links.push({ key, name: linkName });
     }
     if (!links.length) return editorError('Choose at least one link for this routine.');
+    /** @type {any} */
     const value = { name: name.input.value.trim(), links };
     if (!isNew) value.id = routine.id;
     if (offerBox.checked) {

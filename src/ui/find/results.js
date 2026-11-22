@@ -6,6 +6,7 @@ import { templateNames } from '../../core/templates.js';
 import { downloadRdp } from '../../services/rdp-launch.js';
 import { element, tagChips } from '../dom.js';
 import { askForVariables } from '../dialogs/placeholder.js';
+import { openEditorAt } from '../editor/page.js';
 import { modes } from '../page-modes.js';
 import { isFavorite, setFavorite } from '../views/favorites.js';
 

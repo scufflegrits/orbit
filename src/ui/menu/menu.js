@@ -6,7 +6,12 @@ import * as prefs from '../../state/prefs.js';
 import { counted, element } from '../dom.js';
 import { hooks } from '../hooks.js';
 import { showBackupReminder } from '../notices/backup.js';
+import { editorButton, setEditorTree } from '../editor/kit.js';
+import { openEditorPage } from '../editor/page.js';
 import { modes } from '../page-modes.js';
+import { store } from '../../state/page-store.js';
+import { team } from '../team-map.js';
+import { workspaceSettings } from './workspaces.js';
 
 /** The element that opened the menu, to refocus when it closes. @type {HTMLElement | null} */
 let menuOpener = null;
@@ -24,7 +29,7 @@ export function menuHidden() {
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-sheet')).classList.remove('editor-page-mode');
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-top h2')).textContent = 'Explore the menu';
   menuContent = menuRoot;
-  editorTree = null;
+  setEditorTree(null);
   // Return focus to whatever opened the menu so keyboard users keep their place.
   const target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
   menuOpener = null;
@@ -263,18 +268,18 @@ function settingToggle(title, hint, checked, onChange) {
 function teamSettings() {
   const section = element('div', 'team-settings');
   section.append(element('strong', '', 'Team map'));
-  if (teamError) section.append(element('p', 'editor-error', teamError));
-  if (!teamGroups.length) {
-    if (!teamError) section.append(element('p', 'team-source', 'No team map is set up. Start Orbit with python3 serve.py --team PATH, or run python3 sync.py --team PATH for file use.'));
+  if (team.error) section.append(element('p', 'editor-error', team.error));
+  if (!team.groups.length) {
+    if (!team.error) section.append(element('p', 'team-source', 'No team map is set up. Start Orbit with python3 serve.py --team PATH, or run python3 sync.py --team PATH for file use.'));
     return section;
   }
-  section.append(element('p', 'team-source', `${counted(teamGroups.length, 'team sun')} from ${teamSource}. Team suns are read-only and never saved with your map.`));
+  section.append(element('p', 'team-source', `${counted(team.groups.length, 'team sun')} from ${team.source}. Team suns are read-only and never saved with your map.`));
   const hidden = prefs.hiddenTeamSuns();
-  teamGroups.filter((/** @type {any} */ sun) => hidden.has(sun.id)).forEach((/** @type {any} */ sun) => {
+  team.groups.filter((/** @type {any} */ sun) => hidden.has(sun.id)).forEach((/** @type {any} */ sun) => {
     const row = element('div', 'editor-list-row');
     row.append(element('span', '', `${sun.name} (hidden)`));
     row.append(editorButton('Show', () => {
-      setTeamSunHidden(sun.id, false);
+      store.setTeamSunHidden(sun.id, false);
       showMenuPanel('Settings');
     }));
     section.append(row);

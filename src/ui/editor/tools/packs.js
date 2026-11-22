@@ -9,6 +9,9 @@ import { validPack } from '../../../core/schema.js';
 import { counted, element } from '../../dom.js';
 import { routineItems } from '../../views/open.js';
 import { favoriteItems } from '../../views/favorites.js';
+import * as fileIo from '../../../services/file-io.js';
+import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorField, editorHeader, selectJsonFile } from '../kit.js';
+import { nav } from '../nav.js';
 
 /**
  * @param {string} name
@@ -20,7 +23,7 @@ function exportPack(name, items, routine = null) {
   /** @type {any} */
   const pack = { format: 'orbit-pack-v1', name, links: items.map(packLink) };
   if (routine) pack.routine = { name: routine.name, ...(routine.schedule ? { schedule: routine.schedule } : {}) };
-  downloadJson(pack, `orbit-pack-${slug}.json`);
+  fileIo.downloadJson(pack, `orbit-pack-${slug}.json`);
 }
 
 /** @param {any} routine */
@@ -35,7 +38,7 @@ export function shareFavorites() {
 }
 
 export function showPackImport() {
-  editorHeader('Import link pack', showSunList);
+  editorHeader('Import link pack', nav.showSunList);
   menuContent.append(element('p', '', 'A link pack is a small file someone shared from their Orbit: a routine or their favorites. Choose the file, or paste its text.'));
   const text = editorField('Pack text', '', 'textarea');
   text.input.setAttribute('aria-label', 'Pack text');
@@ -103,7 +106,7 @@ function showPackReview(pack) {
       nextRoutines = [...routines, { name, links: pack.links.map((/** @type {any} */ link) => ({ key: destinationKey(link), name: link.name })),
         ...(pack.routine.schedule ? { schedule: pack.routine.schedule } : {}) }];
     }
-    applyEditorChange(next, showSunList, { label: `Imported link pack ${pack.name}`,
+    applyEditorChange(next, nav.showSunList, { label: `Imported link pack ${pack.name}`,
       ...(nextRoutines ? { routines: nextRoutines } : {}) });
   }, 'editor-primary'));
 }

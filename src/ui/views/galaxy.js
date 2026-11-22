@@ -5,7 +5,11 @@ import { findMatches } from '../../core/search.js';
 import { counted, descriptionNode, element, safeColor, tagChips } from '../dom.js';
 import { findRow } from '../find/results.js';
 import { quickAddResult, typedAddress } from '../editor/quick-add.js';
+import { openEditorPage } from '../editor/page.js';
+import { showRoutineEditor } from '../editor/tools/routines.js';
 import { openMenu } from '../menu/menu.js';
+import * as workspaces from '../../state/workspaces.js';
+import { activeWorkspace, store } from '../../state/page-store.js';
 import { modes } from '../page-modes.js';
 import { favoriteItems, isFavorite, recentItems } from './favorites.js';
 import { openAllFavorites, routineItems, runRoutine } from './open.js';
@@ -178,7 +182,7 @@ export function renderHome() {
   if (bar) app.append(bar);
   if (!groups.length) {
     const empty = element('section', 'empty-galaxy');
-    empty.append(element('h1', '', `${workspaceName()} is empty`));
+    empty.append(element('h1', '', `${workspaces.workspaceName(activeWorkspace())} is empty`));
     empty.append(element('p', '', 'Add a sun in Edit links, paste a web address into Quick find, or import a map or a link pack.'));
     const open = element('button', 'editor-primary', 'Open Edit links');
     open.type = 'button';

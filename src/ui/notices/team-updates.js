@@ -6,12 +6,13 @@ import { teamChanges, teamEntries } from '../../services/schedule.js';
 import { readTeamSeen, rememberTeam } from '../../state/prefs.js';
 import { element } from '../dom.js';
 import { destinationNode } from '../views/nodes.js';
+import { team } from '../team-map.js';
 import { noticeArea } from './area.js';
 
 export function checkTeamUpdates() {
   document.querySelector('#team-updates')?.remove();
-  if (!teamGroups.length) return;
-  const current = teamEntries(teamGroups);
+  if (!team.groups.length) return;
+  const current = teamEntries(team.groups);
   const changes = teamChanges(readTeamSeen(), current);
   if (changes.first) return rememberTeam(current);
   const { added, removed } = changes;

@@ -18,14 +18,20 @@ import * as history from '../state/history.js';
 import * as prefs from '../state/prefs.js';
 import * as storage from '../state/storage.js';
 import * as workspaces from '../state/workspaces.js';
-import { createStore } from '../state/store.js';
+import { activeWorkspace, store } from '../state/page-store.js';
 import { modes } from '../ui/page-modes.js';
 import * as dom from '../ui/dom.js';
 import * as find from '../ui/find/palette.js';
 import { fitOrbitSizes, installLayout, layoutOrbits } from '../ui/layout/orbits.js';
 import { confirmed } from '../ui/dialogs/confirm.js';
 import * as placeholder from '../ui/dialogs/placeholder.js';
+import { installEditor } from '../ui/editor/index.js';
+import { editorError } from '../ui/editor/kit.js';
+import { openEditorAt, openEditorPage } from '../ui/editor/page.js';
 import * as quickAdd from '../ui/editor/quick-add.js';
+import { exportMap, showSunList } from '../ui/editor/screens.js';
+import * as menuWorkspaces from '../ui/menu/workspaces.js';
+import { loadTeamMap, team } from '../ui/team-map.js';
 import * as packs from '../ui/editor/tools/packs.js';
 import { hooks } from '../ui/hooks.js';
 import * as menu from '../ui/menu/menu.js';
@@ -46,8 +52,6 @@ import * as rdpLaunch from '../services/rdp-launch.js';
 import * as schedule from '../services/schedule.js';
 import * as sources from '../services/sources.js';
 
-// Reads nothing yet: app.js (old) calls store.start() once the link data is loaded.
-const store = createStore();
 
 publishBridge({
   version: APP_VERSION,
@@ -60,6 +64,10 @@ publishBridge({
 // Calls lower screen modules make into higher ones.
 hooks.render = render;
 hooks.refreshQuickBar = refreshQuickBar;
+hooks.openMenu = menu.openMenu;
+hooks.showMenuPanel = menu.showMenuPanel;
+hooks.exportMap = exportMap;
+installEditor();
 
 // What the removed old scripts defined, for the old scripts still loaded and
 // the page checks that call them by name: render.js and palette.js (phase
@@ -88,10 +96,19 @@ publishPageGlobals({
   pathsForKey: key => destination.pathsForKey(groups, key),
   /** @param {number[]} path */
   itemAt: path => destination.itemAt(groups, path),
+  // editor.js, editor-page.js, team.js, workspaces.js (phase 6b), for app.js and drag.js.
+  editorError, showSunList, openEditorPage, openEditorAt, exportMap, loadTeamMap,
+  workspaceKey: menuWorkspaces.workspaceKey, updateWorkspaceSwitch: menuWorkspaces.updateWorkspaceSwitch,
+  switchWorkspace: menuWorkspaces.switchWorkspace, loadWorkspaces: workspaces.loadWorkspaces,
   // Read by tests/data_compat_check.py.
   loadVariables: prefs.readVariables, readOffered: prefs.readOffered, loadRecent: prefs.readRecent, clearRecent: prefs.clearRecent,
   readBackupState: backup.readBackupState,
+  readStoredSet: prefs.readStoredSet, writeStoredSet: prefs.writeStoredSet, hiddenTeamSuns: prefs.hiddenTeamSuns,
 });
+// State the old scripts still read by name, kept in one place: the team map
+// and the active workspace (the store's).
+Object.defineProperty(window, 'teamGroups', { get: () => team.groups, configurable: true });
+Object.defineProperty(window, 'activeWorkspace', { get: () => activeWorkspace(), configurable: true });
 // Listeners the moved code installed when its script loaded.
 installLayout();
 installClicks();

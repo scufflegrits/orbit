@@ -430,6 +430,77 @@ prompt for credentials:i:1\r
     return { format: "orbit-item-v1", kind, item: plainCopy(item) };
   }
 
+  // src/services/file-io.js
+  var file_io_exports = {};
+  __export(file_io_exports, {
+    captureJson: () => captureJson,
+    downloadJson: () => downloadJson,
+    downloadText: () => downloadText,
+    pickFile: () => pickFile,
+    readBookmarksHtml: () => readBookmarksHtml,
+    readJsonFile: () => readJsonFile,
+    readRdpText: () => readRdpText
+  });
+  function downloadText(text, filename, type) {
+    let page = (
+      /** @type {any} */
+      globalThis
+    ), blob = new Blob([text], { type }), url = page.URL.createObjectURL(blob), anchor = page.document.createElement("a");
+    anchor.href = url, anchor.download = filename, page.document.body.append(anchor), anchor.click(), anchor.remove(), setTimeout(() => page.URL.revokeObjectURL(url), 1e3);
+  }
+  var jsonSink = null;
+  function downloadJson(data, filename) {
+    if (jsonSink) return jsonSink(data);
+    downloadText(JSON.stringify(data, null, 2) + `
+`, filename, "application/json");
+  }
+  function captureJson(action) {
+    let data, previous = jsonSink;
+    jsonSink = (value) => {
+      data = value;
+    };
+    try {
+      action();
+    } finally {
+      jsonSink = previous;
+    }
+    return data;
+  }
+  function pickFile(accept, onFile) {
+    let input = (
+      /** @type {HTMLInputElement} */
+      /** @type {any} */
+      globalThis.document.createElement("input")
+    );
+    input.type = "file", input.accept = accept, input.addEventListener("change", () => {
+      input.files?.length && onFile(input.files[0]);
+    }), input.click();
+  }
+  async function readJsonFile(file) {
+    return JSON.parse(await file.text());
+  }
+  async function readRdpText(file) {
+    if (file.size > 64e3) throw new Error("The .rdp file is too large to import.");
+    return decodeRdpBytes(new Uint8Array(await file.arrayBuffer()));
+  }
+  function readBookmarkFolder(list, name) {
+    let folder = { name, links: [], folders: [] };
+    for (let entry of list.querySelectorAll(":scope > dt, :scope > p > dt")) {
+      let heading = entry.querySelector(":scope > h3"), anchor = entry.querySelector(":scope > a");
+      if (heading) {
+        let sub = entry.querySelector(":scope > dl") || (entry.nextElementSibling?.tagName === "DL" ? entry.nextElementSibling : null);
+        sub && folder.folders.push(readBookmarkFolder(sub, heading.textContent?.trim() || "Folder"));
+      } else anchor && folder.links.push({ name: anchor.textContent?.trim() ?? "", url: anchor.getAttribute("href") || "" });
+    }
+    return folder;
+  }
+  function readBookmarksHtml(text) {
+    let list = new /** @type {any} */
+    globalThis.DOMParser().parseFromString(text, "text/html").querySelector("dl");
+    if (!list) throw new Error("This is not a bookmarks file. Export bookmarks from your browser as HTML.");
+    return readBookmarkFolder(list, "Bookmarks");
+  }
+
   // src/state/history.js
   var history_exports = {};
   __export(history_exports, {
@@ -568,17 +639,17 @@ prompt for credentials:i:1\r
   __export(workspaces_exports, {
     MAIN: () => MAIN,
     WORKSPACE_KEYS: () => WORKSPACE_KEYS,
-    loadWorkspaces: () => loadWorkspaces2,
+    loadWorkspaces: () => loadWorkspaces,
     newWorkspace: () => newWorkspace,
     readActiveWorkspace: () => readActiveWorkspace,
     renameWorkspace: () => renameWorkspace,
     saveActiveWorkspace: () => saveActiveWorkspace,
     saveWorkspaces: () => saveWorkspaces,
     workspaceKey: () => workspaceKey,
-    workspaceName: () => workspaceName2
+    workspaceName: () => workspaceName
   });
   var MAIN = "main", WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
-  function loadWorkspaces2() {
+  function loadWorkspaces() {
     let list = readJson(KEYS.workspaces, []), valid = Array.isArray(list) ? list.filter((item) => item && typeof item.id == "string" && item.name) : [];
     return valid.some((item) => item.id === MAIN) ? valid : [{ id: MAIN, name: "Main" }, ...valid];
   }
@@ -587,7 +658,7 @@ prompt for credentials:i:1\r
   }
   function readActiveWorkspace() {
     let id = readSafely(KEYS.activeWorkspace);
-    return id && loadWorkspaces2().some((item) => item.id === id) ? id : MAIN;
+    return id && loadWorkspaces().some((item) => item.id === id) ? id : MAIN;
   }
   function saveActiveWorkspace(id) {
     writeSafely(KEYS.activeWorkspace, String(id));
@@ -595,215 +666,22 @@ prompt for credentials:i:1\r
   function workspaceKey(base, id) {
     return id === MAIN ? base : `${base}:${id}`;
   }
-  function workspaceName2(id) {
-    return loadWorkspaces2().find((item) => item.id === id)?.name || "Main";
+  function workspaceName(id) {
+    return loadWorkspaces().find((item) => item.id === id)?.name || "Main";
   }
   function newWorkspace(name) {
-    let list = loadWorkspaces2(), clean = String(name || "").trim();
+    let list = loadWorkspaces(), clean = String(name || "").trim();
     if (!clean || clean.length > 40) throw new Error("A workspace needs a name of up to 40 characters.");
     if (list.some((item) => item.name.toLocaleLowerCase() === clean.toLocaleLowerCase()))
       throw new Error(`There is already a workspace named ${clean}.`);
     return { id: uniqueSunId(clean, new Set(list.map((item) => item.id))), name: clean };
   }
   function renameWorkspace(id, name) {
-    let clean = String(name || "").trim(), list = loadWorkspaces2();
+    let clean = String(name || "").trim(), list = loadWorkspaces();
     if (!clean || clean.length > 40) throw new Error("A workspace needs a name of up to 40 characters.");
     if (list.some((item) => item.id !== id && item.name.toLocaleLowerCase() === clean.toLocaleLowerCase()))
       throw new Error(`There is already a workspace named ${clean}.`);
     saveWorkspaces(list.map((item) => item.id === id ? { ...item, name: clean } : item));
-  }
-
-  // src/core/search.js
-  var search_exports = {};
-  __export(search_exports, {
-    addressText: () => addressText,
-    editDistance: () => editDistance,
-    findMatches: () => findMatches,
-    searchEntries: () => searchEntries,
-    searchWords: () => searchWords
-  });
-  function editDistance(a, b, limit) {
-    if (Math.abs(a.length - b.length) > limit) return limit + 1;
-    let before = [], previous = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      let current = [i], best = i;
-      for (let j = 1; j <= b.length; j++)
-        current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)), i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1] && (current[j] = Math.min(current[j], before[j - 2] + 1)), best = Math.min(best, current[j]);
-      if (best > limit) return limit + 1;
-      before = previous, previous = current;
-    }
-    return previous[b.length];
-  }
-  var SHORT_FORM = /^([a-z]+)(\d+)$/;
-  function wordQuality(token, text, words, loose, anywhere) {
-    let best = 0;
-    for (let word of words) {
-      if (word === token) return 1;
-      word.startsWith(token) ? best = Math.max(best, 0.85) : token.length >= 3 && word.includes(token) && (best = Math.max(best, 0.6));
-      let short = SHORT_FORM.exec(token), long = SHORT_FORM.exec(word);
-      if (short && long && short[2] === long[2] && long[1].startsWith(short[1]) && (best = Math.max(best, 0.55)), loose && !best && token.length >= 5) {
-        let limit = token.length >= 9 ? 2 : 1;
-        editDistance(token, word, limit) <= limit && (best = Math.max(best, 0.4));
-      }
-    }
-    return !best && (anywhere || token.length >= 3) && text.includes(token) && (best = 0.5), best;
-  }
-  function searchWords(text) {
-    return text.toLocaleLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  }
-  function addressText(item) {
-    if (item.type === "rdp") return item.host;
-    try {
-      let url = new URL(item.url);
-      return `${url.hostname}${url.pathname === "/" ? "" : url.pathname}`;
-    } catch {
-      return item.url || "";
-    }
-  }
-  function searchEntries(groups2) {
-    let entries = [], fields = (name, path, item) => {
-      let list = [{ kind: "name", text: name.toLocaleLowerCase(), weight: 1, anywhere: !0 }];
-      return path && list.push({ kind: "path", text: path.toLocaleLowerCase(), weight: 0.7 }), item && (list.push({ kind: "address", text: addressText(item).toLocaleLowerCase(), weight: 0.6 }), item.tags?.length && list.push({ kind: "tag", text: item.tags.join(" "), weight: 0.8 }), item.note && list.push({ kind: "note", text: item.note.toLocaleLowerCase(), weight: 0.5 })), list.map((field) => ({ ...field, words: searchWords(field.text) }));
-    };
-    return groups2.forEach((sun, sunIndex) => {
-      entries.push({
-        match: { kind: "Sun", name: sun.name, path: sun.team ? "Team Galaxy" : "Galaxy", id: sun.id, icon: sun.icon },
-        tags: [],
-        fields: fields(sun.name)
-      }), sun.links.forEach((planet, planetIndex) => {
-        entries.push({
-          match: {
-            kind: "Planet",
-            name: planet.name,
-            path: sun.name,
-            destination: planet,
-            indices: [sunIndex, planetIndex],
-            tags: planet.tags || []
-          },
-          tags: planet.tags || [],
-          fields: fields(planet.name, sun.name, planet)
-        }), planet.moons.forEach((moon, moonIndex) => {
-          entries.push({
-            match: {
-              kind: "Moon",
-              name: moon.name,
-              path: `${sun.name} / ${planet.name}`,
-              destination: moon,
-              indices: [sunIndex, planetIndex, moonIndex],
-              tags: moon.tags || []
-            },
-            tags: moon.tags || [],
-            fields: fields(moon.name, `${sun.name} ${planet.name}`, moon)
-          });
-        });
-      });
-    }), entries;
-  }
-  function findMatches(groups2, query) {
-    let raw = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean), tagFilters = raw.flatMap((word) => {
-      let tag = /^#(.+)$/.exec(word) || /^tag:(.+)$/.exec(word);
-      return tag ? [tag[1]] : [];
-    }), tokens = raw.filter((word) => !/^#.+$/.test(word) && !/^tag:.+$/.test(word));
-    if (!tokens.length && !tagFilters.length) return [];
-    let entries = searchEntries(groups2).filter((entry) => tagFilters.every((tag) => entry.tags.includes(tag))), strictHits = new Set(tokens.filter((token) => entries.some((entry) => entry.fields.some((field) => wordQuality(token, field.text, field.words || [], !1, field.anywhere))))), scored = [];
-    return entries.forEach((entry, order) => {
-      let score = 0, reasons = /* @__PURE__ */ new Set();
-      for (let token of tokens) {
-        let best = 0, bestKind = "";
-        for (let field of entry.fields) {
-          let quality = wordQuality(token, field.text, field.words || [], !strictHits.has(token), field.anywhere) * field.weight;
-          quality > best && (best = quality, bestKind = field.kind);
-        }
-        if (!best) return;
-        score += best, reasons.add(bestKind);
-      }
-      if (tokens.length && ![...reasons].some((kind) => kind !== "path")) return;
-      tokens.length || (score = 1);
-      let match = { ...entry.match, score };
-      reasons.has("name") || (reasons.has("address") ? match.why = `Address: ${addressText(entry.match.destination)}` : reasons.has("tag") ? match.why = "Matched a tag" : reasons.has("note") && (match.why = "Matched the note")), scored.push({ match, order });
-    }), scored.sort((a, b) => b.match.score - a.match.score || a.order - b.order), scored.map((item) => item.match);
-  }
-
-  // src/state/prefs.js
-  var prefs_exports = {};
-  __export(prefs_exports, {
-    RECENT_LIMIT: () => RECENT_LIMIT,
-    clearRecent: () => clearRecent,
-    hiddenTeamSuns: () => hiddenTeamSuns,
-    markOffered: () => markOffered,
-    readBoolean: () => readBoolean,
-    readFontSize: () => readFontSize,
-    readGalaxyView: () => readGalaxyView,
-    readOffered: () => readOffered,
-    readRdpLaunch: () => readRdpLaunch,
-    readRecent: () => readRecent,
-    readStoredSet: () => readStoredSet,
-    readTeamSeen: () => readTeamSeen,
-    readTheme: () => readTheme,
-    readVariables: () => readVariables,
-    recordRecent: () => recordRecent,
-    rememberTeam: () => rememberTeam,
-    savePreference: () => savePreference,
-    saveVariables: () => saveVariables,
-    writeStoredSet: () => writeStoredSet
-  });
-  function readBoolean(key, fallback) {
-    let value = readSafely(key);
-    return value === null ? fallback : value === "true";
-  }
-  function savePreference(key, value) {
-    writeSafely(key, String(value));
-  }
-  function readChoice(key, allowed, fallback) {
-    let value = (
-      /** @type {T} */
-      readSafely(key)
-    );
-    return allowed.includes(value) ? value : fallback;
-  }
-  var readTheme = () => readChoice("orbit:theme", ["default", "alabama", "auburn"], "default"), readFontSize = () => readChoice("orbit:font-size", ["small", "standard", "large", "extra"], "standard"), readGalaxyView = () => readSafely("orbit:galaxy-view") === "list" ? "list" : "orbits", readRdpLaunch = () => readSafely("orbit:rdp-launch") === "client" ? "client" : "download";
-  function readStoredSet(key) {
-    let list = readJson(key, []);
-    return new Set(Array.isArray(list) ? list.map(String) : []);
-  }
-  function writeStoredSet(key, set) {
-    writeSafely(key, JSON.stringify([...set]));
-  }
-  var hiddenTeamSuns = () => readStoredSet(KEYS.teamHidden);
-  function readObject(key) {
-    let value = readJson(key, {});
-    return value && typeof value == "object" ? value : {};
-  }
-  var readVariables = () => readObject(KEYS.variables);
-  function saveVariables(values) {
-    writeSafely(KEYS.variables, JSON.stringify({ ...readVariables(), ...values }));
-  }
-  var readOffered = () => readObject(KEYS.routineOffered);
-  function markOffered(id, day) {
-    let offered2 = readOffered();
-    offered2[id] = day, writeSafely(KEYS.routineOffered, JSON.stringify(offered2));
-  }
-  function readTeamSeen() {
-    let value = readJson(KEYS.teamSeen, null);
-    return Array.isArray(value) ? value : null;
-  }
-  function rememberTeam(entries) {
-    writeSafely(KEYS.teamSeen, JSON.stringify(entries.map(({ key, name }) => ({ key, name }))));
-  }
-  var RECENT_LIMIT = 10;
-  function readRecent() {
-    let list = readJson(KEYS.recent, []);
-    return Array.isArray(list) ? list.filter((entry) => entry && typeof entry.key == "string") : [];
-  }
-  function recordRecent(key, name, time) {
-    let list = [{ key, name, time }, ...readRecent().filter((entry) => entry.key !== key)];
-    writeSafely(KEYS.recent, JSON.stringify(list.slice(0, RECENT_LIMIT)));
-  }
-  function clearRecent() {
-    try {
-      remove(KEYS.recent);
-    } catch {
-    }
   }
 
   // src/core/words.js
@@ -862,130 +740,17 @@ prompt for credentials:i:1\r
     },
     /** Redraw only the Galaxy's quick bar (ui/views/galaxy.js). */
     refreshQuickBar: () => {
+    },
+    /** Open the menu (ui/menu/menu.js). */
+    openMenu: () => {
+    },
+    /** Show a menu panel (ui/menu/menu.js). @type {(name: string) => void} */
+    showMenuPanel: () => {
+    },
+    /** Export the personal map as JSON (ui/editor/screens.js). */
+    exportMap: () => {
     }
   };
-
-  // src/services/schedule.js
-  var schedule_exports = {};
-  __export(schedule_exports, {
-    BACKUP_CHANGES: () => BACKUP_CHANGES,
-    BACKUP_DAYS: () => BACKUP_DAYS,
-    DAY_MS: () => DAY_MS,
-    SNOOZE_MS: () => SNOOZE_MS,
-    backupDue: () => backupDue,
-    dueRoutines: () => dueRoutines,
-    localDay: () => localDay,
-    now: () => now,
-    setNow: () => setNow,
-    teamChanges: () => teamChanges,
-    teamEntries: () => teamEntries,
-    today: () => today
-  });
-  var BACKUP_CHANGES = 20, BACKUP_DAYS = 14, DAY_MS = 1440 * 60 * 1e3, SNOOZE_MS = 3 * DAY_MS, fixedNow = null, now = () => fixedNow === null ? Date.now() : fixedNow, today = () => new Date(now());
-  function setNow(ms) {
-    fixedNow = ms == null ? null : Number(ms);
-  }
-  function localDay(date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  }
-  function dueRoutines(routines2, offered2, date = today()) {
-    let time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-    return routines2.filter((routine) => routine.schedule && routine.schedule.days.includes(date.getDay()) && routine.schedule.time <= time && offered2[routine.id] !== localDay(date));
-  }
-  function backupDue(entry, enabled, time = now()) {
-    if (!enabled || !entry?.changes || entry.snoozeUntil && time < entry.snoozeUntil) return null;
-    let days = Math.floor((time - (entry.since || time)) / DAY_MS);
-    return entry.changes >= BACKUP_CHANGES || days >= BACKUP_DAYS ? { changes: entry.changes, days } : null;
-  }
-  function teamEntries(teamGroups2) {
-    return teamGroups2.flatMap((sun) => sun.links.flatMap((planet) => [
-      { key: destinationKey(planet), name: planet.name, path: sun.name },
-      ...planet.moons.map((moon) => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` }))
-    ]));
-  }
-  function teamChanges(seen, current) {
-    if (!Array.isArray(seen)) return { first: !0 };
-    let seenKeys = new Set(seen.map((entry) => entry.key)), currentKeys = new Set(current.map((entry) => entry.key));
-    return {
-      first: !1,
-      added: current.filter((entry) => !seenKeys.has(entry.key)),
-      removed: seen.filter((entry) => !currentKeys.has(entry.key))
-    };
-  }
-
-  // src/state/backup.js
-  var backup_exports = {};
-  __export(backup_exports, {
-    countChange: () => countChange,
-    forgetWorkspace: () => forgetWorkspace,
-    noteBackupMade: () => noteBackupMade,
-    readBackupState: () => readBackupState,
-    writeBackupState: () => writeBackupState
-  });
-  function readBackupState() {
-    let value = readJson(KEYS.backup, {});
-    return value && typeof value == "object" ? value : {};
-  }
-  function writeBackupState(state) {
-    writeSafely(KEYS.backup, JSON.stringify(state));
-  }
-  function countChange(workspace, now2 = Date.now()) {
-    let state = readBackupState(), entry = state[workspace] || {};
-    entry.changes = (entry.changes || 0) + 1, entry.since = entry.since || entry.lastExport || now2, state[workspace] = entry, writeBackupState(state);
-  }
-  function noteBackupMade(workspace, now2 = Date.now()) {
-    let state = readBackupState();
-    state[workspace] = { changes: 0, lastExport: now2 }, writeBackupState(state);
-  }
-  function forgetWorkspace(workspace) {
-    let state = readBackupState();
-    delete state[workspace], writeBackupState(state);
-  }
-
-  // src/ui/notices/area.js
-  function noticeArea() {
-    let area = document.querySelector("#notice-area");
-    return area || (area = element("section", "notice-area"), area.id = "notice-area", area.setAttribute("aria-label", "Notices"), document.querySelector(".app-shell").insertBefore(area, app)), area;
-  }
-  function showOpenAllNotice(message, isError = !1) {
-    let notice = (
-      /** @type {(HTMLElement & {hideTimer?: number}) | null} */
-      document.querySelector("#open-all-notice")
-    );
-    notice || (notice = element("p", "open-all-notice"), notice.id = "open-all-notice", notice.setAttribute("role", "status"), document.body.append(notice));
-    let shown = notice;
-    return shown.textContent = message, shown.classList.toggle("open-all-error", isError), shown.hidden = !1, clearTimeout(shown.hideTimer), shown.hideTimer = setTimeout(() => {
-      shown.hidden = !0;
-    }, isError ? 9e3 : 4e3), message;
-  }
-
-  // src/ui/notices/backup.js
-  function noteBackupMade2() {
-    noteBackupMade(activeWorkspace), document.querySelector("#backup-reminder")?.remove();
-  }
-  function backupDue2(time = now()) {
-    return backupDue(readBackupState()[activeWorkspace], readBoolean("orbit:backup-reminders", !0), time);
-  }
-  function backupReminder(due) {
-    let box = element("div", "routine-offer backup-reminder"), where = loadWorkspaces().length > 1 ? ` in ${workspaceName()}` : "";
-    box.append(element("p", "routine-offer-copy", `Back up your map${where}: ${counted(due.changes, "change")} since your last export${due.days ? `, ${counted(due.days, "day")} ago` : ""}.`));
-    let save = element("button", "routine-offer-open", "Back up now");
-    save.type = "button", save.addEventListener("click", () => {
-      exportMap(), box.remove();
-    });
-    let later = element("button", "routine-offer-dismiss", "Remind me later");
-    return later.type = "button", later.addEventListener("click", () => {
-      let state = readBackupState();
-      state[activeWorkspace] = { ...state[activeWorkspace], snoozeUntil: now() + SNOOZE_MS }, writeBackupState(state), document.querySelector("#backup-reminder")?.remove(), box.remove();
-    }), box.append(save, later), box;
-  }
-  function showBackupReminder() {
-    document.querySelector("#backup-reminder")?.remove();
-    let due = backupDue2();
-    if (!due) return;
-    let box = backupReminder(due);
-    box.id = "backup-reminder", noticeArea().append(box);
-  }
 
   // src/ui/modes.js
   function initialModes({ view = "galaxy" } = {}) {
@@ -1125,17 +890,1135 @@ prompt for credentials:i:1\r
   // src/ui/page-modes.js
   var modes = createModeStore();
 
+  // src/state/prefs.js
+  var prefs_exports = {};
+  __export(prefs_exports, {
+    RECENT_LIMIT: () => RECENT_LIMIT,
+    clearRecent: () => clearRecent,
+    hiddenTeamSuns: () => hiddenTeamSuns,
+    markOffered: () => markOffered,
+    readBoolean: () => readBoolean,
+    readFontSize: () => readFontSize,
+    readGalaxyView: () => readGalaxyView,
+    readOffered: () => readOffered,
+    readRdpLaunch: () => readRdpLaunch,
+    readRecent: () => readRecent,
+    readStoredSet: () => readStoredSet,
+    readTeamSeen: () => readTeamSeen,
+    readTheme: () => readTheme,
+    readVariables: () => readVariables,
+    recordRecent: () => recordRecent,
+    rememberTeam: () => rememberTeam,
+    savePreference: () => savePreference,
+    saveVariables: () => saveVariables,
+    writeStoredSet: () => writeStoredSet
+  });
+  function readBoolean(key, fallback) {
+    let value = readSafely(key);
+    return value === null ? fallback : value === "true";
+  }
+  function savePreference(key, value) {
+    writeSafely(key, String(value));
+  }
+  function readChoice(key, allowed, fallback) {
+    let value = (
+      /** @type {T} */
+      readSafely(key)
+    );
+    return allowed.includes(value) ? value : fallback;
+  }
+  var readTheme = () => readChoice("orbit:theme", ["default", "alabama", "auburn"], "default"), readFontSize = () => readChoice("orbit:font-size", ["small", "standard", "large", "extra"], "standard"), readGalaxyView = () => readSafely("orbit:galaxy-view") === "list" ? "list" : "orbits", readRdpLaunch = () => readSafely("orbit:rdp-launch") === "client" ? "client" : "download";
+  function readStoredSet(key) {
+    let list = readJson(key, []);
+    return new Set(Array.isArray(list) ? list.map(String) : []);
+  }
+  function writeStoredSet(key, set) {
+    writeSafely(key, JSON.stringify([...set]));
+  }
+  var hiddenTeamSuns = () => readStoredSet(KEYS.teamHidden);
+  function readObject(key) {
+    let value = readJson(key, {});
+    return value && typeof value == "object" ? value : {};
+  }
+  var readVariables = () => readObject(KEYS.variables);
+  function saveVariables(values) {
+    writeSafely(KEYS.variables, JSON.stringify({ ...readVariables(), ...values }));
+  }
+  var readOffered = () => readObject(KEYS.routineOffered);
+  function markOffered(id, day) {
+    let offered2 = readOffered();
+    offered2[id] = day, writeSafely(KEYS.routineOffered, JSON.stringify(offered2));
+  }
+  function readTeamSeen() {
+    let value = readJson(KEYS.teamSeen, null);
+    return Array.isArray(value) ? value : null;
+  }
+  function rememberTeam(entries) {
+    writeSafely(KEYS.teamSeen, JSON.stringify(entries.map(({ key, name }) => ({ key, name }))));
+  }
+  var RECENT_LIMIT = 10;
+  function readRecent() {
+    let list = readJson(KEYS.recent, []);
+    return Array.isArray(list) ? list.filter((entry) => entry && typeof entry.key == "string") : [];
+  }
+  function recordRecent(key, name, time) {
+    let list = [{ key, name, time }, ...readRecent().filter((entry) => entry.key !== key)];
+    writeSafely(KEYS.recent, JSON.stringify(list.slice(0, RECENT_LIMIT)));
+  }
+  function clearRecent() {
+    try {
+      remove(KEYS.recent);
+    } catch {
+    }
+  }
+
+  // src/state/backup.js
+  var backup_exports = {};
+  __export(backup_exports, {
+    countChange: () => countChange,
+    forgetWorkspace: () => forgetWorkspace,
+    noteBackupMade: () => noteBackupMade,
+    readBackupState: () => readBackupState,
+    writeBackupState: () => writeBackupState
+  });
+  function readBackupState() {
+    let value = readJson(KEYS.backup, {});
+    return value && typeof value == "object" ? value : {};
+  }
+  function writeBackupState(state) {
+    writeSafely(KEYS.backup, JSON.stringify(state));
+  }
+  function countChange(workspace, now2 = Date.now()) {
+    let state = readBackupState(), entry = state[workspace] || {};
+    entry.changes = (entry.changes || 0) + 1, entry.since = entry.since || entry.lastExport || now2, state[workspace] = entry, writeBackupState(state);
+  }
+  function noteBackupMade(workspace, now2 = Date.now()) {
+    let state = readBackupState();
+    state[workspace] = { changes: 0, lastExport: now2 }, writeBackupState(state);
+  }
+  function forgetWorkspace(workspace) {
+    let state = readBackupState();
+    delete state[workspace], writeBackupState(state);
+  }
+
+  // src/state/store.js
+  function createStore() {
+    let state = {
+      groups: [],
+      routines: [],
+      rdpPresets: [],
+      revision: 0,
+      workspace: MAIN,
+      source: "bundled",
+      warning: "",
+      seed: null,
+      team: []
+    }, subscribers = /* @__PURE__ */ new Set(), set = (changes) => {
+      state = Object.freeze({ ...state, ...changes });
+    }, notify = (kind) => {
+      for (let subscriber of [...subscribers]) subscriber(state, kind);
+    }, key = (base) => workspaceKey(base, state.workspace), visibleTeam = () => {
+      let hidden = hiddenTeamSuns();
+      return state.team.filter((sun) => !hidden.has(sun.id));
+    };
+    function loadBrowserMap() {
+      try {
+        let text = read(key(KEYS.map));
+        return text ? validateMap(JSON.parse(text)) : null;
+      } catch (error) {
+        return set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */
+        error.message}` }), null;
+      }
+    }
+    let store6 = {
+      /** @returns {Readonly<StoreState>} */
+      state: () => state,
+      /**
+       * @param {Subscriber} subscriber
+       * @returns {() => void} Unsubscribes.
+       */
+      subscribe(subscriber) {
+        return subscribers.add(subscriber), () => {
+          subscribers.delete(subscriber);
+        };
+      },
+      /**
+       * Load the active workspace at start-up. `seed` is the validated project
+       * data; `team` the team suns (ids with `team:`, `team: true`).
+       * @param {{seed: MapData, team?: Sun[]}} input
+       */
+      start({ seed, team: team2 = [] }) {
+        set({ seed, team: team2, workspace: readActiveWorkspace(), warning: "" });
+        let browserMap = loadBrowserMap(), map = browserMap || (state.workspace === MAIN ? seed : { groups: [] });
+        set({
+          groups: [...visibleTeam(), ...map.groups],
+          routines: map.routines || [],
+          rdpPresets: map.rdpPresets || [],
+          source: browserMap ? "browser" : "bundled"
+        }), notify("start");
+      },
+      /**
+       * Save a map (team suns may be included; they're never stored or changed).
+       * Routines and presets are kept unless `data` replaces them. The previous
+       * version goes into history under `label` unless it's false or nothing
+       * changed. Throws, with nothing changed, if the map is invalid or can't be
+       * written.
+       * @param {{groups: Sun[], routines?: Routine[], rdpPresets?: RdpPreset[]}} data
+       * @param {string|false} [label]
+       * @param {SaveOptions} [options]
+       */
+      saveMap(data, label = "Change", options = {}) {
+        if (options.expectRevision !== void 0 && options.expectRevision !== state.revision)
+          throw new Error("The link map changed, so nothing was saved.");
+        let undoKey = key(KEYS.undo), previousUndo;
+        try {
+          options.undoRecord && (previousUndo = read(undoKey), write(undoKey, JSON.stringify(options.undoRecord)));
+          let normalized = validateMap({
+            groups: personalGroups(data.groups),
+            routines: data.routines !== void 0 ? data.routines : state.routines,
+            rdpPresets: data.rdpPresets !== void 0 ? data.rdpPresets : state.rdpPresets
+          }), previous = personalGroups(state.groups);
+          write(key(KEYS.map), JSON.stringify(normalized));
+          let changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !== JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
+          label !== !1 && changed && recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets), changed && countChange(state.workspace), set({
+            groups: [...visibleTeam(), ...normalized.groups],
+            routines: normalized.routines || [],
+            rdpPresets: normalized.rdpPresets || [],
+            revision: state.revision + 1,
+            source: "browser"
+          });
+        } catch (error) {
+          if (options.undoRecord)
+            try {
+              previousUndo === null ? remove(undoKey) : previousUndo !== void 0 && write(undoKey, previousUndo);
+            } catch {
+            }
+          throw error;
+        }
+        if (options.clearUndo)
+          try {
+            remove(undoKey);
+          } catch {
+          }
+        notify("save");
+      },
+      /** Forget the load warning (after a successful edit, as 2.2.1's editor does). */
+      clearWarning() {
+        set({ warning: "" });
+      },
+      /**
+       * Replace the map with the project's link data. In Main the saved map is
+       * removed, so Main follows the project files again; elsewhere the file data
+       * is saved under the workspace's key (2.2.1, check F27). History keeps the
+       * map as it was; the removal undo is cleared.
+       */
+      resetToBundled() {
+        let fileData = validateMap(state.seed);
+        recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), state.workspace === MAIN ? remove(key(KEYS.map)) : write(key(KEYS.map), JSON.stringify(fileData)), remove(key(KEYS.undo)), set({
+          groups: [...visibleTeam(), ...fileData.groups],
+          routines: fileData.routines || [],
+          rdpPresets: fileData.rdpPresets || [],
+          revision: state.revision + 1,
+          source: state.workspace === MAIN ? "bundled" : "browser",
+          warning: ""
+        }), notify("reset");
+      },
+      /** The workspace's last removal, if it can be undone. @returns {UndoRecord|null} */
+      loadUndoRecord() {
+        try {
+          let saved = readSafely(key(KEYS.undo));
+          if (!saved) return null;
+          let record = JSON.parse(saved);
+          return record && ["sun", "planet", "moon"].includes(record.kind) && Number.isInteger(record.index) && record.index >= 0 && record.item ? record : null;
+        } catch {
+          return null;
+        }
+      },
+      /**
+       * Put the last removed sun, planet, or moon back. Returns false when there
+       * is nothing to undo; throws when it can't be put back.
+       */
+      undoRemoval() {
+        let record = store6.loadUndoRecord();
+        if (!record) return !1;
+        let next = JSON.parse(JSON.stringify(state.groups));
+        if (record.kind === "sun")
+          next.some((sun) => sun.id === record.item.id) && (record.item.id = uniqueSunId(record.item.name, new Set(next.map((sun) => sun.id)))), next.splice(Math.min(record.index, next.length), 0, record.item);
+        else {
+          let sun = next.find((item) => item.id === record.sunId);
+          if (!sun) throw new Error("The parent sun no longer exists.");
+          if (record.kind === "planet")
+            sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
+          else {
+            let planet = sun.links.find((planet2) => (
+              /** @type {any} */
+              planet2.url === record.planetUrl && /** @type {any} */
+              planet2.host === record.planetHost && planet2.name === record.planetName
+            )) || sun.links[
+              /** @type {number} */
+              record.planetIndex
+            ];
+            if (!planet) throw new Error("The parent planet no longer exists.");
+            planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
+          }
+        }
+        return store6.saveMap({ groups: next }, `Undid removal of ${record.label}`, { clearUndo: !0 }), !0;
+      },
+      /**
+       * Hide or show a team sun. Stored as a shared preference; the revision goes up.
+       * @param {string} id With its `team:` prefix.
+       * @param {boolean} hidden
+       */
+      setTeamSunHidden(id, hidden) {
+        let ids = hiddenTeamSuns();
+        hidden ? ids.add(id) : ids.delete(id), writeStoredSet(KEYS.teamHidden, ids), set({ groups: [...visibleTeam(), ...personalGroups(state.groups)], revision: state.revision + 1 }), notify("team");
+      },
+      /**
+       * Open another workspace. Returns false if it doesn't exist. Never touches
+       * another workspace's keys.
+       * @param {string} id
+       */
+      switchWorkspace(id) {
+        if (!loadWorkspaces().some((item) => item.id === id)) return !1;
+        set({ workspace: id, warning: "" }), saveActiveWorkspace(id);
+        let browserMap = loadBrowserMap(), map = browserMap || (id === MAIN ? state.seed || { groups: [] } : { groups: [] });
+        return set({
+          groups: [...visibleTeam(), ...map.groups],
+          routines: map.routines || [],
+          rdpPresets: map.rdpPresets || [],
+          source: browserMap ? "browser" : id === MAIN ? "bundled" : "browser",
+          revision: state.revision + 1
+        }), notify("switch"), !0;
+      },
+      /**
+       * Add a workspace and save its first map: 'empty', 'copy' (of this
+       * workspace), or 'bundled'. Doesn't switch to it. Returns its id.
+       * @param {unknown} name
+       * @param {'empty'|'copy'|'bundled'|string} start
+       */
+      addWorkspace(name, start) {
+        let added = newWorkspace(name), map = start === "copy" ? { groups: personalGroups(state.groups), routines: state.routines, rdpPresets: state.rdpPresets } : start === "bundled" ? state.seed : { groups: [] };
+        return write(workspaceKey(KEYS.map, added.id), JSON.stringify(validateMap(map))), saveWorkspaces([...loadWorkspaces(), added]), added.id;
+      },
+      /**
+       * Remove a workspace (never Main): its map, undo, and history keys, and its
+       * backup entry. Returns true if it was the open one; the caller then
+       * switches to Main.
+       * @param {string} id
+       */
+      removeWorkspace(id) {
+        if (id === MAIN) return !1;
+        for (let base of WORKSPACE_KEYS) remove(workspaceKey(base, id));
+        return forgetWorkspace(id), saveWorkspaces(loadWorkspaces().filter((item) => item.id !== id)), state.workspace === id;
+      },
+      /**
+       * Where a combined index points: a team sun or a personal one.
+       * @param {number} index
+       * @returns {{team: boolean, index: number}}
+       */
+      locate(index) {
+        let teamCount = state.groups.filter((sun) => sun.team).length;
+        return index < teamCount ? { team: !0, index } : { team: !1, index: index - teamCount };
+      },
+      /**
+       * The combined index of a team or personal sun.
+       * @param {{team: boolean, index: number}} place
+       */
+      combinedIndex(place) {
+        return place.team ? place.index : place.index + state.groups.filter((sun) => sun.team).length;
+      }
+    };
+    return store6;
+  }
+
+  // src/state/page-store.js
+  var store = createStore();
+  function activeWorkspace() {
+    return store.state().seed ? store.state().workspace : readActiveWorkspace();
+  }
+
+  // src/ui/editor/nav.js
+  var nav = {
+    /** @type {() => void} */
+    showSunList: () => {
+    },
+    /** @type {(index: number | null) => void} */
+    showSunEditor: () => {
+    },
+    /** @type {(sunIndex: number, planetIndex: number | null) => void} */
+    showPlanetEditor: () => {
+    },
+    /** @type {(sunIndex: number, planetIndex: number, moonIndex: number | null) => void} */
+    showMoonEditor: () => {
+    },
+    /** @type {(data: any, options?: any) => void} */
+    showImportReview: () => {
+    },
+    /** @type {() => void} */
+    renderEditorTree: () => {
+    }
+  };
+
+  // src/ui/editor/kit.js
+  var editorTree = null;
+  function setEditorTree(tree) {
+    editorTree = tree;
+  }
+  var linkCheckResults = /* @__PURE__ */ new Map();
+  function editorButton(label, action, className = "editor-button") {
+    let button = element("button", className, label);
+    return button.type = "button", button.addEventListener("click", action), button;
+  }
+  function editorField(label, value, type = "text") {
+    let wrapper = element("label", "editor-field");
+    wrapper.append(element("span", "", label));
+    let input = (
+      /** @type {HTMLInputElement} */
+      type === "textarea" ? document.createElement("textarea") : document.createElement("input")
+    );
+    return type !== "textarea" && (input.type = type), input.value = value, wrapper.append(input), { wrapper, input };
+  }
+  function editorError(message) {
+    let previous = menuContent.querySelector(".editor-error");
+    previous && previous.remove(), menuContent.prepend(element("p", "editor-error", message));
+  }
+  function editorHeader(title, back) {
+    menuContent.replaceChildren();
+    let header = element("div", "editor-header");
+    header.append(editorButton("← Back", back, "editor-back")), header.append(element("h3", "", title)), menuContent.append(header);
+    let undo = store.loadUndoRecord();
+    if (undo) {
+      let notice = element("div", "editor-undo");
+      notice.append(element("span", "", `Last removed: ${undo.label}`)), notice.append(editorButton("Undo removal", undoRemoval)), menuContent.append(notice);
+    }
+  }
+  function copyGroups() {
+    return JSON.parse(JSON.stringify(groups));
+  }
+  function applyEditorChange(nextGroups, showNext, options = {}) {
+    try {
+      store.saveMap(
+        {
+          groups: nextGroups,
+          ...options.routines !== void 0 ? { routines: options.routines } : {},
+          ...options.rdpPresets !== void 0 ? { rdpPresets: options.rdpPresets } : {}
+        },
+        options.label || "Edit links change",
+        { undoRecord: options.undoRecord, clearUndo: options.clearUndo }
+      ), store.clearWarning(), storageWarning = "", showNext(), nav.renderEditorTree();
+    } catch (error) {
+      editorError(
+        /** @type {any} */
+        error.message
+      );
+    }
+  }
+  function moveEntry(items, index, amount) {
+    let target = index + amount;
+    return target < 0 || target >= items.length ? !1 : ([items[index], items[target]] = [items[target], items[index]], !0);
+  }
+  function editorMoveControls(actions, index, count, onMove) {
+    let up = editorButton("Move up", () => onMove(-1));
+    up.disabled = index === 0;
+    let down = editorButton("Move down", () => onMove(1));
+    down.disabled = index === count - 1, actions.append(up, element("span", "editor-position", `${index + 1} of ${count}`), down);
+  }
+  function editorActions() {
+    let actions = element("div", "editor-actions");
+    return menuContent.append(actions), actions;
+  }
+  function selectJsonFile(onData) {
+    pickFile(".json,application/json", async (file) => {
+      try {
+        onData(await readJsonFile(file));
+      } catch (error) {
+        editorError(`Import failed: ${/** @type {any} */
+        error.message}`);
+      }
+    });
+  }
+  function exportItem(kind, item) {
+    let slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || kind;
+    downloadJson(itemExport(kind, item), `orbit-${kind}-${slug}.json`);
+  }
+  function pathLabel(path) {
+    let sun = groups[path[0]], planet = sun?.links[path[1]];
+    return planet ? path.length === 3 ? `${sun.name} → ${planet.name} → ${planet.moons[path[2]]?.name}` : `${sun.name} → ${planet.name}` : "";
+  }
+  function duplicateNote(item, path) {
+    if (!item?.name) return null;
+    let others = pathsForKey(groups, destinationKey(item)).filter((other) => other.join(":") !== path.join(":"));
+    if (!others.length) return null;
+    let where = others.slice(0, 3).map((other) => pathLabel(other)).join("; ");
+    return element("p", "editor-note", `Also in ${where}${others.length > 3 ? `, and ${others.length - 3} more` : ""}. This is fine for a deliberate copy.`);
+  }
+  function moveTargetField(options) {
+    let field = element("label", "editor-field");
+    field.append(element("span", "", "Move to"));
+    let select = document.createElement("select");
+    return select.setAttribute("aria-label", "Move to"), options.forEach(([value, label]) => {
+      let option = element("option", "", label);
+      option.value = value, select.append(option);
+    }), field.append(select), menuContent.append(field), select;
+  }
+  function movePositionField(targetSelect, siblingNames) {
+    let field = element("label", "editor-field");
+    field.append(element("span", "", "Position"));
+    let select = document.createElement("select");
+    select.setAttribute("aria-label", "Position");
+    let refresh = () => {
+      select.replaceChildren();
+      let end = element("option", "", "At the end");
+      end.value = "end", select.append(end), siblingNames(targetSelect.value).forEach((name, index) => {
+        let option = element("option", "", `Before ${name}`);
+        option.value = index, select.append(option);
+      });
+    };
+    return targetSelect.addEventListener("change", refresh), refresh(), field.append(select), menuContent.append(field), select;
+  }
+  function profileRows(text) {
+    return text.split(/\r\n|\n|\r/).filter(Boolean);
+  }
+  function editPath(path) {
+    path.length === 3 ? nav.showMoonEditor(path[0], path[1], path[2]) : nav.showPlanetEditor(path[0], path[1]);
+  }
+
+  // src/ui/editor/page.js
+  function openEditorPage() {
+    modes.send("openEditor");
+    let sheet = (
+      /** @type {HTMLElement} */
+      menuOverlay.querySelector(".menu-sheet")
+    );
+    sheet.classList.add("editor-page-mode"), sheet.querySelector(".menu-top h2").textContent = "Edit your Galaxy";
+    let layout = element("div", "editor-page-layout"), tree = element("nav", "editor-tree");
+    setEditorTree(tree), tree.setAttribute("aria-label", "Galaxy link tree");
+    let pane = element("section", "editor-pane");
+    layout.append(tree, pane), menuRoot.replaceChildren(layout), menuContent = pane, renderEditorTree(), nav.showSunList(), tree.querySelector("button")?.focus();
+  }
+  function openEditorAt(indices) {
+    hooks.openMenu(), openEditorPage(), indices.length === 3 ? nav.showMoonEditor(indices[0], indices[1], indices[2]) : nav.showPlanetEditor(indices[0], indices[1]);
+  }
+  function leaveEditorPage() {
+    modes.send("backToPanels"), menuOverlay.querySelector(".menu-sheet").classList.remove("editor-page-mode"), menuOverlay.querySelector(".menu-top h2").textContent = "Explore the menu", setEditorTree(null), menuContent = menuRoot, hooks.showMenuPanel("Settings"), menuRoot.querySelector(".editor-open")?.focus();
+  }
+  function renderEditorTree() {
+    let tree = editorTree;
+    tree && (tree.replaceChildren(element("h3", "", "Galaxy")), groups.forEach((sun, sunIndex) => {
+      let sunButton = editorButton(
+        `${sun.icon ? `${sun.icon} ` : ""}${sun.name} · ${counted(sun.links.length, "planet")}${sun.team ? " · team" : ""}`,
+        () => nav.showSunEditor(sunIndex),
+        "editor-tree-item editor-tree-sun"
+      );
+      tree.append(sunButton), sun.links.forEach((planet, planetIndex) => {
+        let planetButton = editorButton(
+          `${planet.name} · ${counted(planet.moons.length, "moon")}`,
+          () => nav.showPlanetEditor(sunIndex, planetIndex),
+          "editor-tree-item editor-tree-planet"
+        );
+        decorateTreeItem(planetButton, planet), tree.append(planetButton), planet.moons.forEach((moon, moonIndex) => {
+          let moonButton = editorButton(
+            moon.name,
+            () => nav.showMoonEditor(sunIndex, planetIndex, moonIndex),
+            "editor-tree-item editor-tree-moon"
+          );
+          decorateTreeItem(moonButton, moon), tree.append(moonButton);
+        });
+      });
+    }));
+  }
+  function decorateTreeItem(button, item) {
+    let result = linkCheckResults.get(destinationKey(item));
+    result && !result.ok && (button.classList.add("editor-tree-broken"), button.prepend(element("span", "broken-mark", "⚠ ")), button.title = `Last check: ${result.status ? `HTTP ${result.status}` : result.error}`), item.tags?.length && button.append(tagChips(item.tags));
+  }
+  function showMovePlanet(sunIndex, planetIndex) {
+    let sun = groups[sunIndex], planet = sun.links[planetIndex];
+    editorHeader(`Move ${planet.name}`, () => nav.showPlanetEditor(sunIndex, planetIndex)), menuContent.append(element("p", "", `From ${sun.name} sun. Its moons move with it.`));
+    let options = groups.flatMap((target, index) => index === sunIndex || target.team ? [] : [[String(index), target.name]]);
+    if (!options.length) {
+      menuContent.append(element("p", "", "Add another sun before moving this planet."));
+      return;
+    }
+    let select = moveTargetField(options), position = movePositionField(select, (value) => groups[Number(value)].links.map((item) => item.name));
+    editorActions().append(editorButton("Move planet", () => {
+      let sun2 = Number(select.value), moved = (
+        /** @type {any} */
+        moveMapItem(
+          groups,
+          { kind: "planet", sun: sunIndex, planet: planetIndex },
+          position.value === "end" ? { kind: "sun", sun: sun2 } : { kind: "planet", sun: sun2, planet: Number(position.value), place: "before" }
+        )
+      );
+      if (moved.status !== "moved") return editorError("That planet could not be moved.");
+      applyEditorChange(
+        moved.groups,
+        () => nav.showPlanetEditor(moved.path.sun, moved.path.planet),
+        { label: `Moved planet ${planet.name} to ${groups[sun2].name}` }
+      );
+    }, "editor-primary"));
+  }
+  function showMoveMoon(sunIndex, planetIndex, moonIndex) {
+    let sun = groups[sunIndex], planet = sun.links[planetIndex], moon = planet.moons[moonIndex];
+    editorHeader(`Move ${moon.name}`, () => nav.showMoonEditor(sunIndex, planetIndex, moonIndex)), menuContent.append(element("p", "", `From ${sun.name} sun → ${planet.name} planet.`));
+    let options = groups.flatMap((targetSun, targetSunIndex) => targetSun.links.flatMap(
+      (targetPlanet, targetPlanetIndex) => targetSunIndex === sunIndex && targetPlanetIndex === planetIndex || targetSun.team ? [] : [[`${targetSunIndex}:${targetPlanetIndex}`, `${targetSun.name} → ${targetPlanet.name}`]]
+    ));
+    if (!options.length) {
+      menuContent.append(element("p", "", "Add another planet before moving this moon."));
+      return;
+    }
+    let select = moveTargetField(options), position = movePositionField(select, (value) => {
+      let [targetSun, targetPlanet] = value.split(":").map(Number);
+      return groups[targetSun].links[targetPlanet].moons.map((item) => item.name);
+    });
+    editorActions().append(editorButton("Move moon", () => {
+      let [targetSunIndex, targetPlanetIndex] = select.value.split(":").map(Number), parent = { sun: targetSunIndex, planet: targetPlanetIndex }, moved = (
+        /** @type {any} */
+        moveMapItem(
+          groups,
+          { kind: "moon", sun: sunIndex, planet: planetIndex, moon: moonIndex },
+          position.value === "end" ? { kind: "planet", ...parent } : { kind: "moon", ...parent, moon: Number(position.value), place: "before" }
+        )
+      );
+      if (moved.status !== "moved") return editorError("That moon could not be moved.");
+      applyEditorChange(
+        moved.groups,
+        () => nav.showMoonEditor(moved.path.sun, moved.path.planet, moved.path.moon),
+        { label: `Moved moon ${moon.name}` }
+      );
+    }, "editor-primary"));
+  }
+  async function droppedFiles(dataTransfer) {
+    let entries = [...dataTransfer.items].map((item) => item.webkitGetAsEntry?.()).filter(Boolean);
+    if (!entries.length) return [...dataTransfer.files];
+    let visit = async (entry) => {
+      if (entry.isFile)
+        return [await new Promise((resolve, reject) => entry.file(resolve, reject))];
+      if (!entry.isDirectory) return [];
+      let reader = entry.createReader(), files2 = [];
+      for (; ; ) {
+        let children = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+        if (!children.length) break;
+        for (let child of children) files2.push(...await visit(child));
+      }
+      return files2;
+    }, files = [];
+    for (let entry of entries) files.push(...await visit(entry));
+    return files;
+  }
+  function showRdpBatchImport(kind, sunIndex, planetIndex = null) {
+    let sun = groups[sunIndex], parent = kind === "moon" ? sun.links[planetIndex] : sun, back = kind === "moon" ? () => nav.showPlanetEditor(sunIndex, planetIndex) : () => nav.showSunEditor(sunIndex);
+    editorHeader("Import .rdp files", back), menuContent.append(element("p", "", `Add ${kind}s under ${sun.name}${kind === "moon" ? ` → ${parent.name}` : ""}. Existing links stay in place.`)), menuContent.append(element("p", "", "Pick multiple .rdp files or a folder, or drop them here. Orbit reads the files in this browser and excludes password, token, and signature settings."));
+    let dropZone = element("div", "rdp-dropzone", "Drop .rdp files or a folder here"), preview = element("div", "rdp-batch-preview"), actions = editorActions(), add = editorButton("Add imported links", () => {
+      let next = copyGroups();
+      (kind === "moon" ? next[sunIndex].links[planetIndex].moons : next[sunIndex].links).push(...prepared), applyEditorChange(next, back, { label: `Imported ${counted(prepared.length, kind)} from .rdp files` });
+    }, "editor-primary");
+    add.disabled = !0;
+    let prepared = [], selectionVersion = 0, prepare = async (files) => {
+      let version = ++selectionVersion;
+      prepared = [], add.disabled = !0, preview.replaceChildren(), menuContent.querySelector(".editor-error")?.remove();
+      try {
+        let selected = files.filter((file) => /\.rdp$/i.test(file.name));
+        if (!selected.length) throw new Error("Choose at least one .rdp file.");
+        if (selected.length > 100) throw new Error("Choose at most 100 .rdp files at once.");
+        let imported = [], excluded = 0;
+        for (let file of selected) {
+          let parsed;
+          try {
+            parsed = parseRdpProfile(await readRdpText(file));
+          } catch (error) {
+            throw new Error(`${file.name}: ${/** @type {any} */
+            error.message}`);
+          }
+          imported.push({
+            name: file.name.replace(/\.rdp$/i, "") || "Remote Desktop",
+            type: "rdp",
+            host: parsed.host,
+            rdpProfile: parsed.content
+          }), excluded += parsed.removed;
+        }
+        if (version !== selectionVersion || !menuContent.contains(dropZone)) return;
+        prepared = imported, preview.append(element("p", "", `${imported.length} ${kind}${imported.length === 1 ? "" : "s"} ready · ${excluded} sensitive settings excluded · ${files.length - selected.length} other files skipped.`));
+        let list = element("ul", "rdp-batch-list");
+        imported.forEach((item) => list.append(element("li", "", `${item.name} → ${item.host}`))), preview.append(list), add.disabled = !1;
+      } catch (error) {
+        version === selectionVersion && menuContent.contains(dropZone) && editorError(`RDP import failed: ${/** @type {any} */
+        error.message}`);
+      }
+    }, choose = (folder) => {
+      let input = document.createElement("input");
+      input.type = "file", folder ? input.setAttribute("webkitdirectory", "") : (input.multiple = !0, input.accept = ".rdp,application/x-rdp"), input.addEventListener("change", () => {
+        input.files?.length && prepare([...input.files]);
+      }), input.click();
+    };
+    dropZone.addEventListener("dragover", (event) => event.preventDefault()), dropZone.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      try {
+        await prepare(await droppedFiles(event.dataTransfer));
+      } catch (error) {
+        editorError(`RDP import failed: ${/** @type {any} */
+        error.message}`);
+      }
+    }), menuContent.append(dropZone), actions.append(editorButton("Choose .rdp files", () => choose(!1))), actions.append(editorButton("Choose folder", () => choose(!0))), actions.append(add), menuContent.append(preview);
+  }
+
+  // src/ui/dialogs/confirm.js
+  function confirmed(question) {
+    return (
+      /** @type {any} */
+      globalThis.confirm(question)
+    );
+  }
+
+  // src/services/schedule.js
+  var schedule_exports = {};
+  __export(schedule_exports, {
+    BACKUP_CHANGES: () => BACKUP_CHANGES,
+    BACKUP_DAYS: () => BACKUP_DAYS,
+    DAY_MS: () => DAY_MS,
+    SNOOZE_MS: () => SNOOZE_MS,
+    backupDue: () => backupDue,
+    dueRoutines: () => dueRoutines,
+    localDay: () => localDay,
+    now: () => now,
+    setNow: () => setNow,
+    teamChanges: () => teamChanges,
+    teamEntries: () => teamEntries,
+    today: () => today
+  });
+  var BACKUP_CHANGES = 20, BACKUP_DAYS = 14, DAY_MS = 1440 * 60 * 1e3, SNOOZE_MS = 3 * DAY_MS, fixedNow = null, now = () => fixedNow === null ? Date.now() : fixedNow, today = () => new Date(now());
+  function setNow(ms) {
+    fixedNow = ms == null ? null : Number(ms);
+  }
+  function localDay(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
+  function dueRoutines(routines2, offered2, date = today()) {
+    let time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    return routines2.filter((routine) => routine.schedule && routine.schedule.days.includes(date.getDay()) && routine.schedule.time <= time && offered2[routine.id] !== localDay(date));
+  }
+  function backupDue(entry, enabled, time = now()) {
+    if (!enabled || !entry?.changes || entry.snoozeUntil && time < entry.snoozeUntil) return null;
+    let days = Math.floor((time - (entry.since || time)) / DAY_MS);
+    return entry.changes >= BACKUP_CHANGES || days >= BACKUP_DAYS ? { changes: entry.changes, days } : null;
+  }
+  function teamEntries(teamGroups) {
+    return teamGroups.flatMap((sun) => sun.links.flatMap((planet) => [
+      { key: destinationKey(planet), name: planet.name, path: sun.name },
+      ...planet.moons.map((moon) => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` }))
+    ]));
+  }
+  function teamChanges(seen, current) {
+    if (!Array.isArray(seen)) return { first: !0 };
+    let seenKeys = new Set(seen.map((entry) => entry.key)), currentKeys = new Set(current.map((entry) => entry.key));
+    return {
+      first: !1,
+      added: current.filter((entry) => !seenKeys.has(entry.key)),
+      removed: seen.filter((entry) => !currentKeys.has(entry.key))
+    };
+  }
+
+  // src/ui/notices/area.js
+  function noticeArea() {
+    let area = document.querySelector("#notice-area");
+    return area || (area = element("section", "notice-area"), area.id = "notice-area", area.setAttribute("aria-label", "Notices"), document.querySelector(".app-shell").insertBefore(area, app)), area;
+  }
+  function showOpenAllNotice(message, isError = !1) {
+    let notice = (
+      /** @type {(HTMLElement & {hideTimer?: number}) | null} */
+      document.querySelector("#open-all-notice")
+    );
+    notice || (notice = element("p", "open-all-notice"), notice.id = "open-all-notice", notice.setAttribute("role", "status"), document.body.append(notice));
+    let shown = notice;
+    return shown.textContent = message, shown.classList.toggle("open-all-error", isError), shown.hidden = !1, clearTimeout(shown.hideTimer), shown.hideTimer = setTimeout(() => {
+      shown.hidden = !0;
+    }, isError ? 9e3 : 4e3), message;
+  }
+
+  // src/ui/notices/backup.js
+  function noteBackupMade2() {
+    noteBackupMade(activeWorkspace()), document.querySelector("#backup-reminder")?.remove();
+  }
+  function backupDue2(time = now()) {
+    return backupDue(readBackupState()[activeWorkspace()], readBoolean("orbit:backup-reminders", !0), time);
+  }
+  function backupReminder(due) {
+    let box = element("div", "routine-offer backup-reminder"), where = loadWorkspaces().length > 1 ? ` in ${workspaceName(activeWorkspace())}` : "";
+    box.append(element("p", "routine-offer-copy", `Back up your map${where}: ${counted(due.changes, "change")} since your last export${due.days ? `, ${counted(due.days, "day")} ago` : ""}.`));
+    let save = element("button", "routine-offer-open", "Back up now");
+    save.type = "button", save.addEventListener("click", () => {
+      hooks.exportMap(), box.remove();
+    });
+    let later = element("button", "routine-offer-dismiss", "Remind me later");
+    return later.type = "button", later.addEventListener("click", () => {
+      let state = readBackupState();
+      state[activeWorkspace()] = { ...state[activeWorkspace()], snoozeUntil: now() + SNOOZE_MS }, writeBackupState(state), document.querySelector("#backup-reminder")?.remove(), box.remove();
+    }), box.append(save, later), box;
+  }
+  function showBackupReminder() {
+    document.querySelector("#backup-reminder")?.remove();
+    let due = backupDue2();
+    if (!due) return;
+    let box = backupReminder(due);
+    box.id = "backup-reminder", noticeArea().append(box);
+  }
+
+  // src/services/sources.js
+  var sources_exports = {};
+  __export(sources_exports, {
+    loadBundledMap: () => loadBundledMap,
+    loadTeamMap: () => loadTeamMap,
+    pageEnv: () => pageEnv
+  });
+  function pageEnv() {
+    let page = (
+      /** @type {any} */
+      globalThis
+    );
+    return {
+      protocol: page.location.protocol,
+      fetch: (url, init) => page.fetch(url, init),
+      bundledData: page.ORBIT_DATA,
+      teamData: page.ORBIT_TEAM_DATA
+    };
+  }
+  async function loadBundledMap(env = pageEnv()) {
+    let data;
+    if (env.protocol === "file:")
+      data = env.bundledData;
+    else {
+      let response = await env.fetch("./links.json", { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      data = await response.json();
+    }
+    if (!data) throw new Error("Run `python3 sync.py` to generate links-data.js.");
+    return validateMap(data);
+  }
+  async function fetchTeamData(env) {
+    if (env.protocol !== "file:")
+      try {
+        let response = await env.fetch("./team.json", { cache: "no-store" });
+        if (response.ok) return { data: await response.json(), source: "team.json from serve.py --team" };
+        if (response.status !== 404) throw new Error(`HTTP ${response.status}`);
+      } catch (error) {
+        if (!env.teamData) throw error;
+      }
+    return env.teamData ? { data: env.teamData, source: "team-data.js" } : null;
+  }
+  async function loadTeamMap(env = pageEnv()) {
+    try {
+      let loaded = await fetchTeamData(env);
+      return loaded ? { groups: validateMap(loaded.data).groups.map((sun) => ({ ...sun, id: `team:${sun.id}`, team: !0 })), source: loaded.source, error: "" } : { groups: [], source: "", error: "" };
+    } catch (error) {
+      return { groups: [], source: "", error: `The team map could not be loaded: ${/** @type {Error} */
+      error.message}` };
+    }
+  }
+
+  // src/ui/team-map.js
+  var team = {
+    /** @type {any[]} */
+    groups: [],
+    source: "",
+    error: ""
+  };
+  async function loadTeamMap2() {
+    let loaded = await loadTeamMap();
+    team.groups = loaded.groups, team.source = loaded.source, team.error = loaded.error;
+  }
+
+  // src/services/opener.js
+  var opener_exports = {};
+  __export(opener_exports, {
+    openDestination: () => openDestination,
+    openLinks: () => openLinks,
+    openPlan: () => openPlan,
+    openTab: () => openTab,
+    planLinks: () => planLinks
+  });
+
+  // src/services/rdp-launch.js
+  var rdp_launch_exports = {};
+  __export(rdp_launch_exports, {
+    downloadRdp: () => downloadRdp,
+    launchRdp: () => launchRdp
+  });
+  function downloadRdp(destination, presets) {
+    downloadText(rdpFileContent(destination, presets), rdpFileName(destination), "application/x-rdp");
+  }
+  function launchRdp(destination, presets, mode) {
+    mode === "download" ? downloadRdp(destination, presets) : globalThis.location.href = rdpLaunchUrl2(destination, presets);
+  }
+
+  // src/services/opener.js
+  function openTab(url) {
+    let opened = (
+      /** @type {any} */
+      globalThis.open(url, "_blank")
+    );
+    return opened && (opened.opener = null), !!opened;
+  }
+  function openDestination(item, { presets, launchMode }) {
+    return item.type === "rdp" ? (launchRdp(item, presets, launchMode), "rdp") : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
+  }
+  function planLinks(items, label, { question = null, extra = "", values = readVariables() } = {}) {
+    let filled = (item) => item.type !== "rdp" && templateNames(item.url).every((name) => values[name]), all = items.filter((item) => item.type !== "rdp"), web = all.filter(filled).map((item) => ({ item, url: fillTemplate(
+      /** @type {any} */
+      item.url,
+      values
+    ) })), skipped = items.length - all.length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
+    return {
+      web,
+      note,
+      label,
+      question: question ? question(web.length) : `Open ${web.length} tabs for ${label}?`,
+      empty: web.length ? null : `${label} has no website links to open.${note}`
+    };
+  }
+  function openPlan(plan, onOpened = () => {
+  }) {
+    let blocked = 0;
+    for (let { item, url } of plan.web)
+      openTab(url) ? onOpened(item) : blocked++;
+    let message = blocked ? `Your browser blocked ${counted(blocked, "tab")}. Allow pop-ups for Orbit in the browser's address bar, then try again.${plan.note}` : `Opened ${counted(plan.web.length, "tab")} for ${plan.label}.${plan.note}`;
+    return { opened: plan.web.length - blocked, blocked, message, isError: blocked > 0 };
+  }
+  function openLinks(items, label, { confirm = !0, question = null, extra = "", ask, onOpened }) {
+    let plan = planLinks(items, label, { question, extra });
+    if (plan.empty !== null) return { message: plan.empty, isError: !1 };
+    if (confirm && plan.web.length > 1 && !ask(plan.question)) return null;
+    let { message, isError } = openPlan(plan, onOpened);
+    return { message, isError };
+  }
+
+  // src/ui/views/favorites.js
+  function isFavorite(item, sun) {
+    return item ? sun?.team ? readStoredSet(KEYS.teamFavorites).has(destinationKey(item)) : item.favorite === !0 : !1;
+  }
+  function favoriteItems() {
+    let list = [];
+    return groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
+      isFavorite(planet, sun) && list.push({ path: [sunIndex, planetIndex], item: planet }), planet.moons.forEach((moon, moonIndex) => {
+        isFavorite(moon, sun) && list.push({ path: [sunIndex, planetIndex, moonIndex], item: moon });
+      });
+    })), list;
+  }
+  function setFavorite(path, on) {
+    let sun = groups[path[0]], item = itemAt(groups, path);
+    if (!item) return;
+    if (sun.team) {
+      let set = readStoredSet(KEYS.teamFavorites);
+      on ? set.add(destinationKey(item)) : set.delete(destinationKey(item)), writeStoredSet(KEYS.teamFavorites, set), hooks.render();
+      return;
+    }
+    let next = copyGroups(), target = path.length === 3 ? next[path[0]].links[path[1]].moons[path[2]] : next[path[0]].links[path[1]];
+    on ? target.favorite = !0 : delete target.favorite, store.saveMap({ groups: next }, `${on ? "Added" : "Removed"} favorite ${item.name}`);
+  }
+  function recentItems() {
+    return readRecent().flatMap((entry) => {
+      let path = pathsForKey(groups, entry.key)[0];
+      return path ? [{ path, item: itemAt(groups, path) }] : [];
+    });
+  }
+  function noteOpened(item) {
+    !item || modes.inEditMode() || (recordRecent(destinationKey(item), item.name, Date.now()), setTimeout(() => hooks.refreshQuickBar(), 0));
+  }
+
+  // src/ui/dialogs/placeholder.js
+  var variableDialog = (
+    /** @type {any} */
+    null
+  ), variableItem = (
+    /** @type {any} */
+    null
+  );
+  function askForVariables(item) {
+    modes.overlayIs("placeholder") && closeVariableDialog(), variableItem = item, modes.send("openPlaceholder");
+  }
+  function variableFormOpened() {
+    let item = variableItem;
+    variableItem = null;
+    let names = templateNames(item.url), remembered = readVariables(), opener = document.activeElement instanceof HTMLElement ? document.activeElement : null, overlay = element("div", "palette-overlay variable-overlay"), scrim = element("div", "palette-scrim"), form = element("form", "palette variable-form");
+    form.setAttribute("role", "dialog"), form.setAttribute("aria-modal", "true"), form.setAttribute("aria-label", `Open ${item.name}`), form.append(element("h2", "variable-title", `Open ${item.name}`)), form.append(element("p", "variable-address", item.url));
+    let inputs = names.map((name) => {
+      let field = editorField(name, remembered[name] || "");
+      return field.input.setAttribute("aria-label", name), field.input.required = !0, field.input.autocomplete = "off", form.append(field.wrapper), /** @type {[string, HTMLInputElement]} */
+      [name, field.input];
+    }), preview = element("p", "variable-preview"), update = () => {
+      preview.textContent = fillTemplate(item.url, Object.fromEntries(inputs.map(([name, input]) => [name, input.value.trim()])));
+    };
+    inputs.forEach(([, input]) => input.addEventListener("input", update)), update();
+    let actions = element("div", "editor-actions"), open = element("button", "editor-primary", "Open");
+    open.type = "submit";
+    let cancel = editorButton("Cancel", closeVariableDialog);
+    actions.append(open, cancel), form.append(preview, actions), form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      let values = Object.fromEntries(inputs.map(([name, input]) => [name, input.value.trim()]));
+      Object.values(values).some((value) => !value) || (saveVariables(values), closeVariableDialog(), openTab(fillTemplate(item.url, values)), noteOpened(item));
+    }), form.addEventListener("keydown", (event) => {
+      event.key === "Escape" && (event.preventDefault(), event.stopPropagation(), closeVariableDialog());
+    }), scrim.addEventListener("click", closeVariableDialog), overlay.append(scrim, form), document.body.append(overlay), variableDialog = { overlay, opener }, (inputs.find(([, input]) => !input.value)?.[1] || inputs[0]?.[1])?.focus();
+  }
+  function closeVariableDialog() {
+    modes.overlayIs("placeholder") && modes.send("closeOverlay");
+  }
+  function variableFormClosed() {
+    let { overlay, opener } = variableDialog;
+    variableDialog = /** @type {any} */
+    null, overlay.remove(), opener && document.contains(opener) && opener.focus();
+  }
+
+  // src/ui/views/open.js
+  function openDestination2(item) {
+    if (openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode }) === "ask") return askForVariables(item);
+    noteOpened(item);
+  }
+  function openLinks2(items, label, { confirm = !0, question = null, extra = "" } = {}) {
+    let result = openLinks(items, label, { confirm, question, extra, ask: confirmed, onOpened: noteOpened });
+    return result ? showOpenAllNotice(result.message, result.isError) : null;
+  }
+  function openAll(sunIndex, planetIndex) {
+    let planet = groups[sunIndex]?.links[planetIndex];
+    return planet ? openLinks2(
+      [planet, ...planet.moons],
+      planet.name,
+      { question: (count) => `Open ${count} tabs for ${planet.name} and its moons?` }
+    ) : null;
+  }
+  function openAllFavorites() {
+    return openLinks2(favoriteItems().map((entry) => entry.item), "your favorites");
+  }
+  function routineItems(routine) {
+    let items = [], missing = 0;
+    for (let link of routine.links) {
+      let path = pathsForKey(groups, link.key)[0];
+      path ? items.push({ path, item: itemAt(groups, path) }) : missing++;
+    }
+    return { items, missing };
+  }
+  function runRoutine(routine) {
+    let { items, missing } = routineItems(routine), extra = missing ? ` ${counted(missing, "link")} in this routine ${missing === 1 ? "is" : "are"} no longer on the map.` : "";
+    return items.length ? openLinks2(items.map((entry) => entry.item), routine.name, { confirm: !1, extra }) : showOpenAllNotice(`${routine.name} has no links on the map.${extra}`, !0);
+  }
+
+  // src/ui/notices/routine-offer.js
+  var offered = (id) => markOffered(id, localDay(today()));
+  function offerDueRoutines() {
+    if (document.querySelector("#routine-banner")?.remove(), !modes.routineOffersAllowed()) return;
+    let due = dueRoutines(routines, readOffered());
+    if (!due.length) return;
+    let banner = element("section", "routine-banner");
+    banner.id = "routine-banner", banner.setAttribute("role", "region"), banner.setAttribute("aria-label", "Routines ready to open");
+    for (let routine of due) {
+      let { items } = routineItems(routine), row = element("div", "routine-offer");
+      row.append(element("p", "routine-offer-copy", `Time for ${routine.name}: ${counted(items.length, "link")}.`));
+      let open = element("button", "routine-offer-open", `Open ${routine.name}`);
+      open.type = "button", open.addEventListener("click", () => {
+        offered(routine.id), row.remove(), banner.querySelector(".routine-offer") || banner.remove(), runRoutine(routine);
+      });
+      let later = element("button", "routine-offer-dismiss", "Not today");
+      later.type = "button", later.addEventListener("click", () => {
+        offered(routine.id), row.remove(), banner.querySelector(".routine-offer") || banner.remove();
+      }), row.append(open, later), banner.append(row);
+    }
+    noticeArea().prepend(banner);
+  }
+  function installRoutineOffers() {
+    document.addEventListener("visibilitychange", () => {
+      document.visibilityState === "visible" && groups.length && offerDueRoutines();
+    });
+  }
+
+  // src/ui/menu/workspaces.js
+  function workspaceKey2(base, id = activeWorkspace()) {
+    return workspaceKey(base, id);
+  }
+  function switchWorkspace(id) {
+    loadWorkspaces().some((item) => item.id === id) && (modes.send("switchWorkspace"), store.switchWorkspace(id) && (updateWorkspaceSwitch(), location.hash && location.hash !== "#" && !groups.some((sun) => location.hash.includes(encodeURIComponent(sun.id))) ? location.hash = "" : hooks.render(), offerDueRoutines(), showBackupReminder()));
+  }
+  function addWorkspace(name, start) {
+    return store.addWorkspace(name, start);
+  }
+  function renameWorkspace2(id, name) {
+    renameWorkspace(id, name), updateWorkspaceSwitch();
+  }
+  function removeWorkspace(id) {
+    id !== "main" && (store.removeWorkspace(id) ? switchWorkspace("main") : updateWorkspaceSwitch());
+  }
+  function updateWorkspaceSwitch() {
+    let select = (
+      /** @type {HTMLSelectElement | null} */
+      document.querySelector("#workspace-switch")
+    ), list = loadWorkspaces();
+    if (list.length < 2) {
+      select?.remove();
+      return;
+    }
+    if (!select) {
+      select = document.createElement("select"), select.id = "workspace-switch", select.className = "workspace-switch", select.setAttribute("aria-label", "Workspace"), select.title = "Switch workspace";
+      let created = select;
+      created.addEventListener("change", () => switchWorkspace(created.value)), document.querySelector(".topbar-right").prepend(created);
+    }
+    select.replaceChildren(...list.map((item) => {
+      let option = element("option", "", item.name);
+      return option.value = item.id, option;
+    })), select.value = activeWorkspace();
+  }
+  function workspaceSettings() {
+    let section = element("div", "team-settings workspace-settings");
+    section.append(element("strong", "", "Workspaces")), section.append(element("p", "workspace-hint", "Separate maps, such as Work and Home, each with their own suns, favorites, routines, and history. The team map and these settings are shared.")), loadWorkspaces().forEach((item) => {
+      let row = element("div", "editor-list-row workspace-row");
+      row.append(element("span", "", `${item.name}${item.id === activeWorkspace() ? " (open)" : ""}`)), item.id !== activeWorkspace() && row.append(editorButton("Switch", () => {
+        switchWorkspace(item.id), hooks.showMenuPanel("Settings");
+      })), row.append(editorButton("Rename", () => {
+        let name2 = window.prompt("New name for this workspace", item.name);
+        if (name2 !== null)
+          try {
+            renameWorkspace2(item.id, name2), hooks.showMenuPanel("Settings");
+          } catch (error) {
+            editorError(
+              /** @type {any} */
+              error.message
+            );
+          }
+      })), item.id !== "main" && row.append(editorButton("Remove", () => {
+        confirmed(`Remove the ${item.name} workspace and its map? Export it first if you want a copy.`) && (removeWorkspace(item.id), hooks.showMenuPanel("Settings"));
+      }, "editor-danger")), section.append(row);
+    });
+    let form = element("form", "workspace-add"), name = editorField("New workspace", "");
+    name.input.setAttribute("aria-label", "New workspace name"), name.input.placeholder = "For example: Home";
+    let start = document.createElement("select");
+    start.setAttribute("aria-label", "Start the new workspace with");
+    for (let [value, label] of [["empty", "An empty map"], ["copy", "A copy of this workspace"], ["bundled", "The sample map"]]) {
+      let option = element("option", "", label);
+      option.value = value, start.append(option);
+    }
+    let add = element("button", "editor-button", "Add workspace");
+    return add.type = "submit", form.append(name.wrapper, start, add), form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      try {
+        let id = addWorkspace(name.input.value, start.value);
+        switchWorkspace(id), hooks.showMenuPanel("Settings");
+      } catch (error) {
+        editorError(
+          /** @type {any} */
+          error.message
+        );
+      }
+    }), section.append(form), section;
+  }
+
   // src/ui/menu/menu.js
   var menuOpener = null;
   function closeMenu() {
     modes.menuOpen() && modes.send("closeOverlay");
   }
   function menuHidden() {
-    menuOverlay.querySelector(".menu-sheet").classList.remove("editor-page-mode"), menuOverlay.querySelector(".menu-top h2").textContent = "Explore the menu", menuContent = menuRoot, editorTree = null;
+    menuOverlay.querySelector(".menu-sheet").classList.remove("editor-page-mode"), menuOverlay.querySelector(".menu-top h2").textContent = "Explore the menu", menuContent = menuRoot, setEditorTree(null);
     let target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
     menuOpener = null, target.focus();
   }
-  function openMenu2() {
+  function openMenu() {
     if (modes.send("openMenu"), !!modes.menuOpen()) {
       menuOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null, menuContent = menuRoot, menuContent.replaceChildren();
       for (let option of document.querySelectorAll("[data-menu-panel]")) option.classList.remove("active");
@@ -1263,14 +2146,14 @@ prompt for credentials:i:1\r
   }
   function teamSettings() {
     let section = element("div", "team-settings");
-    if (section.append(element("strong", "", "Team map")), teamError && section.append(element("p", "editor-error", teamError)), !teamGroups.length)
-      return teamError || section.append(element("p", "team-source", "No team map is set up. Start Orbit with python3 serve.py --team PATH, or run python3 sync.py --team PATH for file use.")), section;
-    section.append(element("p", "team-source", `${counted(teamGroups.length, "team sun")} from ${teamSource}. Team suns are read-only and never saved with your map.`));
+    if (section.append(element("strong", "", "Team map")), team.error && section.append(element("p", "editor-error", team.error)), !team.groups.length)
+      return team.error || section.append(element("p", "team-source", "No team map is set up. Start Orbit with python3 serve.py --team PATH, or run python3 sync.py --team PATH for file use.")), section;
+    section.append(element("p", "team-source", `${counted(team.groups.length, "team sun")} from ${team.source}. Team suns are read-only and never saved with your map.`));
     let hidden = hiddenTeamSuns();
-    return teamGroups.filter((sun) => hidden.has(sun.id)).forEach((sun) => {
+    return team.groups.filter((sun) => hidden.has(sun.id)).forEach((sun) => {
       let row = element("div", "editor-list-row");
       row.append(element("span", "", `${sun.name} (hidden)`)), row.append(editorButton("Show", () => {
-        setTeamSunHidden(sun.id, !1), showMenuPanel("Settings");
+        store.setTeamSunHidden(sun.id, !1), showMenuPanel("Settings");
       })), section.append(row);
     }), section;
   }
@@ -1303,12 +2186,12 @@ prompt for credentials:i:1\r
     return copy.append(element("strong", "", "Add this link to your map"), element("small", "", address)), node.append(copy, element("span", "find-arrow", "+")), node.addEventListener("click", () => showQuickAdd(address)), node;
   }
   function showQuickAdd(address = "") {
-    modes.menuOpen() || openMenu2(), editorTree || openEditorPage(), editorHeader("Add a link", showSunList);
+    modes.menuOpen() || openMenu(), editorTree || openEditorPage(), editorHeader("Add a link", nav.showSunList);
     let targets = [];
     if (groups.forEach((sun, sunIndex) => {
       sun.team || (targets.push([`sun:${sunIndex}`, `${sun.name} (as a planet)`]), sun.links.forEach((planet, planetIndex) => targets.push([`planet:${sunIndex}:${planetIndex}`, `${sun.name} → ${planet.name} (as a moon)`])));
     }), !targets.length) {
-      menuContent.append(element("p", "editor-note", "Add a sun to your map first; links are added to a sun as planets or to a planet as moons.")), editorActions().append(editorButton("Add sun", () => showSunEditor(null), "editor-primary"));
+      menuContent.append(element("p", "editor-note", "Add a sun to your map first; links are added to a sun as planets or to a planet as moons.")), editorActions().append(editorButton("Add sun", () => nav.showSunEditor(null), "editor-primary"));
       return;
     }
     menuContent.append(element("p", "", "Add a website to a sun as a planet, or to a planet as a moon."));
@@ -1343,258 +2226,995 @@ prompt for credentials:i:1\r
       if (kind === "sun")
         next[Number(sunIndex)].links.push({ ...value, moons: [] }), applyEditorChange(
           next,
-          () => showPlanetEditor(Number(sunIndex), next[Number(sunIndex)].links.length - 1),
+          () => nav.showPlanetEditor(Number(sunIndex), next[Number(sunIndex)].links.length - 1),
           { label: `Added planet ${value.name}` }
         );
       else {
         let moons = next[Number(sunIndex)].links[Number(planetIndex)].moons;
         moons.push(value), applyEditorChange(
           next,
-          () => showMoonEditor(Number(sunIndex), Number(planetIndex), moons.length - 1),
+          () => nav.showMoonEditor(Number(sunIndex), Number(planetIndex), moons.length - 1),
           { label: `Added moon ${value.name}` }
         );
       }
     }), menuContent.append(form), (address ? name.input : url.input).focus();
   }
 
-  // src/ui/views/favorites.js
-  function isFavorite(item, sun) {
-    return item ? sun?.team ? readStoredSet(KEYS.teamFavorites).has(destinationKey(item)) : item.favorite === !0 : !1;
+  // src/core/bookmarks.js
+  var bookmarks_exports = {};
+  __export(bookmarks_exports, {
+    BOOKMARK_BARS: () => BOOKMARK_BARS,
+    BOOKMARK_LIMIT: () => BOOKMARK_LIMIT,
+    bookmarksToMap: () => bookmarksToMap
+  });
+  var BOOKMARK_LIMIT = 2e3, BOOKMARK_BARS = /^(bookmarks bar|bookmarks toolbar|favorites bar|favourites bar|other bookmarks|other favorites|mobile bookmarks)$/i;
+  function flattenFolder(folder) {
+    return [...folder.links, ...folder.folders.flatMap(flattenFolder)];
   }
-  function favoriteItems() {
-    let list = [];
-    return groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
-      isFavorite(planet, sun) && list.push({ path: [sunIndex, planetIndex], item: planet }), planet.moons.forEach((moon, moonIndex) => {
-        isFavorite(moon, sun) && list.push({ path: [sunIndex, planetIndex, moonIndex], item: moon });
-      });
-    })), list;
+  function bookmarksToMap(root) {
+    let stats = { links: 0, skipped: 0, truncated: !1 }, destination = (link) => {
+      if (stats.links >= BOOKMARK_LIMIT)
+        return stats.truncated = !0, null;
+      try {
+        let url = new URL(link.url);
+        if (!["http:", "https:"].includes(url.protocol)) throw new Error("not web");
+        let item = validDestination({ name: link.name || url.hostname, url: link.url }, "Bookmark");
+        return stats.links++, item;
+      } catch {
+        return stats.skipped++, null;
+      }
+    }, tops = [];
+    for (let folder of root.folders)
+      BOOKMARK_BARS.test(folder.name) ? (tops.push(...folder.folders), folder.links.length && tops.push({ name: folder.name, links: folder.links, folders: [] })) : tops.push(folder);
+    root.links.length && tops.push({ name: "Bookmarks", links: [...root.links], folders: [] });
+    let suns = tops.map((folder) => {
+      let links = folder.links.map(destination).filter(Boolean).map((item) => ({ ...item, moons: [] }));
+      for (let sub of folder.folders) {
+        let items = (
+          /** @type {any[]} */
+          flattenFolder(sub).map(destination).filter(Boolean)
+        );
+        items.length && links.push({ name: sub.name, url: items[0].url, moons: items.slice(1) });
+      }
+      return { name: folder.name, description: "Imported from browser bookmarks", links };
+    }).filter((sun) => sun.links.length);
+    return { map: validateMap({ groups: suns }), stats };
   }
-  function setFavorite(path, on) {
-    let sun = groups[path[0]], item = itemAt(groups, path);
-    if (!item) return;
-    if (sun.team) {
-      let set = readStoredSet(KEYS.teamFavorites);
-      on ? set.add(destinationKey(item)) : set.delete(destinationKey(item)), writeStoredSet(KEYS.teamFavorites, set), hooks.render();
-      return;
-    }
-    let next = copyGroups(), target = path.length === 3 ? next[path[0]].links[path[1]].moons[path[2]] : next[path[0]].links[path[1]];
-    on ? target.favorite = !0 : delete target.favorite, saveMap({ groups: next }, `${on ? "Added" : "Removed"} favorite ${item.name}`);
-  }
-  function recentItems() {
-    return readRecent().flatMap((entry) => {
-      let path = pathsForKey(groups, entry.key)[0];
-      return path ? [{ path, item: itemAt(groups, path) }] : [];
+
+  // src/ui/editor/tools/bookmarks.js
+  function importBookmarks() {
+    pickFile(".html,.htm,text/html", async (file) => {
+      try {
+        let { map, stats } = bookmarksToMap(readBookmarksHtml(await file.text()));
+        if (!map.groups.length) throw new Error("The file has no website bookmarks.");
+        let note = `Read ${counted(stats.links, "website bookmark")}${stats.skipped ? `; skipped ${counted(stats.skipped, "other link")} (not http or https)` : ""}${stats.truncated ? `; stopped at ${BOOKMARK_LIMIT}` : ""}. Each folder becomes a sun; a subfolder becomes a planet with its links as moons.`;
+        nav.showImportReview(map, { title: "Review bookmarks", replace: !1, label: "Imported browser bookmarks", note });
+      } catch (error) {
+        editorError(`Bookmark import failed: ${/** @type {any} */
+        error.message}`);
+      }
     });
   }
-  function noteOpened(item) {
-    !item || modes.inEditMode() || (recordRecent(destinationKey(item), item.name, Date.now()), setTimeout(() => hooks.refreshQuickBar(), 0));
+
+  // src/ui/editor/tools/bulk-rdp.js
+  function showBulkRdp(sunIndex, planetIndex) {
+    let planet = groups[sunIndex].links[planetIndex], back = () => nav.showPlanetEditor(sunIndex, planetIndex);
+    editorHeader(`RDP settings for ${planet.name}`, back), menuContent.append(element("p", "", "Apply one set of Remote Desktop settings to several links at once. Each link keeps its own computer; passwords, tokens, and signatures are never kept."));
+    let targets = [];
+    planet.type === "rdp" && targets.push({ label: `${planet.name} (this planet)`, path: [sunIndex, planetIndex], item: planet }), planet.moons.forEach((moon, moonIndex) => {
+      moon.type === "rdp" && targets.push({ label: moon.name, path: [sunIndex, planetIndex, moonIndex], item: moon });
+    });
+    let profile = null, sourceField = element("label", "editor-field");
+    sourceField.append(element("span", "", "Settings from"));
+    let source = document.createElement("select");
+    source.setAttribute("aria-label", "Settings from");
+    let fileOption = element("option", "", "An .rdp file…");
+    fileOption.value = "file", source.append(fileOption), targets.forEach((target, index) => {
+      if (!target.item.rdpProfile) return;
+      let option = element("option", "", `${target.item.name}’s imported settings`);
+      option.value = String(index), source.append(option);
+    }), rdpPresets.forEach((preset) => {
+      let option = element("option", "", `Preset: ${preset.name}`);
+      option.value = `preset:${preset.id}`, source.append(option);
+    }), sourceField.append(source);
+    let preview = element("div", "rdp-bulk-preview"), chooseFile = editorButton("Choose .rdp file", () => {
+      let input = document.createElement("input");
+      input.type = "file", input.accept = ".rdp,application/x-rdp", input.addEventListener("change", async () => {
+        let files = input.files;
+        if (files?.length)
+          try {
+            let parsed = parseRdpProfile(await readRdpText(files[0]));
+            setProfile(parsed.content, `${files[0].name}${parsed.removed ? ` (${counted(parsed.removed, "sensitive setting")} excluded)` : ""}`);
+          } catch (error) {
+            editorError(`RDP import failed: ${/** @type {any} */
+            error.message}`);
+          }
+      }), input.click();
+    }), apply = editorButton("Apply to selected links", () => {
+      let chosen = targets.filter((_, index) => boxes[index].checked);
+      if (!profile || !chosen.length) return;
+      let next = copyGroups(), preset = source.value.startsWith("preset:") ? source.value.slice(7) : null;
+      for (let target of chosen) {
+        let item = target.path.length === 3 ? next[target.path[0]].links[target.path[1]].moons[target.path[2]] : next[target.path[0]].links[target.path[1]];
+        preset ? item.rdpPreset = preset : (item.rdpProfile = parseRdpProfile(profile, item.host).content, delete item.rdpPreset);
+      }
+      applyEditorChange(next, back, { label: `Applied RDP settings to ${counted(chosen.length, "link")} in ${planet.name}` });
+    }, "editor-primary");
+    apply.disabled = !0;
+    let setProfile = (content, from) => {
+      profile = content, preview.replaceChildren(element("p", "data-source", `Settings from ${from}:`));
+      let rows = element("ul", "rdp-bulk-settings");
+      profileRows(content).filter((row) => !/^full address:/i.test(row)).forEach((row) => rows.append(element("li", "", row))), rows.children.length || rows.append(element("li", "", "Only the computer address (no other settings).")), preview.append(rows), apply.disabled = !1;
+    }, update = () => {
+      if (chooseFile.hidden = source.value !== "file", source.value === "file")
+        profile = null, preview.replaceChildren(element("p", "data-source", "Choose an .rdp file to see its settings.")), apply.disabled = !0;
+      else if (source.value.startsWith("preset:")) {
+        let preset = rdpPresets.find((item) => item.id === source.value.slice(7));
+        setProfile(`full address:s:example\r
+${preset.settings}`, `the ${preset.name} preset`);
+      } else
+        setProfile(targets[Number(source.value)].item.rdpProfile, `${targets[Number(source.value)].item.name}`);
+    };
+    source.addEventListener("change", update), menuContent.append(sourceField), editorActions().append(chooseFile), menuContent.append(preview), menuContent.append(element("h4", "editor-section-title", "Apply to"));
+    let boxes = targets.map((target) => {
+      let row = element("label", "editor-check"), box = document.createElement("input");
+      return box.type = "checkbox", box.checked = !0, row.append(box, element("span", "", `${target.label} → ${target.item.host}${target.item.rdpProfile ? " (has settings)" : ""}`)), menuContent.append(row), box;
+    }), actions = editorActions();
+    actions.append(apply), actions.append(editorButton("Clear imported settings", () => {
+      let chosen = targets.filter((_, index) => boxes[index].checked && targets[index].item.rdpProfile);
+      if (!chosen.length) return editorError("None of the selected links has imported settings.");
+      if (!confirmed(`Remove imported settings from ${counted(chosen.length, "link")}?`)) return;
+      let next = copyGroups();
+      for (let target of chosen) {
+        let item = target.path.length === 3 ? next[target.path[0]].links[target.path[1]].moons[target.path[2]] : next[target.path[0]].links[target.path[1]];
+        delete item.rdpProfile;
+      }
+      applyEditorChange(next, back, { label: `Cleared RDP settings from ${counted(chosen.length, "link")} in ${planet.name}` });
+    }, "editor-danger")), update();
   }
 
-  // src/services/opener.js
-  var opener_exports = {};
-  __export(opener_exports, {
-    openDestination: () => openDestination,
-    openLinks: () => openLinks,
-    openPlan: () => openPlan,
-    openTab: () => openTab,
-    planLinks: () => planLinks
+  // src/core/search.js
+  var search_exports = {};
+  __export(search_exports, {
+    addressText: () => addressText,
+    editDistance: () => editDistance,
+    findMatches: () => findMatches,
+    searchEntries: () => searchEntries,
+    searchWords: () => searchWords
   });
-
-  // src/services/rdp-launch.js
-  var rdp_launch_exports = {};
-  __export(rdp_launch_exports, {
-    downloadRdp: () => downloadRdp,
-    launchRdp: () => launchRdp
-  });
-
-  // src/services/file-io.js
-  var file_io_exports = {};
-  __export(file_io_exports, {
-    downloadJson: () => downloadJson2,
-    downloadText: () => downloadText,
-    pickFile: () => pickFile,
-    readBookmarksHtml: () => readBookmarksHtml,
-    readJsonFile: () => readJsonFile,
-    readRdpText: () => readRdpText
-  });
-  function downloadText(text, filename, type) {
-    let page = (
-      /** @type {any} */
-      globalThis
-    ), blob = new Blob([text], { type }), url = page.URL.createObjectURL(blob), anchor = page.document.createElement("a");
-    anchor.href = url, anchor.download = filename, page.document.body.append(anchor), anchor.click(), anchor.remove(), setTimeout(() => page.URL.revokeObjectURL(url), 1e3);
-  }
-  function downloadJson2(data, filename) {
-    downloadText(JSON.stringify(data, null, 2) + `
-`, filename, "application/json");
-  }
-  function pickFile(accept, onFile) {
-    let input = (
-      /** @type {HTMLInputElement} */
-      /** @type {any} */
-      globalThis.document.createElement("input")
-    );
-    input.type = "file", input.accept = accept, input.addEventListener("change", () => {
-      input.files?.length && onFile(input.files[0]);
-    }), input.click();
-  }
-  async function readJsonFile(file) {
-    return JSON.parse(await file.text());
-  }
-  async function readRdpText(file) {
-    if (file.size > 64e3) throw new Error("The .rdp file is too large to import.");
-    return decodeRdpBytes(new Uint8Array(await file.arrayBuffer()));
-  }
-  function readBookmarkFolder(list, name) {
-    let folder = { name, links: [], folders: [] };
-    for (let entry of list.querySelectorAll(":scope > dt, :scope > p > dt")) {
-      let heading = entry.querySelector(":scope > h3"), anchor = entry.querySelector(":scope > a");
-      if (heading) {
-        let sub = entry.querySelector(":scope > dl") || (entry.nextElementSibling?.tagName === "DL" ? entry.nextElementSibling : null);
-        sub && folder.folders.push(readBookmarkFolder(sub, heading.textContent?.trim() || "Folder"));
-      } else anchor && folder.links.push({ name: anchor.textContent?.trim() ?? "", url: anchor.getAttribute("href") || "" });
+  function editDistance(a, b, limit) {
+    if (Math.abs(a.length - b.length) > limit) return limit + 1;
+    let before = [], previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      let current = [i], best = i;
+      for (let j = 1; j <= b.length; j++)
+        current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)), i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1] && (current[j] = Math.min(current[j], before[j - 2] + 1)), best = Math.min(best, current[j]);
+      if (best > limit) return limit + 1;
+      before = previous, previous = current;
     }
-    return folder;
+    return previous[b.length];
   }
-  function readBookmarksHtml(text) {
-    let list = new /** @type {any} */
-    globalThis.DOMParser().parseFromString(text, "text/html").querySelector("dl");
-    if (!list) throw new Error("This is not a bookmarks file. Export bookmarks from your browser as HTML.");
-    return readBookmarkFolder(list, "Bookmarks");
+  var SHORT_FORM = /^([a-z]+)(\d+)$/;
+  function wordQuality(token, text, words, loose, anywhere) {
+    let best = 0;
+    for (let word of words) {
+      if (word === token) return 1;
+      word.startsWith(token) ? best = Math.max(best, 0.85) : token.length >= 3 && word.includes(token) && (best = Math.max(best, 0.6));
+      let short = SHORT_FORM.exec(token), long = SHORT_FORM.exec(word);
+      if (short && long && short[2] === long[2] && long[1].startsWith(short[1]) && (best = Math.max(best, 0.55)), loose && !best && token.length >= 5) {
+        let limit = token.length >= 9 ? 2 : 1;
+        editDistance(token, word, limit) <= limit && (best = Math.max(best, 0.4));
+      }
+    }
+    return !best && (anywhere || token.length >= 3) && text.includes(token) && (best = 0.5), best;
   }
-
-  // src/services/rdp-launch.js
-  function downloadRdp(destination, presets) {
-    downloadText(rdpFileContent(destination, presets), rdpFileName(destination), "application/x-rdp");
+  function searchWords(text) {
+    return text.toLocaleLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   }
-  function launchRdp(destination, presets, mode) {
-    mode === "download" ? downloadRdp(destination, presets) : globalThis.location.href = rdpLaunchUrl2(destination, presets);
+  function addressText(item) {
+    if (item.type === "rdp") return item.host;
+    try {
+      let url = new URL(item.url);
+      return `${url.hostname}${url.pathname === "/" ? "" : url.pathname}`;
+    } catch {
+      return item.url || "";
+    }
   }
-
-  // src/services/opener.js
-  function openTab(url) {
-    let opened = (
-      /** @type {any} */
-      globalThis.open(url, "_blank")
-    );
-    return opened && (opened.opener = null), !!opened;
-  }
-  function openDestination(item, { presets, launchMode }) {
-    return item.type === "rdp" ? (launchRdp(item, presets, launchMode), "rdp") : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
-  }
-  function planLinks(items, label, { question = null, extra = "", values = readVariables() } = {}) {
-    let filled = (item) => item.type !== "rdp" && templateNames(item.url).every((name) => values[name]), all = items.filter((item) => item.type !== "rdp"), web = all.filter(filled).map((item) => ({ item, url: fillTemplate(
-      /** @type {any} */
-      item.url,
-      values
-    ) })), skipped = items.length - all.length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
-    return {
-      web,
-      note,
-      label,
-      question: question ? question(web.length) : `Open ${web.length} tabs for ${label}?`,
-      empty: web.length ? null : `${label} has no website links to open.${note}`
+  function searchEntries(groups2) {
+    let entries = [], fields = (name, path, item) => {
+      let list = [{ kind: "name", text: name.toLocaleLowerCase(), weight: 1, anywhere: !0 }];
+      return path && list.push({ kind: "path", text: path.toLocaleLowerCase(), weight: 0.7 }), item && (list.push({ kind: "address", text: addressText(item).toLocaleLowerCase(), weight: 0.6 }), item.tags?.length && list.push({ kind: "tag", text: item.tags.join(" "), weight: 0.8 }), item.note && list.push({ kind: "note", text: item.note.toLocaleLowerCase(), weight: 0.5 })), list.map((field) => ({ ...field, words: searchWords(field.text) }));
     };
+    return groups2.forEach((sun, sunIndex) => {
+      entries.push({
+        match: { kind: "Sun", name: sun.name, path: sun.team ? "Team Galaxy" : "Galaxy", id: sun.id, icon: sun.icon },
+        tags: [],
+        fields: fields(sun.name)
+      }), sun.links.forEach((planet, planetIndex) => {
+        entries.push({
+          match: {
+            kind: "Planet",
+            name: planet.name,
+            path: sun.name,
+            destination: planet,
+            indices: [sunIndex, planetIndex],
+            tags: planet.tags || []
+          },
+          tags: planet.tags || [],
+          fields: fields(planet.name, sun.name, planet)
+        }), planet.moons.forEach((moon, moonIndex) => {
+          entries.push({
+            match: {
+              kind: "Moon",
+              name: moon.name,
+              path: `${sun.name} / ${planet.name}`,
+              destination: moon,
+              indices: [sunIndex, planetIndex, moonIndex],
+              tags: moon.tags || []
+            },
+            tags: moon.tags || [],
+            fields: fields(moon.name, `${sun.name} ${planet.name}`, moon)
+          });
+        });
+      });
+    }), entries;
   }
-  function openPlan(plan, onOpened = () => {
-  }) {
-    let blocked = 0;
-    for (let { item, url } of plan.web)
-      openTab(url) ? onOpened(item) : blocked++;
-    let message = blocked ? `Your browser blocked ${counted(blocked, "tab")}. Allow pop-ups for Orbit in the browser's address bar, then try again.${plan.note}` : `Opened ${counted(plan.web.length, "tab")} for ${plan.label}.${plan.note}`;
-    return { opened: plan.web.length - blocked, blocked, message, isError: blocked > 0 };
-  }
-  function openLinks(items, label, { confirm = !0, question = null, extra = "", ask, onOpened }) {
-    let plan = planLinks(items, label, { question, extra });
-    if (plan.empty !== null) return { message: plan.empty, isError: !1 };
-    if (confirm && plan.web.length > 1 && !ask(plan.question)) return null;
-    let { message, isError } = openPlan(plan, onOpened);
-    return { message, isError };
+  function findMatches(groups2, query) {
+    let raw = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean), tagFilters = raw.flatMap((word) => {
+      let tag = /^#(.+)$/.exec(word) || /^tag:(.+)$/.exec(word);
+      return tag ? [tag[1]] : [];
+    }), tokens = raw.filter((word) => !/^#.+$/.test(word) && !/^tag:.+$/.test(word));
+    if (!tokens.length && !tagFilters.length) return [];
+    let entries = searchEntries(groups2).filter((entry) => tagFilters.every((tag) => entry.tags.includes(tag))), strictHits = new Set(tokens.filter((token) => entries.some((entry) => entry.fields.some((field) => wordQuality(token, field.text, field.words || [], !1, field.anywhere))))), scored = [];
+    return entries.forEach((entry, order) => {
+      let score = 0, reasons = /* @__PURE__ */ new Set();
+      for (let token of tokens) {
+        let best = 0, bestKind = "";
+        for (let field of entry.fields) {
+          let quality = wordQuality(token, field.text, field.words || [], !strictHits.has(token), field.anywhere) * field.weight;
+          quality > best && (best = quality, bestKind = field.kind);
+        }
+        if (!best) return;
+        score += best, reasons.add(bestKind);
+      }
+      if (tokens.length && ![...reasons].some((kind) => kind !== "path")) return;
+      tokens.length || (score = 1);
+      let match = { ...entry.match, score };
+      reasons.has("name") || (reasons.has("address") ? match.why = `Address: ${addressText(entry.match.destination)}` : reasons.has("tag") ? match.why = "Matched a tag" : reasons.has("note") && (match.why = "Matched the note")), scored.push({ match, order });
+    }), scored.sort((a, b) => b.match.score - a.match.score || a.order - b.order), scored.map((item) => item.match);
   }
 
-  // src/ui/dialogs/placeholder.js
-  var variableDialog = (
-    /** @type {any} */
-    null
-  ), variableItem = (
-    /** @type {any} */
-    null
-  );
-  function askForVariables(item) {
-    modes.overlayIs("placeholder") && closeVariableDialog(), variableItem = item, modes.send("openPlaceholder");
+  // src/ui/editor/tools/duplicates.js
+  function showDuplicates() {
+    editorHeader("Find duplicates", nav.showSunList);
+    let duplicates = duplicateGroups(groups);
+    if (menuContent.append(element("p", "", "Links that point to the same address or Remote Desktop computer. A copy you made on purpose shows here too; nothing is changed unless you edit or remove an item.")), !duplicates.length) {
+      menuContent.append(element("p", "editor-note", "No duplicates found."));
+      return;
+    }
+    menuContent.append(element("p", "data-source", `${counted(duplicates.length, "address", "addresses")} used more than once.`)), duplicates.forEach((list) => {
+      let block = element("div", "duplicate-group");
+      block.append(element("h4", "editor-section-title", addressText(list[0].item))), list.forEach(({ path }) => {
+        let row = element("div", "editor-list-row");
+        row.append(element("span", "", `${pathLabel(path)}${groups[path[0]].team ? " · team" : ""}`)), row.append(editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), block.append(row);
+      }), menuContent.append(block);
+    });
   }
-  function variableFormOpened() {
-    let item = variableItem;
-    variableItem = null;
-    let names = templateNames(item.url), remembered = readVariables(), opener = document.activeElement instanceof HTMLElement ? document.activeElement : null, overlay = element("div", "palette-overlay variable-overlay"), scrim = element("div", "palette-scrim"), form = element("form", "palette variable-form");
-    form.setAttribute("role", "dialog"), form.setAttribute("aria-modal", "true"), form.setAttribute("aria-label", `Open ${item.name}`), form.append(element("h2", "variable-title", `Open ${item.name}`)), form.append(element("p", "variable-address", item.url));
-    let inputs = names.map((name) => {
-      let field = editorField(name, remembered[name] || "");
-      return field.input.setAttribute("aria-label", name), field.input.required = !0, field.input.autocomplete = "off", form.append(field.wrapper), /** @type {[string, HTMLInputElement]} */
-      [name, field.input];
-    }), preview = element("p", "variable-preview"), update = () => {
-      preview.textContent = fillTemplate(item.url, Object.fromEntries(inputs.map(([name, input]) => [name, input.value.trim()])));
-    };
-    inputs.forEach(([, input]) => input.addEventListener("input", update)), update();
-    let actions = element("div", "editor-actions"), open = element("button", "editor-primary", "Open");
-    open.type = "submit";
-    let cancel = editorButton("Cancel", closeVariableDialog);
-    actions.append(open, cancel), form.append(preview, actions), form.addEventListener("submit", (event) => {
+
+  // src/ui/editor/tools/history.js
+  function mapCounts(list) {
+    let planets = list.reduce((sum, sun) => sum + sun.links.length, 0), moons = list.reduce((sum, sun) => sum + sun.links.reduce((total, planet) => total + planet.moons.length, 0), 0);
+    return { suns: list.length, planets, moons };
+  }
+  function countDifference(from, to) {
+    let parts = [];
+    for (let kind of ["suns", "planets", "moons"]) {
+      let change = to[kind] - from[kind];
+      change && parts.push(`${change > 0 ? "+" : "−"}${counted(Math.abs(change), kind.slice(0, -1))}`);
+    }
+    return parts.length ? parts.join(", ") : "same counts";
+  }
+  function showHistory() {
+    editorHeader("History", nav.showSunList);
+    let entries = loadHistory(workspaceKey(KEYS.history, activeWorkspace()));
+    if (menuContent.append(element("p", "", "Orbit keeps the map as it was before each of your last 20 changes in this browser. Restoring a version is itself a change, so it can be undone here too.")), !entries.length) {
+      menuContent.append(element("p", "editor-note", "No earlier versions yet. They appear after your next change."));
+      return;
+    }
+    let current = mapCounts(personalGroups(groups)), list = element("div", "editor-list history-list");
+    entries.forEach((entry) => {
+      let counts = mapCounts(entry.groups), row = element("div", "editor-list-row history-row"), copy = element("span", "history-copy");
+      copy.append(element("strong", "", `Before: ${entry.label}`)), copy.append(element("small", "", `${new Date(entry.time).toLocaleString()} · ${counted(counts.suns, "sun")}, ${counted(counts.planets, "planet")}, ${counted(counts.moons, "moon")} · compared with now: ${countDifference(current, counts)}`)), row.append(copy, editorButton("Restore", () => {
+        confirmed(`Restore the map from ${new Date(entry.time).toLocaleString()}?`) && applyEditorChange(
+          [...groups.filter((sun) => sun.team), ...entry.groups],
+          showHistory,
+          {
+            label: `Restored the version from ${new Date(entry.time).toLocaleString()}`,
+            routines: entry.routines || [],
+            rdpPresets: entry.rdpPresets || []
+          }
+        );
+      })), list.append(row);
+    }), menuContent.append(list);
+  }
+
+  // src/services/link-check.js
+  var link_check_exports = {};
+  __export(link_check_exports, {
+    BATCH_SIZE: () => BATCH_SIZE,
+    checkLinks: () => checkLinks
+  });
+  var BATCH_SIZE = 50;
+  async function checkLinks(urls, { onProgress = () => {
+  }, fetch = (url, init) => globalThis.fetch(url, init) } = {}) {
+    let answers = {};
+    for (let index = 0; index < urls.length; index += 50) {
+      onProgress(index, urls.length);
+      let response = await fetch("./api/check-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Orbit-Check": "1" },
+        body: JSON.stringify({ urls: urls.slice(index, index + 50) })
+      });
+      if (response.status === 404 || response.status === 501)
+        throw new Error("This server cannot check links. Start Orbit with python3 serve.py from this version.");
+      if (!response.ok) throw new Error(`The server answered HTTP ${response.status}.`);
+      Object.assign(answers, await response.json());
+    }
+    return answers;
+  }
+
+  // src/ui/editor/tools/link-check.js
+  function webLinksByUrl() {
+    let byUrl = /* @__PURE__ */ new Map();
+    return groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
+      [[planet, [sunIndex, planetIndex]], ...planet.moons.map((moon, moonIndex) => [moon, [sunIndex, planetIndex, moonIndex]])].forEach(([item, path]) => {
+        item.type === "rdp" || templateNames(item.url).length || (byUrl.has(item.url) || byUrl.set(item.url, []), byUrl.get(item.url).push({ item, path }));
+      });
+    })), byUrl;
+  }
+  function showLinkCheck() {
+    if (editorHeader("Check links", nav.showSunList), location.protocol === "file:") {
+      menuContent.append(element("p", "", "Checking links needs the local server, because a page opened from a file cannot read other sites. In the Orbit folder, run:")), menuContent.append(element("code", "editor-code", "python3 serve.py")), menuContent.append(element("p", "", "Then open http://localhost:8000 and choose Check links again."));
+      return;
+    }
+    let byUrl = webLinksByUrl();
+    menuContent.append(element("p", "", `Orbit asks each website address in your map (${byUrl.size} in all) whether it answers. Remote Desktop links are not checked. Nothing is sent anywhere except to those sites.`));
+    let status = element("p", "link-check-status");
+    status.setAttribute("role", "status");
+    let results = element("div", "link-check-results"), start = editorButton("Start check", () => runLinkCheck(byUrl, status, results, start), "editor-primary");
+    editorActions().append(start), menuContent.append(status, results);
+  }
+  async function runLinkCheck(byUrl, status, results, start) {
+    start.disabled = !0, results.replaceChildren();
+    let urls = [...byUrl.keys()], answers;
+    try {
+      answers = await checkLinks(
+        urls,
+        { onProgress: (done, total) => {
+          status.textContent = `Checked ${done} of ${total}…`;
+        } }
+      );
+    } catch (error) {
+      status.textContent = `The check stopped: ${/** @type {any} */
+      error.message}`, start.disabled = !1;
+      return;
+    }
+    linkCheckResults.clear();
+    let failures = [];
+    for (let [url, entries] of byUrl) {
+      let answer = answers[url] || { ok: !1, error: "no answer" };
+      for (let entry of entries) linkCheckResults.set(destinationKey(entry.item), answer);
+      answer.ok || failures.push({ url, answer, entries });
+    }
+    status.textContent = failures.length ? `Checked ${counted(urls.length, "address", "addresses")}: ${failures.length} did not answer correctly.` : `Checked ${counted(urls.length, "address", "addresses")}: all answered.`, failures.forEach(({ answer, entries }) => entries.forEach(({ item, path }) => {
+      let row = element("div", "editor-list-row link-check-failure"), copy = element("span", "history-copy");
+      copy.append(element("strong", "", `⚠ ${item.name}`)), copy.append(element("small", "", `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`)), row.append(copy, editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), results.append(row);
+    })), start.disabled = !1, nav.renderEditorTree();
+  }
+
+  // src/ui/editor/tools/packs.js
+  function exportPack(name, items, routine = null) {
+    let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "pack", pack = { format: "orbit-pack-v1", name, links: items.map(packLink) };
+    routine && (pack.routine = { name: routine.name, ...routine.schedule ? { schedule: routine.schedule } : {} }), downloadJson(pack, `orbit-pack-${slug}.json`);
+  }
+  function shareRoutine(routine) {
+    exportPack(routine.name, routineItems(routine).items.map((entry) => entry.item), routine);
+  }
+  function shareFavorites() {
+    let items = favoriteItems().map((entry) => entry.item);
+    if (!items.length) return editorError("You have no favorites to share yet.");
+    exportPack("Favorites", items);
+  }
+  function showPackImport() {
+    editorHeader("Import link pack", nav.showSunList), menuContent.append(element("p", "", "A link pack is a small file someone shared from their Orbit: a routine or their favorites. Choose the file, or paste its text."));
+    let text = editorField("Pack text", "", "textarea");
+    text.input.setAttribute("aria-label", "Pack text"), text.input.placeholder = '{"format": "orbit-pack-v1", …}', editorActions().append(editorButton("Choose pack file", () => selectJsonFile((data) => showPackReview(validPack(data))))), menuContent.append(text.wrapper), editorActions().append(editorButton("Review pasted pack", () => {
+      try {
+        showPackReview(validPack(JSON.parse(text.input.value)));
+      } catch (error) {
+        editorError(`Import failed: ${/** @type {Error} */
+        error.message}`);
+      }
+    }, "editor-primary"));
+  }
+  function showPackReview(pack) {
+    editorHeader(`Review ${pack.name}`, showPackImport);
+    let known = pack.links.filter((link) => pathsForKey(groups, destinationKey(link)).length), fresh = pack.links.filter((link) => !pathsForKey(groups, destinationKey(link)).length);
+    menuContent.append(element("p", "import-merge-summary", `${counted(pack.links.length, "link")}: ${counted(fresh.length, "new link")} to add${known.length ? `, ${known.length} already on your map` : ""}.`));
+    let list = element("ul", "rdp-batch-list");
+    pack.links.forEach((link) => list.append(element("li", "", `${link.name} → ${link.type === "rdp" ? link.host : link.url}${known.includes(link) ? " (already on your map)" : ""}`))), menuContent.append(list);
+    let target = element("label", "editor-field");
+    target.append(element("span", "", "Add new links to"));
+    let select = document.createElement("select");
+    select.setAttribute("aria-label", "Add new links to");
+    let option = element("option", "", `A new sun named ${pack.name}`);
+    option.value = "new", select.append(option), groups.forEach((sun, index) => {
+      if (sun.team) return;
+      let item = element("option", "", `${sun.name} (as planets)`);
+      item.value = String(index), select.append(item);
+    }), target.append(select), menuContent.append(target);
+    let withRoutine = null;
+    if (pack.routine) {
+      let row = element("label", "editor-check");
+      withRoutine = document.createElement("input"), withRoutine.type = "checkbox", withRoutine.checked = !0, withRoutine.setAttribute("aria-label", "Also add the routine"), row.append(withRoutine, element("span", "", `Also add the routine “${pack.routine.name}”`)), menuContent.append(row);
+    }
+    editorActions().append(editorButton("Add to my map", () => {
+      let next = copyGroups();
+      if (fresh.length) {
+        let planets = fresh.map((link) => ({ ...link, moons: [] }));
+        select.value === "new" ? next.push({
+          id: uniqueSunId(pack.name, new Set(next.map((sun) => sun.id))),
+          name: pack.name,
+          description: "Shared link pack",
+          color: "#79d9f8",
+          links: planets
+        }) : next[Number(select.value)].links.push(...planets);
+      }
+      let nextRoutines;
+      if (withRoutine?.checked) {
+        let taken = new Set(routines.map((routine) => routine.name.toLocaleLowerCase())), name = pack.routine.name;
+        for (let n = 2; taken.has(name.toLocaleLowerCase()); n++) name = `${pack.routine.name} ${n}`;
+        nextRoutines = [...routines, {
+          name,
+          links: pack.links.map((link) => ({ key: destinationKey(link), name: link.name })),
+          ...pack.routine.schedule ? { schedule: pack.routine.schedule } : {}
+        }];
+      }
+      applyEditorChange(next, nav.showSunList, {
+        label: `Imported link pack ${pack.name}`,
+        ...nextRoutines ? { routines: nextRoutines } : {}
+      });
+    }, "editor-primary"));
+  }
+
+  // src/ui/editor/tools/presets.js
+  var PRESET_CHOICES = {
+    display: [
+      ["", "Leave as is", []],
+      ["full", "Full screen", ["screen mode id:i:2"]],
+      ["1280", "Window, 1280 × 720", ["screen mode id:i:1", "desktopwidth:i:1280", "desktopheight:i:720"]],
+      ["1600", "Window, 1600 × 900", ["screen mode id:i:1", "desktopwidth:i:1600", "desktopheight:i:900"]],
+      ["1920", "Window, 1920 × 1080", ["screen mode id:i:1", "desktopwidth:i:1920", "desktopheight:i:1080"]]
+    ],
+    toggles: [
+      ["use multimon", "Use all monitors", "use multimon:i:1"],
+      ["redirectclipboard", "Share the clipboard", "redirectclipboard:i:1"],
+      ["drivestoredirect", "Share local drives", "drivestoredirect:s:*"]
+    ]
+  }, DISPLAY_KEYS = ["screen mode id", "desktopwidth", "desktopheight"];
+  function settingKey(row) {
+    return row.split(":")[0].trim().toLowerCase();
+  }
+  function presetUsage(id) {
+    return groups.reduce((sum, sun) => sum + sun.links.reduce((total, planet) => total + [planet, ...planet.moons].filter((item) => item.rdpPreset === id).length, 0), 0);
+  }
+  function showPresets() {
+    editorHeader("Remote Desktop presets", nav.showSunList), menuContent.append(element("p", "", "A preset is a named set of connection settings, such as full screen with all monitors. Choose it for any Remote Desktop planet or moon in Connection settings; each link keeps its own computer. Presets never hold passwords.")), rdpPresets.length || menuContent.append(element("p", "editor-note", "No presets yet."));
+    let list = element("div", "editor-list");
+    rdpPresets.forEach((preset, index) => {
+      let row = element("div", "editor-list-row"), copy = element("span", "history-copy");
+      copy.append(element("strong", "", preset.name)), copy.append(element("small", "", `${counted(preset.settings ? preset.settings.split(/\r\n/).length : 0, "setting")} · used by ${counted(presetUsage(preset.id), "link")}`)), row.append(copy, editorButton("Edit", () => showPresetEditor(index))), list.append(row);
+    }), menuContent.append(list), editorActions().append(editorButton("New preset", () => showPresetEditor(null), "editor-primary"));
+  }
+  function showPresetEditor(index) {
+    let isNew = index === null, preset = isNew ? { name: "", settings: "" } : rdpPresets[index];
+    editorHeader(isNew ? "New preset" : `Edit ${preset.name}`, showPresets);
+    let form = element("form", "editor-form"), name = editorField("Preset name", preset.name);
+    name.input.setAttribute("aria-label", "Preset name"), name.input.placeholder = "For example: Full screen";
+    let settings = editorField("Settings", preset.settings.replace(/\r\n/g, `
+`), "textarea");
+    settings.input.setAttribute("aria-label", "Settings"), settings.input.classList.add("preset-settings");
+    let rows = () => settings.input.value.split(/\n/).map((line) => line.trim()).filter(Boolean), setRows = (list) => {
+      settings.input.value = list.join(`
+`);
+    }, displayField = element("label", "editor-field");
+    displayField.append(element("span", "", "Display"));
+    let display = document.createElement("select");
+    display.setAttribute("aria-label", "Display"), PRESET_CHOICES.display.forEach(([value, label]) => {
+      let option = element("option", "", label);
+      option.value = value, display.append(option);
+    }), displayField.append(display);
+    let current = rows(), matching = PRESET_CHOICES.display.find(([value, , lines]) => value && lines.every((line) => current.includes(line)));
+    display.value = matching ? matching[0] : "", display.addEventListener("change", () => {
+      let lines = (
+        /** @type {[string, string, string[]]} */
+        PRESET_CHOICES.display.find(([value]) => value === display.value)[2]
+      );
+      setRows([...rows().filter((row) => !DISPLAY_KEYS.includes(settingKey(row))), ...lines]);
+    });
+    let toggles = PRESET_CHOICES.toggles.map(([key, label, line]) => {
+      let row = element("label", "editor-check"), box = document.createElement("input");
+      return box.type = "checkbox", box.checked = current.includes(line), box.setAttribute("aria-label", label), box.addEventListener("change", () => {
+        let others = rows().filter((item) => settingKey(item) !== key);
+        setRows(box.checked ? [...others, line] : others);
+      }), row.append(box, element("span", "", label)), row;
+    }), fromFile = editorButton("Start from an .rdp file", () => {
+      let input = document.createElement("input");
+      input.type = "file", input.accept = ".rdp,application/x-rdp", input.addEventListener("change", async () => {
+        let files = input.files;
+        if (files?.length)
+          try {
+            let parsed = parseRdpProfile(await readRdpText(files[0]));
+            setRows(parsed.content.split(/\r\n/).filter((row) => row && settingKey(row) !== "full address")), name.input.value.trim() || (name.input.value = files[0].name.replace(/\.rdp$/i, ""));
+          } catch (error) {
+            editorError(`RDP import failed: ${/** @type {any} */
+            error.message}`);
+          }
+      }), input.click();
+    });
+    settings.wrapper.append(element("small", "editor-hint", "One setting per line, as in an .rdp file (for example session bpp:i:32). The computer address comes from each link."));
+    let actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add preset" : "Save preset");
+    save.type = "submit", actions.append(save), isNew || actions.append(editorButton("Remove preset", () => {
+      let used = presetUsage(preset.id);
+      confirmed(`Remove the ${preset.name} preset?${used ? ` ${counted(used, "link")} using it will open without it.` : ""}`) && applyEditorChange(copyGroups(), showPresets, {
+        rdpPresets: rdpPresets.filter((_, i) => i !== index),
+        label: `Removed preset ${preset.name}`
+      });
+    }, "editor-danger")), form.append(name.wrapper, displayField, ...toggles, fromFile, settings.wrapper, actions), form.addEventListener("submit", (event) => {
       event.preventDefault();
-      let values = Object.fromEntries(inputs.map(([name, input]) => [name, input.value.trim()]));
-      Object.values(values).some((value) => !value) || (saveVariables(values), closeVariableDialog(), openTab(fillTemplate(item.url, values)), noteOpened(item));
-    }), form.addEventListener("keydown", (event) => {
-      event.key === "Escape" && (event.preventDefault(), event.stopPropagation(), closeVariableDialog());
-    }), scrim.addEventListener("click", closeVariableDialog), overlay.append(scrim, form), document.body.append(overlay), variableDialog = { overlay, opener }, (inputs.find(([, input]) => !input.value)?.[1] || inputs[0]?.[1])?.focus();
-  }
-  function closeVariableDialog() {
-    modes.overlayIs("placeholder") && modes.send("closeOverlay");
-  }
-  function variableFormClosed() {
-    let { overlay, opener } = variableDialog;
-    variableDialog = /** @type {any} */
-    null, overlay.remove(), opener && document.contains(opener) && opener.focus();
+      let value = { name: name.input.value.trim(), settings: rows().join(`\r
+`) };
+      isNew || (value.id = preset.id);
+      let next = [...rdpPresets];
+      isNew ? next.push(value) : next[index] = value, applyEditorChange(copyGroups(), showPresets, { rdpPresets: next, label: `${isNew ? "Added" : "Saved"} preset ${value.name}` });
+    }), menuContent.append(form);
   }
 
-  // src/ui/dialogs/confirm.js
-  function confirmed(question) {
-    return (
-      /** @type {any} */
-      globalThis.confirm(question)
-    );
+  // src/ui/editor/tools/routines.js
+  var DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], WEEKDAYS = [1, 2, 3, 4, 5];
+  function scheduleText(schedule) {
+    if (!schedule) return "No schedule";
+    let days = schedule.days.join(",") === WEEKDAYS.join(",") ? "weekdays" : schedule.days.length === 7 ? "every day" : schedule.days.map((day) => DAY_NAMES[day]).join(", ");
+    return `Offered at ${schedule.time}, ${days}`;
+  }
+  function showRoutines() {
+    editorHeader("Routines", nav.showSunList), menuContent.append(element("p", "", "A routine opens a set of links together, such as the sites you start every morning with. It can also offer itself when Orbit opens at a set time, which works well with Orbit as your browser’s startup page.")), routines.length || menuContent.append(element("p", "editor-note", "No routines yet."));
+    let list = element("div", "editor-list");
+    routines.forEach((routine, index) => {
+      let { items, missing } = routineItems(routine), row = element("div", "editor-list-row routine-row"), copy = element("span", "history-copy");
+      copy.append(element("strong", "", routine.name)), copy.append(element("small", "", `${counted(items.length, "link")}${missing ? ` (${missing} no longer on the map)` : ""} · ${scheduleText(routine.schedule)}`)), row.append(copy), row.append(editorButton("Open", () => runRoutine(routine))), row.append(editorButton("Share", () => shareRoutine(routine))), row.append(editorButton("Edit", () => showRoutineEditor(index))), list.append(row);
+    }), menuContent.append(list), editorActions().append(editorButton("New routine", () => showRoutineEditor(null), "editor-primary"));
+  }
+  function routineCheckbox(item, label, key, checked) {
+    let row = element("label", "editor-check routine-choice"), box = document.createElement("input");
+    return box.type = "checkbox", box.value = key, box.checked = checked, box.dataset.name = item.name, row.append(box, element("span", "", label)), row.dataset.search = label.toLocaleLowerCase(), row;
+  }
+  function showRoutineEditor(index) {
+    let isNew = index === null, routine = isNew ? { name: "", links: [], schedule: null } : routines[index];
+    editorHeader(isNew ? "New routine" : `Edit ${routine.name}`, showRoutines);
+    let form = element("form", "editor-form"), name = editorField("Routine name", routine.name);
+    name.input.setAttribute("aria-label", "Routine name"), name.input.placeholder = "For example: Morning", form.append(name.wrapper);
+    let offer = element("label", "editor-check"), offerBox = document.createElement("input");
+    offerBox.type = "checkbox", offerBox.checked = !!routine.schedule, offerBox.setAttribute("aria-label", "Offer this routine when Orbit opens"), offer.append(offerBox, element("span", "", "Offer this routine when Orbit opens"));
+    let schedule = element("div", "routine-schedule"), time = editorField("From", routine.schedule?.time || "08:00", "time");
+    time.input.setAttribute("aria-label", "Offer from");
+    let days = element("div", "routine-days");
+    days.setAttribute("role", "group"), days.setAttribute("aria-label", "Days");
+    let dayBoxes = DAY_NAMES.map((label, day) => {
+      let option = element("label", "editor-check routine-day"), box = document.createElement("input");
+      return box.type = "checkbox", box.checked = (routine.schedule?.days || WEEKDAYS).includes(day), box.setAttribute("aria-label", label), option.append(box, element("span", "", label)), days.append(option), box;
+    });
+    schedule.append(time.wrapper, days, element("small", "editor-hint", "Browsers open tabs only after a click, so Orbit asks with an Open button instead of opening them by itself. It asks once a day."));
+    let updateSchedule = () => {
+      schedule.hidden = !offerBox.checked;
+    };
+    offerBox.addEventListener("change", updateSchedule), updateSchedule(), form.append(offer, schedule), form.append(element("h4", "editor-section-title", "Links"));
+    let chosen = new Set(routine.links.map((link) => link.key)), summary = element("p", "data-source routine-summary"), filter = editorField("Filter", "");
+    filter.input.setAttribute("aria-label", "Filter links"), filter.input.placeholder = "Type to narrow the list";
+    let choices = element("div", "routine-choices"), seen = /* @__PURE__ */ new Set();
+    groups.forEach((sun) => {
+      let block = element("fieldset", "routine-sun");
+      block.append(element("legend", "", `${sun.name}${sun.team ? " (team)" : ""}`)), sun.links.forEach((planet) => {
+        [[planet, planet.name], ...planet.moons.map((moon) => [moon, `${planet.name} → ${moon.name}`])].forEach(([item, label]) => {
+          let key = destinationKey(item);
+          seen.has(key) || (seen.add(key), block.append(routineCheckbox(item, `${label}${item.type === "rdp" ? " (Remote Desktop, not opened)" : ""}`, key, chosen.has(key))));
+        });
+      }), block.querySelector("input") && choices.append(block);
+    });
+    let updateSummary = () => {
+      let count = choices.querySelectorAll("input:checked").length;
+      summary.textContent = `${counted(count, "link")} chosen. They open in map order; links you already had keep their place.`;
+    };
+    choices.addEventListener("change", updateSummary), filter.input.addEventListener("input", () => {
+      let needle = filter.input.value.trim().toLocaleLowerCase();
+      for (
+        let row of
+        /** @type {NodeListOf<HTMLElement>} */
+        choices.querySelectorAll(".routine-choice")
+      ) row.hidden = !!needle && !/** @type {string} */
+      row.dataset.search.includes(needle);
+    }), updateSummary(), form.append(summary, filter.wrapper, choices);
+    let actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add routine" : "Save routine");
+    save.type = "submit", actions.append(save), isNew || actions.append(editorButton("Remove routine", () => {
+      if (!confirmed(`Remove the ${routine.name} routine? The links stay on your map.`)) return;
+      let next = routines.filter((_, i) => i !== index);
+      applyEditorChange(copyGroups(), showRoutines, { routines: next, label: `Removed routine ${routine.name}` });
+    }, "editor-danger")), form.append(actions), form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      let boxes = [.../** @type {NodeListOf<HTMLInputElement>} */
+      choices.querySelectorAll("input:checked")], picked = new Map(boxes.map((box) => [box.value, box.dataset.name])), links = routine.links.filter((link) => picked.has(link.key));
+      for (let [key, linkName] of picked)
+        links.some((link) => link.key === key) || links.push({ key, name: linkName });
+      if (!links.length) return editorError("Choose at least one link for this routine.");
+      let value = { name: name.input.value.trim(), links };
+      isNew || (value.id = routine.id), offerBox.checked && (value.schedule = { time: time.input.value, days: dayBoxes.flatMap((box, day) => box.checked ? [day] : []) });
+      let next = [...routines];
+      isNew ? next.push(value) : next[index] = value, applyEditorChange(copyGroups(), showRoutines, { routines: next, label: `${isNew ? "Added" : "Saved"} routine ${value.name}` });
+    }), menuContent.append(form);
   }
 
-  // src/ui/views/open.js
-  function openDestination2(item) {
-    if (openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode }) === "ask") return askForVariables(item);
-    noteOpened(item);
+  // src/ui/editor/tools/team.js
+  function personalSunOptions() {
+    return groups.flatMap((sun, index) => sun.team ? [] : [[String(index), sun.name]]);
   }
-  function openLinks2(items, label, { confirm = !0, question = null, extra = "" } = {}) {
-    let result = openLinks(items, label, { confirm, question, extra, ask: confirmed, onOpened: noteOpened });
-    return result ? showOpenAllNotice(result.message, result.isError) : null;
+  function showTeamSun(index) {
+    let sun = groups[index];
+    editorHeader(`${sun.icon ? `${sun.icon} ` : ""}${sun.name} (team)`, nav.showSunList), menuContent.append(element("p", "editor-note", "This sun comes from the team map, so it is read-only here. Copy it, or any of its planets and moons, into your own map to change it.")), sun.description && menuContent.append(descriptionNode("", sun.description));
+    let actions = editorActions();
+    actions.append(editorButton("Copy sun to my map", () => {
+      let next = copyGroups(), copy = plainCopy(sun);
+      copy.id = uniqueSunId(copy.name, new Set(next.map((item) => item.id))), next.push(copy), applyEditorChange(next, () => nav.showSunEditor(next.length - 1), { label: `Copied team sun ${sun.name}` });
+    }, "editor-primary")), actions.append(editorButton("Hide this team sun", () => {
+      store.setTeamSunHidden(sun.id, !0), nav.showSunList();
+    })), actions.append(editorButton("Export sun", () => exportItem("sun", sun))), menuContent.append(element("h4", "editor-section-title", "Planets"));
+    let list = element("div", "editor-list");
+    sun.links.forEach((planet, planetIndex) => {
+      let row = element("div", "editor-list-row");
+      row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, "moon")}`)), row.append(editorButton("View", () => showTeamItem([index, planetIndex]))), list.append(row);
+    }), menuContent.append(list);
   }
-  function openAll(sunIndex, planetIndex) {
-    let planet = groups[sunIndex]?.links[planetIndex];
-    return planet ? openLinks2(
-      [planet, ...planet.moons],
-      planet.name,
-      { question: (count) => `Open ${count} tabs for ${planet.name} and its moons?` }
-    ) : null;
-  }
-  function openAllFavorites() {
-    return openLinks2(favoriteItems().map((entry) => entry.item), "your favorites");
-  }
-  function routineItems(routine) {
-    let items = [], missing = 0;
-    for (let link of routine.links) {
-      let path = pathsForKey(groups, link.key)[0];
-      path ? items.push({ path, item: itemAt(groups, path) }) : missing++;
+  function showTeamItem(path) {
+    let sun = groups[path[0]], planet = sun.links[path[1]], item = itemAt(groups, path), isMoon = path.length === 3;
+    if (!item) return showTeamSun(path[0]);
+    editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0])), menuContent.append(element("p", "", `${sun.name} sun${isMoon ? ` → ${planet.name} planet` : ""} · read-only team ${isMoon ? "moon" : "planet"}`)), menuContent.append(element("p", "data-source", item.type === "rdp" ? `Remote Desktop: ${item.host}` : item.url)), item.tags?.length && menuContent.append(tagChips(item.tags));
+    let favorite = isFavorite(item, sun);
+    editorActions().append(editorButton(favorite ? "Remove from favorites" : "Add to favorites", () => {
+      setFavorite(path, !favorite), showTeamItem(path);
+    }));
+    let options = isMoon ? groups.flatMap((target, targetSun) => target.team ? [] : target.links.map((targetPlanet, targetPlanetIndex) => [`${targetSun}:${targetPlanetIndex}`, `${target.name} → ${targetPlanet.name}`])) : personalSunOptions();
+    if (options.length) {
+      let select = moveTargetField(options);
+      select.setAttribute("aria-label", "Copy to"), select.previousElementSibling.textContent = "Copy to", editorActions().append(editorButton(isMoon ? "Copy moon to my map" : "Copy planet to my map", () => {
+        let next = copyGroups(), [targetSun, targetPlanet] = select.value.split(":").map(Number);
+        isMoon ? next[targetSun].links[targetPlanet].moons.push(plainCopy(item)) : next[targetSun].links.push(plainCopy(item)), applyEditorChange(
+          next,
+          () => isMoon ? nav.showMoonEditor(targetSun, targetPlanet, next[targetSun].links[targetPlanet].moons.length - 1) : nav.showPlanetEditor(targetSun, next[targetSun].links.length - 1),
+          { label: `Copied team ${isMoon ? "moon" : "planet"} ${item.name}` }
+        );
+      }, "editor-primary"));
+    } else
+      menuContent.append(element("p", "editor-hint", `Add ${isMoon ? "a planet" : "a sun"} to your own map to copy this ${isMoon ? "moon" : "planet"} into it.`));
+    if (!isMoon && planet.moons.length) {
+      menuContent.append(element("h4", "editor-section-title", "Moons"));
+      let list = element("div", "editor-list");
+      planet.moons.forEach((moon, moonIndex) => {
+        let row = element("div", "editor-list-row");
+        row.append(element("span", "", moon.name)), row.append(editorButton("View", () => showTeamItem([path[0], path[1], moonIndex]))), list.append(row);
+      }), menuContent.append(list);
     }
-    return { items, missing };
   }
-  function runRoutine(routine) {
-    let { items, missing } = routineItems(routine), extra = missing ? ` ${counted(missing, "link")} in this routine ${missing === 1 ? "is" : "are"} no longer on the map.` : "";
-    return items.length ? openLinks2(items.map((entry) => entry.item), routine.name, { confirm: !1, extra }) : showOpenAllNotice(`${routine.name} has no links on the map.${extra}`, !0);
+
+  // src/ui/editor/screens.js
+  function destinationFields(form, destination, onRdpImported) {
+    let type = element("label", "editor-field");
+    type.append(element("span", "", "Destination type"));
+    let select = document.createElement("select");
+    select.setAttribute("aria-label", "Destination type");
+    for (let [value, label] of [["web", "Website"], ["rdp", "Windows Remote Desktop"]]) {
+      let option = element("option", "", label);
+      option.value = value, select.append(option);
+    }
+    select.value = destination.type === "rdp" ? "rdp" : "web", type.append(select);
+    let url = editorField("Destination URL", destination.url || "", "url"), host = editorField("Computer name or IP address", destination.host || ""), rdpProfile = destination.rdpProfile || null, profileNote = element("p", "data-source", rdpProfile ? "Custom .rdp settings are saved with this link." : "No custom .rdp settings are saved."), settingsField = element("label", "editor-field");
+    settingsField.append(element("span", "", "Connection settings"));
+    let settingsSelect = document.createElement("select");
+    settingsSelect.setAttribute("aria-label", "Connection settings"), settingsField.append(settingsSelect);
+    let fillSettings = (selected) => {
+      settingsSelect.replaceChildren();
+      let add = (value, label) => {
+        let option = element("option", "", label);
+        option.value = value, settingsSelect.append(option);
+      };
+      add("none", "None (just the computer)"), rdpProfile && add("own", "Imported .rdp settings"), rdpPresets.forEach((preset) => add(`preset:${preset.id}`, `Preset: ${preset.name}`)), settingsSelect.value = [...settingsSelect.options].some((option) => option.value === selected) ? selected : "none";
+    };
+    fillSettings(destination.rdpPreset ? `preset:${destination.rdpPreset}` : rdpProfile ? "own" : "none");
+    let importRdp = editorButton("Import .rdp file", () => {
+      let input = document.createElement("input");
+      input.type = "file", input.accept = ".rdp,application/x-rdp", input.addEventListener("change", async () => {
+        let files = input.files;
+        if (files?.length)
+          try {
+            let parsed = parseRdpProfile(await readRdpText(files[0]));
+            select.value = "rdp", host.input.value = parsed.host, rdpProfile = parsed.content, fillSettings("own"), profileNote.textContent = `${parsed.settings} connection settings imported. ${parsed.removed ? `${parsed.removed} password, token, or signature settings excluded. ` : ""}Save this link to keep the profile.`, update(), onRdpImported?.(files[0]);
+          } catch (error) {
+            editorError(`RDP import failed: ${/** @type {any} */
+            error.message}`);
+          }
+      }), input.click();
+    }), update = () => {
+      url.wrapper.hidden = select.value !== "web", host.wrapper.hidden = select.value !== "rdp", profileNote.hidden = select.value !== "rdp", importRdp.hidden = select.value !== "rdp", settingsField.hidden = select.value !== "rdp";
+    };
+    select.addEventListener("change", update);
+    let note = editorField("Note", destination.note || "", "textarea");
+    note.input.setAttribute("aria-label", "Note"), note.input.maxLength = 500, note.input.placeholder = "Optional: what this link is for, or a hint such as which account to use", note.wrapper.append(element("small", "editor-hint", "Shown on hover and in search. Never put passwords here; notes are plain text in your browser and in exports."));
+    let tags = editorField("Tags", (destination.tags || []).join(", "));
+    tags.input.placeholder = "For example: prod, windows", tags.input.setAttribute("aria-label", "Tags"), tags.wrapper.append(element("small", "editor-hint", "Separate tags with commas. Find tagged links with #tag in Quick find."));
+    let favorite = element("label", "editor-check"), favoriteInput = document.createElement("input");
+    return favoriteInput.type = "checkbox", favoriteInput.checked = destination.favorite === !0, favorite.append(favoriteInput, element("span", "", "Favorite (shown at the top of the Galaxy)")), url.wrapper.append(element("small", "editor-hint", "Use {name} for a part that changes, such as https://jira.example.com/browse/{ticket}; Orbit asks for it when you open the link.")), form.append(type, url.wrapper, host.wrapper, settingsField, profileNote, importRdp, note.wrapper, tags.wrapper, favorite), update(), () => {
+      let extras = {
+        ...tags.input.value.trim() ? { tags: tags.input.value } : {},
+        ...favoriteInput.checked ? { favorite: !0 } : {},
+        ...note.input.value.trim() ? { note: note.input.value } : {}
+      }, choice = settingsSelect.value, keepProfile = rdpProfile && choice !== "none" ? { rdpProfile } : {}, preset = choice.startsWith("preset:") ? { rdpPreset: choice.slice(7) } : {};
+      return select.value === "rdp" ? { type: "rdp", host: host.input.value.trim(), ...keepProfile, ...preset, ...extras } : { url: url.input.value.trim(), ...extras };
+    };
+  }
+  function exportMap() {
+    downloadJson({
+      groups: personalGroups(groups),
+      ...routines.length ? { routines } : {},
+      ...rdpPresets.length ? { rdpPresets } : {}
+    }, "orbit-links.json"), noteBackupMade2();
+  }
+  function showImportReview(data, options = {}) {
+    editorHeader(options.title || "Review import", showSunList);
+    let planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0), moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
+      (total, planet) => total + planet.moons.length,
+      0
+    ), 0);
+    options.note && menuContent.append(element("p", "", options.note)), menuContent.append(element("p", "", `The file has ${counted(data.groups.length, "sun")} · ${counted(planetCount, "planet")} · ${counted(moonCount, "moon")}.`));
+    let merged = mergeMaps(personalGroups(groups), data.groups), { added, skipped } = merged, newRoutines = mergeRoutines(routines, data.routines || []), addedRoutines = newRoutines.length - routines.length, newPresets = mergeRoutines(rdpPresets, data.rdpPresets || []), addedPresets = newPresets.length - rdpPresets.length;
+    menuContent.append(element("p", "import-merge-summary", `Merge adds ${counted(added.suns, "sun")}, ${counted(added.planets, "planet")}, and ${counted(added.moons, "moon")}${addedRoutines ? ` and ${counted(addedRoutines, "routine")}` : ""}${addedPresets ? ` and ${counted(addedPresets, "Remote Desktop preset")}` : ""}; ${counted(skipped.planets + skipped.moons, "link")} already in your map ${skipped.planets + skipped.moons === 1 ? "is" : "are"} skipped. Nothing in your map changes.`));
+    let actions = editorActions(), merge = editorButton("Merge into my map", () => applyEditorChange(
+      [...groups.filter((sun) => sun.team), ...merged.groups],
+      showSunList,
+      { label: options.label || "Merged an imported map", routines: newRoutines, rdpPresets: newPresets }
+    ), "editor-primary");
+    merge.disabled = !(added.suns + added.planets + added.moons + addedRoutines + addedPresets), actions.append(merge), options.replace !== !1 && (menuContent.append(element("p", "editor-hint", "Replace my map swaps your whole map for the file. Version history keeps the current map, so you can restore it.")), actions.append(editorButton("Replace my map", () => applyEditorChange(
+      data.groups,
+      showSunList,
+      { clearUndo: !0, label: "Replaced the map with an import", routines: data.routines || [], rdpPresets: data.rdpPresets || [] }
+    )))), actions.append(editorButton("Cancel", showSunList));
+  }
+  function importMap() {
+    selectJsonFile((data) => showImportReview(validateMap(data)));
+  }
+  function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
+    selectJsonFile((data) => {
+      let item = validItemExport(data, kind, sourceKind), back = kind === "sun" ? showSunList : kind === "planet" ? () => showSunEditor(sunIndex) : () => showPlanetEditor(sunIndex, planetIndex);
+      if (editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back), menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun" && (menuContent.append(element("p", "", "The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.")), menuContent.append(element("p", "", `Planet destination: ${item.links[0].host || item.links[0].url}`))), kind === "sun") {
+        let moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);
+        menuContent.append(element("p", "", `${counted(item.links.length, "planet")} · ${counted(moons, "moon")}`));
+      } else kind === "planet" ? menuContent.append(element("p", "", `${counted(item.moons.length, "moon")} · ${item.host || item.url}`)) : menuContent.append(element("p", "", item.host || item.url));
+      let destination = kind === "sun" ? "the Galaxy" : kind === "planet" ? `${groups[sunIndex].name} sun` : `${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet`;
+      menuContent.append(element("p", "", `Add to ${destination}. Existing links will remain.`));
+      let actions = editorActions();
+      actions.append(editorButton(`Add ${kind}`, () => {
+        let next = copyGroups(), imported = JSON.parse(JSON.stringify(item)), showNext;
+        kind === "sun" ? (next.some((sun) => sun.id === imported.id) && (imported.id = uniqueSunId(imported.name, new Set(next.map((sun) => sun.id)))), next.push(imported), showNext = () => showSunEditor(next.length - 1)) : kind === "planet" ? (next[sunIndex].links.push(imported), showNext = () => showPlanetEditor(sunIndex, next[sunIndex].links.length - 1)) : (next[sunIndex].links[planetIndex].moons.push(imported), showNext = () => showMoonEditor(
+          sunIndex,
+          planetIndex,
+          next[sunIndex].links[planetIndex].moons.length - 1
+        )), applyEditorChange(next, showNext);
+      }, "editor-primary")), actions.append(editorButton("Cancel", back));
+    });
+  }
+  function resetMap() {
+    if (confirmed("Replace browser edits with the link data loaded from the project files?"))
+      try {
+        store.resetToBundled(), showSunList();
+      } catch (error) {
+        editorError(
+          /** @type {any} */
+          error.message
+        );
+      }
+  }
+  function showSunList() {
+    editorHeader("Edit links", () => editorTree ? leaveEditorPage() : showMenuPanel("Settings")), menuContent.append(element("p", "", "Choose a sun to edit its planets and moons. Import JSON and Import bookmarks add what is new (Import JSON can also replace your map); item imports add links. Changes are saved in this browser, and History keeps earlier versions.")), menuContent.append(element("p", "data-source", `Active link map: ${dataSourceLabel()}`));
+    let list = element("div", "editor-list");
+    groups.forEach((sun, index) => {
+      let row = element("div", "editor-list-row");
+      row.append(element("span", "", `${sun.icon ? `${sun.icon} ` : ""}${sun.name} · ${counted(sun.links.length, "planet")}${sun.team ? " · team, read-only" : ""}`)), row.append(editorButton(sun.team ? "View" : "Edit", () => showSunEditor(index))), list.append(row);
+    }), menuContent.append(list);
+    let hidden = team.groups.filter((sun) => hiddenTeamSuns().has(sun.id));
+    hidden.length && menuContent.append(element("p", "data-source", `${counted(hidden.length, "team sun")} hidden. Show them again in Settings.`));
+    let actions = editorActions();
+    actions.append(editorButton("Add sun", () => showSunEditor(null), "editor-primary")), actions.append(editorButton("Import JSON", importMap)), actions.append(editorButton("Import bookmarks", importBookmarks)), actions.append(editorButton("Export JSON", exportMap)), actions.append(editorButton("Import sun", () => importItem("sun"))), actions.append(editorButton("Import planet as sun", () => importItem("sun", null, null, "planet"))), actions.append(editorButton("Reset to file data", resetMap));
+    let due = backupDue2();
+    due && menuContent.insertBefore(backupReminder(due), menuContent.querySelector(".editor-list")), menuContent.append(element("h4", "editor-section-title", "Tools"));
+    let tools = editorActions();
+    tools.append(editorButton("Add a link", () => showQuickAdd(""))), tools.append(editorButton("Routines", showRoutines)), tools.append(editorButton("RDP presets", showPresets)), tools.append(editorButton("Share favorites", shareFavorites)), tools.append(editorButton("Import link pack", showPackImport)), tools.append(editorButton("History", showHistory)), tools.append(editorButton("Find duplicates", showDuplicates)), tools.append(editorButton("Check links", showLinkCheck));
+    let tags = tagCounts();
+    if (tags.length) {
+      menuContent.append(element("h4", "editor-section-title", "Tags"));
+      let list2 = element("div", "tag-list");
+      tags.forEach(([tag, count]) => list2.append(editorButton(`#${tag} · ${count}`, () => {
+        closeMenu(), quickFind.value = `#${tag}`, setFindQuery(quickFind.value), location.hash && location.hash !== "#" ? location.hash = "" : hooks.render();
+      }, "tag-button"))), menuContent.append(list2);
+    }
+    renderEditorTree();
+  }
+  function tagCounts() {
+    let counts = /* @__PURE__ */ new Map();
+    return groups.forEach((sun) => sun.links.forEach((planet) => [planet, ...planet.moons].forEach((item) => (item.tags || []).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1))))), [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }
+  function showSunEditor(index) {
+    if (index !== null && groups[index]?.team) return showTeamSun(index);
+    let isNew = index === null, sun = isNew ? { name: "", description: "", color: "#79d9f8", links: [] } : groups[index];
+    editorHeader(isNew ? "Add sun" : `Edit ${sun.name}`, showSunList);
+    let form = element("form", "editor-form"), name = editorField("Sun name", sun.name), description = editorField("Description", sun.description, "textarea");
+    description.wrapper.append(element("small", "editor-hint", "Use [label](https://example.com) to add a link within the description."));
+    let color = editorField("Color", sun.color, "color"), icon = editorField("Icon", sun.icon || "");
+    icon.input.maxLength = 16, icon.input.placeholder = "Optional, for example 🧪", icon.input.setAttribute("aria-label", "Icon"), icon.wrapper.append(element("small", "editor-hint", "One or two characters, such as an emoji, shown above the sun’s name.")), form.append(name.wrapper, description.wrapper, color.wrapper, icon.wrapper);
+    let actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add sun" : "Save sun");
+    if (save.type = "submit", actions.append(save), isNew || (editorMoveControls(actions, index, groups.length, (amount) => {
+      let next = copyGroups();
+      moveEntry(next, index, amount) && applyEditorChange(next, () => showSunEditor(index + amount));
+    }), actions.append(editorButton("Remove sun", () => {
+      if (!confirmed(`Remove ${sun.name} and all its planets and moons?`)) return;
+      let next = copyGroups();
+      next.splice(index, 1), applyEditorChange(next, showSunList, { label: `Removed sun ${sun.name}`, undoRecord: {
+        kind: "sun",
+        index,
+        item: sun,
+        label: `${sun.name} sun`
+      } });
+    }, "editor-danger"))), form.append(actions), form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      let next = copyGroups(), value = {
+        name: name.input.value.trim(),
+        description: description.input.value.trim(),
+        color: color.input.value,
+        icon: icon.input.value,
+        links: isNew ? [] : next[index].links
+      };
+      isNew ? (value.id = uniqueSunId(value.name, new Set(next.map((item) => item.id))), next.push(value)) : (value.id = next[index].id, next[index] = value), applyEditorChange(
+        next,
+        () => showSunEditor(isNew ? next.length - 1 : index),
+        { label: `${isNew ? "Added" : "Saved"} sun ${value.name}` }
+      );
+    }), menuContent.append(form), !isNew) {
+      editorActions().append(editorButton("Export sun", () => exportItem("sun", sun))), menuContent.append(element("h4", "editor-section-title", "Planets"));
+      let list = element("div", "editor-list");
+      sun.links.forEach((planet, planetIndex) => {
+        let row = element("div", "editor-list-row");
+        row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, "moon")}`)), row.append(editorButton("Edit", () => showPlanetEditor(index, planetIndex))), list.append(row);
+      }), menuContent.append(list);
+      let planetActions = editorActions();
+      planetActions.append(editorButton("Add planet", () => showPlanetEditor(index, null), "editor-primary")), planetActions.append(editorButton("Import planet", () => importItem("planet", index))), planetActions.append(editorButton("Import .rdp files as planets", () => showRdpBatchImport("planet", index)));
+    }
+  }
+  function showPlanetEditor(sunIndex, planetIndex) {
+    if (groups[sunIndex]?.team) return showTeamItem([sunIndex, planetIndex]);
+    let isNew = planetIndex === null, planet = isNew ? { name: "", url: "", moons: [] } : groups[sunIndex].links[planetIndex];
+    if (editorHeader(isNew ? "Add planet" : `Edit ${planet.name}`, () => showSunEditor(sunIndex)), menuContent.append(element("p", "", `Sun: ${groups[sunIndex].name}`)), !isNew) {
+      let note = duplicateNote(planet, [sunIndex, planetIndex]);
+      note && menuContent.append(note);
+    }
+    let form = element("form", "editor-form"), name = editorField("Planet name", planet.name);
+    form.append(name.wrapper);
+    let readDestination = destinationFields(form, planet, (file) => {
+      isNew && !name.input.value.trim() && (name.input.value = file.name.replace(/\.rdp$/i, ""));
+    }), actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add planet" : "Save planet");
+    if (save.type = "submit", actions.append(save), isNew || (editorMoveControls(actions, planetIndex, groups[sunIndex].links.length, (amount) => {
+      let next = copyGroups();
+      moveEntry(next[sunIndex].links, planetIndex, amount) && applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex + amount));
+    }), actions.append(editorButton("Move to another sun", () => showMovePlanet(sunIndex, planetIndex))), actions.append(editorButton("Remove planet", () => {
+      if (!confirmed(`Remove ${planet.name} and all its moons?`)) return;
+      let next = copyGroups();
+      next[sunIndex].links.splice(planetIndex, 1), applyEditorChange(next, () => showSunEditor(sunIndex), { label: `Removed planet ${planet.name}`, undoRecord: {
+        kind: "planet",
+        sunId: groups[sunIndex].id,
+        index: planetIndex,
+        item: planet,
+        label: `${planet.name} planet`
+      } });
+    }, "editor-danger"))), form.append(actions), form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      let next = copyGroups(), value = {
+        name: name.input.value.trim(),
+        ...readDestination(),
+        moons: isNew ? [] : next[sunIndex].links[planetIndex].moons
+      };
+      isNew ? next[sunIndex].links.push(value) : next[sunIndex].links[planetIndex] = value, applyEditorChange(next, () => showPlanetEditor(
+        sunIndex,
+        isNew ? next[sunIndex].links.length - 1 : planetIndex
+      ), { label: `${isNew ? "Added" : "Saved"} planet ${value.name}` });
+    }), menuContent.append(form), !isNew) {
+      editorActions().append(editorButton("Export planet", () => exportItem("planet", planet))), menuContent.append(element("h4", "editor-section-title", "Moons"));
+      let list = element("div", "editor-list");
+      planet.moons.forEach((moon, moonIndex) => {
+        let row = element("div", "editor-list-row");
+        row.append(element("span", "", moon.name)), row.append(editorButton("Edit", () => showMoonEditor(sunIndex, planetIndex, moonIndex))), list.append(row);
+      }), menuContent.append(list);
+      let moonActions = editorActions();
+      moonActions.append(editorButton("Add moon", () => showMoonEditor(sunIndex, planetIndex, null), "editor-primary")), moonActions.append(editorButton("Import moon", () => importItem("moon", sunIndex, planetIndex))), moonActions.append(editorButton("Import .rdp files as moons", () => showRdpBatchImport("moon", sunIndex, planetIndex))), planet.moons.some((moon) => moon.type === "rdp") && moonActions.append(editorButton("Apply RDP settings to moons", () => showBulkRdp(sunIndex, planetIndex)));
+    }
+  }
+  function showCopyMoon(sunIndex, planetIndex, moonIndex) {
+    let sourceSun = groups[sunIndex], sourcePlanet = sourceSun.links[planetIndex], moon = sourcePlanet.moons[moonIndex], back = () => showMoonEditor(sunIndex, planetIndex, moonIndex);
+    editorHeader(`Copy ${moon.name}`, back), menuContent.append(element("p", "", `From ${sourceSun.name} sun → ${sourcePlanet.name} planet`)), menuContent.append(element("p", "", "This copies the saved moon as an independent link. Later edits to either moon will not change the other."));
+    let target = element("label", "editor-field");
+    target.append(element("span", "", "Copy to planet"));
+    let select = document.createElement("select");
+    if (select.setAttribute("aria-label", "Copy to planet"), groups.forEach((sun, targetSunIndex) => sun.links.forEach((planet, targetPlanetIndex) => {
+      if (targetSunIndex === sunIndex && targetPlanetIndex === planetIndex || sun.team) return;
+      let option = element("option", "", `${sun.name} → ${planet.name}`);
+      option.value = `${targetSunIndex}:${targetPlanetIndex}`, select.append(option);
+    })), !select.options.length) {
+      menuContent.append(element("p", "", "Add another planet before copying this moon."));
+      return;
+    }
+    target.append(select), menuContent.append(target), editorActions().append(editorButton("Copy to selected planet", () => {
+      let [targetSunIndex, targetPlanetIndex] = select.value.split(":").map(Number), next = copyGroups(), targetMoons = next[targetSunIndex].links[targetPlanetIndex].moons;
+      targetMoons.push(JSON.parse(JSON.stringify(moon))), applyEditorChange(next, () => showMoonEditor(targetSunIndex, targetPlanetIndex, targetMoons.length - 1));
+    }, "editor-primary"));
+  }
+  function showMoonEditor(sunIndex, planetIndex, moonIndex) {
+    if (groups[sunIndex]?.team) return showTeamItem([sunIndex, planetIndex, moonIndex]);
+    let isNew = moonIndex === null, planet = groups[sunIndex].links[planetIndex], moon = isNew ? { name: "", url: "" } : planet.moons[moonIndex];
+    if (editorHeader(
+      isNew ? "Add moon" : `Edit ${moon.name}`,
+      () => showPlanetEditor(sunIndex, planetIndex)
+    ), menuContent.append(element("p", "", `${groups[sunIndex].name} sun → ${planet.name} planet`)), !isNew) {
+      let note = duplicateNote(moon, [sunIndex, planetIndex, moonIndex]);
+      note && menuContent.append(note);
+    }
+    let form = element("form", "editor-form"), name = editorField("Moon name", moon.name);
+    form.append(name.wrapper);
+    let readDestination = destinationFields(form, moon, (file) => {
+      isNew && !name.input.value.trim() && (name.input.value = file.name.replace(/\.rdp$/i, ""));
+    }), actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add moon" : "Save moon");
+    if (save.type = "submit", actions.append(save), isNew || (editorMoveControls(actions, moonIndex, planet.moons.length, (amount) => {
+      let next = copyGroups();
+      moveEntry(next[sunIndex].links[planetIndex].moons, moonIndex, amount) && applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex, moonIndex + amount));
+    }), actions.append(editorButton("Move to another planet", () => showMoveMoon(sunIndex, planetIndex, moonIndex))), actions.append(editorButton("Remove moon", () => {
+      if (!confirmed(`Remove ${moon.name}?`)) return;
+      let next = copyGroups();
+      next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1), applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex), { label: `Removed moon ${moon.name}`, undoRecord: {
+        kind: "moon",
+        sunId: groups[sunIndex].id,
+        planetIndex,
+        planetName: planet.name,
+        planetUrl: planet.url,
+        planetHost: planet.host,
+        index: moonIndex,
+        item: moon,
+        label: `${moon.name} moon`
+      } });
+    }, "editor-danger"))), form.append(actions), form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      let next = copyGroups(), value = { name: name.input.value.trim(), ...readDestination() };
+      isNew ? next[sunIndex].links[planetIndex].moons.push(value) : next[sunIndex].links[planetIndex].moons[moonIndex] = value, applyEditorChange(next, () => showMoonEditor(
+        sunIndex,
+        planetIndex,
+        isNew ? next[sunIndex].links[planetIndex].moons.length - 1 : moonIndex
+      ), { label: `${isNew ? "Added" : "Saved"} moon ${value.name}` });
+    }), menuContent.append(form), !isNew) {
+      let extraActions = editorActions();
+      extraActions.append(editorButton("Copy moon", () => showCopyMoon(sunIndex, planetIndex, moonIndex))), extraActions.append(editorButton("Export moon", () => exportItem("moon", moon)));
+    }
   }
 
   // src/ui/layout/orbits.js
@@ -1907,7 +3527,7 @@ ${link.note}`), node;
   function routineChip(routine, index) {
     let { items } = routineItems(routine), chip = element("button", "quick-chip routine-chip", routine.name);
     return chip.type = "button", chip.title = `Open the ${routine.name} routine (${counted(items.length, "link")})`, chip.addEventListener("click", () => {
-      modes.inEditMode() ? (openMenu2(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine);
+      modes.inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine);
     }), chip;
   }
   function quickBar() {
@@ -1990,10 +3610,10 @@ ${link.note}`), node;
     };
     if (quickFind.oninput = updateFind, app.append(results), bar && app.append(bar), !groups.length) {
       let empty = element("section", "empty-galaxy");
-      empty.append(element("h1", "", `${workspaceName()} is empty`)), empty.append(element("p", "", "Add a sun in Edit links, paste a web address into Quick find, or import a map or a link pack."));
+      empty.append(element("h1", "", `${workspaceName(activeWorkspace())} is empty`)), empty.append(element("p", "", "Add a sun in Edit links, paste a web address into Quick find, or import a map or a link pack."));
       let open = element("button", "editor-primary", "Open Edit links");
       open.type = "button", open.addEventListener("click", () => {
-        openMenu2(), openEditorPage();
+        openMenu(), openEditorPage();
       }), empty.append(open), app.append(empty);
     }
     app.append(grid), updateFind();
@@ -2068,13 +3688,13 @@ ${link.note}`), node;
     return [
       { label: modes.inEditMode() ? "Turn off Edit mode" : "Turn on Edit mode", run: () => setEditMode(!modes.inEditMode()) },
       { label: "Open Settings", run: () => {
-        openMenu2(), showMenuPanel("Settings");
+        openMenu(), showMenuPanel("Settings");
       } },
       { label: "Edit links", run: () => {
-        openMenu2(), openEditorPage();
+        openMenu(), openEditorPage();
       } },
       { label: "Help", run: () => {
-        openMenu2(), showMenuPanel("Help");
+        openMenu(), showMenuPanel("Help");
       } },
       {
         label: galaxyView === "list" ? "Show the Galaxy as orbits" : "Show the Galaxy as a list",
@@ -2089,13 +3709,13 @@ ${link.note}`), node;
       ...favoriteItems().length > 1 && !modes.inEditMode() ? [{ label: "Open all favorites", run: openAllFavorites }] : [],
       ...routines.map((routine, index) => ({
         label: `Run routine: ${routine.name}`,
-        run: () => modes.inEditMode() ? (openMenu2(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine)
+        run: () => modes.inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine)
       })),
       { label: "Edit routines", run: () => {
-        openMenu2(), openEditorPage(), showRoutines();
+        openMenu(), openEditorPage(), showRoutines();
       } },
       { label: "Add a link", run: () => showQuickAdd("") },
-      ...loadWorkspaces().filter((item) => item.id !== activeWorkspace).map((item) => ({
+      ...loadWorkspaces().filter((item) => item.id !== activeWorkspace()).map((item) => ({
         label: `Switch to workspace: ${item.name}`,
         run: () => switchWorkspace(item.id)
       }))
@@ -2194,384 +3814,15 @@ ${link.note}`), node;
     return event.key.toLowerCase() !== "k" || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || !modes.keyAllowed("commandK") ? !1 : (event.preventDefault(), openPalette(), !0);
   }
 
-  // src/core/bookmarks.js
-  var bookmarks_exports = {};
-  __export(bookmarks_exports, {
-    BOOKMARK_BARS: () => BOOKMARK_BARS,
-    BOOKMARK_LIMIT: () => BOOKMARK_LIMIT,
-    bookmarksToMap: () => bookmarksToMap
-  });
-  var BOOKMARK_LIMIT = 2e3, BOOKMARK_BARS = /^(bookmarks bar|bookmarks toolbar|favorites bar|favourites bar|other bookmarks|other favorites|mobile bookmarks)$/i;
-  function flattenFolder(folder) {
-    return [...folder.links, ...folder.folders.flatMap(flattenFolder)];
-  }
-  function bookmarksToMap(root) {
-    let stats = { links: 0, skipped: 0, truncated: !1 }, destination = (link) => {
-      if (stats.links >= BOOKMARK_LIMIT)
-        return stats.truncated = !0, null;
-      try {
-        let url = new URL(link.url);
-        if (!["http:", "https:"].includes(url.protocol)) throw new Error("not web");
-        let item = validDestination({ name: link.name || url.hostname, url: link.url }, "Bookmark");
-        return stats.links++, item;
-      } catch {
-        return stats.skipped++, null;
-      }
-    }, tops = [];
-    for (let folder of root.folders)
-      BOOKMARK_BARS.test(folder.name) ? (tops.push(...folder.folders), folder.links.length && tops.push({ name: folder.name, links: folder.links, folders: [] })) : tops.push(folder);
-    root.links.length && tops.push({ name: "Bookmarks", links: [...root.links], folders: [] });
-    let suns = tops.map((folder) => {
-      let links = folder.links.map(destination).filter(Boolean).map((item) => ({ ...item, moons: [] }));
-      for (let sub of folder.folders) {
-        let items = (
-          /** @type {any[]} */
-          flattenFolder(sub).map(destination).filter(Boolean)
-        );
-        items.length && links.push({ name: sub.name, url: items[0].url, moons: items.slice(1) });
-      }
-      return { name: folder.name, description: "Imported from browser bookmarks", links };
-    }).filter((sun) => sun.links.length);
-    return { map: validateMap({ groups: suns }), stats };
-  }
-
-  // src/state/store.js
-  function createStore() {
-    let state = {
-      groups: [],
-      routines: [],
-      rdpPresets: [],
-      revision: 0,
-      workspace: MAIN,
-      source: "bundled",
-      warning: "",
-      seed: null,
-      team: []
-    }, subscribers = /* @__PURE__ */ new Set(), set = (changes) => {
-      state = Object.freeze({ ...state, ...changes });
-    }, notify = (kind) => {
-      for (let subscriber of [...subscribers]) subscriber(state, kind);
-    }, key = (base) => workspaceKey(base, state.workspace), visibleTeam = () => {
-      let hidden = hiddenTeamSuns();
-      return state.team.filter((sun) => !hidden.has(sun.id));
-    };
-    function loadBrowserMap() {
-      try {
-        let text = read(key(KEYS.map));
-        return text ? validateMap(JSON.parse(text)) : null;
-      } catch (error) {
-        return set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */
-        error.message}` }), null;
-      }
-    }
-    let store2 = {
-      /** @returns {Readonly<StoreState>} */
-      state: () => state,
-      /**
-       * @param {Subscriber} subscriber
-       * @returns {() => void} Unsubscribes.
-       */
-      subscribe(subscriber) {
-        return subscribers.add(subscriber), () => {
-          subscribers.delete(subscriber);
-        };
-      },
-      /**
-       * Load the active workspace at start-up. `seed` is the validated project
-       * data; `team` the team suns (ids with `team:`, `team: true`).
-       * @param {{seed: MapData, team?: Sun[]}} input
-       */
-      start({ seed, team = [] }) {
-        set({ seed, team, workspace: readActiveWorkspace(), warning: "" });
-        let browserMap = loadBrowserMap(), map = browserMap || (state.workspace === MAIN ? seed : { groups: [] });
-        set({
-          groups: [...visibleTeam(), ...map.groups],
-          routines: map.routines || [],
-          rdpPresets: map.rdpPresets || [],
-          source: browserMap ? "browser" : "bundled"
-        }), notify("start");
-      },
-      /**
-       * Save a map (team suns may be included; they're never stored or changed).
-       * Routines and presets are kept unless `data` replaces them. The previous
-       * version goes into history under `label` unless it's false or nothing
-       * changed. Throws, with nothing changed, if the map is invalid or can't be
-       * written.
-       * @param {{groups: Sun[], routines?: Routine[], rdpPresets?: RdpPreset[]}} data
-       * @param {string|false} [label]
-       * @param {SaveOptions} [options]
-       */
-      saveMap(data, label = "Change", options = {}) {
-        if (options.expectRevision !== void 0 && options.expectRevision !== state.revision)
-          throw new Error("The link map changed, so nothing was saved.");
-        let undoKey = key(KEYS.undo), previousUndo;
-        try {
-          options.undoRecord && (previousUndo = read(undoKey), write(undoKey, JSON.stringify(options.undoRecord)));
-          let normalized = validateMap({
-            groups: personalGroups(data.groups),
-            routines: data.routines !== void 0 ? data.routines : state.routines,
-            rdpPresets: data.rdpPresets !== void 0 ? data.rdpPresets : state.rdpPresets
-          }), previous = personalGroups(state.groups);
-          write(key(KEYS.map), JSON.stringify(normalized));
-          let changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !== JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
-          label !== !1 && changed && recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets), changed && countChange(state.workspace), set({
-            groups: [...visibleTeam(), ...normalized.groups],
-            routines: normalized.routines || [],
-            rdpPresets: normalized.rdpPresets || [],
-            revision: state.revision + 1,
-            source: "browser"
-          });
-        } catch (error) {
-          if (options.undoRecord)
-            try {
-              previousUndo === null ? remove(undoKey) : previousUndo !== void 0 && write(undoKey, previousUndo);
-            } catch {
-            }
-          throw error;
-        }
-        if (options.clearUndo)
-          try {
-            remove(undoKey);
-          } catch {
-          }
-        notify("save");
-      },
-      /** Forget the load warning (after a successful edit, as 2.2.1's editor does). */
-      clearWarning() {
-        set({ warning: "" });
-      },
-      /**
-       * Replace the map with the project's link data. In Main the saved map is
-       * removed, so Main follows the project files again; elsewhere the file data
-       * is saved under the workspace's key (2.2.1, check F27). History keeps the
-       * map as it was; the removal undo is cleared.
-       */
-      resetToBundled() {
-        let fileData = validateMap(state.seed);
-        recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), state.workspace === MAIN ? remove(key(KEYS.map)) : write(key(KEYS.map), JSON.stringify(fileData)), remove(key(KEYS.undo)), set({
-          groups: [...visibleTeam(), ...fileData.groups],
-          routines: fileData.routines || [],
-          rdpPresets: fileData.rdpPresets || [],
-          revision: state.revision + 1,
-          source: state.workspace === MAIN ? "bundled" : "browser",
-          warning: ""
-        }), notify("reset");
-      },
-      /** The workspace's last removal, if it can be undone. @returns {UndoRecord|null} */
-      loadUndoRecord() {
-        try {
-          let saved = readSafely(key(KEYS.undo));
-          if (!saved) return null;
-          let record = JSON.parse(saved);
-          return record && ["sun", "planet", "moon"].includes(record.kind) && Number.isInteger(record.index) && record.index >= 0 && record.item ? record : null;
-        } catch {
-          return null;
-        }
-      },
-      /**
-       * Put the last removed sun, planet, or moon back. Returns false when there
-       * is nothing to undo; throws when it can't be put back.
-       */
-      undoRemoval() {
-        let record = store2.loadUndoRecord();
-        if (!record) return !1;
-        let next = JSON.parse(JSON.stringify(state.groups));
-        if (record.kind === "sun")
-          next.some((sun) => sun.id === record.item.id) && (record.item.id = uniqueSunId(record.item.name, new Set(next.map((sun) => sun.id)))), next.splice(Math.min(record.index, next.length), 0, record.item);
-        else {
-          let sun = next.find((item) => item.id === record.sunId);
-          if (!sun) throw new Error("The parent sun no longer exists.");
-          if (record.kind === "planet")
-            sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
-          else {
-            let planet = sun.links.find((planet2) => (
-              /** @type {any} */
-              planet2.url === record.planetUrl && /** @type {any} */
-              planet2.host === record.planetHost && planet2.name === record.planetName
-            )) || sun.links[
-              /** @type {number} */
-              record.planetIndex
-            ];
-            if (!planet) throw new Error("The parent planet no longer exists.");
-            planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
-          }
-        }
-        return store2.saveMap({ groups: next }, `Undid removal of ${record.label}`, { clearUndo: !0 }), !0;
-      },
-      /**
-       * Hide or show a team sun. Stored as a shared preference; the revision goes up.
-       * @param {string} id With its `team:` prefix.
-       * @param {boolean} hidden
-       */
-      setTeamSunHidden(id, hidden) {
-        let ids = hiddenTeamSuns();
-        hidden ? ids.add(id) : ids.delete(id), writeStoredSet(KEYS.teamHidden, ids), set({ groups: [...visibleTeam(), ...personalGroups(state.groups)], revision: state.revision + 1 }), notify("team");
-      },
-      /**
-       * Open another workspace. Returns false if it doesn't exist. Never touches
-       * another workspace's keys.
-       * @param {string} id
-       */
-      switchWorkspace(id) {
-        if (!loadWorkspaces2().some((item) => item.id === id)) return !1;
-        set({ workspace: id, warning: "" }), saveActiveWorkspace(id);
-        let browserMap = loadBrowserMap(), map = browserMap || (id === MAIN ? state.seed || { groups: [] } : { groups: [] });
-        return set({
-          groups: [...visibleTeam(), ...map.groups],
-          routines: map.routines || [],
-          rdpPresets: map.rdpPresets || [],
-          source: browserMap ? "browser" : id === MAIN ? "bundled" : "browser",
-          revision: state.revision + 1
-        }), notify("switch"), !0;
-      },
-      /**
-       * Add a workspace and save its first map: 'empty', 'copy' (of this
-       * workspace), or 'bundled'. Doesn't switch to it. Returns its id.
-       * @param {unknown} name
-       * @param {'empty'|'copy'|'bundled'|string} start
-       */
-      addWorkspace(name, start) {
-        let added = newWorkspace(name), map = start === "copy" ? { groups: personalGroups(state.groups), routines: state.routines, rdpPresets: state.rdpPresets } : start === "bundled" ? state.seed : { groups: [] };
-        return write(workspaceKey(KEYS.map, added.id), JSON.stringify(validateMap(map))), saveWorkspaces([...loadWorkspaces2(), added]), added.id;
-      },
-      /**
-       * Remove a workspace (never Main): its map, undo, and history keys, and its
-       * backup entry. Returns true if it was the open one; the caller then
-       * switches to Main.
-       * @param {string} id
-       */
-      removeWorkspace(id) {
-        if (id === MAIN) return !1;
-        for (let base of WORKSPACE_KEYS) remove(workspaceKey(base, id));
-        return forgetWorkspace(id), saveWorkspaces(loadWorkspaces2().filter((item) => item.id !== id)), state.workspace === id;
-      },
-      /**
-       * Where a combined index points: a team sun or a personal one.
-       * @param {number} index
-       * @returns {{team: boolean, index: number}}
-       */
-      locate(index) {
-        let teamCount = state.groups.filter((sun) => sun.team).length;
-        return index < teamCount ? { team: !0, index } : { team: !1, index: index - teamCount };
-      },
-      /**
-       * The combined index of a team or personal sun.
-       * @param {{team: boolean, index: number}} place
-       */
-      combinedIndex(place) {
-        return place.team ? place.index : place.index + state.groups.filter((sun) => sun.team).length;
-      }
-    };
-    return store2;
-  }
-
-  // src/ui/editor/tools/packs.js
-  function exportPack(name, items, routine = null) {
-    let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "pack", pack = { format: "orbit-pack-v1", name, links: items.map(packLink) };
-    routine && (pack.routine = { name: routine.name, ...routine.schedule ? { schedule: routine.schedule } : {} }), downloadJson(pack, `orbit-pack-${slug}.json`);
-  }
-  function shareRoutine(routine) {
-    exportPack(routine.name, routineItems(routine).items.map((entry) => entry.item), routine);
-  }
-  function shareFavorites() {
-    let items = favoriteItems().map((entry) => entry.item);
-    if (!items.length) return editorError("You have no favorites to share yet.");
-    exportPack("Favorites", items);
-  }
-  function showPackImport() {
-    editorHeader("Import link pack", showSunList), menuContent.append(element("p", "", "A link pack is a small file someone shared from their Orbit: a routine or their favorites. Choose the file, or paste its text."));
-    let text = editorField("Pack text", "", "textarea");
-    text.input.setAttribute("aria-label", "Pack text"), text.input.placeholder = '{"format": "orbit-pack-v1", …}', editorActions().append(editorButton("Choose pack file", () => selectJsonFile((data) => showPackReview(validPack(data))))), menuContent.append(text.wrapper), editorActions().append(editorButton("Review pasted pack", () => {
-      try {
-        showPackReview(validPack(JSON.parse(text.input.value)));
-      } catch (error) {
-        editorError(`Import failed: ${/** @type {Error} */
-        error.message}`);
-      }
-    }, "editor-primary"));
-  }
-  function showPackReview(pack) {
-    editorHeader(`Review ${pack.name}`, showPackImport);
-    let known = pack.links.filter((link) => pathsForKey(groups, destinationKey(link)).length), fresh = pack.links.filter((link) => !pathsForKey(groups, destinationKey(link)).length);
-    menuContent.append(element("p", "import-merge-summary", `${counted(pack.links.length, "link")}: ${counted(fresh.length, "new link")} to add${known.length ? `, ${known.length} already on your map` : ""}.`));
-    let list = element("ul", "rdp-batch-list");
-    pack.links.forEach((link) => list.append(element("li", "", `${link.name} → ${link.type === "rdp" ? link.host : link.url}${known.includes(link) ? " (already on your map)" : ""}`))), menuContent.append(list);
-    let target = element("label", "editor-field");
-    target.append(element("span", "", "Add new links to"));
-    let select = document.createElement("select");
-    select.setAttribute("aria-label", "Add new links to");
-    let option = element("option", "", `A new sun named ${pack.name}`);
-    option.value = "new", select.append(option), groups.forEach((sun, index) => {
-      if (sun.team) return;
-      let item = element("option", "", `${sun.name} (as planets)`);
-      item.value = String(index), select.append(item);
-    }), target.append(select), menuContent.append(target);
-    let withRoutine = null;
-    if (pack.routine) {
-      let row = element("label", "editor-check");
-      withRoutine = document.createElement("input"), withRoutine.type = "checkbox", withRoutine.checked = !0, withRoutine.setAttribute("aria-label", "Also add the routine"), row.append(withRoutine, element("span", "", `Also add the routine “${pack.routine.name}”`)), menuContent.append(row);
-    }
-    editorActions().append(editorButton("Add to my map", () => {
-      let next = copyGroups();
-      if (fresh.length) {
-        let planets = fresh.map((link) => ({ ...link, moons: [] }));
-        select.value === "new" ? next.push({
-          id: uniqueSunId(pack.name, new Set(next.map((sun) => sun.id))),
-          name: pack.name,
-          description: "Shared link pack",
-          color: "#79d9f8",
-          links: planets
-        }) : next[Number(select.value)].links.push(...planets);
-      }
-      let nextRoutines;
-      if (withRoutine?.checked) {
-        let taken = new Set(routines.map((routine) => routine.name.toLocaleLowerCase())), name = pack.routine.name;
-        for (let n = 2; taken.has(name.toLocaleLowerCase()); n++) name = `${pack.routine.name} ${n}`;
-        nextRoutines = [...routines, {
-          name,
-          links: pack.links.map((link) => ({ key: destinationKey(link), name: link.name })),
-          ...pack.routine.schedule ? { schedule: pack.routine.schedule } : {}
-        }];
-      }
-      applyEditorChange(next, showSunList, {
-        label: `Imported link pack ${pack.name}`,
-        ...nextRoutines ? { routines: nextRoutines } : {}
-      });
-    }, "editor-primary"));
-  }
-
-  // src/ui/notices/routine-offer.js
-  var offered = (id) => markOffered(id, localDay(today()));
-  function offerDueRoutines() {
-    if (document.querySelector("#routine-banner")?.remove(), !modes.routineOffersAllowed()) return;
-    let due = dueRoutines(routines, readOffered());
-    if (!due.length) return;
-    let banner = element("section", "routine-banner");
-    banner.id = "routine-banner", banner.setAttribute("role", "region"), banner.setAttribute("aria-label", "Routines ready to open");
-    for (let routine of due) {
-      let { items } = routineItems(routine), row = element("div", "routine-offer");
-      row.append(element("p", "routine-offer-copy", `Time for ${routine.name}: ${counted(items.length, "link")}.`));
-      let open = element("button", "routine-offer-open", `Open ${routine.name}`);
-      open.type = "button", open.addEventListener("click", () => {
-        offered(routine.id), row.remove(), banner.querySelector(".routine-offer") || banner.remove(), runRoutine(routine);
-      });
-      let later = element("button", "routine-offer-dismiss", "Not today");
-      later.type = "button", later.addEventListener("click", () => {
-        offered(routine.id), row.remove(), banner.querySelector(".routine-offer") || banner.remove();
-      }), row.append(open, later), banner.append(row);
-    }
-    noticeArea().prepend(banner);
-  }
-  function installRoutineOffers() {
-    document.addEventListener("visibilitychange", () => {
-      document.visibilityState === "visible" && groups.length && offerDueRoutines();
-    });
+  // src/ui/editor/index.js
+  function installEditor() {
+    Object.assign(nav, { showSunList, showSunEditor, showPlanetEditor, showMoonEditor, showImportReview, renderEditorTree });
   }
 
   // src/ui/notices/team-updates.js
   function checkTeamUpdates() {
-    if (document.querySelector("#team-updates")?.remove(), !teamGroups.length) return;
-    let current = teamEntries(teamGroups), changes = teamChanges(readTeamSeen(), current);
+    if (document.querySelector("#team-updates")?.remove(), !team.groups.length) return;
+    let current = teamEntries(team.groups), changes = teamChanges(readTeamSeen(), current);
     if (changes.first) return rememberTeam(current);
     let { added, removed } = changes;
     if (!added.length && !removed.length) return;
@@ -2629,85 +3880,7 @@ ${link.note}`), node;
     }, !0);
   }
 
-  // src/services/link-check.js
-  var link_check_exports = {};
-  __export(link_check_exports, {
-    BATCH_SIZE: () => BATCH_SIZE,
-    checkLinks: () => checkLinks
-  });
-  var BATCH_SIZE = 50;
-  async function checkLinks(urls, { onProgress = () => {
-  }, fetch = (url, init) => globalThis.fetch(url, init) } = {}) {
-    let answers = {};
-    for (let index = 0; index < urls.length; index += 50) {
-      onProgress(index, urls.length);
-      let response = await fetch("./api/check-links", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Orbit-Check": "1" },
-        body: JSON.stringify({ urls: urls.slice(index, index + 50) })
-      });
-      if (response.status === 404 || response.status === 501)
-        throw new Error("This server cannot check links. Start Orbit with python3 serve.py from this version.");
-      if (!response.ok) throw new Error(`The server answered HTTP ${response.status}.`);
-      Object.assign(answers, await response.json());
-    }
-    return answers;
-  }
-
-  // src/services/sources.js
-  var sources_exports = {};
-  __export(sources_exports, {
-    loadBundledMap: () => loadBundledMap,
-    loadTeamMap: () => loadTeamMap,
-    pageEnv: () => pageEnv
-  });
-  function pageEnv() {
-    let page = (
-      /** @type {any} */
-      globalThis
-    );
-    return {
-      protocol: page.location.protocol,
-      fetch: (url, init) => page.fetch(url, init),
-      bundledData: page.ORBIT_DATA,
-      teamData: page.ORBIT_TEAM_DATA
-    };
-  }
-  async function loadBundledMap(env = pageEnv()) {
-    let data;
-    if (env.protocol === "file:")
-      data = env.bundledData;
-    else {
-      let response = await env.fetch("./links.json", { cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      data = await response.json();
-    }
-    if (!data) throw new Error("Run `python3 sync.py` to generate links-data.js.");
-    return validateMap(data);
-  }
-  async function fetchTeamData(env) {
-    if (env.protocol !== "file:")
-      try {
-        let response = await env.fetch("./team.json", { cache: "no-store" });
-        if (response.ok) return { data: await response.json(), source: "team.json from serve.py --team" };
-        if (response.status !== 404) throw new Error(`HTTP ${response.status}`);
-      } catch (error) {
-        if (!env.teamData) throw error;
-      }
-    return env.teamData ? { data: env.teamData, source: "team-data.js" } : null;
-  }
-  async function loadTeamMap(env = pageEnv()) {
-    try {
-      let loaded = await fetchTeamData(env);
-      return loaded ? { groups: validateMap(loaded.data).groups.map((sun) => ({ ...sun, id: `team:${sun.id}`, team: !0 })), source: loaded.source, error: "" } : { groups: [], source: "", error: "" };
-    } catch (error) {
-      return { groups: [], source: "", error: `The team map could not be loaded: ${/** @type {Error} */
-      error.message}` };
-    }
-  }
-
   // src/app/main.js
-  var store = createStore();
   publishBridge({
     version: APP_VERSION2,
     core: Object.freeze({ ...templates_exports, ...destination_exports, ...search_exports, ...rdp_exports, ...schema_exports, ...map_ops_exports, ...bookmarks_exports, ...words_exports }),
@@ -2718,6 +3891,10 @@ ${link.note}`), node;
   });
   hooks.render = render;
   hooks.refreshQuickBar = refreshQuickBar;
+  hooks.openMenu = openMenu;
+  hooks.showMenuPanel = showMenuPanel;
+  hooks.exportMap = exportMap;
+  installEditor();
   publishPageGlobals({
     element,
     counted,
@@ -2739,7 +3916,7 @@ ${link.note}`), node;
     paletteClosed,
     handlePaletteKey,
     handlePaletteShortcut,
-    openMenu: openMenu2,
+    openMenu,
     closeMenu,
     menuHidden,
     showMenuPanel,
@@ -2776,13 +3953,29 @@ ${link.note}`), node;
     pathsForKey: (key) => pathsForKey(groups, key),
     /** @param {number[]} path */
     itemAt: (path) => itemAt(groups, path),
+    // editor.js, editor-page.js, team.js, workspaces.js (phase 6b), for app.js and drag.js.
+    editorError,
+    showSunList,
+    openEditorPage,
+    openEditorAt,
+    exportMap,
+    loadTeamMap: loadTeamMap2,
+    workspaceKey: workspaceKey2,
+    updateWorkspaceSwitch,
+    switchWorkspace,
+    loadWorkspaces,
     // Read by tests/data_compat_check.py.
     loadVariables: readVariables,
     readOffered,
     loadRecent: readRecent,
     clearRecent,
-    readBackupState
+    readBackupState,
+    readStoredSet,
+    writeStoredSet,
+    hiddenTeamSuns
   });
+  Object.defineProperty(window, "teamGroups", { get: () => team.groups, configurable: !0 });
+  Object.defineProperty(window, "activeWorkspace", { get: () => activeWorkspace(), configurable: !0 });
   installLayout();
   installClicks();
   installRoutineOffers();

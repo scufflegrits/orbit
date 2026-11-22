@@ -4,6 +4,8 @@
 import { destinationKey, itemAt, pathsForKey } from '../../core/destination.js';
 import { KEYS } from '../../state/storage.js';
 import { readRecent, readStoredSet, recordRecent, writeStoredSet } from '../../state/prefs.js';
+import { store } from '../../state/page-store.js';
+import { copyGroups } from '../editor/kit.js';
 import { hooks } from '../hooks.js';
 import { modes } from '../page-modes.js';
 
@@ -52,7 +54,7 @@ export function setFavorite(path, on) {
   const target = path.length === 3 ? next[path[0]].links[path[1]].moons[path[2]] : next[path[0]].links[path[1]];
   if (on) target.favorite = true;
   else delete target.favorite;
-  saveMap({ groups: next }, `${on ? 'Added' : 'Removed'} favorite ${item.name}`);
+  store.saveMap({ groups: next }, `${on ? 'Added' : 'Removed'} favorite ${item.name}`);
 }
 
 /** Recent links that still exist in the map, newest first. */

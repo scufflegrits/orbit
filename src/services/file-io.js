@@ -24,13 +24,35 @@ export function downloadText(text, filename, type) {
   setTimeout(() => page.URL.revokeObjectURL(url), 1000);
 }
 
+/** While set, JSON downloads go here instead of to a file (captureJson). @type {((data: unknown) => void) | null} */
+let jsonSink = null;
+
 /**
  * Save data as indented JSON with a final newline.
  * @param {unknown} data
  * @param {string} filename
  */
 export function downloadJson(data, filename) {
+  if (jsonSink) return jsonSink(data);
   downloadText(JSON.stringify(data, null, 2) + '\n', filename, 'application/json');
+}
+
+/**
+ * Run `action` and return the data of the last JSON download it made, with
+ * no file saved (OrbitTest.captureDownload).
+ * @param {() => void} action
+ */
+export function captureJson(action) {
+  /** @type {unknown} */
+  let data;
+  const previous = jsonSink;
+  jsonSink = value => { data = value; };
+  try {
+    action();
+  } finally {
+    jsonSink = previous;
+  }
+  return data;
 }
 
 /**

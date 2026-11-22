@@ -79,7 +79,6 @@ orbitStore.subscribe((state, kind) => {
   activeMapSource = state.source;
   storageWarning = state.warning;
   seedData = state.seed;
-  activeWorkspace = state.workspace;
   MAP_STORAGE_KEY = workspaceKey('orbit:map:v1');
   UNDO_STORAGE_KEY = workspaceKey('orbit:undo-removal:v1');
   HISTORY_STORAGE_KEY = workspaceKey('orbit:history:v1');

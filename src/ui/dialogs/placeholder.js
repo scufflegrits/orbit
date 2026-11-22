@@ -8,6 +8,7 @@ import { fillTemplate, templateNames } from '../../core/templates.js';
 import { openTab } from '../../services/opener.js';
 import { readVariables, saveVariables } from '../../state/prefs.js';
 import { element } from '../dom.js';
+import { editorButton, editorField } from '../editor/kit.js';
 import { modes } from '../page-modes.js';
 import { noteOpened } from '../views/favorites.js';
 

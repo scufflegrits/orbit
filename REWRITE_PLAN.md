@@ -1189,10 +1189,19 @@ Phase 6a closed 2026-11-21.
 
 ### Phase 6b: Editor and tools
 
-- [ ] `ui/editor/`: workspace page, tree, sun/planet/moon forms, Quick add, JSON and single-item import/export, reset, `.rdp` import
-- [ ] `ui/editor/tools/`: history, duplicates, link check, bookmark and merge import, bulk RDP, presets, routines, packs, workspaces, team screens
-- [ ] Remove `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `workspaces.js`, `presets.js`, and `team.js` from `index.html` and `APP_SCRIPTS`
-- [ ] Done when: milestones 1–19, B03–B11, and F01–F27 pass with those scripts removed; milestone 18 is run by the Lead; Chromium in both modes and Edge
+- [x] `ui/editor/`: workspace page, tree, sun/planet/moon forms, Quick add, JSON and single-item import/export, reset, `.rdp` import (`kit.js` for the shared parts and the editor's screen state, `page.js` for the full-page editor, tree, moves, and batch `.rdp` import, `screens.js` for the sun list and forms, `quick-add.js`)
+- [x] `ui/editor/tools/`: history, duplicates, link check, bookmark and merge import, bulk RDP, presets, routines, packs, workspaces, team screens. The workspace list and the top-bar switch are `ui/menu/workspaces.js`; the merge import is the review screen in `screens.js`.
+- [x] Remove `editor.js`, `editor-page.js`, `tools.js`, `routines.js`, `workspaces.js`, `presets.js`, and `team.js` from `index.html` and `APP_SCRIPTS`
+- Phase 6b notes:
+  - **Ported, not rewritten.** The function bodies were copied by a script (kept in the scratchpad, not the repository) that rewrote only the calls: old one-line forwarders became direct imports, and calls into the screens from below go through `ui/editor/nav.js`, a table `ui/editor/index.js` fills in, so the screens, tools, and tree have no import cycle. The type check found two bugs the port had made (a shadowed `fileIo` in the JSON and bookmark imports, which would have thrown on use) and three calls to removed globals; all were fixed before any browser run.
+  - **New homes for shared state.** The store and its `activeWorkspace()` (the saved choice until the store starts, as 2.2.1's global was) are `state/page-store.js`; the team map's suns, source, and error are `ui/team-map.js`; the editor tree and link-check results are in `kit.js`. The old scripts still read `teamGroups` and `activeWorkspace` by name, so they are getters on `window` with no second copy.
+  - **Downloads are captured at the source.** `services/file-io.js` has `captureJson`, which `OrbitTest.captureDownload` now uses instead of replacing the old `downloadJson` global.
+  - **The first Chromium run caught two gaps:** the workspace shown before start-up (the switch read Main after a reload into another workspace; F27) and `readStoredSet` for the data-compatibility check. Both were fixed and the affected suites rerun.
+- [x] Done when: milestones 1–19, B03–B11, and F01–F27 pass with those scripts removed; milestone 18 is run by the Lead; Chromium in both modes and Edge
+
+  Met 2026-11-21 with all seven scripts removed: 180 node tests; every suite in Chromium in both modes with the baseline counts (the full matrix with milestones 1–19 including 18, 39; drag 15 and 29; sizes 13; pending 21, which covers B03–B11; features 53, F01–F27), plus mode rules 23, data compatibility, release smoke, behavior 22, and the services check; headless Edge 158 on the VM passed drag phase 2 (14 + 14), features (27 + 27), sizes (7 + 7), pending (11 + 11), and the services pop-up checks (6 + 6) in file and server mode.
+
+Phase 6b closed 2026-11-21.
 
 ### Phase 7: Drag and keyboard
 

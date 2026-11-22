@@ -3,6 +3,9 @@
 // the rest of the editor follows in 6b.
 import { PLACEHOLDER } from '../../core/templates.js';
 import { element } from '../dom.js';
+import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorField, editorHeader, editorTree } from './kit.js';
+import { nav } from './nav.js';
+import { openEditorPage } from './page.js';
 import { openMenu } from '../menu/menu.js';
 import { modes } from '../page-modes.js';
 
@@ -56,7 +59,7 @@ export function quickAddResult(address) {
 export function showQuickAdd(address = '') {
   if (!modes.menuOpen()) openMenu();
   if (!editorTree) openEditorPage();
-  editorHeader('Add a link', showSunList);
+  editorHeader('Add a link', nav.showSunList);
   /** @type {[string, string][]} */
   const targets = [];
   groups.forEach((sun, sunIndex) => {
@@ -66,7 +69,7 @@ export function showQuickAdd(address = '') {
   });
   if (!targets.length) {
     menuContent.append(element('p', 'editor-note', 'Add a sun to your map first; links are added to a sun as planets or to a planet as moons.'));
-    editorActions().append(editorButton('Add sun', () => showSunEditor(null), 'editor-primary'));
+    editorActions().append(editorButton('Add sun', () => nav.showSunEditor(null), 'editor-primary'));
     return;
   }
   menuContent.append(element('p', '', 'Add a website to a sun as a planet, or to a planet as a moon.'));
@@ -110,12 +113,12 @@ export function showQuickAdd(address = '') {
     const [kind, sunIndex, planetIndex] = select.value.split(':');
     if (kind === 'sun') {
       next[Number(sunIndex)].links.push({ ...value, moons: [] });
-      applyEditorChange(next, () => showPlanetEditor(Number(sunIndex), next[Number(sunIndex)].links.length - 1),
+      applyEditorChange(next, () => nav.showPlanetEditor(Number(sunIndex), next[Number(sunIndex)].links.length - 1),
         { label: `Added planet ${value.name}` });
     } else {
       const moons = next[Number(sunIndex)].links[Number(planetIndex)].moons;
       moons.push(value);
-      applyEditorChange(next, () => showMoonEditor(Number(sunIndex), Number(planetIndex), moons.length - 1),
+      applyEditorChange(next, () => nav.showMoonEditor(Number(sunIndex), Number(planetIndex), moons.length - 1),
         { label: `Added moon ${value.name}` });
     }
   });

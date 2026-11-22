@@ -16,17 +16,8 @@ interface Window {
 }
 
 // ---- Old classic-script globals (temporary) -------------------------------------
-// A function declaration in a classic script; the test hook swaps it to capture downloads.
-declare var downloadJson: (data: unknown, filename?: string) => void;
-declare function exportMap(): void;
-declare function showSunList(): void;
-declare function openEditorAt(indices: number[]): void;
-declare function setEditMode(on: boolean): void;
-declare function openMenu(): void;
-declare function effectiveRdpProfile(item: any): string | null;
-declare function rdpLaunchUrl(item: any): string;
-
-// What src/ui/ still reads from the old scripts (phases 5 and 6a), by script.
+// What src/ still reads from the old scripts that remain (app.js, storage.js,
+// rdp.js, drag.js, keys.js), by script. Phase 8 moves the last of them.
 // app.js
 declare const APP_VERSION: string;
 declare const app: HTMLElement;
@@ -52,37 +43,11 @@ declare let storageWarning: string;
 declare function setFindQuery(text: string): void;
 declare function setGalaxyView(view: string): void;
 declare function dataSourceLabel(): string;
-// storage.js
-declare function saveMap(data: any, label?: string | false): void;
-// team.js
-declare let teamGroups: any[];
-declare let teamSource: string;
-declare let teamError: string;
-declare function setTeamSunHidden(id: string, hidden: boolean): void;
+declare function undoRemoval(): void;
 // drag.js
 declare const editToggle: HTMLElement;
 declare function updateEditBar(): void;
-// editor.js, editor-page.js
-declare let editorTree: HTMLElement | null;
-declare function openEditorPage(): void;
-declare function editorHeader(title: string, back: () => void): void;
-declare function editorActions(): HTMLElement;
-declare function editorButton(label: string, action: () => void, className?: string): HTMLButtonElement;
-declare function editorField(label: string, value: string, type?: string): { wrapper: HTMLElement, input: HTMLInputElement };
-declare function editorError(message: string): void;
-declare function copyGroups(): any[];
-declare function applyEditorChange(next: any[], after: () => void, options?: any): void;
-declare function selectJsonFile(onData: (data: any) => void): void;
-declare function showSunList(): void;
-declare function showSunEditor(index: number | null): void;
-declare function showPlanetEditor(sunIndex: number, planetIndex: number): void;
-declare function showMoonEditor(sunIndex: number, planetIndex: number, moonIndex: number): void;
-// routines.js
-declare function showRoutineEditor(index: number): void;
-declare function showRoutines(): void;
-// workspaces.js
-declare let activeWorkspace: string;
-declare function workspaceName(id?: string): string;
-declare function workspaceSettings(): HTMLElement;
-declare function loadWorkspaces(): { id: string, name: string }[];
-declare function switchWorkspace(id: string): void;
+declare function setEditMode(on: boolean): void;
+// rdp.js
+declare function effectiveRdpProfile(item: any): string | null;
+declare function rdpLaunchUrl(item: any): string;
