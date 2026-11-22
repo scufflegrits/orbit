@@ -4,6 +4,9 @@ check that everything is read back the same way as 2.2.1 reads it.
     python tests/make_v22_fixture.py                 # writes the fixture (once)
     python tests/data_compat_check.py --record       # on 2.2.1: writes the expected results
     python tests/data_compat_check.py                # any later version: compares with them
+    python tests/data_compat_check.py --write-fixture DIR
+    python tests/data_compat_check.py --cdp http://127.0.0.1:9333 --url file:///C:/orbit-compat-test/index.html
+                                                     # one URL in a remote browser (Edge on the VM)
 
 The expected results (tests/fixtures/v2.2-expected.json) were recorded from 2.2.1
 and are the contract. Since rewrite phase 3 the per-workspace state is read
@@ -120,8 +123,32 @@ def diff(expected, actual, path=""):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--record", action="store_true", help="Write the expected results (run on 2.2.1 only)")
+    parser.add_argument("--write-fixture", metavar="DIR", help="Only write the fixture folder (for a remote browser) and exit")
+    parser.add_argument("--cdp", help="Check one --url in a running browser at this DevTools address")
+    parser.add_argument("--url", help="With --cdp: the Orbit page to test")
     args = parser.parse_args()
     fixture = json.loads(FIXTURE.read_text())
+    if args.write_fixture:
+        folder = write_fixture(Path(args.write_fixture), fixture["links"])
+        (folder / "team.json").write_text(json.dumps(fixture["team"]))
+        (folder / "team-data.js").write_text("window.ORBIT_TEAM_DATA = " + json.dumps(fixture["team"]) + ";\n")
+        return
+    if args.cdp:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.connect_over_cdp(args.cdp)
+            print(f"Browser: {browser.version}")
+            page = browser.contexts[0].new_page()
+            page.set_viewport_size({"width": 1920, "height": 1080})
+            try:
+                result = collect(page, args.url, fixture)
+            finally:
+                page.close()
+        problems = diff(json.loads(EXPECTED.read_text()), result)
+        if problems:
+            print("\n".join(f"FAIL {line}" for line in problems))
+            sys.exit(1)
+        print(f"PASS data compatibility: the 2.2 fixture reads back as recorded ({args.url})")
+        return
     with tempfile.TemporaryDirectory() as directory, sync_playwright() as playwright:
         folder = write_fixture(directory, fixture["links"])
         (folder / "team.json").write_text(json.dumps(fixture["team"]))
