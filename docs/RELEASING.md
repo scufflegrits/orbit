@@ -1,11 +1,12 @@
-# Building an Orbit distribution zip
+# Releasing Orbit
 
-These steps make a `.zip` of Orbit that you can give to someone who does not use git. The zip unpacks to one `orbit-<version>/` folder that runs by opening `index.html`. It has no git history, tests, or project-planning notes.
+These steps release a new version of Orbit: they set the version, test it, tag it, and build a `.zip` that you can give to someone who does not use git. The zip unpacks to one `orbit-<version>/` folder that runs by opening `index.html`. It has no git history, tests, or project-planning notes.
 
 ## What you need
 
-- **Git**, to get the project and build the zip.
-- **Python 3** (optional), to check the server mode before you hand the zip out.
+- **Git**, to get the project, tag the release, and build the zip.
+- **Node**, to rebuild `orbit.js` after changing the version (`npm install` once).
+- **Python 3 with Playwright**, to run the tests, and to check the zip's server mode.
 - The project cloned from GitHub:
 
   ```sh
@@ -26,29 +27,52 @@ These steps make a `.zip` of Orbit that you can give to someone who does not use
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
 | `README.md`, `CHANGELOG.md`, `docs/RDP_SIGNING.md` | Instructions for the person using Orbit, and what changed in each version |
 
-Left out: `src/`, `scripts/`, `tests/`, `package.json`, `package-lock.json`, `jsconfig.json`, the rest of `docs/` (the handoff, test matrix, these release steps, and `docs/plans/`), `.gitignore`, `.gitattributes`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped.
+Left out: `src/`, `scripts/`, `tests/`, `package.json`, `package-lock.json`, `jsconfig.json`, the rest of `docs/` (the handoff, test matrix, these release steps, and `docs/plans/`), `.gitignore`, `.gitattributes`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped. A few links in `README.md` and `CHANGELOG.md` point to planning docs that stay in the repository; they don't work inside the zip, which is expected.
 
-The zip is built from the last commit, never from your working folder. Files you have not committed are left out, including private ones such as `tests/rdptest01.rdp`. Commit any change you want to ship before you build.
+**When you add a file the person using Orbit needs** (a new page asset, script, or user guide), add it to this table and to both `git archive` commands in step 4. `index.html` loads only `links-data.js`, the optional `team-data.js`, and `orbit.js`; a missing file stops the page from loading.
 
-## 1. Check that you are on the commit you want to ship
+The zip is built from the release tag, never from your working folder. Files you have not committed are left out, including private ones such as `tests/rdptest01.rdp`.
+
+## 1. Set the version and write the changelog
+
+Choose the version: the last number for fixes only (3.0.0 → 3.0.1), the middle one for new features (3.0.1 → 3.1.0), the first for a change that breaks saved data or how Orbit is opened.
+
+1. Set `APP_VERSION` in `src/app/version.js`. It is the version shown in Settings → About and the one the commands below read.
+2. Run `npm run build` to rebuild `orbit.js` with it.
+3. Add the new version's section at the top of `CHANGELOG.md`: the date, and what changed for the person using Orbit (new, changed, fixed), in their words.
+4. If `links.json` changed, run `python3 sync.py` so `links-data.js` matches.
+
+## 2. Test it
+
+A release runs every test, not only the ones for the latest change (see `docs/HANDOFF.md`, "Tests", for each runner):
+
+- `npm run check`, `npm run check:layers`, `npm run check:bundle`, and `npm run test:unit`.
+- Every browser runner in `tests/`, in file and server mode, at the counts in `docs/HANDOFF.md`.
+- Edge on the Windows test VM (`docs/HANDOFF.md`, "Windows 11 test VM").
+
+Fix anything that fails before going on, and record the results in `docs/TEST_MATRIX.md`.
+
+## 3. Commit, tag, and push
 
 ```sh
-git status
-git log --oneline -1
+git status                      # only the release changes, and files you keep out on purpose
+git add -A                      # or name the files; never add private files such as tests/rdptest01.rdp
+git commit -m "Orbit <version>: <what changed>"
+git tag -a v<version> -m "Orbit <version>"
+git push main main              # the remote may be named origin instead
+git push main v<version>
 ```
 
-`git status` should show nothing to commit, except files you intend to keep out of the zip. Make sure `links.json` and `links-data.js` agree; if you changed `links.json`, run `python3 sync.py` and commit the result. If you have Node, also run `npm run check:bundle`: it confirms the committed `orbit.js` matches `src/`.
+Every release has a tag (`v2.2.0`, `v3.0.1`, …), so `git checkout v<version>` brings any release back.
 
-## 2. Build the zip
-
-The version comes from `APP_VERSION` in `src/app/version.js`, and that is the version shown in Settings → About. To change it, edit that file, run `npm run build` (which rebuilds `orbit.js`), add the new version's section at the top of `CHANGELOG.md`, and commit all three before a new release.
+## 4. Build the zip
 
 **Linux or macOS:**
 
 ```sh
 VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.js)
 mkdir -p ../orbit-dist
-git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" HEAD -- \
+git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" "v$VERSION" -- \
   index.html styles.css links.json links-data.js orbit.js \
   serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md
 ```
@@ -58,36 +82,39 @@ git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VER
 ```powershell
 $Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)'").Matches[0].Groups[1].Value
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
-git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" HEAD -- `
+git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" "v$Version" -- `
   index.html styles.css links.json links-data.js orbit.js `
   serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md
 ```
 
-The zip is written to an `orbit-dist` folder beside the project, so it never ends up inside the repository.
+The zip is written to an `orbit-dist` folder beside the project, so it never ends up inside the repository. If the command says the tag doesn't exist, step 3 wasn't done. An existing zip of the same version is overwritten without asking, so don't reuse a version number for a different build.
 
-**When a script is added or renamed:** the file list above must match the `<script>` tags in `index.html` (except the optional `team-data.js`, which is never shipped). Compare the two before each release, because a missing script stops the page from loading.
-
-## 3. Check the zip
+## 5. Check the zip
 
 1. **List its contents.** Run `unzip -l ../orbit-dist/orbit-<version>.zip`. In PowerShell, open the zip in File Explorer instead. You should see one `orbit-<version>/` folder holding the files in the table above and nothing else.
 2. **Extract it to a fresh folder** outside the project, such as your Downloads folder.
-3. **Open `index.html` directly** from the extracted folder in a browser:
+3. **Open `index.html` directly** from the extracted folder, in Chrome or Edge:
    - The Galaxy appears; the bundled sample map shows 9 suns and 106 links.
    - **Edit mode** switches on in the top bar.
    - Settings → **About** shows the version you built.
-4. **Optionally, try the local server.** In the extracted folder run `python3 serve.py` (on Windows, `py serve.py`), open <http://localhost:8000>, check the same things, then press `Ctrl+C` to stop it.
+   - The browser's developer console (F12) shows no errors, apart from one "file not found" for the optional `team-data.js`.
+4. **Try the local server.** In the extracted folder run `python3 serve.py` (on Windows, `py serve.py`), open <http://localhost:8000>, check the same things, then press `Ctrl+C` to stop it.
 5. **Delete the extracted test folder.** If you tried things in the browser, also use Settings → Edit links → **Reset to file data** so your test changes do not linger.
 
-## 4. Publish a checksum (optional)
+## 6. Save a checksum
 
-A checksum lets people confirm their download is complete and unchanged. Give it out alongside the zip.
+A checksum lets people confirm their download is complete and unchanged. Save it next to the zip and give it out alongside it.
 
-- Linux: `sha256sum ../orbit-dist/orbit-<version>.zip`
-- macOS: `shasum -a 256 ../orbit-dist/orbit-<version>.zip`
+- Linux: `cd ../orbit-dist && sha256sum orbit-<version>.zip | tee orbit-<version>.zip.sha256`
+- macOS: `cd ../orbit-dist && shasum -a 256 orbit-<version>.zip | tee orbit-<version>.zip.sha256`
 - Windows (PowerShell): `Get-FileHash ..\orbit-dist\orbit-<version>.zip -Algorithm SHA256`
 
-The person who receives the zip runs the same command and compares the result.
+The person who receives the zip runs the same command and compares the result. Record the checksum in `docs/TEST_MATRIX.md` with the release.
+
+## 7. Remove older zips
+
+Delete earlier versions' zips and checksum files from `orbit-dist`, so only the current release is handed out. Any older release can be rebuilt from its tag with step 4.
 
 ## What to tell the person receiving it
 
-Unzip it anywhere and open `index.html`. Everything else is in the included `README.md`: adding links, Edit mode and dragging, Settings, and the optional Windows Remote Desktop helper.
+Unzip it anywhere and open `index.html`. Everything else is in the included `README.md`: adding links, Edit mode and dragging, Settings, and the optional Windows Remote Desktop helper. If they already use Orbit, `CHANGELOG.md` says what's new, and their saved links carry over.

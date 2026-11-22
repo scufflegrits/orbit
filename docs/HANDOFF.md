@@ -10,7 +10,7 @@ All work is on `main`, with no failing or pending test. **3.0.0 (2026-11-22) is 
 
 **Waiting for the user:** nothing.
 
-Release history, version by version: [CHANGELOG.md](../CHANGELOG.md). Add a section there with each release (RELEASING.md step 2). The plan behind each release: [ROADMAP.md](plans/ROADMAP.md) and [DRAG_DROP_PLAN.md](plans/DRAG_DROP_PLAN.md) (milestones), [FEATURES_PLAN.md](plans/FEATURES_PLAN.md) (2.0.0–2.2.0), [REWRITE_PLAN.md](plans/REWRITE_PLAN.md) (3.0.0).
+Release history, version by version: [CHANGELOG.md](../CHANGELOG.md). Add a section there with each release ([RELEASING.md](RELEASING.md), step 1). The plan behind each release: [ROADMAP.md](plans/ROADMAP.md) and [DRAG_DROP_PLAN.md](plans/DRAG_DROP_PLAN.md) (milestones), [FEATURES_PLAN.md](plans/FEATURES_PLAN.md) (2.0.0–2.2.0), [REWRITE_PLAN.md](plans/REWRITE_PLAN.md) (3.0.0).
 
 Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and touchscreen dragging.
 
