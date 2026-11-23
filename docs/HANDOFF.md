@@ -1,6 +1,6 @@
 # Orbit handoff
 
-Last updated 2026-11-22, at version 3.0.2.
+Last updated 2026-11-22, at version 3.0.2, with unreleased changes on `main` (see CHANGELOG "Unreleased").
 
 ## Status
 
@@ -99,7 +99,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
 | `tests/features.py` | F01–F29, no F05 | all passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
-| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 180 passed |
+| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 182 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
 | `tests/data_compat_check.py` | The 2.2 storage fixture reads back as recorded | passed |
@@ -153,4 +153,7 @@ Tips:
 
 ## Open follow-ups
 
-None. Every feature check, including batch 3 (2.2.0), has passed in a visible Edge window (3.0.0, 2026-11-22). No deployment or hosting has been done.
+- **Unreleased changes on `main`:** the sun picker for whole-map imports, two Galaxy hover fixes, and new Dev Toolbox moons (CHANGELOG "Unreleased"). Release them as 3.0.3 with a zip only when the user asks (docs/RELEASING.md).
+- **Planned, decisions made, not started: group planets** (a planet without a link of its own). The plan is the user's private note `private/request-planet-nolink.md` (gitignored, on this machine only); it lists every file to change, the tests to write first, and the old-version risk.
+- **Test quirk:** `tests/browser_matrix.py --milestone 11 --only-new` fails on its own (also before 3.0.2); the full matrix passes. Run milestone 11 through the full matrix until it is looked into.
+- Every feature check, including batch 3 (2.2.0), has passed in a visible Edge window (3.0.0, 2026-11-22). No deployment or hosting has been done.

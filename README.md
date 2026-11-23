@@ -8,7 +8,7 @@ Use **Quick find** in the top bar on the Galaxy or any System to search suns, pl
 
 The bundled map has ten sample suns, including **Dev Toolbox**, **Stocks & Investing**, **Science**, and **Labs**, with 53 planets and 70 moons. These destinations are examples; replace them with your own in Edit links.
 
-## What's new in 3.0.0
+## What's new in 3.0
 
 Nothing changes for you. Orbit looks and works exactly as in 2.2.1, and your saved links, routines, workspaces, and settings carry over untouched. 3.0.0 rebuilds the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. It is just as fast: the Galaxy draws 2% faster, typing in Quick find is unchanged, and the code is 1.5% larger. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md). 3.0.1 fixes routine offers in workspaces other than Main; 3.0.2 gives Galaxy planets more room around their sun and adds a Dev Toolbox sun to the sample map (see the changelog).
 
