@@ -2,7 +2,7 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
-## Unreleased
+## 3.0.2 — 2026-11-22
 
 - **Added:** a **Dev Toolbox** sun in the sample map, after Build: Learn Git Branching, Devhints, JSON Crack, Transform, Refactoring Guru, DevDocs, Excalidraw, and roadmap.sh. Your own saved map is unchanged; the new sun appears if you use the sample map or choose Reset to file data.
 - **Fixed:** in the Galaxy, planets sat almost on their sun, and when the sun grew on hover it touched or overlapped them and their "N moons" labels. Planets now orbit about 20 px clear of the hovered sun, so each sun card is a little taller.

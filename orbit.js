@@ -3,7 +3,7 @@
 "use strict";
 (() => {
   // src/app/version.js
-  var APP_VERSION = "3.0.1";
+  var APP_VERSION = "3.0.2";
 
   // src/core/words.js
   function counted(amount, word, plural = `${word}s`) {
