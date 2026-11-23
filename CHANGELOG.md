@@ -4,7 +4,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ## Unreleased
 
-- **Added:** a **ToDiagram** moon under **JSON Crack** in the sample map's Dev Toolbox sun.
+- **Added:** moons in the sample map's Dev Toolbox sun: under **JSON Crack**, ToDiagram, JSON Crack on GitHub, JSON Crack for VS Code, jless, and fx; under **Transform**, jq and yq; under **Excalidraw**, PlantUML JSON diagrams and Graphviz.
 - **Added:** a sun picker when importing a whole map. **Import JSON** lists the file's suns with what each would add; merge only the ones you tick, each with all its planets and moons. **Replace my map** still takes the whole map. **Import sun** now accepts a whole map file and opens the same picker, and **Import bookmarks** uses it too.
 
 ## 3.0.2 — 2026-11-22

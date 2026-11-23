@@ -6,7 +6,7 @@ To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planet
 
 Use **Quick find** in the top bar on the Galaxy or any System to search suns, planets, and moons by name, web address, computer name, or tag; see [Find and open links](#find-and-open-links). Searching from a System returns to the Galaxy with matching results. Press `Ctrl+K` for the command palette.
 
-The bundled map has ten sample suns, including **Dev Toolbox**, **Stocks & Investing**, **Science**, and **Labs**, with 53 planets and 62 moons. These destinations are examples; replace them with your own in Edit links.
+The bundled map has ten sample suns, including **Dev Toolbox**, **Stocks & Investing**, **Science**, and **Labs**, with 53 planets and 70 moons. These destinations are examples; replace them with your own in Edit links.
 
 ## What's new in 3.0.0
 

@@ -206,12 +206,38 @@ window.ORBIT_DATA = {
             {
               "name": "ToDiagram",
               "url": "https://todiagram.com/"
+            },
+            {
+              "name": "JSON Crack on GitHub",
+              "url": "https://github.com/AykutSarac/jsoncrack.com"
+            },
+            {
+              "name": "JSON Crack for VS Code",
+              "url": "https://marketplace.visualstudio.com/items?itemName=AykutSarac.jsoncrack-vscode"
+            },
+            {
+              "name": "jless",
+              "url": "https://jless.io/"
+            },
+            {
+              "name": "fx",
+              "url": "https://fx.wtf/"
             }
           ]
         },
         {
           "name": "Transform",
-          "url": "https://transform.tools/"
+          "url": "https://transform.tools/",
+          "moons": [
+            {
+              "name": "jq",
+              "url": "https://jqlang.org/"
+            },
+            {
+              "name": "yq",
+              "url": "https://github.com/mikefarah/yq"
+            }
+          ]
         },
         {
           "name": "Refactoring Guru",
@@ -223,7 +249,17 @@ window.ORBIT_DATA = {
         },
         {
           "name": "Excalidraw",
-          "url": "https://excalidraw.com/"
+          "url": "https://excalidraw.com/",
+          "moons": [
+            {
+              "name": "PlantUML JSON diagrams",
+              "url": "https://plantuml.com/json"
+            },
+            {
+              "name": "Graphviz",
+              "url": "https://graphviz.org/"
+            }
+          ]
         },
         {
           "name": "roadmap.sh",
