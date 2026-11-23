@@ -250,6 +250,24 @@ function layoutMoonField(field) {
   })), origin, size));
 }
 
+/**
+ * A lower Galaxy planet's moons fan downwards and can reach the sun's caption.
+ * Mark each planet whose fan does, so the caption fades while its moons show
+ * (styles.css) instead of sitting under them.
+ */
+function markCaptionFans() {
+  const planet = orbitSizes.home || 72;
+  for (const orbit of /** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.home-orbit'))) {
+    const caption = /** @type {HTMLElement | null} */ (orbit.parentElement?.querySelector(':scope > .group-description') ?? null);
+    const center = orbit.offsetTop + orbit.offsetHeight / 2;
+    for (const field of /** @type {NodeListOf<HTMLElement>} */ (orbit.querySelectorAll('.moon-field'))) {
+      const bottom = center + Math.sin(Number(field.dataset.angle)) * galaxyReach(planet) + Number(field.dataset.drop);
+      field.closest('.planet-cluster')?.toggleAttribute('data-covers-caption',
+        Boolean(caption?.textContent) && bottom > /** @type {HTMLElement} */ (caption).offsetTop);
+    }
+  }
+}
+
 export function layoutOrbits() {
   fitOrbitSizes();
   /** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.moon-field')).forEach(layoutMoonField);
@@ -265,6 +283,7 @@ export function layoutOrbits() {
     .map(field => Number(field.dataset.rise));
   const extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
   document.documentElement.style.setProperty('--galaxy-fan-room', `${Math.max(0, Math.ceil(extra))}px`);
+  markCaptionFans();
   // In a System, a fan on a lower planet can hang past the bottom of the stage;
   // push the note below it down so the moons never cover its text.
   const stage = /** @type {HTMLElement | null} */ (app.querySelector('.detail-stage'));

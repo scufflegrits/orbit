@@ -845,7 +845,13 @@ html[data-theme='auburn'] .detail-stage {
   border-color: var(--accent);
 }
 
-.group-description { margin: -7px 0 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
+.group-description { margin: -7px 0 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); transition: opacity .18s ease; }
+/* A lower planet's moons would cover the caption: fade it while they show
+   (src/ui/layout/orbits.js marks those planets). */
+.group-card:has(.planet-cluster[data-covers-caption]:is(:hover, :focus-within)) .group-description,
+html[data-moons='always'] .group-card:has(.home-orbit:is(:hover, :focus-within) .planet-cluster[data-covers-caption]) .group-description {
+  opacity: 0;
+}
 .description-link { color: var(--theme-accent); text-decoration: underline; text-underline-offset: 2px; }
 .description-link:hover { color: var(--text); }
 

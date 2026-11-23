@@ -2883,6 +2883,31 @@ prompt for credentials:i:1\r
       y: origin.y + point.y
     })), origin, size));
   }
+  function markCaptionFans() {
+    let planet = orbitSizes.home || 72;
+    for (
+      let orbit of
+      /** @type {NodeListOf<HTMLElement>} */
+      app.querySelectorAll(".home-orbit")
+    ) {
+      let caption = (
+        /** @type {HTMLElement | null} */
+        orbit.parentElement?.querySelector(":scope > .group-description") ?? null
+      ), center = orbit.offsetTop + orbit.offsetHeight / 2;
+      for (
+        let field of
+        /** @type {NodeListOf<HTMLElement>} */
+        orbit.querySelectorAll(".moon-field")
+      ) {
+        let bottom = center + Math.sin(Number(field.dataset.angle)) * galaxyReach(planet) + Number(field.dataset.drop);
+        field.closest(".planet-cluster")?.toggleAttribute(
+          "data-covers-caption",
+          !!caption?.textContent && bottom > /** @type {HTMLElement} */
+          caption.offsetTop
+        );
+      }
+    }
+  }
   function layoutOrbits() {
     fitOrbitSizes(), app.querySelectorAll(".moon-field").forEach(layoutMoonField);
     let firstCard = (
@@ -2895,7 +2920,7 @@ prompt for credentials:i:1\r
         field.closest(".group-card").offsetTop === firstRow
       )).map((field) => Number(field.dataset.rise))
     ), extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
-    document.documentElement.style.setProperty("--galaxy-fan-room", `${Math.max(0, Math.ceil(extra))}px`);
+    document.documentElement.style.setProperty("--galaxy-fan-room", `${Math.max(0, Math.ceil(extra))}px`), markCaptionFans();
     let stage = (
       /** @type {HTMLElement | null} */
       app.querySelector(".detail-stage")

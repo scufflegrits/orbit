@@ -1,4 +1,4 @@
-"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06, OS08).
+"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06, OS08, OS09).
 
 Run with: /home/sysadmin/.venv/bin/python tests/orbit_sizes.py
    or, in a remote browser such as Edge on the Windows VM:
@@ -187,6 +187,31 @@ def run_mode(page, url, mode):
           f"{mode}: planets keep at least 12px from the hovered sun ({gaps})")
     check(min(gaps["badges"]) >= 2, f"{mode}: moon labels stay off the hovered sun ({gaps})")
     print(f"PASS OS08 planets clear the hovered sun ({mode})")
+
+    # OS09: a lower planet's moons never sit on top of the sun's caption: the caption
+    # fades while they would cover it, and stays for a planet whose moons don't reach it.
+    caption_state = """sun => {
+      const card = document.querySelector(`.home-orbit[data-sun="${sun}"]`).closest('.group-card');
+      const caption = card.querySelector('.group-description');
+      const range = document.createRange();
+      range.selectNodeContents(caption);
+      const text = range.getBoundingClientRect();
+      const covered = [...card.querySelectorAll('.planet-cluster:hover .moon-link')].some(node => {
+        const box = node.getBoundingClientRect();
+        return box.left < text.right && box.right > text.left && box.top < text.bottom && box.bottom > text.top;
+      });
+      return { covered, opacity: Number(getComputedStyle(caption).opacity) };
+    }"""
+    hover_galaxy_planet(page, 0, 2)
+    page.wait_for_timeout(400)
+    lower = page.evaluate(caption_state, 0)
+    check(not lower["covered"] or lower["opacity"] < .05,
+          f"{mode}: a lower planet's moons don't cover a visible caption ({lower})")
+    hover_galaxy_planet(page, 0, 0)
+    page.wait_for_timeout(400)
+    top = page.evaluate(caption_state, 0)
+    check(not top["covered"] and top["opacity"] == 1, f"{mode}: the top planet leaves the caption visible ({top})")
+    print(f"PASS OS09 moons never cover the caption ({mode})")
 
 
 def main():

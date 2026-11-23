@@ -5,6 +5,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 ## Unreleased
 
 - **Fixed:** in the Galaxy, planets sat almost on their sun, and when the sun grew on hover it touched or overlapped them and their "N moons" labels. Planets now orbit about 20 px clear of the hovered sun, so each sun card is a little taller.
+- **Fixed:** in the Galaxy, a lower planet's moons covered the sun's caption. The caption now fades while those moons show.
 
 ## 3.0.1 — 2026-11-22
 
