@@ -2,6 +2,10 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
+## Unreleased
+
+- **Added:** a sun picker when importing a whole map. **Import JSON** lists the file's suns with what each would add; merge only the ones you tick, each with all its planets and moons. **Replace my map** still takes the whole map. **Import sun** now accepts a whole map file and opens the same picker, and **Import bookmarks** uses it too.
+
 ## 3.0.2 — 2026-11-22
 
 - **Added:** a **Dev Toolbox** sun in the sample map, after Build: Learn Git Branching, Devhints, JSON Crack, Transform, Refactoring Guru, DevDocs, Excalidraw, and roadmap.sh. Your own saved map is unchanged; the new sun appears if you use the sample map or choose Reset to file data.

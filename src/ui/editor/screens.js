@@ -139,8 +139,27 @@ export function exportMap() {
 }
 
 /**
+ * A labelled checkbox for the import review.
+ * @param {string} className
+ * @param {boolean} checked
+ * @param {(Node | string)[]} parts
+ */
+function reviewCheck(className, checked, parts) {
+  const label = element('label', `editor-check ${className}`);
+  const box = /** @type {HTMLInputElement} */ (element('input'));
+  box.type = 'checkbox';
+  box.checked = checked;
+  label.append(box, ...parts);
+  return { label, box };
+}
+
+/**
+ * Review a whole map before adding it. Each sun in the file is listed with what
+ * it would add, and only the ticked suns are merged, each whole with its
+ * planets and moons (a sun you already have gains only what it is missing).
+ * Replace my map takes the whole file whatever is ticked.
  * @param {any} data
- * @param {any} [options]
+ * @param {{title?: string, note?: string, label?: string, replace?: boolean, picked?: 'all' | 'none'}} [options]
  */
 export function showImportReview(data, options = {}) {
   editorHeader(options.title || 'Review import', showSunList);
@@ -149,21 +168,72 @@ export function showImportReview(data, options = {}) {
     (/** @type {any} */ total, /** @type {any} */ planet) => total + planet.moons.length, 0), 0);
   if (options.note) menuContent.append(element('p', '', options.note));
   menuContent.append(element('p', '', `The file has ${counted(data.groups.length, 'sun')} · ${counted(planetCount, 'planet')} · ${counted(moonCount, 'moon')}.`));
-  const merged = mapOps.mergeMaps(mapOps.personalGroups(groups), data.groups);
-  const { added, skipped } = merged;
+  const personal = mapOps.personalGroups(groups);
+  const additions = mapOps.sunAdditions(personal, data.groups);
   const newRoutines = mapOps.mergeRoutines(routines, data.routines || []);
   const addedRoutines = newRoutines.length - routines.length;
   const newPresets = mapOps.mergeRoutines(rdpPresets, data.rdpPresets || []);
   const addedPresets = newPresets.length - rdpPresets.length;
-  menuContent.append(element('p', 'import-merge-summary', `Merge adds ${counted(added.suns, 'sun')}, ${counted(added.planets, 'planet')}, and ${counted(added.moons, 'moon')}${addedRoutines ? ` and ${counted(addedRoutines, 'routine')}` : ''}${addedPresets ? ` and ${counted(addedPresets, 'Remote Desktop preset')}` : ''}; ${counted(skipped.planets + skipped.moons, 'link')} already in your map ${skipped.planets + skipped.moons === 1 ? 'is' : 'are'} skipped. Nothing in your map changes.`));
+
+  const picker = element('fieldset', 'import-suns');
+  picker.append(element('legend', '', 'Choose the suns to add'));
+  const choose = element('p', 'import-sun-choose');
+  /** @param {string} text @param {boolean} value */
+  const setAll = (text, value) => {
+    return editorButton(text, () => {
+      for (const box of sunBoxes) if (!box.disabled) box.checked = value;
+      update();
+    }, 'import-sun-all');
+  };
+  /** @type {HTMLInputElement[]} */
+  const sunBoxes = data.groups.map((/** @type {any} */ sun, /** @type {number} */ index) => {
+    const adds = additions[index];
+    const something = adds.planets + adds.moons > 0 || adds.isNew;
+    const what = adds.isNew ? `new sun · ${counted(adds.planets, 'planet')} · ${counted(adds.moons, 'moon')}`
+      : something ? `already yours · adds ${counted(adds.planets, 'planet')}, ${counted(adds.moons, 'moon')}`
+        : 'already yours · nothing new';
+    const { label, box } = reviewCheck('import-sun', something && options.picked !== 'none',
+      [element('span', 'import-sun-name', sun.name), element('span', 'import-sun-adds', what)]);
+    box.disabled = !something;
+    box.addEventListener('change', () => update());
+    picker.append(label);
+    return box;
+  });
+  choose.append(setAll('Select all', true), setAll('Select none', false));
+  picker.insertBefore(choose, picker.children[1] ?? null);
+  menuContent.append(picker);
+  const routineBox = addedRoutines ? reviewCheck('import-extra', true, [`Also add ${counted(addedRoutines, 'routine')}`]) : null;
+  const presetBox = addedPresets ? reviewCheck('import-extra', true, [`Also add ${counted(addedPresets, 'Remote Desktop preset')}`]) : null;
+  for (const extra of [routineBox, presetBox]) {
+    if (!extra) continue;
+    extra.box.addEventListener('change', () => update());
+    menuContent.append(extra.label);
+  }
+  const summary = element('p', 'import-merge-summary');
+  menuContent.append(summary);
+
+  const chosen = () => data.groups.filter((/** @type {any} */ _, /** @type {number} */ index) => sunBoxes[index].checked);
+  const merged = () => mapOps.mergeMaps(personal, chosen());
   const actions = editorActions();
-  const merge = editorButton('Merge into my map', () =>
-    applyEditorChange([...groups.filter(sun => sun.team), ...merged.groups], showSunList,
-      { label: options.label || 'Merged an imported map', routines: newRoutines, rdpPresets: newPresets }), 'editor-primary');
-  merge.disabled = !(added.suns + added.planets + added.moons + addedRoutines + addedPresets);
+  const merge = editorButton('Merge into my map', () => {
+    const withRoutines = Boolean(routineBox?.box.checked);
+    const withPresets = Boolean(presetBox?.box.checked);
+    applyEditorChange([...groups.filter(sun => sun.team), ...merged().groups], showSunList,
+      { label: options.label || 'Merged an imported map', routines: withRoutines ? newRoutines : routines,
+        rdpPresets: withPresets ? newPresets : rdpPresets });
+  }, 'editor-primary');
+  function update() {
+    const { added, skipped } = merged();
+    const routineCount = routineBox?.box.checked ? addedRoutines : 0;
+    const presetCount = presetBox?.box.checked ? addedPresets : 0;
+    const skippedLinks = skipped.planets + skipped.moons;
+    summary.textContent = `Merge adds ${counted(added.suns, 'sun')}, ${counted(added.planets, 'planet')}, and ${counted(added.moons, 'moon')}${routineCount ? ` and ${counted(routineCount, 'routine')}` : ''}${presetCount ? ` and ${counted(presetCount, 'Remote Desktop preset')}` : ''}; ${counted(skippedLinks, 'link')} already in your map ${skippedLinks === 1 ? 'is' : 'are'} skipped. Nothing in your map changes.`;
+    merge.disabled = !(added.suns + added.planets + added.moons + routineCount + presetCount);
+  }
+  update();
   actions.append(merge);
   if (options.replace !== false) {
-    menuContent.append(element('p', 'editor-hint', 'Replace my map swaps your whole map for the file. Version history keeps the current map, so you can restore it.'));
+    menuContent.append(element('p', 'editor-hint', 'Replace my map swaps your whole map for the file, every sun whatever is ticked. Version history keeps the current map, so you can restore it.'));
     actions.append(editorButton('Replace my map', () =>
       applyEditorChange(data.groups, showSunList,
         { clearUndo: true, label: 'Replaced the map with an import', routines: data.routines || [], rdpPresets: data.rdpPresets || [] })));
@@ -183,6 +253,11 @@ function importMap() {
  */
 function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
   selectJsonFile((/** @type {any} */ data) => {
+    // A whole map given to Import sun: pick suns from it instead.
+    if (kind === 'sun' && sourceKind === 'sun' && data && typeof data === 'object' && Array.isArray(data.groups) && !data.format) {
+      showImportReview(validateMap(data), { title: 'Choose suns to import', picked: 'none' });
+      return;
+    }
     const item = validItemExport(data, kind, sourceKind);
     const back = kind === 'sun' ? showSunList
       : kind === 'planet' ? () => showSunEditor(sunIndex)

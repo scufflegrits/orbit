@@ -97,7 +97,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08, OS09 at 1920×1080 | 17 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F28, no F05 | all passed |
+| `tests/features.py` | F01–F29, no F05 | all passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 180 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |

@@ -380,6 +380,12 @@ prompt for credentials:i:1\r
     }
     return { groups: next, added, skipped };
   }
+  function sunAdditions(personal, incoming) {
+    return incoming.map((source) => {
+      let { added } = mergeMaps(personal, [source]);
+      return { isNew: added.suns === 1, planets: added.planets, moons: added.moons };
+    });
+  }
   function mergeRoutines(current, incoming) {
     let names = new Set(current.map((routine) => routine.name.toLocaleLowerCase())), used = new Set(current.map((routine) => routine.id)), next = [...current];
     for (let routine of incoming) {
@@ -3883,6 +3889,13 @@ ${preset.settings}`, `the ${preset.name} preset`);
       ...rdpPresets.length ? { rdpPresets } : {}
     }, "orbit-links.json"), noteBackupMade2();
   }
+  function reviewCheck(className, checked, parts) {
+    let label = element("label", `editor-check ${className}`), box = (
+      /** @type {HTMLInputElement} */
+      element("input")
+    );
+    return box.type = "checkbox", box.checked = checked, label.append(box, ...parts), { label, box };
+  }
   function showImportReview(data, options = {}) {
     editorHeader(options.title || "Review import", showSunList);
     let planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0), moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
@@ -3890,14 +3903,42 @@ ${preset.settings}`, `the ${preset.name} preset`);
       0
     ), 0);
     options.note && menuContent.append(element("p", "", options.note)), menuContent.append(element("p", "", `The file has ${counted(data.groups.length, "sun")} · ${counted(planetCount, "planet")} · ${counted(moonCount, "moon")}.`));
-    let merged = mergeMaps(personalGroups(groups), data.groups), { added, skipped } = merged, newRoutines = mergeRoutines(routines, data.routines || []), addedRoutines = newRoutines.length - routines.length, newPresets = mergeRoutines(rdpPresets, data.rdpPresets || []), addedPresets = newPresets.length - rdpPresets.length;
-    menuContent.append(element("p", "import-merge-summary", `Merge adds ${counted(added.suns, "sun")}, ${counted(added.planets, "planet")}, and ${counted(added.moons, "moon")}${addedRoutines ? ` and ${counted(addedRoutines, "routine")}` : ""}${addedPresets ? ` and ${counted(addedPresets, "Remote Desktop preset")}` : ""}; ${counted(skipped.planets + skipped.moons, "link")} already in your map ${skipped.planets + skipped.moons === 1 ? "is" : "are"} skipped. Nothing in your map changes.`));
-    let actions = editorActions(), merge = editorButton("Merge into my map", () => applyEditorChange(
-      [...groups.filter((sun) => sun.team), ...merged.groups],
-      showSunList,
-      { label: options.label || "Merged an imported map", routines: newRoutines, rdpPresets: newPresets }
-    ), "editor-primary");
-    merge.disabled = !(added.suns + added.planets + added.moons + addedRoutines + addedPresets), actions.append(merge), options.replace !== !1 && (menuContent.append(element("p", "editor-hint", "Replace my map swaps your whole map for the file. Version history keeps the current map, so you can restore it.")), actions.append(editorButton("Replace my map", () => applyEditorChange(
+    let personal = personalGroups(groups), additions = sunAdditions(personal, data.groups), newRoutines = mergeRoutines(routines, data.routines || []), addedRoutines = newRoutines.length - routines.length, newPresets = mergeRoutines(rdpPresets, data.rdpPresets || []), addedPresets = newPresets.length - rdpPresets.length, picker = element("fieldset", "import-suns");
+    picker.append(element("legend", "", "Choose the suns to add"));
+    let choose = element("p", "import-sun-choose"), setAll = (text, value) => editorButton(text, () => {
+      for (let box of sunBoxes) box.disabled || (box.checked = value);
+      update();
+    }, "import-sun-all"), sunBoxes = data.groups.map((sun, index) => {
+      let adds = additions[index], something = adds.planets + adds.moons > 0 || adds.isNew, what = adds.isNew ? `new sun · ${counted(adds.planets, "planet")} · ${counted(adds.moons, "moon")}` : something ? `already yours · adds ${counted(adds.planets, "planet")}, ${counted(adds.moons, "moon")}` : "already yours · nothing new", { label, box } = reviewCheck(
+        "import-sun",
+        something && options.picked !== "none",
+        [element("span", "import-sun-name", sun.name), element("span", "import-sun-adds", what)]
+      );
+      return box.disabled = !something, box.addEventListener("change", () => update()), picker.append(label), box;
+    });
+    choose.append(setAll("Select all", !0), setAll("Select none", !1)), picker.insertBefore(choose, picker.children[1] ?? null), menuContent.append(picker);
+    let routineBox = addedRoutines ? reviewCheck("import-extra", !0, [`Also add ${counted(addedRoutines, "routine")}`]) : null, presetBox = addedPresets ? reviewCheck("import-extra", !0, [`Also add ${counted(addedPresets, "Remote Desktop preset")}`]) : null;
+    for (let extra of [routineBox, presetBox])
+      extra && (extra.box.addEventListener("change", () => update()), menuContent.append(extra.label));
+    let summary = element("p", "import-merge-summary");
+    menuContent.append(summary);
+    let chosen = () => data.groups.filter((_, index) => sunBoxes[index].checked), merged = () => mergeMaps(personal, chosen()), actions = editorActions(), merge = editorButton("Merge into my map", () => {
+      let withRoutines = !!routineBox?.box.checked, withPresets = !!presetBox?.box.checked;
+      applyEditorChange(
+        [...groups.filter((sun) => sun.team), ...merged().groups],
+        showSunList,
+        {
+          label: options.label || "Merged an imported map",
+          routines: withRoutines ? newRoutines : routines,
+          rdpPresets: withPresets ? newPresets : rdpPresets
+        }
+      );
+    }, "editor-primary");
+    function update() {
+      let { added, skipped } = merged(), routineCount = routineBox?.box.checked ? addedRoutines : 0, presetCount = presetBox?.box.checked ? addedPresets : 0, skippedLinks = skipped.planets + skipped.moons;
+      summary.textContent = `Merge adds ${counted(added.suns, "sun")}, ${counted(added.planets, "planet")}, and ${counted(added.moons, "moon")}${routineCount ? ` and ${counted(routineCount, "routine")}` : ""}${presetCount ? ` and ${counted(presetCount, "Remote Desktop preset")}` : ""}; ${counted(skippedLinks, "link")} already in your map ${skippedLinks === 1 ? "is" : "are"} skipped. Nothing in your map changes.`, merge.disabled = !(added.suns + added.planets + added.moons + routineCount + presetCount);
+    }
+    update(), actions.append(merge), options.replace !== !1 && (menuContent.append(element("p", "editor-hint", "Replace my map swaps your whole map for the file, every sun whatever is ticked. Version history keeps the current map, so you can restore it.")), actions.append(editorButton("Replace my map", () => applyEditorChange(
       data.groups,
       showSunList,
       { clearUndo: !0, label: "Replaced the map with an import", routines: data.routines || [], rdpPresets: data.rdpPresets || [] }
@@ -3908,6 +3949,10 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
   function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
     selectJsonFile((data) => {
+      if (kind === "sun" && sourceKind === "sun" && data && typeof data == "object" && Array.isArray(data.groups) && !data.format) {
+        showImportReview(validateMap(data), { title: "Choose suns to import", picked: "none" });
+        return;
+      }
       let item = validItemExport(data, kind, sourceKind), back = kind === "sun" ? showSunList : kind === "planet" ? () => showSunEditor(sunIndex) : () => showPlanetEditor(sunIndex, planetIndex);
       if (editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back), menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun" && (menuContent.append(element("p", "", "The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.")), menuContent.append(element("p", "", `Planet destination: ${item.links[0].host || item.links[0].url}`))), kind === "sun") {
         let moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);

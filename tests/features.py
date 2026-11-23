@@ -1144,6 +1144,68 @@ def f28_offers_per_workspace(ctx):
     print(f"PASS F28 routine offers per workspace ({mode})")
 
 
+def f29_sun_picker(ctx):
+    """A whole-map import lets you pick suns (each whole, with its planets and moons); Replace still takes it all."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    incoming = {"groups": [
+        {"id": "alpha", "name": "Alpha", "links": [
+            {"name": "Wiki", "url": "https://wiki.example.test/", "moons": [{"name": "Wiki Help", "url": "https://wiki.example.test/help"}]}]},
+        {"id": "gamma", "name": "Gamma", "links": [
+            {"name": "G1", "url": "https://g1.example.test/", "moons": [
+                {"name": "G1 Docs", "url": "https://g1.example.test/docs"}, {"name": "G1 API", "url": "https://g1.example.test/api"}]},
+            {"name": "G2", "url": "https://g2.example.test/", "moons": [{"name": "G2 Help", "url": "https://g2.example.test/help"}]}]},
+        {"id": "delta", "name": "Delta", "links": [{"name": "D1", "url": "https://d1.example.test/"}]},
+    ]}
+    buffer = json.dumps(incoming).encode()
+    row = lambda name: page.locator(".import-sun").filter(has=page.locator(".import-sun-name", has_text=name))
+    open_editor(page)
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import JSON", exact=True).click()
+    chooser.value.set_files({"name": "galaxy.json", "mimeType": "application/json", "buffer": buffer})
+    page.wait_for_selector(".import-merge-summary, .editor-error")
+    check(page.locator(".import-sun").count() == 3, f"{mode}: the review lists every sun in the file")
+    check("new sun · 2 planets · 3 moons" in row("Gamma").inner_text() and "adds 1 planet, 1 moon" in row("Alpha").inner_text(),
+          f"{mode}: each row says what that sun adds ({page.locator('.import-sun').all_inner_texts()})")
+    check(all(row(name).locator("input").is_checked() for name in ("Alpha", "Gamma", "Delta")),
+          f"{mode}: everything that adds something starts ticked")
+    row("Delta").locator("input").uncheck()
+    summary = page.locator(".import-merge-summary").inner_text()
+    check("adds 1 sun, 3 planets, and 4 moons" in summary, f"{mode}: the summary follows the ticks ({summary})")
+    page.get_by_role("button", name="Merge into my map").click()
+    after = {sun["name"]: sun for sun in stored(page)}
+    check(list(after) == ["Alpha", "Beta", "Gamma"], f"{mode}: only the ticked suns arrive ({list(after)})")
+    check([[moon["name"] for moon in planet["moons"]] for planet in after["Gamma"]["links"]] == [["G1 Docs", "G1 API"], ["G2 Help"]],
+          f"{mode}: a picked sun brings all its planets and moons")
+    check(after["Alpha"]["links"][-1]["name"] == "Wiki" and after["Alpha"]["links"][-1]["moons"][0]["name"] == "Wiki Help",
+          f"{mode}: a sun you already have gains only what is missing")
+    # The same file again: Alpha and Gamma have nothing new; Delta still does.
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import JSON", exact=True).click()
+    chooser.value.set_files({"name": "galaxy.json", "mimeType": "application/json", "buffer": buffer})
+    page.wait_for_selector(".import-merge-summary, .editor-error")
+    check(row("Gamma").locator("input").is_disabled() and "nothing new" in row("Gamma").inner_text() and
+          row("Delta").locator("input").is_checked(), f"{mode}: a sun with nothing new can't be picked")
+    # Replace my map still takes the whole Galaxy, whatever is ticked.
+    row("Delta").locator("input").uncheck()
+    page.get_by_role("button", name="Replace my map").click()
+    check([sun["name"] for sun in stored(page)] == ["Alpha", "Gamma", "Delta"], f"{mode}: Replace takes the whole map")
+    # Import sun with a whole-map file opens the picker with nothing ticked.
+    fresh(ctx)
+    open_editor(page)
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import sun", exact=True).click()
+    chooser.value.set_files({"name": "galaxy.json", "mimeType": "application/json", "buffer": buffer})
+    page.wait_for_selector(".import-merge-summary, .editor-error")
+    check(page.locator(".import-sun input:checked").count() == 0 and page.get_by_role("button", name="Merge into my map").is_disabled(),
+          f"{mode}: Import sun opens the picker with nothing ticked")
+    row("Gamma").locator("input").check()
+    page.get_by_role("button", name="Merge into my map").click()
+    check([sun["name"] for sun in stored(page)] == ["Alpha", "Beta", "Gamma"], f"{mode}: Import sun adds the picked sun")
+    close_menu(page)
+    print(f"PASS F29 sun picker ({mode})")
+
+
 # ---- F23 Link packs -------------------------------------------------------------
 
 def f23_link_packs(ctx):
@@ -1313,7 +1375,7 @@ CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace)
+          f28_offers_per_workspace, f29_sun_picker)
 
 
 def run_checks(make_ctx, only):

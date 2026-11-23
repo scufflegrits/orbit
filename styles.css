@@ -346,6 +346,14 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
 }
 .editor-field textarea { min-height: 72px; resize: vertical; }
 .editor-hint { color: var(--subtle); font-size: calc(11px * var(--font-scale)); }
+.import-suns { margin: 12px 0; padding: 8px 12px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.import-suns legend { padding: 0 6px; color: var(--text); font-size: calc(12px * var(--font-scale)); font-weight: 600; }
+.import-sun-choose { display: flex; gap: 14px; margin: 2px 0 6px; }
+.import-sun-all { padding: 0; border: 0; background: none; color: var(--theme-accent); font-size: calc(11px * var(--font-scale)); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.import-sun-all:hover { color: var(--text); }
+.import-sun .import-sun-name { color: var(--text); font-weight: 600; }
+.import-sun .import-sun-adds { color: var(--subtle); }
+.import-sun:has(input:disabled) { opacity: .55; cursor: default; }
 .editor-field input[type='color'] { width: 86px; padding: 4px; cursor: pointer; }
 .editor-field input:focus, .editor-field textarea:focus, .editor-field select:focus { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
 .editor-field[hidden] { display: none; }

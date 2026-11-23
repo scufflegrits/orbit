@@ -8,7 +8,7 @@ import { oracle } from '../../tests/oracle/oracle.mjs';
 import { combinedMap, runs, validMap } from '../../tests/unit/arbitraries.mjs';
 import { destinationKey } from './destination.js';
 import {
-  duplicateGroups, itemExport, mapItemAt, mergeMaps, mergeRoutines, moveMapItem, packLink, personalGroups, plainCopy, samePath,
+  duplicateGroups, itemExport, mapItemAt, mergeMaps, sunAdditions, mergeRoutines, moveMapItem, packLink, personalGroups, plainCopy, samePath,
 } from './map-ops.js';
 
 const old = oracle();
@@ -77,6 +77,30 @@ test('M03 mergeMaps adds only what is new, matching suns by id then name', () =>
   assert.deepEqual(result.added, { suns: 1, planets: 0, moons: 1 });
   assert.deepEqual(result.skipped, { suns: 2, planets: 1, moons: 1 }, 'the second incoming sun matches by id');
   assert.equal(personal[0].links[0].moons.length, 1, 'input unchanged');
+});
+
+test('sunAdditions: what each incoming sun adds on its own, whole with its planets and moons (sun picker)', () => {
+  const personal = [{ id: 'build', name: 'Build', description: '', color: '#79d9f8', links: [
+    { name: 'GitHub', url: 'https://github.com/', moons: [{ name: 'Docs', url: 'https://docs.github.com/' }] }] }];
+  const incoming = [
+    { id: 'tools', name: 'Dev Toolbox', description: '', color: '#79d9f8', links: [
+      { name: 'DevDocs', url: 'https://devdocs.io/', moons: [{ name: 'JS', url: 'https://devdocs.io/javascript/' }, { name: 'CSS', url: 'https://devdocs.io/css/' }] },
+      { name: 'Excalidraw', url: 'https://excalidraw.com/', moons: [] }] },
+    { id: 'other', name: 'build', description: '', color: '#79d9f8', links: [
+      { name: 'GitHub', url: 'https://github.com/', moons: [{ name: 'Docs', url: 'https://docs.github.com/' }, { name: 'Status', url: 'https://githubstatus.com/' }] },
+      { name: 'npm', url: 'https://www.npmjs.com/', moons: [{ name: 'Docs', url: 'https://docs.npmjs.com/' }] }] },
+    { id: 'same', name: 'Build', description: '', color: '#79d9f8', links: [
+      { name: 'GitHub again', url: 'https://github.com/#top', moons: [] }] }];
+  assert.deepEqual(sunAdditions(personal, incoming), [
+    { isNew: true, planets: 2, moons: 2 },
+    { isNew: false, planets: 1, moons: 2 },
+    { isNew: false, planets: 0, moons: 0 },
+  ], 'a new sun brings every planet and moon; a matched sun brings only what is missing; a sun with nothing new adds nothing');
+  // Merging only the chosen suns adds exactly what their rows said.
+  const chosen = mergeMaps(personal, [incoming[0]]);
+  assert.deepEqual(chosen.added, { suns: 1, planets: 2, moons: 2 });
+  assert.deepEqual(chosen.groups.map(sun => sun.name), ['Build', 'Dev Toolbox']);
+  assert.equal(personal.length, 1, 'input unchanged');
 });
 
 test('M04 mergeRoutines adds only new names and regenerates clashing ids; presets merge the same way', () => {

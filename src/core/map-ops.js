@@ -163,6 +163,21 @@ export function mergeMaps(personal, incoming) {
 }
 
 /**
+ * What each incoming sun would add on its own, for the import review's sun
+ * picker: a new sun brings all its planets and moons; a sun matching one of
+ * yours (by id, then name, as mergeMaps does) brings only what is missing.
+ * @param {Sun[]} personal
+ * @param {Sun[]} incoming
+ * @returns {{isNew: boolean, planets: number, moons: number}[]}
+ */
+export function sunAdditions(personal, incoming) {
+  return incoming.map(source => {
+    const { added } = mergeMaps(personal, [source]);
+    return { isNew: added.suns === 1, planets: added.planets, moons: added.moons };
+  });
+}
+
+/**
  * Add incoming routines (or Remote Desktop presets) whose names are new,
  * ignoring case. A clashing id is replaced with one made from the name.
  * @template {{id: string, name: string}} T
