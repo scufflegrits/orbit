@@ -1,8 +1,10 @@
 # Orbit handoff
 
-Last updated 2026-11-22, at version 3.0.2, with unreleased changes on `main` (see CHANGELOG "Unreleased").
+Last updated 2026-11-22 for Orbit 3.0.3.
 
 ## Status
+
+**Orbit 3.0.3:** group planets, the sun picker for whole-map imports, two Galaxy hover fixes, and new Dev Toolbox links. See the changelog for the storage compatibility warning.
 
 All work is on `main`, with no failing or pending test. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](plans/REWRITE_PLAN.md).
 
@@ -153,6 +155,5 @@ Tips:
 
 ## Open follow-ups
 
-- **Unreleased changes on `main`:** group planets, the sun picker for whole-map imports, two Galaxy hover fixes, and new Dev Toolbox links (CHANGELOG "Unreleased"). Release them as 3.0.3 with a zip only when the user asks (docs/RELEASING.md).
 - **Test quirk:** `tests/browser_matrix.py --milestone 11 --only-new` fails on its own (also before 3.0.2); the full matrix passes. Run milestone 11 through the full matrix until it is looked into.
 - Every feature check, including batch 3 (2.2.0), has passed in a visible Edge window (3.0.0, 2026-11-22). No deployment or hosting has been done.

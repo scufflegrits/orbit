@@ -2,14 +2,13 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
-## Unreleased
+## 3.0.3 — 2026-11-22
 
 - **Added group planets.** Create a planet that holds related links without an address of its own. Select it to show its links or Shift+click to open them in bulk. Bookmark subfolders now import as groups, and the sample map's Dev Toolbox shows a **Diagramming** group.
 - **Compatibility warning. Once you save a map containing group planets, avoid opening Orbit 3.0.2 or earlier with the same browser storage. Older versions reject the map and can overwrite it on the next edit.** The current version saves a backup of unreadable browser data before replacing it.
-
 - **Fixed:** a hovered sun in the Galaxy shifted 3 px up and to the left as it grew, so planets on the top left looked closer than those on the bottom right. It now grows in place, and every planet keeps the same gap.
 - **Fixed:** in the Galaxy, moving the mouse from a lower planet to its moons could close them just before you reached one. The faded caption (added in 3.0.2) was still catching the mouse.
-- **Added:** moons in the sample map's Dev Toolbox sun: under **JSON Crack**, ToDiagram, JSON Crack on GitHub, JSON Crack for VS Code, jless, and fx; under **Transform**, jq and yq. The **Diagramming** group holds Excalidraw, PlantUML JSON diagrams, and Graphviz.
+- **Added:** moons in the sample map's Dev Toolbox sun: under **JSON Crack**, ToDiagram, JSON Crack on GitHub, JSON Crack for VS Code, jless, and fx; under **Transform**, jq and yq.
 - **Added:** a sun picker when importing a whole map. **Import JSON** lists the file's suns with what each would add; merge only the ones you tick, each with all its planets and moons. **Replace my map** still takes the whole map. **Import sun** now accepts a whole map file and opens the same picker, and **Import bookmarks** uses it too.
 
 ## 3.0.2 — 2026-11-22
