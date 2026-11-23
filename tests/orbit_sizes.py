@@ -186,6 +186,8 @@ def run_mode(page, url, mode):
     check(gaps["sun"] > 134 and min(gaps["planets"]) >= 12,
           f"{mode}: planets keep at least 12px from the hovered sun ({gaps})")
     check(min(gaps["badges"]) >= 2, f"{mode}: moon labels stay off the hovered sun ({gaps})")
+    # The hovered sun grows in place, so every planet keeps the same gap.
+    check(max(gaps["planets"]) - min(gaps["planets"]) < 1, f"{mode}: the hovered sun stays centered; every gap is equal ({gaps})")
     print(f"PASS OS08 planets clear the hovered sun ({mode})")
 
     # OS09: a lower planet's moons never sit on top of the sun's caption: the caption

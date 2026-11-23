@@ -4,6 +4,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ## Unreleased
 
+- **Fixed:** a hovered sun in the Galaxy shifted 3 px up and to the left as it grew, so planets on the top left looked closer than those on the bottom right. It now grows in place, and every planet keeps the same gap.
 - **Fixed:** in the Galaxy, moving the mouse from a lower planet to its moons could close them just before you reached one. The faded caption (added in 3.0.2) was still catching the mouse.
 - **Added:** moons in the sample map's Dev Toolbox sun: under **JSON Crack**, ToDiagram, JSON Crack on GitHub, JSON Crack for VS Code, jless, and fx; under **Transform**, jq and yq; under **Excalidraw**, PlantUML JSON diagrams and Graphviz.
 - **Added:** a sun picker when importing a whole map. **Import JSON** lists the file's suns with what each would add; merge only the ones you tick, each with all its planets and moons. **Replace my map** still takes the whole map. **Import sun** now accepts a whole map file and opens the same picker, and **Import bookmarks** uses it too.

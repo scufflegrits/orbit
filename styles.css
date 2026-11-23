@@ -759,7 +759,9 @@ html[data-theme='auburn'] .detail-stage {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
+  /* translate, not transform: the hover scale then grows the sun in place instead
+     of also scaling this offset, which pulled it 3px up and left. */
+  translate: -50% -50%;
   background:
     radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--accent) 28%, var(--hub-base)), var(--planet-base) 68%);
   border: 1px solid color-mix(in srgb, var(--accent) 65%, transparent);
