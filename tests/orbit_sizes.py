@@ -1,4 +1,4 @@
-"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06).
+"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06, OS08).
 
 Run with: /home/sysadmin/.venv/bin/python tests/orbit_sizes.py
    or, in a remote browser such as Edge on the Windows VM:
@@ -159,6 +159,34 @@ def run_mode(page, url, mode):
     names = page.locator(".moon-overflow-links").first.locator("a, button").all_inner_texts()
     check(names == MOON_NAMES[6:], f"{mode}: moons beyond six are listed under More moons ({names})")
     print(f"PASS OS06 More moons ({mode})")
+
+    # OS08: a hovered sun (grown 5%) keeps clear of its planets and their "N moons"
+    # labels. Long names here grow the planets, which used to bring them closest.
+    page.goto(url, wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    page.wait_for_timeout(300)
+    page.mouse.move(*center(page.locator(".home-hub").first))
+    node(page, ".home-satellite", 0, 4).wait_for(state="visible")
+    page.wait_for_timeout(900)
+    gaps = page.evaluate("""() => {
+      const orbit = document.querySelector('.home-orbit[data-sun="0"]');
+      const sun = orbit.querySelector('.home-hub').getBoundingClientRect();
+      const sx = sun.left + sun.width / 2, sy = sun.top + sun.height / 2, sr = sun.width / 2;
+      const planets = [...orbit.querySelectorAll('.home-satellite')].map(node => {
+        const box = node.getBoundingClientRect();
+        return Math.hypot(box.left + box.width / 2 - sx, box.top + box.height / 2 - sy) - sr - box.width / 2;
+      });
+      const badges = [...orbit.querySelectorAll('.moon-badge')].map(node => {
+        const box = node.getBoundingClientRect();
+        const nx = Math.max(box.left, Math.min(sx, box.right)), ny = Math.max(box.top, Math.min(sy, box.bottom));
+        return Math.hypot(nx - sx, ny - sy) - sr;
+      });
+      return { sun: sun.width, planets, badges };
+    }""")
+    check(gaps["sun"] > 134 and min(gaps["planets"]) >= 12,
+          f"{mode}: planets keep at least 12px from the hovered sun ({gaps})")
+    check(min(gaps["badges"]) >= 2, f"{mode}: moon labels stay off the hovered sun ({gaps})")
+    print(f"PASS OS08 planets clear the hovered sun ({mode})")
 
 
 def main():

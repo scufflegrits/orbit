@@ -2,6 +2,10 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
+## Unreleased
+
+- **Fixed:** in the Galaxy, planets sat almost on their sun, and when the sun grew on hover it touched or overlapped them and their "N moons" labels. Planets now orbit about 20 px clear of the hovered sun, so each sun card is a little taller.
+
 ## 3.0.1 — 2026-11-22
 
 - **Fixed:** a routine dismissed or opened from its offer in one workspace is no longer hidden in another workspace that has a routine with the same name. Each workspace now remembers its own offers, and removing a workspace forgets its offers. Offers already made today in Main still count; in other workspaces, a routine may be offered once more on the day you update.

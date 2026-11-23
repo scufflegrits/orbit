@@ -2723,7 +2723,7 @@ prompt for credentials:i:1\r
   }
 
   // src/ui/layout/orbits.js
-  var GALAXY_PLANETS = 5, SYSTEM_PLANETS = 8, VISIBLE_MOONS = 6, SITE_ICON_ROOM = 19;
+  var GALAXY_PLANETS = 5, SYSTEM_PLANETS = 8, VISIBLE_MOONS = 6, galaxyReach = (planet) => 91 + planet / 2, SITE_ICON_ROOM = 19;
   function labelFit(names, totalLimit, wordLimit) {
     let longest = Math.max(1, ...names.map((name) => name.length)), word = Math.max(1, ...names.flatMap((name) => name.split(/[\s/-]+/).map((part) => part.length)));
     return Math.max(0.8, Math.min(1, totalLimit / longest, wordLimit / word));
@@ -2868,7 +2868,7 @@ prompt for credentials:i:1\r
     let positions = moons.map((_, index) => {
       let moonAngle = angle - spread / 2 * (moons.length > 1 ? 1 : 0) + step * index;
       return { x: Math.cos(moonAngle) * radius, y: Math.sin(moonAngle) * radius };
-    }), lift = Math.sin(angle) * Math.max(108, 71 + planet / 2);
+    }), lift = Math.sin(angle) * galaxyReach(planet);
     field.dataset.rise = String(Math.round(Math.max(...positions.map((point) => -(lift + point.y))) + moon / 2)), field.dataset.drop = String(Math.round(Math.max(...positions.map((point) => point.y)) + moon / 2));
     let hull = circleHull([
       { x: 0, y: 0, r: planet / 2 },
@@ -2885,16 +2885,16 @@ prompt for credentials:i:1\r
   }
   function layoutOrbits() {
     fitOrbitSizes(), app.querySelectorAll(".moon-field").forEach(layoutMoonField);
-    let firstRow = (
+    let firstCard = (
       /** @type {HTMLElement | null} */
-      app.querySelector(".group-card")?.offsetTop
-    ), fans = (
+      app.querySelector(".group-card")
+    ), firstRow = firstCard?.offsetTop, orbitMargin = parseFloat(getComputedStyle(firstCard?.querySelector(".home-orbit") ?? document.body).marginTop) || 0, fans = (
       /** @type {HTMLElement[]} */
       [...app.querySelectorAll(".home-orbit .moon-field")].filter((field) => (
         /** @type {HTMLElement} */
         field.closest(".group-card").offsetTop === firstRow
       )).map((field) => Number(field.dataset.rise))
-    ), extra = Math.max(0, ...fans) - 242;
+    ), extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
     document.documentElement.style.setProperty("--galaxy-fan-room", `${Math.max(0, Math.ceil(extra))}px`);
     let stage = (
       /** @type {HTMLElement | null} */

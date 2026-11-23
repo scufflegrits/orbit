@@ -704,9 +704,12 @@ html[data-theme='auburn'] .detail-stage {
 }
 
 .home-orbit {
-  /* A planet grown to fit its label moves out so it still clears the sun, and
-     the orbit takes extra room above and below so it never covers the text. */
-  --orbit-reach: max(108px, calc(71px + var(--home-planet-size, 72px) / 2));
+  /* Planets sit 91px plus half their size from the sun's center: clear of the sun
+     grown on hover (67px radius x 1.05) by about 20px, which leaves room for the
+     "N moons" label under the top planet. A planet grown to fit its label moves out
+     with it, and the orbit takes extra room above and below so it never covers the
+     text. src/ui/layout/orbits.js (GALAXY_REACH) uses the same distance. */
+  --orbit-reach: calc(91px + var(--home-planet-size, 72px) / 2);
   position: relative;
   width: min(320px, 100%);
   aspect-ratio: 1;

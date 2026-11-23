@@ -8,6 +8,13 @@ import { app, groups, showSiteIcons } from '../page.js';
 export const GALAXY_PLANETS = 5;
 export const SYSTEM_PLANETS = 8;
 export const VISIBLE_MOONS = 6;
+/**
+ * How far a Galaxy planet's center sits from its sun's center: clear of the sun
+ * grown on hover, with room for the "N moons" label. Same as --orbit-reach in
+ * styles.css.
+ * @param {number} planet The planet's size in px.
+ */
+export const galaxyReach = planet => 91 + planet / 2;
 /** A site icon (16px) and its gap take this much room above a label. */
 const SITE_ICON_ROOM = 19;
 
@@ -216,7 +223,7 @@ function layoutMoonField(field) {
     return { x: Math.cos(moonAngle) * radius, y: Math.sin(moonAngle) * radius };
   });
   // How far the highest moon rises above the sun's center (Galaxy only).
-  const lift = Math.sin(angle) * Math.max(108, 71 + planet / 2);
+  const lift = Math.sin(angle) * galaxyReach(planet);
   field.dataset.rise = String(Math.round(Math.max(...positions.map(point => -(lift + point.y))) + moon / 2));
   // How far the lowest moon reaches below its planet's center (System only).
   field.dataset.drop = String(Math.round(Math.max(...positions.map(point => point.y)) + moon / 2));
@@ -247,13 +254,16 @@ export function layoutOrbits() {
   fitOrbitSizes();
   /** @type {NodeListOf<HTMLElement>} */ (app.querySelectorAll('.moon-field')).forEach(layoutMoonField);
   // A long moon fan on a first-row Galaxy planet would reach past the top bar.
-  // The standard room fits four moons above a 72px top planet (242px above the
-  // sun's center); add whatever more the highest first-row fan needs.
-  const firstRow = /** @type {HTMLElement | null} */ (app.querySelector('.group-card'))?.offsetTop;
+  // There are 242px above a first-row sun's center, plus the orbit's own top
+  // margin (which grows with the planet size); add whatever more the highest
+  // first-row fan needs.
+  const firstCard = /** @type {HTMLElement | null} */ (app.querySelector('.group-card'));
+  const firstRow = firstCard?.offsetTop;
+  const orbitMargin = parseFloat(getComputedStyle(firstCard?.querySelector('.home-orbit') ?? document.body).marginTop) || 0;
   const fans = /** @type {HTMLElement[]} */ ([...app.querySelectorAll('.home-orbit .moon-field')])
     .filter(field => /** @type {HTMLElement} */ (field.closest('.group-card')).offsetTop === firstRow)
     .map(field => Number(field.dataset.rise));
-  const extra = Math.max(0, ...fans) - 242;
+  const extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
   document.documentElement.style.setProperty('--galaxy-fan-room', `${Math.max(0, Math.ceil(extra))}px`);
   // In a System, a fan on a lower planet can hang past the bottom of the stage;
   // push the note below it down so the moons never cover its text.
