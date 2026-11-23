@@ -95,7 +95,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | --- | --- | --- |
 | `tests/browser_matrix.py` | Milestones 1–14, 18, 19 (`--milestone N`, `--only-new`, `--repeat N`) | 39 passed |
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
-| `tests/orbit_sizes.py` | OS01–OS06, OS08, OS09 at 1920×1080 | 17 passed |
+| `tests/orbit_sizes.py` | OS01–OS06, OS08–OS10 at 1920×1080 | 19 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
 | `tests/features.py` | F01–F29, no F05 | all passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |

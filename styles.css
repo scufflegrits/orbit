@@ -859,6 +859,9 @@ html[data-theme='auburn'] .detail-stage {
 .group-card:has(.planet-cluster[data-covers-caption]:is(:hover, :focus-within)) .group-description,
 html[data-moons='always'] .group-card:has(.home-orbit:is(:hover, :focus-within) .planet-cluster[data-covers-caption]) .group-description {
   opacity: 0;
+  /* A fading caption becomes its own layer above the orbit; without this it
+     would catch the pointer on its way to the moons and close them. */
+  pointer-events: none;
 }
 .description-link { color: var(--theme-accent); text-decoration: underline; text-underline-offset: 2px; }
 .description-link:hover { color: var(--text); }

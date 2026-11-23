@@ -1,4 +1,4 @@
-"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06, OS08, OS09).
+"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06, OS08–OS10).
 
 Run with: /home/sysadmin/.venv/bin/python tests/orbit_sizes.py
    or, in a remote browser such as Edge on the Windows VM:
@@ -212,6 +212,23 @@ def run_mode(page, url, mode):
     top = page.evaluate(caption_state, 0)
     check(not top["covered"] and top["opacity"] == 1, f"{mode}: the top planet leaves the caption visible ({top})")
     print(f"PASS OS09 moons never cover the caption ({mode})")
+
+    # OS10: moving slowly from a lower planet to each of its moons keeps them open,
+    # and the moon is what the pointer lands on (a faded caption once caught it).
+    for index in range(2):
+        hover_galaxy_planet(page, 0, 2)
+        planet = node(page, ".home-satellite", 0, 2)
+        start = center(planet)
+        moon = page.locator(".planet-cluster:hover .moon-link").nth(index)
+        name = moon.inner_text()
+        end = center(moon)
+        for step in range(1, 13):
+            page.mouse.move(start[0] + (end[0] - start[0]) * step / 12, start[1] + (end[1] - start[1]) * step / 12)
+            page.wait_for_timeout(40)
+            check(moon.is_visible(), f"{mode}: moon {name} stays open on the way to it (step {step} of 12)")
+        landed = page.evaluate("([x, y]) => document.elementFromPoint(x, y)?.closest('.moon-link')?.textContent", list(end))
+        check(landed == name, f"{mode}: the pointer lands on moon {name} ({landed})")
+    print(f"PASS OS10 the pointer reaches every moon ({mode})")
 
 
 def main():
