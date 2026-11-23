@@ -15,6 +15,10 @@ ARTIFACTS = ROOT / ".artifacts"
 # Classic scripts loaded by index.html besides the data files. None since rewrite phase 8: the app is
 # the bundle. Kept so a future split file can be added here.
 APP_SCRIPTS = ()
+# The bundled sample map (links.json), so checks follow it when suns or links are added.
+_SAMPLE = json.loads((ROOT / "links.json").read_text())
+SAMPLE_SUNS = len(_SAMPLE["groups"])
+SAMPLE_LINKS = sum(1 + len(planet.get("moons", [])) for sun in _SAMPLE["groups"] for planet in sun["links"])
 # The bundle built from src/ (scripts/build.mjs). Fixtures get the test bundle under this name, so index.html
 # is the same file in tests and in release; the committed release bundle is checked by
 # `npm run check:bundle` and tests/release_smoke.py instead.
@@ -72,9 +76,9 @@ def run_data_checks():
 def run_shared(page, url, mode):
     page.goto(url, wait_until="load")
     page.locator(".home-hub").first.wait_for()
-    check(page.locator(".home-hub").count() == 9, f"{mode}: nine suns")
-    check("9 SUNS" in page.locator("#link-count").inner_text(), f"{mode}: sun count")
-    check("106 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: destination count includes moons")
+    check(page.locator(".home-hub").count() == SAMPLE_SUNS, f"{mode}: every sample sun")
+    check(f"{SAMPLE_SUNS} SUNS" in page.locator("#link-count").inner_text(), f"{mode}: sun count")
+    check(f"{SAMPLE_LINKS} LINKS" in page.locator("#link-count").inner_text(), f"{mode}: destination count includes moons")
     page.locator(".home-hub").first.click()
     page.locator(".detail-view").wait_for()
     check("Tech" in page.locator(".detail-heading h1").inner_text(), f"{mode}: Tech system")

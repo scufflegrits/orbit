@@ -186,6 +186,46 @@ window.ORBIT_DATA = {
       ]
     },
     {
+      "id": "dev-toolbox",
+      "name": "Dev Toolbox",
+      "description": "Learning, references, and handy developer tools",
+      "color": "#ffb3a1",
+      "links": [
+        {
+          "name": "Learn Git Branching",
+          "url": "https://learngitbranching.js.org/"
+        },
+        {
+          "name": "Devhints",
+          "url": "https://devhints.io/"
+        },
+        {
+          "name": "JSON Crack",
+          "url": "https://jsoncrack.com/"
+        },
+        {
+          "name": "Transform",
+          "url": "https://transform.tools/"
+        },
+        {
+          "name": "Refactoring Guru",
+          "url": "https://refactoring.guru/"
+        },
+        {
+          "name": "DevDocs",
+          "url": "https://devdocs.io/"
+        },
+        {
+          "name": "Excalidraw",
+          "url": "https://excalidraw.com/"
+        },
+        {
+          "name": "roadmap.sh",
+          "url": "https://roadmap.sh/"
+        }
+      ]
+    },
+    {
       "id": "read",
       "name": "Read",
       "description": "Stories for a quiet moment",

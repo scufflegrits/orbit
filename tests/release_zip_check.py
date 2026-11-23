@@ -3,7 +3,7 @@
     python tests/release_zip_check.py --version 3.0.1 --url file:///path/orbit-3.0.1/index.html
     python tests/release_zip_check.py --version 3.0.1 --url http://127.0.0.1:8000/index.html --cdp http://127.0.0.1:9333
 
-The page loads with the bundled sample map (9 suns, 106 links), Edit mode switches on,
+The page loads with the bundled sample map (as many suns and links as its links-data.js holds), Edit mode switches on,
 About shows the version, there are no page errors, and the release defines no test hook.
 scripts/edge/zip-check.sh runs it in Chromium here and in Edge on the test VM.
 """
@@ -30,8 +30,10 @@ def main():
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(args.url, wait_until="load")
         page.locator(".home-hub").first.wait_for()
+        suns, links = page.evaluate("""() => [ORBIT_DATA.groups.length,
+          ORBIT_DATA.groups.reduce((n, sun) => n + sun.links.reduce((m, planet) => m + 1 + (planet.moons || []).length, 0), 0)]""")
         count = page.locator("#link-count").inner_text()
-        assert page.locator(".home-hub").count() == 9 and "9 SUNS" in count and "106 LINKS" in count, count
+        assert page.locator(".home-hub").count() == suns and f"{suns} SUNS" in count and f"{links} LINKS" in count, count
         page.locator("#edit-toggle").click()
         assert page.locator("#edit-toggle").get_attribute("aria-pressed") == "true", "Edit mode switches on"
         page.locator("#edit-done").click()
@@ -41,7 +43,7 @@ def main():
         assert args.version in about, f"About shows {args.version}: {about}"
         assert page.evaluate("typeof window.OrbitTest") == "undefined", "the release has no test hook"
         assert not errors, errors
-        print(f"PASS release zip: 9 suns, 106 links, Edit mode, About shows {args.version}, no test hook ({args.url})")
+        print(f"PASS release zip: {suns} suns, {links} links, Edit mode, About shows {args.version}, no test hook ({args.url})")
         page.close()
         if not args.cdp:
             browser.close()

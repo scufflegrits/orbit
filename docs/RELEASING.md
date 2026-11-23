@@ -96,7 +96,7 @@ The zip is written to an `orbit-dist` folder beside the project, so it never end
 1. **List its contents.** Run `unzip -l ../orbit-dist/orbit-<version>.zip`. In PowerShell, open the zip in File Explorer instead. You should see one `orbit-<version>/` folder holding the files in the table above and nothing else.
 2. **Extract it to a fresh folder** outside the project, such as your Downloads folder.
 3. **Open `index.html` directly** from the extracted folder, in Chrome or Edge:
-   - The Galaxy appears; the bundled sample map shows 9 suns and 106 links.
+   - The Galaxy appears; the bundled sample map shows all its suns (10 suns and 114 links in 3.0.x after Dev Toolbox was added; the count in the top bar).
    - **Edit mode** switches on in the top bar.
    - Settings → **About** shows the version you built.
    - The browser's developer console (F12) shows no errors, apart from one "file not found" for the optional `team-data.js`.

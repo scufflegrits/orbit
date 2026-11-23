@@ -2,7 +2,7 @@
 
 import re
 
-from helpers import ARTIFACTS, check
+from helpers import SAMPLE_SUNS, ARTIFACTS, check
 
 
 def focus_state(page):
@@ -119,12 +119,12 @@ def check_menu_keys(page, url, mode):
     page.keyboard.press("Escape")
     page.locator(".detail-view").wait_for(state="detached")
     page.locator(".home-hub").first.wait_for()
-    check(page.locator(".home-hub").count() == 9, f"{mode}: Escape in a System returns to the Galaxy")
+    check(page.locator(".home-hub").count() == SAMPLE_SUNS, f"{mode}: Escape in a System returns to the Galaxy")
 
     page.locator("#quick-find").fill("Engadget")
     check(page.locator(".find-item").count() > 0, f"{mode}: Quick find shows results")
     page.keyboard.press("Escape")
-    check(page.locator("#quick-find").input_value() == "" and page.locator(".home-hub").count() == 9,
+    check(page.locator("#quick-find").input_value() == "" and page.locator(".home-hub").count() == SAMPLE_SUNS,
           f"{mode}: Escape clears Quick find and restores the Galaxy")
 
 
@@ -285,4 +285,4 @@ def check_help_and_journey(page, url, mode):
     page.keyboard.press("Escape")
     page.locator(".detail-view").wait_for(state="detached")  # the hashchange render is async
     page.locator(".home-hub").first.wait_for()
-    check(page.locator(".home-hub").count() == 9, f"{mode}: third Escape returns to the Galaxy")
+    check(page.locator(".home-hub").count() == SAMPLE_SUNS, f"{mode}: third Escape returns to the Galaxy")
