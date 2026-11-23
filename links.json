@@ -85,7 +85,9 @@
       "links": [
         { "name": "Learn Git Branching", "url": "https://learngitbranching.js.org/" },
         { "name": "Devhints", "url": "https://devhints.io/" },
-        { "name": "JSON Crack", "url": "https://jsoncrack.com/" },
+        { "name": "JSON Crack", "url": "https://jsoncrack.com/", "moons": [
+          { "name": "ToDiagram", "url": "https://todiagram.com/" }
+        ] },
         { "name": "Transform", "url": "https://transform.tools/" },
         { "name": "Refactoring Guru", "url": "https://refactoring.guru/" },
         { "name": "DevDocs", "url": "https://devdocs.io/" },
