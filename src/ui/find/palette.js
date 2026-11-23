@@ -15,6 +15,7 @@ import * as workspaces from '../../state/workspaces.js';
 import { setEditMode } from '../drag/drag.js';
 import { modes } from '../page-modes.js';
 import { favoriteItems } from '../views/favorites.js';
+import { openGroup } from '../views/group-planets.js';
 import { openAll, openAllFavorites, openDestination, runRoutine } from '../views/open.js';
 import { render } from '../views/render.js';
 import { galaxyView, groups, routines, setGalaxyView } from '../page.js';
@@ -62,6 +63,8 @@ function runMatch(match) {
     location.hash = `group/${encodeURIComponent(match.id)}`;
   } else if (modes.linkOpensEditor('palette')) {
     openEditorAt(match.indices);
+  } else if (match.kind === 'Group') {
+    openGroup(match.indices[0], match.indices[1]);
   } else {
     openDestination(match.destination);
   }
@@ -86,10 +89,13 @@ function paletteEntries(query) {
   for (const match of /** @type {any[]} */ (matches)) {
     entries.push({ kind: match.kind, label: match.name, detail: match.why || match.path, match, run: () => runMatch(match) });
     // A planet with moons can also be opened together with them.
-    if (match.kind === 'Planet' && !modes.inEditMode()) {
+    if (['Planet', 'Group'].includes(match.kind) && !modes.inEditMode()) {
       const planet = match.destination;
       if (planet.moons.length) {
-        entries.push({ kind: 'Command', label: `Open all: ${planet.name} + ${counted(planet.moons.length, 'moon')}`,
+        const label = match.kind === 'Group'
+          ? `Open all: ${planet.name} · ${counted(planet.moons.length, 'link')}`
+          : `Open all: ${planet.name} + ${counted(planet.moons.length, 'moon')}`;
+        entries.push({ kind: 'Command', label,
           detail: match.path, run: () => openAll(match.indices[0], match.indices[1]) });
       }
     }

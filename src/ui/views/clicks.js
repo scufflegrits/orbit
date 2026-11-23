@@ -3,6 +3,7 @@
 // open it with all its moons. Moved in rewrite phase 5.
 import { itemAt } from '../../core/destination.js';
 import { modes } from '../page-modes.js';
+import { collapseGroup, setGroupExpanded } from './group-planets.js';
 import { noteOpened } from './favorites.js';
 import { openAll } from './open.js';
 import { app, groups } from '../page.js';
@@ -24,6 +25,18 @@ function trackDestinationClicks(event) {
  * mode.
  */
 export function installClicks() {
+  document.addEventListener('click', event => {
+    if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element)) return;
+    const button = event.target.closest('button.group-planet');
+    if (button && app.contains(button) && button.parentElement) {
+      const cluster = button.parentElement;
+      const expanded = cluster.classList.contains('pinned');
+      collapseGroup();
+      if (!expanded) setGroupExpanded(cluster);
+    } else if (!event.target.closest('.pinned')) {
+      collapseGroup();
+    }
+  });
   document.addEventListener('click', trackDestinationClicks);
   document.addEventListener('auxclick', trackDestinationClicks);
   document.addEventListener('click', event => {

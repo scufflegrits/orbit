@@ -24,7 +24,8 @@ from threading import Thread
 
 from playwright.sync_api import sync_playwright
 
-from helpers import ARTIFACTS, ROOT, QuietHandler, check, saved_map, write_fixture
+from drag_drop import drag_to, press_and_start, pt, system_moon, tray_row
+from helpers import ARTIFACTS, ROOT, QuietHandler, check, download_json, saved_map, upload_json, write_fixture
 
 sys.path.insert(0, str(ROOT))
 import serve  # noqa: E402
@@ -621,7 +622,8 @@ def f13_bookmarks(ctx):
     check(set(suns) == {"Alpha", "Beta", "Work Stuff", "Bookmarks bar", "Bookmarks"}, f"{mode}: folders became suns ({list(suns)})")
     work = suns["Work Stuff"]["links"]
     check([link["name"] for link in work] == ["Tracker", "Reports"] and
-          work[1]["url"] == "https://reports.example.test/" and [moon["name"] for moon in work[1]["moons"]] == ["Q3"],
+          work[1]["type"] == "group" and "url" not in work[1] and
+          [moon["name"] for moon in work[1]["moons"]] == ["Reports home", "Q3"],
           f"{mode}: a subfolder became a planet with moons ({work})")
     check([link["name"] for link in suns["Bookmarks bar"]["links"]] == ["News"] and
           [link["name"] for link in suns["Bookmarks"]["links"]] == ["Loose link"], f"{mode}: loose links have a home")
@@ -1371,11 +1373,137 @@ def f26_presets(ctx):
     print(f"PASS F26 Remote Desktop presets ({mode})")
 
 
+def f30_group_planets(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    open_editor(page)
+    tree(page, "editor-tree-sun", "Alpha").click()
+    page.get_by_role("button", name="Add planet", exact=True).click()
+    page.get_by_label("Planet name").fill("Monitoring")
+    page.get_by_label("Kind", exact=True).select_option("group", timeout=5000)
+    check(not page.get_by_label("Destination URL").is_visible() and
+          not page.get_by_text("Favorite (shown at the top of the Galaxy)").is_visible(),
+          f"{mode}: a group has no destination or favorite field")
+    page.get_by_role("button", name="Add planet", exact=True).click()
+    check(page.locator(".editor-pane").get_by_text("No links yet", exact=True).is_visible(), f"{mode}: empty groups are allowed")
+    for name, path in (("Dashboard", "/ok/"), ("Metrics", "/ok/guide.html")):
+        page.get_by_role("button", name="Add link", exact=True).click()
+        page.get_by_label("Moon name").fill(name)
+        page.get_by_label("Destination URL").fill(ctx.target + path)
+        page.locator(".editor-form button[type=submit]").click()
+        tree(page, "editor-tree-planet", "Monitoring").click()
+
+    def export(button):
+        if mode.startswith("remote"):
+            return page.get_by_role("button", name=button, exact=True).evaluate(
+                "node => OrbitTest.captureDownload(() => node.click())")
+        return download_json(page, button)
+
+    exported_item = export("Export planet")
+    check(exported_item["item"]["type"] == "group", f"{mode}: planet export keeps the group")
+    pack = export("Share links as a pack")
+    check([link["name"] for link in pack["links"]] == ["Dashboard", "Metrics"],
+          f"{mode}: a shared group becomes a pack of its links")
+    close_menu(page)
+
+    galaxy_sun = page.get_by_role("button", name="Open Alpha system", exact=False)
+    galaxy_sun.hover()
+    group = page.locator(".group-planet").filter(has_text="Monitoring")
+    group.wait_for()
+    check(group.evaluate("el => el.tagName") == "BUTTON" and group.locator(".site-icon").count() == 0,
+          f"{mode}: Galaxy draws a group button")
+    check(popups(page, group.click) == [], f"{mode}: ordinary clicks open no tabs")
+    page.mouse.move(20, 200)
+    check(group.get_attribute("aria-expanded") == "true", f"{mode}: moons stay shown after moving away")
+    page.mouse.click(20, 200)
+    check(group.get_attribute("aria-expanded") == "false", f"{mode}: clicking elsewhere closes the group")
+    galaxy_sun.hover()
+    group.click()
+    page.keyboard.press("Escape")
+    check(group.get_attribute("aria-expanded") == "false", f"{mode}: Escape unpins the group")
+
+    check("Monitoring" in search(page, "monitoring"), f"{mode}: Quick find includes the group")
+    result = page.locator(".find-row").filter(has_text="Monitoring")
+    check("Group in Alpha" in result.inner_text() and result.locator(".favorite-toggle").count() == 0,
+          f"{mode}: group search results have no star")
+    result.locator(".find-item").click()
+    page.locator(".detail-heading").wait_for()
+    group = page.locator(".detail-satellite.group-planet").filter(has_text="Monitoring")
+    check(group.get_attribute("aria-expanded") == "true", f"{mode}: Quick find pins the group in its System")
+    urls = popups(page, lambda: group.click(modifiers=["Shift"]), expect=1)
+    notice = page.locator("#open-all-notice").inner_text()
+    check(urls and urls[0].rstrip("/").endswith("/ok") and
+          ((len(urls) == 2 and notice == "Opened 2 tabs for Monitoring.") or
+           (len(urls) == 1 and "blocked 1 tab" in notice)),
+          f"{mode}: Shift-click tries both moons ({urls}, {notice})")
+    page.keyboard.press("Escape")
+    group.focus()
+    page.keyboard.press("Enter")
+    check(group.get_attribute("aria-expanded") == "true", f"{mode}: Enter pins a focused group")
+
+    open_editor(page)
+    exported = export("Export JSON")
+    upload_json(page, "Import JSON", exported)
+    page.get_by_role("button", name="Replace my map").click()
+    upload_json(page, "Import JSON", {"groups": [{"name": "Alpha", "links": [
+        {"name": "MONITORING", "type": "group", "moons": [{"name": "Status Board", "url": ctx.target + "/status"}]},
+    ]}]})
+    check("adds 0 planets, 1 moon" in page.locator(".import-sun").inner_text(), f"{mode}: the picker matches the existing group")
+    page.get_by_role("button", name="Merge into my map").click()
+    page.reload(wait_until="load")
+    saved = stored(page)[0]["links"]
+    matching = [planet for planet in saved if planet.get("type") == "group"]
+    check(len(matching) == 1 and [link["name"] for link in matching[0]["moons"]] == ["Dashboard", "Metrics", "Status Board"],
+          f"{mode}: import and reload retain the group and its links")
+    open_editor(page)
+    tree(page, "editor-tree-sun", "Beta").click()
+    upload_json(page, "Import planet", exported_item)
+    page.get_by_role("button", name="Add planet", exact=True).click()
+    copy = stored(page)[1]["links"][-1]
+    check(copy == exported_item["item"], f"{mode}: planet import keeps the group and its links")
+    page.get_by_label("Kind", exact=True).select_option("web")
+    page.get_by_role("button", name="Save planet", exact=True).click()
+    check("needs an http or https URL" in page.locator(".editor-error").inner_text(),
+          f"{mode}: converting a group to a website requires a URL")
+    page.get_by_label("Destination URL").fill("https://monitoring.example.test/")
+    page.get_by_role("button", name="Save planet", exact=True).click()
+    page.get_by_label("Kind", exact=True).select_option("group")
+    DISMISS_NEXT.add(page)
+    page.get_by_role("button", name="Save planet", exact=True).click()
+    check(stored(page)[1]["links"][-1]["url"] == "https://monitoring.example.test/",
+          f"{mode}: canceling the conversion preserves the website")
+    page.get_by_role("button", name="Save planet", exact=True).click()
+    check(stored(page)[1]["links"][-1] == copy, f"{mode}: confirmed conversion keeps all the group's links")
+    close_menu(page)
+    page.locator(".back-link").click()
+    page.locator("#view-toggle").click()
+    alpha = page.locator(".list-sun").filter(has=page.locator(".list-sun-name", has_text="Alpha"))
+    heading = alpha.get_by_role("heading", name="Monitoring", exact=True)
+    check(heading.is_visible() and alpha.get_by_role("link", name="Open Metrics in a new tab").is_visible(),
+          f"{mode}: the Galaxy list shows a group heading with its links")
+    page.locator("#view-toggle").click()
+    page.locator(".home-hub").filter(has_text="Alpha").click()
+    page.locator("#edit-toggle").click()
+    group = page.locator(".detail-satellite.group-planet").filter(has_text="Monitoring")
+    sun_index = int(group.get_attribute("data-sun"))
+    drag_to(page, system_moon(page, sun_index, 0, 0), pt(group))
+    check(stored(page)[0]["links"][-1]["moons"][-1]["name"] == "Guide", f"{mode}: drag a moon onto the group")
+    press_and_start(page, pt(group))
+    row = tray_row(page, "sun", sun_index + 1)
+    page.mouse.move(*pt(row), steps=6)
+    page.mouse.up()
+    suns = stored(page)
+    check(all(p.get("type") != "group" for p in suns[0]["links"]) and
+          [moon["name"] for moon in suns[1]["links"][-1]["moons"]] == ["Dashboard", "Metrics", "Status Board", "Guide"],
+          f"{mode}: drag the group to another sun with its links")
+    print(f"PASS F30 group planets ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets)
 
 
 def run_checks(make_ctx, only):

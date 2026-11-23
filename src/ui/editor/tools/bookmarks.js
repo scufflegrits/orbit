@@ -12,7 +12,7 @@ export function importBookmarks() {
     try {
       const { map, stats } = bookmarksToMap(fileIo.readBookmarksHtml(await file.text()));
       if (!map.groups.length) throw new Error('The file has no website bookmarks.');
-      const note = `Read ${counted(stats.links, 'website bookmark')}${stats.skipped ? `; skipped ${counted(stats.skipped, 'other link')} (not http or https)` : ''}${stats.truncated ? `; stopped at ${BOOKMARK_LIMIT}` : ''}. Each folder becomes a sun; a subfolder becomes a planet with its links as moons.`;
+      const note = `Read ${counted(stats.links, 'website bookmark')}${stats.skipped ? `; skipped ${counted(stats.skipped, 'other link')} (not http or https)` : ''}${stats.truncated ? `; stopped at ${BOOKMARK_LIMIT}` : ''}. Each folder becomes a sun; a subfolder becomes a group planet with all its links as moons.`;
       nav.showImportReview(map, { title: 'Review bookmarks', replace: false, label: 'Imported browser bookmarks', note });
     } catch (error) {
       editorError(`Bookmark import failed: ${/** @type {any} */ (error).message}`);

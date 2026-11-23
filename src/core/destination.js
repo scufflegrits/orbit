@@ -2,12 +2,23 @@
 // Pure: no DOM, no storage. Moved from storage.js and pure helpers (2.2.1).
 
 /**
+ * @param {any} item
+ * @returns {item is import('./types.js').GroupPlanet}
+ */
+export function isGroup(item) {
+  return item?.type === 'group';
+}
+
+/** @overload @param {import('./types.js').Destination} item @returns {string} */
+/** @overload @param {any} item @returns {string | null} */
+/**
  * The key that makes two destinations "the same": fragment, trailing slashes and
- * host case are ignored. Remote Desktop gives rdp:<host>. No item gives ''.
- * @param {any} item A Destination, or null/undefined.
- * @returns {string}
+ * host case are ignored. Remote Desktop gives rdp:<host>. Groups have no key.
+ * @param {any} item A destination or group.
+ * @returns {string | null}
  */
 export function destinationKey(item) {
+  if (isGroup(item)) return null;
   if (!item) return '';
   if (item.type === 'rdp') return `rdp:${String(item.host || '').toLowerCase()}`;
   try {
@@ -29,7 +40,7 @@ export function pathsForKey(groups, key) {
   /** @type {number[][]} */
   const paths = [];
   groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
-    if (destinationKey(planet) === key) paths.push([sunIndex, planetIndex]);
+    if (!isGroup(planet) && destinationKey(planet) === key) paths.push([sunIndex, planetIndex]);
     planet.moons.forEach((moon, moonIndex) => {
       if (destinationKey(moon) === key) paths.push([sunIndex, planetIndex, moonIndex]);
     });
@@ -41,7 +52,7 @@ export function pathsForKey(groups, key) {
  * The planet or moon at a path, or undefined.
  * @param {import('./types.js').Sun[]} groups
  * @param {number[]} path
- * @returns {import('./types.js').Destination | undefined}
+ * @returns {import('./types.js').Planet | import('./types.js').Moon | undefined}
  */
 export function itemAt(groups, path) {
   const planet = groups[/** @type {number} */ (path[0])]?.links[/** @type {number} */ (path[1])];

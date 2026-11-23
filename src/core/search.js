@@ -1,5 +1,6 @@
 // Quick find and the palette's matching (2.2.1 render.js). Pure: it takes the
 // combined map as a parameter instead of reading a global.
+import { isGroup } from './destination.js';
 
 /**
  * @typedef {object} SearchField
@@ -89,6 +90,7 @@ export function searchWords(text) {
  * @returns {string}
  */
 export function addressText(item) {
+  if (isGroup(item)) return '';
   if (item.type === 'rdp') return item.host;
   try {
     const url = new URL(item.url);
@@ -116,7 +118,7 @@ export function searchEntries(groups) {
     const list = [{ kind: 'name', text: name.toLocaleLowerCase(), weight: 1, anywhere: true }];
     if (path) list.push({ kind: 'path', text: path.toLocaleLowerCase(), weight: .7 });
     if (item) {
-      list.push({ kind: 'address', text: addressText(item).toLocaleLowerCase(), weight: .6 });
+      if (!isGroup(item)) list.push({ kind: 'address', text: addressText(item).toLocaleLowerCase(), weight: .6 });
       if (item.tags?.length) list.push({ kind: 'tag', text: item.tags.join(' '), weight: .8 });
       if (item.note) list.push({ kind: 'note', text: item.note.toLocaleLowerCase(), weight: .5 });
     }
@@ -126,7 +128,7 @@ export function searchEntries(groups) {
     entries.push({ match: { kind: 'Sun', name: sun.name, path: sun.team ? 'Team Galaxy' : 'Galaxy', id: sun.id, icon: sun.icon },
       tags: [], fields: fields(sun.name) });
     sun.links.forEach((planet, planetIndex) => {
-      entries.push({ match: { kind: 'Planet', name: planet.name, path: sun.name, destination: planet,
+      entries.push({ match: { kind: isGroup(planet) ? 'Group' : 'Planet', name: planet.name, path: sun.name, destination: planet,
         indices: [sunIndex, planetIndex], tags: planet.tags || [] },
       tags: planet.tags || [], fields: fields(planet.name, sun.name, planet) });
       planet.moons.forEach((moon, moonIndex) => {

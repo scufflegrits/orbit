@@ -6,6 +6,7 @@
 // window.open. window.open is looked up on every call, so a test stub takes
 // effect. Questions and reports are returned to the screen code, which shows
 // them; nothing here touches the page.
+import { isGroup } from '../core/destination.js';
 import { fillTemplate, templateNames } from '../core/templates.js';
 import { counted } from '../core/words.js';
 import { readVariables } from '../state/prefs.js';
@@ -26,11 +27,12 @@ export function openTab(url) {
  * Open one destination as its circle on the map would. A web link with
  * {placeholders} isn't opened: the result 'ask' tells the screen to show the
  * placeholder form. A Remote Desktop link downloads or launches.
- * @param {import('../core/types.js').Destination} item
+ * @param {import('../core/types.js').Destination | import('../core/types.js').GroupPlanet} item
  * @param {{presets: import('../core/types.js').RdpPreset[], launchMode: 'download'|'client'}} options
- * @returns {'ask'|'rdp'|'opened'|'blocked'}
+ * @returns {'ask'|'rdp'|'opened'|'blocked'|'skipped'}
  */
 export function openDestination(item, { presets, launchMode }) {
+  if (isGroup(item)) return 'skipped';
   if (item.type === 'rdp') {
     launchRdp(item, presets, launchMode);
     return 'rdp';
@@ -52,17 +54,16 @@ export function openDestination(item, { presets, launchMode }) {
  * Decide what a list of links opens. Remote Desktop links are left out (each
  * would need its own download or helper prompt), and so are links with a
  * {placeholder} that has no value entered yet.
- * @param {import('../core/types.js').Destination[]} items
+ * @param {(import('../core/types.js').Destination | import('../core/types.js').GroupPlanet)[]} items
  * @param {string} label The name in the question and report ("your favorites").
  * @param {{question?: ((count: number) => string) | null, extra?: string, values?: Record<string, string>}} [options]
  * @returns {OpenPlan}
  */
 export function planLinks(items, label, { question = null, extra = '', values = readVariables() } = {}) {
-  /** @param {import('../core/types.js').Destination} item */
-  const filled = item => item.type !== 'rdp' && templateNames(item.url).every(name => values[name]);
-  const all = items.filter(item => item.type !== 'rdp');
-  const web = all.filter(filled).map(item => ({ item, url: fillTemplate(/** @type {any} */ (item).url, values) }));
-  const skipped = items.length - all.length;
+  const all = items.filter(item => item.type === undefined);
+  const web = all.filter(item => templateNames(item.url).every(name => values[name]))
+    .map(item => ({ item, url: fillTemplate(item.url, values) }));
+  const skipped = items.filter(item => item.type === 'rdp').length;
   const unfilled = all.length - web.length;
   const note = `${skipped ? ` ${counted(skipped, 'Remote Desktop link')} left out.` : ''}${unfilled ? ` ${counted(unfilled, 'link')} with {placeholders} left out until you open ${unfilled === 1 ? 'it' : 'them'} once.` : ''}${extra}`;
   return {
@@ -98,7 +99,7 @@ export function openPlan(plan, onOpened = () => {}) {
  * than one tab would open and `confirm` is on, `ask(question)` must say yes
  * first (the screen passes window.confirm). Returns the report for the
  * screen to show, or null when the user said no.
- * @param {import('../core/types.js').Destination[]} items
+ * @param {(import('../core/types.js').Destination | import('../core/types.js').GroupPlanet)[]} items
  * @param {string} label
  * @param {{confirm?: boolean, question?: ((count: number) => string) | null, extra?: string,
  *   ask: (question: string) => boolean, onOpened?: (item: import('../core/types.js').Destination) => void}} options

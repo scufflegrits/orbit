@@ -2,6 +2,7 @@
 // its site icon, a planet with its moon field, a sun in the Galaxy, and the
 // orbit lines. Moved in rewrite phase 5. Indices in `data-*` attributes are
 // combined (team suns first), as the page and OrbitTest number them.
+import { isGroup } from '../../core/destination.js';
 import { rdpLaunchUrl } from '../../core/rdp.js';
 import { PLACEHOLDER, templateNames } from '../../core/templates.js';
 import { downloadRdp } from '../../services/rdp-launch.js';
@@ -82,7 +83,7 @@ export function destinationNode(link, className, path) {
  * @param {number[]} [path]
  */
 export function linkNode(link, className, path) {
-  const node = destinationNode(link, className, path);
+  const node = isGroup(link) ? groupButton(link, className) : destinationNode(link, className, path);
   if (path) {
     tagPath(node, path.length === 3 ? 'moon' : 'planet', path[0], path[1], path[2]);
     if (modes.inEditMode()) {
@@ -91,6 +92,18 @@ export function linkNode(link, className, path) {
     }
   }
   return node;
+}
+
+/** @param {import('../../core/types.js').GroupPlanet} group @param {string} className */
+function groupButton(group, className) {
+  const button = element('button', `${className} group-planet`, group.name);
+  button.type = 'button';
+  const count = counted(group.moons.length, 'link');
+  button.title = `${group.name}: a group of ${count}`;
+  if (group.note) button.title += `\n${group.note}`;
+  button.setAttribute('aria-label', `${group.name}, a group of ${count}`);
+  button.setAttribute('aria-expanded', 'false');
+  return button;
 }
 
 /**
@@ -126,6 +139,8 @@ export function orbitLines(points, center, size) {
  */
 export function planetNode(link, context, point, size, index, sunIndex) {
   const cluster = element('div', `planet-cluster ${context}-planet-cluster`);
+  const group = isGroup(link);
+  if (group) cluster.classList.add('group-cluster');
   cluster.style.setProperty('--x', `${point.x / size * 100}%`);
   cluster.style.setProperty('--y', `${point.y / size * 100}%`);
   cluster.style.setProperty('--cos', Math.cos(point.angle).toFixed(4));
@@ -141,7 +156,10 @@ export function planetNode(link, context, point, size, index, sunIndex) {
     link.moons.slice(0, VISIBLE_MOONS).forEach((/** @type {any} */ moon, /** @type {number} */ moonIndex) =>
       field.append(linkNode(moon, 'moon-link', [sunIndex, index, moonIndex])));
     cluster.append(field);
-    cluster.append(element('span', 'moon-badge', counted(link.moons.length, 'moon')));
+  }
+  if (link.moons.length || group) {
+    const label = link.moons.length ? counted(link.moons.length, group ? 'link' : 'moon') : 'No links yet';
+    cluster.append(element('span', 'moon-badge', label));
   }
   return cluster;
 }
@@ -154,6 +172,8 @@ export function planetNode(link, context, point, size, index, sunIndex) {
  */
 export function overflowPlanetNode(link, sunIndex, planetIndex) {
   const item = element('div', 'overflow-planet');
+  const group = isGroup(link);
+  if (group) item.classList.add('group-cluster');
   item.append(linkNode(link, 'more-link', [sunIndex, planetIndex]));
   if (link.moons.length) {
     const moons = element('div', 'overflow-moons');
@@ -161,6 +181,8 @@ export function overflowPlanetNode(link, sunIndex, planetIndex) {
       linkNode(moon, 'overflow-moon-link', [sunIndex, planetIndex, moonIndex])));
     item.append(moons);
   }
+  if (group) item.append(element('span', 'overflow-group-count',
+    link.moons.length ? counted(link.moons.length, 'link') : 'No links yet'));
   return item;
 }
 

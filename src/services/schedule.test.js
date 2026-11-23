@@ -106,3 +106,10 @@ test('backupDue matches 2.2.1 for random entries, settings, and times', () => {
     assert.deepEqual(backupDue(stored, setting !== 'false', at), expected ?? null);
   }), runs(400));
 });
+
+test('team destination changes include group moons but ignore groups', () => {
+  const map = [{ id: 'team:ops', name: 'Ops', description: '', color: '#123456', links: [
+    { name: 'Monitoring', type: /** @type {const} */ ('group'), moons: [{ name: 'Status', url: 'https://status.test/' }] },
+  ] }];
+  assert.deepEqual(teamEntries(map), [{ key: 'https://status.test', name: 'Status', path: 'Ops → Monitoring' }]);
+});

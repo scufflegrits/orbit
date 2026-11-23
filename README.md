@@ -1,18 +1,18 @@
 # Orbit
 
-A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, or click a planet to open its destination. Your routines, favorites, and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list. Set Orbit as your startup page and a [routine](#start-your-day-with-orbit) opens your morning sites in one click.
+A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, click a linked planet to open its destination, or select a group planet to show its links. Your routines, favorites, and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list. Set Orbit as your startup page and a [routine](#start-your-day-with-orbit) opens your morning sites in one click.
 
 To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planets, and moons; see [Rearrange by dragging](#rearrange-by-dragging).
 
 Use **Quick find** in the top bar on the Galaxy or any System to search suns, planets, and moons by name, web address, computer name, or tag; see [Find and open links](#find-and-open-links). Searching from a System returns to the Galaxy with matching results. Press `Ctrl+K` for the command palette.
 
-The bundled map has ten sample suns, including **Dev Toolbox**, **Stocks & Investing**, **Science**, and **Labs**, with 53 planets and 70 moons. These destinations are examples; replace them with your own in Edit links.
+The bundled map has ten sample suns, including **Dev Toolbox**, **Stocks & Investing**, **Science**, and **Labs**, with 53 planets and 123 destinations. In Dev Toolbox, the **Diagramming** group holds Excalidraw, PlantUML JSON diagrams, and Graphviz.
 
 ## What's new in 3.0
 
-Nothing changes for you. Orbit looks and works exactly as in 2.2.1, and your saved links, routines, workspaces, and settings carry over untouched. 3.0.0 rebuilds the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. It is just as fast: the Galaxy draws 2% faster, typing in Quick find is unchanged, and the code is 1.5% larger. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md). 3.0.1 fixes routine offers in workspaces other than Main; 3.0.2 gives Galaxy planets more room around their sun and adds a Dev Toolbox sun to the sample map (see the changelog).
+Orbit 3.0.0 carried over saved links, routines, workspaces, and settings from 2.2.1. It rebuilt the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. It is just as fast: the Galaxy draws 2% faster, typing in Quick find is unchanged, and the code is 1.5% larger. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md). 3.0.1 fixes routine offers in workspaces other than Main; 3.0.2 gives Galaxy planets more room around their sun and adds a Dev Toolbox sun to the sample map (see the changelog).
 
-To go back to 2.2.1, use its release: in a git copy, run `git checkout v2.2.1`; otherwise unpack the 2.2.1 zip over this folder. Your data stays where it is, in the browser, and 2.2.1 reads it as before.
+**Once you save a map containing group planets, avoid opening Orbit 3.0.2 or earlier with the same browser storage. Older versions reject the saved map, fall back to the sample map, and can overwrite your saved map on the next edit.** Export JSON before switching versions. The current version backs up unreadable browser data before replacing it.
 
 ## Run
 
@@ -28,7 +28,7 @@ Then open <http://localhost:8000>. The server listens only on this computer. Pre
 
 ## Add your links
 
-Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` array is a planet with a destination:
+Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` array is a planet. A website planet looks like this.
 
 ```json
 {
@@ -51,6 +51,16 @@ Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` 
 The `moons` array is optional. Hover over a planet to reveal its moons; clicking the planet still opens its own destination. The Galaxy previews up to five planets per sun. A System shows up to eight planets around its sun and lists additional planets below. Up to six moons appear around a hovered planet, fanned farther out when there are more than four; any extras are listed in the System. Planet and moon circles grow to fit their longest name without splitting a word, and every planet in a view shares one size. A name too long even for the largest circle gets smaller text instead. Orbit is laid out for screens 1920×1080 and larger.
 
 Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
+
+## Group planets
+
+A group planet holds related links inside a sun. In **Settings → Edit links**, open a sun, choose **Add planet**, then set **Kind** to **Group (no link)**. Save the group and use **Add link** for each website or Remote Desktop link. Groups can start empty and can have notes and tags.
+
+Click or press **Enter** on a group planet to show its links. Click elsewhere or press **Escape** to close it. **Shift+click** uses Open all for the group's links. Quick find takes you to the group in its System. The compact Galaxy list shows groups as headings above their links.
+
+Change **Kind** to switch between a group and a linked planet. Both keep their moons. Switching to a group asks you to confirm removal of the planet's address. Switching to a linked planet requires a website address or Remote Desktop host. **Export planet** keeps the group intact. **Share links as a pack** exports the links for someone to import individually.
+
+In `links.json`, use `"type": "group"` on the planet and put its destinations in `"moons"`. Give the group a name and leave out its own address.
 
 ## Windows Remote Desktop entries
 
@@ -129,8 +139,8 @@ To make this your morning start:
 - **History** keeps the map (and its routines) as it was before each of your last 20 changes in this browser (edits, drags, imports, restores, and resets), with what changed. **Restore** brings a version back as a new change, so it can be undone too.
 - **Find duplicates** lists links that point to the same address or computer, with where each one is. An item's editor also notes when its destination exists elsewhere. A copy you made on purpose is fine.
 - **Check links** asks each website on your map whether it answers and lists the ones that do not, with Edit buttons. It needs `python3 serve.py`, because a page opened from a file cannot contact other sites. Remote Desktop links are not checked.
-- **Import bookmarks** reads a bookmarks file exported from Chrome, Edge, or Firefox (HTML). Each folder becomes a sun, its links become planets, and each subfolder becomes a planet (its first link) with the rest of its links as moons. Bars such as “Bookmarks bar” are unwrapped. Only web links are kept, and the result is merged, never replacing your map.
-- **Import JSON** lists every sun in a map file with what it would add, so you can pick which suns to bring in (all that add something start ticked; **Select all** and **Select none** help). **Merge into my map** adds the ticked suns, each with all its planets and moons; for a sun you already have (matched by ID or name) it adds only the planets and moons you're missing, matching links by destination, and changes nothing you already have. Routines and Remote Desktop presets in the file have their own boxes. **Replace my map** swaps your whole map for the file, whatever is ticked; History keeps the old one. **Import sun** also accepts a whole map file: it opens the same picker with nothing ticked, so you can take just the suns you want. **Import bookmarks** uses the same picker, one sun per bookmark folder.
+- **Import bookmarks** reads a bookmarks file exported from Chrome, Edge, or Firefox (HTML). Each folder becomes a sun, its links become planets, and each subfolder becomes a group planet with all its links as moons. Bars such as “Bookmarks bar” are unwrapped. Only web links are kept, and the result is merged, never replacing your map.
+- **Import JSON** lists every sun in a map file with what it would add, so you can pick which suns to bring in (all that add something start ticked; **Select all** and **Select none** help). **Merge into my map** adds the ticked suns, each with all its planets and moons; for a sun you already have (matched by ID or name) it adds only the planets and moons you're missing, matching links by destination and group planets by name within the sun, and keeps your existing entries. Routines and Remote Desktop presets in the file have their own boxes. **Replace my map** swaps your whole map for the file, whatever is ticked; History keeps the old one. **Import sun** also accepts a whole map file: it opens the same picker with nothing ticked, so you can take just the suns you want. **Import bookmarks** uses the same picker, one sun per bookmark folder.
 - **Tags:** a planet or moon can have up to eight tags (letters, digits, spaces, and hyphens). The Edit links start screen lists the tags in use; select one to search for it.
 - **Add a link** opens Quick add.
 - **Share favorites**, and **Share** beside a routine, save a **link pack**: a small `orbit-pack-*.json` file with those links (names, addresses, tags, and notes; never passwords) and, for a routine, its name and schedule. **Import link pack** reads a pack file or pasted text, shows which links are new, adds only those (to a new sun named after the pack, or to one of your suns), and can add the routine too.

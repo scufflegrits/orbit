@@ -1,6 +1,7 @@
 // The Galaxy (2.2.1 render.js): the suns as orbits or as a list, the quick
 // bar (routines, favorites, recent links), and Quick find's results in
 // place of the map while it is filtering. Moved in rewrite phase 5.
+import { isGroup } from '../../core/destination.js';
 import { findMatches } from '../../core/search.js';
 import { counted, descriptionNode, element, safeColor, tagChips } from '../dom.js';
 import { findRow } from '../find/results.js';
@@ -84,8 +85,16 @@ export function quickBar() {
  * @param {any} sun
  */
 function listLink(item, path, sun) {
-  const node = destinationNode(item, 'list-link', path);
+  const group = isGroup(item);
+  const node = group ? element('h3', 'list-link list-group') : destinationNode(item, 'list-link', path);
   node.dataset.editPath = path.join(':');
+  if (group) {
+    if (modes.inEditMode()) {
+      const edit = element('button', 'list-link', item.name);
+      edit.type = 'button';
+      node.append(edit);
+    } else node.textContent = item.name;
+  }
   if (isFavorite(item, sun)) node.append(element('span', 'list-favorite', ' ★'));
   if (item.note) node.append(element('span', 'list-note-text', ` — ${item.note}`));
   if (item.tags?.length) node.append(tagChips(item.tags));
@@ -124,6 +133,7 @@ function galaxyList() {
         });
         row.append(moons);
       }
+      if (isGroup(planet) && !planet.moons.length) row.append(element('p', 'list-empty', 'No links yet'));
       planets.append(row);
     });
     if (!sun.links.length) planets.append(element('li', 'list-empty', 'No planets yet.'));

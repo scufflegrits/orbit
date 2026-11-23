@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import fc from 'fast-check';
 import { oracle } from '../../tests/oracle/oracle.mjs';
-import { rawDestination, rawMap, rawPreset, rawRoutine, runs, validMap as validMapArb } from '../../tests/unit/arbitraries.mjs';
+import { mapWithGroups, rawDestination, rawMap, rawPreset, rawRoutine, runs, validMap as validMapArb } from '../../tests/unit/arbitraries.mjs';
 import {
   uniqueSunId, validDestination, validItemExport, validPack, validRdpPresets, validRoutines, validTags, validateMap,
 } from './schema.js';
@@ -239,4 +239,27 @@ test('every stored map in the 2.2.1 fixture validates exactly as 2.2.1 validates
   for (const data of [fixture.links, fixture.team].filter(Boolean)) {
     assert.deepEqual(outcome(() => validateMap(data)), old.call('validateMap', data));
   }
+});
+
+test('group planets keep their name, moons, tags and note and discard destination fields', () => {
+  const input = { name: ' Monitoring ', type: 'group', url: 'https://example.test/', host: 'lab',
+    favorite: true, tags: 'OPS', note: ' Dashboards ' };
+  const group = { name: 'Monitoring', type: 'group', tags: ['ops'], note: 'Dashboards', moons: [] };
+  assert.deepEqual(validateMap({ groups: [sun('Work', [input])] }).groups[0].links[0], group);
+  assert.deepEqual(validItemExport({ format: 'orbit-item-v1', kind: 'planet', item: input }, 'planet'), group);
+});
+
+test('only planets can be groups', () => {
+  const group = { name: 'Monitoring', type: 'group' };
+  assert.throws(() => validateMap({ groups: [sun('Work', [web('P', 'https://a.test/', { moons: [group] })])] }),
+    { message: "Moon 1 around P can't be a group; only a planet can." });
+  assert.throws(() => validPack({ format: 'orbit-pack-v1', links: [group] }),
+    { message: "Link 1 in the pack can't be a group; only a planet can." });
+});
+
+test('validated maps with group planets round-trip through JSON', () => {
+  fc.assert(fc.property(mapWithGroups, input => {
+    const map = validateMap(input);
+    assert.deepEqual(validateMap(JSON.parse(JSON.stringify(map))), map);
+  }), runs(200));
 });

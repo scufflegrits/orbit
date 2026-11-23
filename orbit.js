@@ -5,6 +5,43 @@
   // src/app/version.js
   var APP_VERSION = "3.0.2";
 
+  // src/core/destination.js
+  function isGroup(item) {
+    return item?.type === "group";
+  }
+  function destinationKey(item) {
+    if (isGroup(item)) return null;
+    if (!item) return "";
+    if (item.type === "rdp") return `rdp:${String(item.host || "").toLowerCase()}`;
+    try {
+      let url = new URL(item.url), path = url.pathname.replace(/\/+$/, "");
+      return `${url.protocol}//${url.host.toLowerCase()}${path}${url.search}`;
+    } catch {
+      return `url:${item.url}`;
+    }
+  }
+  function pathsForKey(groups2, key) {
+    let paths = [];
+    return groups2.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
+      !isGroup(planet) && destinationKey(planet) === key && paths.push([sunIndex, planetIndex]), planet.moons.forEach((moon, moonIndex) => {
+        destinationKey(moon) === key && paths.push([sunIndex, planetIndex, moonIndex]);
+      });
+    })), paths;
+  }
+  function itemAt(groups2, path) {
+    let planet = groups2[
+      /** @type {number} */
+      path[0]
+    ]?.links[
+      /** @type {number} */
+      path[1]
+    ];
+    return path.length === 3 ? planet?.moons[
+      /** @type {number} */
+      path[2]
+    ] : planet;
+  }
+
   // src/core/words.js
   function counted(amount, word, plural = `${word}s`) {
     return `${amount} ${amount === 1 ? word : plural}`;
@@ -118,6 +155,7 @@ prompt for credentials:i:1\r
     return note && (extras.note = note), extras;
   }
   function validDestination(value, label) {
+    if (isGroup(value)) throw new Error(`${label} can't be a group; only a planet can.`);
     if (!value || typeof value != "object") throw new Error(`${label} needs a name and destination.`);
     let name = String(value.name || "").trim();
     if (!name) throw new Error(`${label} needs a name.`);
@@ -151,6 +189,22 @@ prompt for credentials:i:1\r
     for (; used.has(id); ) id = `${base}-${suffix++}`;
     return id;
   }
+  function validPlanet(value, label) {
+    let planet = isGroup(value) ? validGroup(value, label) : validDestination(value, label);
+    if (value.moons !== void 0 && !Array.isArray(value.moons))
+      throw new Error(`${planet.name} needs a moons array.`);
+    let moons = (value.moons || []).map((moon, index) => validDestination(moon, `Moon ${index + 1} around ${planet.name}`));
+    return { ...planet, moons };
+  }
+  function validGroup(value, label) {
+    let name = String(value.name || "").trim();
+    if (!name) throw new Error(`${label} needs a name.`);
+    let { tags, note } = destinationExtras(value, label);
+    return { name, type: (
+      /** @type {const} */
+      "group"
+    ), ...tags ? { tags } : {}, ...note ? { note } : {} };
+  }
   function validateMap(data) {
     if (!data || !Array.isArray(data.groups)) throw new Error('The link map needs a "groups" array.');
     let used = /* @__PURE__ */ new Set(), normalized = data.groups.map((group, groupIndex) => {
@@ -163,13 +217,7 @@ prompt for credentials:i:1\r
       let id = group.id === void 0 || group.id === null || group.id === "" ? uniqueSunId(name, used) : String(group.id);
       if (used.has(id)) throw new Error(`Duplicate sun ID: ${id}`);
       used.add(id);
-      let links = group.links.map((link, linkIndex) => {
-        let planet = validDestination(link, `Planet ${linkIndex + 1} in ${name}`);
-        if (link.moons !== void 0 && !Array.isArray(link.moons))
-          throw new Error(`${planet.name} needs a moons array.`);
-        let moons = (link.moons || []).map((moon, moonIndex) => validDestination(moon, `Moon ${moonIndex + 1} around ${planet.name}`));
-        return { ...planet, moons };
-      }), icon = validSunIcon(group.icon, name);
+      let links = group.links.map((link, linkIndex) => validPlanet(link, `Planet ${linkIndex + 1} in ${name}`)), icon = validSunIcon(group.icon, name);
       return { id, name, description: String(group.description || ""), color, ...icon ? { icon } : {}, links };
     }), routines2 = validRoutines(data.routines), rdpPresets2 = validRdpPresets(data.rdpPresets), presetIds = new Set(rdpPresets2.map((preset) => preset.id));
     for (let sun of normalized)
@@ -284,39 +332,6 @@ prompt for credentials:i:1\r
     }
   }
 
-  // src/core/destination.js
-  function destinationKey(item) {
-    if (!item) return "";
-    if (item.type === "rdp") return `rdp:${String(item.host || "").toLowerCase()}`;
-    try {
-      let url = new URL(item.url), path = url.pathname.replace(/\/+$/, "");
-      return `${url.protocol}//${url.host.toLowerCase()}${path}${url.search}`;
-    } catch {
-      return `url:${item.url}`;
-    }
-  }
-  function pathsForKey(groups2, key) {
-    let paths = [];
-    return groups2.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
-      destinationKey(planet) === key && paths.push([sunIndex, planetIndex]), planet.moons.forEach((moon, moonIndex) => {
-        destinationKey(moon) === key && paths.push([sunIndex, planetIndex, moonIndex]);
-      });
-    })), paths;
-  }
-  function itemAt(groups2, path) {
-    let planet = groups2[
-      /** @type {number} */
-      path[0]
-    ]?.links[
-      /** @type {number} */
-      path[1]
-    ];
-    return path.length === 3 ? planet?.moons[
-      /** @type {number} */
-      path[2]
-    ] : planet;
-  }
-
   // src/core/map-ops.js
   var clone = (value) => JSON.parse(JSON.stringify(value));
   function mapItemAt(list, path) {
@@ -366,7 +381,7 @@ prompt for credentials:i:1\r
       }
       skipped.suns++;
       for (let sourcePlanet of source.links) {
-        let key = destinationKey(sourcePlanet), planet = sun.links.find((item) => destinationKey(item) === key);
+        let key = destinationKey(sourcePlanet), planet = isGroup(sourcePlanet) ? sun.links.find((item) => isGroup(item) && item.name.toLocaleLowerCase() === sourcePlanet.name.toLocaleLowerCase()) : sun.links.find((item) => destinationKey(item) === key);
         if (!planet) {
           sun.links.push(plainCopy(sourcePlanet)), added.planets++, added.moons += sourcePlanet.moons.length;
           continue;
@@ -399,10 +414,11 @@ prompt for credentials:i:1\r
   function duplicateGroups(list) {
     let byKey = /* @__PURE__ */ new Map();
     return list.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
-      let entries = [[planet, [sunIndex, planetIndex]], ...planet.moons.map((moon, moonIndex) => (
+      let entries = planet.moons.map((moon, moonIndex) => (
         /** @type {[Destination, number[]]} */
         [moon, [sunIndex, planetIndex, moonIndex]]
-      ))];
+      ));
+      isGroup(planet) || entries.unshift([planet, [sunIndex, planetIndex]]);
       for (let [item, path] of entries) {
         let key = destinationKey(item), found = byKey.get(key) || [];
         found.push({ item, path }), byKey.set(key, found);
@@ -466,9 +482,17 @@ prompt for credentials:i:1\r
   function remove(key) {
     backend().removeItem(key);
   }
+  var MIGRATIONS = [{ version: 1, up() {
+  } }], STORAGE_VERSION_KEY = "orbit:storage-version";
+  function migrate() {
+    let current = Number(readSafely(STORAGE_VERSION_KEY) || 0), applied = [];
+    for (let migration of MIGRATIONS)
+      migration.version <= current || (migration.up(), write(STORAGE_VERSION_KEY, String(migration.version)), applied.push(migration.version));
+    return applied;
+  }
 
   // src/state/workspaces.js
-  var MAIN = "main", WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
+  var MAIN = "main", UNREADABLE = "unreadable", WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
   function loadWorkspaces() {
     let list = readJson(KEYS.workspaces, []), valid = Array.isArray(list) ? list.filter((item) => item && typeof item.id == "string" && item.name) : [];
     return valid.some((item) => item.id === MAIN) ? valid : [{ id: MAIN, name: "Main" }, ...valid];
@@ -494,7 +518,7 @@ prompt for credentials:i:1\r
     if (!clean || clean.length > 40) throw new Error("A workspace needs a name of up to 40 characters.");
     if (list.some((item) => item.name.toLocaleLowerCase() === clean.toLocaleLowerCase()))
       throw new Error(`There is already a workspace named ${clean}.`);
-    return { id: uniqueSunId(clean, new Set(list.map((item) => item.id))), name: clean };
+    return { id: uniqueSunId(clean, /* @__PURE__ */ new Set([UNREADABLE, ...list.map((item) => item.id)])), name: clean };
   }
   function renameWorkspace(id, name) {
     let clean = String(name || "").trim(), list = loadWorkspaces();
@@ -637,11 +661,24 @@ prompt for credentials:i:1\r
     function loadBrowserMap() {
       try {
         let text = read(key(KEYS.map));
-        return text ? validateMap(JSON.parse(text)) : null;
+        return text === null ? null : validateMap(JSON.parse(text));
       } catch (error) {
         return set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */
         error.message}` }), null;
       }
+    }
+    function backupUnreadableMap(mapKey) {
+      let text = read(mapKey);
+      if (text !== null)
+        try {
+          validateMap(JSON.parse(text));
+        } catch {
+          let suffix = mapKey === KEYS.map && loadWorkspaces().some((item) => item.id === UNREADABLE) ? `:${UNREADABLE}` : UNREADABLE;
+          write(`${mapKey}:${suffix}`, text);
+        }
+    }
+    function writeMap(mapKey, map) {
+      backupUnreadableMap(mapKey), map.groups.some((sun) => sun.links.some(isGroup)) && migrate(), write(mapKey, JSON.stringify(map));
     }
     let store7 = {
       /** @returns {Readonly<StoreState>} */
@@ -691,7 +728,7 @@ prompt for credentials:i:1\r
             routines: data.routines !== void 0 ? data.routines : state.routines,
             rdpPresets: data.rdpPresets !== void 0 ? data.rdpPresets : state.rdpPresets
           }), previous = personalGroups(state.groups);
-          write(key(KEYS.map), JSON.stringify(normalized));
+          writeMap(key(KEYS.map), normalized);
           let changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !== JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
           label !== !1 && changed && recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets), changed && countChange(state.workspace), set({
             groups: [...visibleTeam(), ...normalized.groups],
@@ -727,7 +764,7 @@ prompt for credentials:i:1\r
        */
       resetToBundled() {
         let fileData = validateMap(state.seed);
-        recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), state.workspace === MAIN ? remove(key(KEYS.map)) : write(key(KEYS.map), JSON.stringify(fileData)), remove(key(KEYS.undo)), set({
+        state.workspace === MAIN ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : writeMap(key(KEYS.map), fileData), recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), remove(key(KEYS.undo)), set({
           groups: [...visibleTeam(), ...fileData.groups],
           routines: fileData.routines || [],
           rdpPresets: fileData.rdpPresets || [],
@@ -811,7 +848,7 @@ prompt for credentials:i:1\r
        */
       addWorkspace(name, start2) {
         let added = newWorkspace(name), map = start2 === "copy" ? { groups: personalGroups(state.groups), routines: state.routines, rdpPresets: state.rdpPresets } : start2 === "bundled" ? state.seed : { groups: [] };
-        return write(workspaceKey(KEYS.map, added.id), JSON.stringify(validateMap(map))), saveWorkspaces([...loadWorkspaces(), added]), added.id;
+        return writeMap(workspaceKey(KEYS.map, added.id), validateMap(map)), saveWorkspaces([...loadWorkspaces(), added]), added.id;
       },
       /**
        * Remove a workspace (never Main): its map, undo, and history keys, its
@@ -1308,7 +1345,9 @@ prompt for credentials:i:1\r
   }
   function duplicateNote(item, path) {
     if (!item?.name) return null;
-    let others = pathsForKey(groups, destinationKey(item)).filter((other) => other.join(":") !== path.join(":"));
+    let key = destinationKey(item);
+    if (key === null) return null;
+    let others = pathsForKey(groups, key).filter((other) => other.join(":") !== path.join(":"));
     if (!others.length) return null;
     let where = others.slice(0, 3).map((other) => pathLabel(other)).join("; ");
     return element("p", "editor-note", `Also in ${where}${others.length > 3 ? `, and ${others.length - 3} more` : ""}. This is fine for a deliberate copy.`);
@@ -1398,7 +1437,12 @@ prompt for credentials:i:1\r
     }));
   }
   function decorateTreeItem(button, item) {
-    let result = linkCheckResults.get(destinationKey(item));
+    let group = isGroup(item);
+    if (group) {
+      let marker = element("span", "editor-tree-group", "📁 ");
+      marker.setAttribute("role", "img"), marker.setAttribute("aria-label", "Group"), button.prepend(marker);
+    }
+    let result = group ? void 0 : linkCheckResults.get(destinationKey(item));
     result && !result.ok && (button.classList.add("editor-tree-broken"), button.prepend(element("span", "broken-mark", "⚠ ")), button.title = `Last check: ${result.status ? `HTTP ${result.status}` : result.error}`), item.tags?.length && button.append(tagChips(item.tags));
   }
   function showMovePlanet(sunIndex, planetIndex) {
@@ -1548,7 +1592,7 @@ prompt for credentials:i:1\r
   }
   function teamEntries(teamGroups) {
     return teamGroups.flatMap((sun) => sun.links.flatMap((planet) => [
-      { key: destinationKey(planet), name: planet.name, path: sun.name },
+      ...isGroup(planet) ? [] : [{ key: destinationKey(planet), name: planet.name, path: sun.name }],
       ...planet.moons.map((moon) => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` }))
     ]));
   }
@@ -1644,14 +1688,10 @@ prompt for credentials:i:1\r
     return opened && (opened.opener = null), !!opened;
   }
   function openDestination(item, { presets, launchMode }) {
-    return item.type === "rdp" ? (launchRdp(item, presets, launchMode), "rdp") : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
+    return isGroup(item) ? "skipped" : item.type === "rdp" ? (launchRdp(item, presets, launchMode), "rdp") : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
   }
   function planLinks(items, label, { question = null, extra = "", values = readVariables() } = {}) {
-    let filled = (item) => item.type !== "rdp" && templateNames(item.url).every((name) => values[name]), all = items.filter((item) => item.type !== "rdp"), web = all.filter(filled).map((item) => ({ item, url: fillTemplate(
-      /** @type {any} */
-      item.url,
-      values
-    ) })), skipped = items.length - all.length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
+    let all = items.filter((item) => item.type === void 0), web = all.filter((item) => templateNames(item.url).every((name) => values[name])).map((item) => ({ item, url: fillTemplate(item.url, values) })), skipped = items.filter((item) => item.type === "rdp").length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
     return {
       web,
       note,
@@ -1678,7 +1718,10 @@ prompt for credentials:i:1\r
 
   // src/ui/views/favorites.js
   function isFavorite(item, sun) {
-    return item ? sun?.team ? readStoredSet(KEYS.teamFavorites).has(destinationKey(item)) : item.favorite === !0 : !1;
+    if (!item || isGroup(item)) return !1;
+    if (!sun?.team) return item.favorite === !0;
+    let key = destinationKey(item);
+    return key !== null && readStoredSet(KEYS.teamFavorites).has(key);
   }
   function favoriteItems() {
     let list = [];
@@ -1690,7 +1733,7 @@ prompt for credentials:i:1\r
   }
   function setFavorite(path, on) {
     let sun = groups[path[0]], item = itemAt(groups, path);
-    if (!item) return;
+    if (!item || isGroup(item)) return;
     if (sun.team) {
       let set = readStoredSet(KEYS.teamFavorites);
       on ? set.add(destinationKey(item)) : set.delete(destinationKey(item)), writeStoredSet(KEYS.teamFavorites, set), hooks.render();
@@ -1706,7 +1749,9 @@ prompt for credentials:i:1\r
     });
   }
   function noteOpened(item) {
-    !item || modes.inEditMode() || (recordRecent(destinationKey(item), item.name, Date.now()), setTimeout(() => hooks.refreshQuickBar(), 0));
+    if (!item || modes.inEditMode()) return;
+    let key = destinationKey(item);
+    key !== null && (recordRecent(key, item.name, Date.now()), setTimeout(() => hooks.refreshQuickBar(), 0));
   }
 
   // src/ui/dialogs/placeholder.js
@@ -1755,8 +1800,9 @@ prompt for credentials:i:1\r
 
   // src/ui/views/open.js
   function openDestination2(item) {
-    if (openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode }) === "ask") return askForVariables(item);
-    noteOpened(item);
+    let result = openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode });
+    if (result === "ask") return askForVariables(item);
+    result !== "skipped" && noteOpened(item);
   }
   function openLinks2(items, label, { confirm = !0, question = null, extra = "" } = {}) {
     let result = openLinks(items, label, { confirm, question, extra, ask: confirmed, onOpened: noteOpened });
@@ -1764,7 +1810,7 @@ prompt for credentials:i:1\r
   }
   function openAll(sunIndex, planetIndex) {
     let planet = groups[sunIndex]?.links[planetIndex];
-    return planet ? openLinks2(
+    return planet ? isGroup(planet) ? openLinks2(planet.moons, planet.name) : openLinks2(
       [planet, ...planet.moons],
       planet.name,
       { question: (count) => `Open ${count} tabs for ${planet.name} and its moons?` }
@@ -1776,8 +1822,8 @@ prompt for credentials:i:1\r
   function routineItems(routine) {
     let items = [], missing = 0;
     for (let link of routine.links) {
-      let path = pathsForKey(groups, link.key)[0];
-      path ? items.push({ path, item: itemAt(groups, path) }) : missing++;
+      let path = pathsForKey(groups, link.key)[0], item = path && itemAt(groups, path);
+      item && !isGroup(item) ? items.push({ path, item }) : missing++;
     }
     return { items, missing };
   }
@@ -2416,6 +2462,7 @@ prompt for credentials:i:1\r
     return text.toLocaleLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
   }
   function addressText(item) {
+    if (isGroup(item)) return "";
     if (item.type === "rdp") return item.host;
     try {
       let url = new URL(item.url);
@@ -2427,7 +2474,7 @@ prompt for credentials:i:1\r
   function searchEntries(groups2) {
     let entries = [], fields = (name, path, item) => {
       let list = [{ kind: "name", text: name.toLocaleLowerCase(), weight: 1, anywhere: !0 }];
-      return path && list.push({ kind: "path", text: path.toLocaleLowerCase(), weight: 0.7 }), item && (list.push({ kind: "address", text: addressText(item).toLocaleLowerCase(), weight: 0.6 }), item.tags?.length && list.push({ kind: "tag", text: item.tags.join(" "), weight: 0.8 }), item.note && list.push({ kind: "note", text: item.note.toLocaleLowerCase(), weight: 0.5 })), list.map((field) => ({ ...field, words: searchWords(field.text) }));
+      return path && list.push({ kind: "path", text: path.toLocaleLowerCase(), weight: 0.7 }), item && (isGroup(item) || list.push({ kind: "address", text: addressText(item).toLocaleLowerCase(), weight: 0.6 }), item.tags?.length && list.push({ kind: "tag", text: item.tags.join(" "), weight: 0.8 }), item.note && list.push({ kind: "note", text: item.note.toLocaleLowerCase(), weight: 0.5 })), list.map((field) => ({ ...field, words: searchWords(field.text) }));
     };
     return groups2.forEach((sun, sunIndex) => {
       entries.push({
@@ -2437,7 +2484,7 @@ prompt for credentials:i:1\r
       }), sun.links.forEach((planet, planetIndex) => {
         entries.push({
           match: {
-            kind: "Planet",
+            kind: isGroup(planet) ? "Group" : "Planet",
             name: planet.name,
             path: sun.name,
             destination: planet,
@@ -2578,6 +2625,9 @@ prompt for credentials:i:1\r
   function shareRoutine(routine) {
     exportPack(routine.name, routineItems(routine).items.map((entry) => entry.item), routine);
   }
+  function shareGroup(group) {
+    exportPack(group.name, group.moons);
+  }
   function shareFavorites() {
     let items = favoriteItems().map((entry) => entry.item);
     if (!items.length) return editorError("You have no favorites to share yet.");
@@ -2629,7 +2679,7 @@ prompt for credentials:i:1\r
         }) : next[Number(select.value)].links.push(...planets);
       }
       let nextRoutines;
-      if (withRoutine?.checked) {
+      if (withRoutine?.checked && pack.routine) {
         let taken = new Set(routines.map((routine) => routine.name.toLocaleLowerCase())), name = pack.routine.name;
         for (let n = 2; taken.has(name.toLocaleLowerCase()); n++) name = `${pack.routine.name} ${n}`;
         nextRoutines = [...routines, {
@@ -2691,6 +2741,7 @@ prompt for credentials:i:1\r
       let block = element("fieldset", "routine-sun");
       block.append(element("legend", "", `${sun.name}${sun.team ? " (team)" : ""}`)), sun.links.forEach((planet) => {
         [[planet, planet.name], ...planet.moons.map((moon) => [moon, `${planet.name} → ${moon.name}`])].forEach(([item, label]) => {
+          if (isGroup(item)) return;
           let key = destinationKey(item);
           seen.has(key) || (seen.add(key), block.append(routineCheckbox(item, `${label}${item.type === "rdp" ? " (Remote Desktop, not opened)" : ""}`, key, chosen.has(key))));
         });
@@ -2726,6 +2777,31 @@ prompt for credentials:i:1\r
       let next = [...routines];
       isNew ? next.push(value) : next[index] = value, applyEditorChange(copyGroups(), showRoutines, { routines: next, label: `${isNew ? "Added" : "Saved"} routine ${value.name}` });
     }), menuContent.append(form);
+  }
+
+  // src/ui/views/group-planets.js
+  var pendingGroup = null;
+  function setGroupExpanded(cluster, expanded = !0) {
+    cluster.classList.toggle("pinned", expanded), cluster.querySelector(".group-planet")?.setAttribute("aria-expanded", String(expanded));
+  }
+  function collapseGroup() {
+    let cluster = app.querySelector(".pinned");
+    return cluster ? (cluster.contains(document.activeElement) && !document.activeElement?.matches(".group-planet") && cluster.querySelector(".group-planet")?.focus(), setGroupExpanded(cluster, !1), !0) : !1;
+  }
+  function openGroup(sun, planet) {
+    let id = groups[sun]?.id;
+    if (!id) return;
+    let route = `group/${encodeURIComponent(id)}`;
+    pendingGroup = { id, planet }, setFindQuery(""), quickFind.value = "", location.hash === `#${route}` ? revealPendingGroup(id) : location.hash = route;
+  }
+  function revealPendingGroup(id) {
+    let next = pendingGroup;
+    if (pendingGroup = null, !next || id !== next.id) return;
+    let button = (
+      /** @type {HTMLButtonElement|null} */
+      app.querySelector(`.group-planet[data-planet="${next.planet}"]`)
+    ), cluster = button?.parentElement;
+    !button || !cluster || (collapseGroup(), setGroupExpanded(cluster), button.focus(), button.scrollIntoView({ block: "nearest" }));
   }
 
   // src/ui/layout/orbits.js
@@ -2953,7 +3029,7 @@ prompt for credentials:i:1\r
   // src/ui/find/results.js
   function findCopy(match) {
     let copy = element("span", "find-copy");
-    return copy.append(element("strong", "", `${match.icon ? `${match.icon} ` : ""}${match.name}`), element("small", "", match.path)), match.why && copy.append(element("small", "find-why", match.why)), match.destination?.note && copy.append(element("small", "find-note", match.destination.note)), match.tags?.length && copy.append(tagChips(match.tags)), copy;
+    return copy.append(element("strong", "", `${match.icon ? `${match.icon} ` : ""}${match.name}`), element("small", "", match.kind === "Group" ? `Group in ${match.path}` : match.path)), match.why && copy.append(element("small", "find-why", match.why)), match.destination?.note && copy.append(element("small", "find-note", match.destination.note)), match.tags?.length && copy.append(tagChips(match.tags)), copy;
   }
   function editFindResult(match) {
     let node = element("button", "find-item find-item-edit");
@@ -2961,18 +3037,21 @@ prompt for credentials:i:1\r
   }
   function findResult(match) {
     if (modes.inEditMode() && match.indices) return editFindResult(match);
-    let isRdp = match.destination?.type === "rdp", download = isRdp && rdpLaunchMode === "download", template = match.destination && !isRdp && templateNames(match.destination.url).length > 0, node = (
+    let group = match.kind === "Group", isRdp = match.destination?.type === "rdp", download = isRdp && rdpLaunchMode === "download", template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0, node = (
       /** @type {HTMLAnchorElement & HTMLButtonElement} */
-      element(match.id || download || template ? "button" : "a", "find-item")
+      element(match.id || group || download || template ? "button" : "a", "find-item")
     );
     return match.id ? (node.type = "button", node.addEventListener("click", () => {
       location.hash = `group/${encodeURIComponent(match.id)}`;
-    })) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, rdpPresets)), node.title = `Download Remote Desktop connection for ${match.name}`) : isRdp ? (node.href = rdpLaunchUrl(match.destination, rdpPresets), node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match)), node.append(element("span", "find-arrow", match.id ? "→" : download ? "↓" : "↗")), node;
+    })) : group ? (node.type = "button", node.addEventListener("click", () => openGroup(match.indices[0], match.indices[1]))) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, rdpPresets)), node.title = `Download Remote Desktop connection for ${match.name}`) : isRdp ? (node.href = rdpLaunchUrl(match.destination, rdpPresets), node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && !group && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match)), node.append(element("span", "find-arrow", match.id || group ? "→" : download ? "↓" : "↗")), node;
   }
   function findRow(match) {
     let result = findResult(match);
     if (!match.indices) return result;
-    let row = element("div", "find-row"), sun = groups[match.indices[0]], on = isFavorite(match.destination, sun), star = element("button", `favorite-toggle${on ? " is-favorite" : ""}`, on ? "★" : "☆");
+    let row = element("div", "find-row");
+    if (match.kind === "Group")
+      return row.append(result), row;
+    let sun = groups[match.indices[0]], on = isFavorite(match.destination, sun), star = element("button", `favorite-toggle${on ? " is-favorite" : ""}`, on ? "★" : "☆");
     return star.type = "button", star.setAttribute("aria-pressed", String(on)), star.setAttribute("aria-label", `${on ? "Remove" : "Add"} ${match.name} ${on ? "from" : "to"} favorites`), star.title = /** @type {string} */
     star.getAttribute("aria-label"), star.addEventListener("click", () => {
       setFavorite(match.indices, !on), app.querySelector(`.find-row [data-star="${match.indices.join(":")}"]`)?.focus();
@@ -3010,8 +3089,15 @@ prompt for credentials:i:1\r
 ${link.note}`), node;
   }
   function linkNode(link, className, path) {
-    let node = destinationNode(link, className, path);
+    let node = isGroup(link) ? groupButton(link, className) : destinationNode(link, className, path);
     return path && (tagPath(node, path.length === 3 ? "moon" : "planet", path[0], path[1], path[2]), modes.inEditMode() && (node.title = `Drag ${link.name} to move it`, node.setAttribute("aria-label", `${link.name}. Links are paused in Edit mode.`))), node;
+  }
+  function groupButton(group, className) {
+    let button = element("button", `${className} group-planet`, group.name);
+    button.type = "button";
+    let count = counted(group.moons.length, "link");
+    return button.title = `${group.name}: a group of ${count}`, group.note && (button.title += `
+${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${count}`), button.setAttribute("aria-expanded", "false"), button;
   }
   function orbitLines(points, center, size) {
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -3023,22 +3109,30 @@ ${link.note}`), node;
     return svg;
   }
   function planetNode(link, context, point, size, index, sunIndex) {
-    let cluster = element("div", `planet-cluster ${context}-planet-cluster`);
-    if (cluster.style.setProperty("--x", `${point.x / size * 100}%`), cluster.style.setProperty("--y", `${point.y / size * 100}%`), cluster.style.setProperty("--cos", Math.cos(point.angle).toFixed(4)), cluster.style.setProperty("--sin", Math.sin(point.angle).toFixed(4)), cluster.style.setProperty("--delay", `${index * (context === "home" ? 35 : 50)}ms`), cluster.append(linkNode(link, context === "home" ? "home-satellite" : "detail-satellite", [sunIndex, index])), link.moons.length) {
+    let cluster = element("div", `planet-cluster ${context}-planet-cluster`), group = isGroup(link);
+    if (group && cluster.classList.add("group-cluster"), cluster.style.setProperty("--x", `${point.x / size * 100}%`), cluster.style.setProperty("--y", `${point.y / size * 100}%`), cluster.style.setProperty("--cos", Math.cos(point.angle).toFixed(4)), cluster.style.setProperty("--sin", Math.sin(point.angle).toFixed(4)), cluster.style.setProperty("--delay", `${index * (context === "home" ? 35 : 50)}ms`), cluster.append(linkNode(link, context === "home" ? "home-satellite" : "detail-satellite", [sunIndex, index])), link.moons.length) {
       let field = element("div", "moon-field");
-      field.dataset.angle = String(point.angle), field.dataset.context = context, link.moons.slice(0, VISIBLE_MOONS).forEach((moon, moonIndex) => field.append(linkNode(moon, "moon-link", [sunIndex, index, moonIndex]))), cluster.append(field), cluster.append(element("span", "moon-badge", counted(link.moons.length, "moon")));
+      field.dataset.angle = String(point.angle), field.dataset.context = context, link.moons.slice(0, VISIBLE_MOONS).forEach((moon, moonIndex) => field.append(linkNode(moon, "moon-link", [sunIndex, index, moonIndex]))), cluster.append(field);
+    }
+    if (link.moons.length || group) {
+      let label = link.moons.length ? counted(link.moons.length, group ? "link" : "moon") : "No links yet";
+      cluster.append(element("span", "moon-badge", label));
     }
     return cluster;
   }
   function overflowPlanetNode(link, sunIndex, planetIndex) {
-    let item = element("div", "overflow-planet");
-    if (item.append(linkNode(link, "more-link", [sunIndex, planetIndex])), link.moons.length) {
+    let item = element("div", "overflow-planet"), group = isGroup(link);
+    if (group && item.classList.add("group-cluster"), item.append(linkNode(link, "more-link", [sunIndex, planetIndex])), link.moons.length) {
       let moons = element("div", "overflow-moons");
       link.moons.forEach((moon, moonIndex) => moons.append(
         linkNode(moon, "overflow-moon-link", [sunIndex, planetIndex, moonIndex])
       )), item.append(moons);
     }
-    return item;
+    return group && item.append(element(
+      "span",
+      "overflow-group-count",
+      link.moons.length ? counted(link.moons.length, "link") : "No links yet"
+    )), item;
   }
   function homeGroup(group, index) {
     let card = element("section", "group-card");
@@ -3091,8 +3185,13 @@ ${link.note}`), node;
     return bar;
   }
   function listLink(item, path, sun) {
-    let node = destinationNode(item, "list-link", path);
-    return node.dataset.editPath = path.join(":"), isFavorite(item, sun) && node.append(element("span", "list-favorite", " ★")), item.note && node.append(element("span", "list-note-text", ` — ${item.note}`)), item.tags?.length && node.append(tagChips(item.tags)), node;
+    let group = isGroup(item), node = group ? element("h3", "list-link list-group") : destinationNode(item, "list-link", path);
+    if (node.dataset.editPath = path.join(":"), group)
+      if (modes.inEditMode()) {
+        let edit = element("button", "list-link", item.name);
+        edit.type = "button", node.append(edit);
+      } else node.textContent = item.name;
+    return isFavorite(item, sun) && node.append(element("span", "list-favorite", " ★")), item.note && node.append(element("span", "list-note-text", ` — ${item.note}`)), item.tags?.length && node.append(tagChips(item.tags)), node;
   }
   function galaxyList() {
     let list = element("div", "galaxy-list");
@@ -3113,7 +3212,7 @@ ${link.note}`), node;
             item.append(listLink(moon, [sunIndex, planetIndex, moonIndex], sun)), moons.append(item);
           }), row.append(moons);
         }
-        planets.append(row);
+        isGroup(planet) && !planet.moons.length && row.append(element("p", "list-empty", "No links yet")), planets.append(row);
       }), sun.links.length || planets.append(element("li", "list-empty", "No planets yet.")), section.append(planets), list.append(section);
     }), list;
   }
@@ -3162,9 +3261,9 @@ ${link.note}`), node;
     let planets = group.links.map((planet, planetIndex) => ({ planet, planetIndex })).filter(({ planet }) => planet.moons.length);
     if (!planets.length) return null;
     let row = element("div", "open-all-row");
-    return row.append(element("span", "open-all-label", "Open a planet with all its moons:")), planets.forEach(({ planet, planetIndex }) => {
-      let button = element("button", "open-all-button", `${planet.name} + ${counted(planet.moons.length, "moon")}`);
-      button.type = "button", button.title = `Open ${planet.name} and its moons in new tabs (Shift+click a planet does the same)`, button.addEventListener("click", () => openAll(sunIndex, planetIndex)), row.append(button);
+    return row.append(element("span", "open-all-label", planets.some(({ planet }) => isGroup(planet)) ? "Open all links for a planet:" : "Open a planet with all its moons:")), planets.forEach(({ planet, planetIndex }) => {
+      let groupPlanet = isGroup(planet), button = element("button", "open-all-button", groupPlanet ? `${planet.name} · ${counted(planet.moons.length, "link")}` : `${planet.name} + ${counted(planet.moons.length, "moon")}`);
+      button.type = "button", button.title = groupPlanet ? `Open links in ${planet.name} in new tabs (Shift+click the group does the same)` : `Open ${planet.name} and its moons in new tabs (Shift+click a planet does the same)`, button.addEventListener("click", () => openAll(sunIndex, planetIndex)), row.append(button);
     }), row;
   }
   function renderDetail(group) {
@@ -3187,7 +3286,7 @@ ${link.note}`), node;
     let hub = tagPath(element("div", "detail-hub"), "sun", sunIndex);
     group.icon && hub.append(element("span", "hub-icon", group.icon)), hub.append(element("span", "detail-hub-name", group.name)), hub.append(element("span", "detail-hub-sub", counted(group.links.length, "planet"))), group.team && hub.append(element("span", "team-mark", "TEAM")), stage.append(hub), visible.forEach((link, i) => stage.append(planetNode(link, "detail", points[i], 640, i, sunIndex)));
     let note = element("p", "detail-note", modes.inEditMode() ? "Edit mode is on. Drag a planet or moon to move or reorder it; links stay closed until you turn Edit mode off." : group.links.some((link) => link.type === "rdp") ? rdpLaunchMode === "client" ? "Select a lab to open Remote Desktop Connection with its target loaded. Your browser may ask to open the helper." : "Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect." : "Select a planet to open its destination in a new tab.");
-    app.append(top, heading, stage, note);
+    !modes.inEditMode() && group.links.some(isGroup) && (note.textContent = "Select a group planet to show its links. Select a linked planet to open its destination."), app.append(top, heading, stage, note);
     let openAllRow = openAllActions(group, sunIndex);
     if (openAllRow && app.append(openAllRow), group.links.length > visible.length) {
       let more = element("section", "more-links");
@@ -3195,7 +3294,7 @@ ${link.note}`), node;
       let list = element("div", "more-grid");
       group.links.slice(visible.length).forEach((link, i) => list.append(overflowPlanetNode(link, sunIndex, visible.length + i))), more.append(list), app.append(more);
     }
-    let extraMoons = group.links.filter((link) => link.moons.length > VISIBLE_MOONS);
+    let extraMoons = group.links.filter((link, index) => link.moons.length > VISIBLE_MOONS && (!isGroup(link) || index < visible.length));
     if (extraMoons.length) {
       let section = element("section", "moon-overflow");
       section.append(element("h2", "", "More moons")), extraMoons.forEach((planet) => {
@@ -3213,7 +3312,7 @@ ${link.note}`), node;
   function render() {
     modes.send("render"), updateMapLabelSizes();
     let route = decodeURIComponent(location.hash.slice(1)), id = route.startsWith("group/") ? route.slice(6) : null, group = groups.find((item) => item.id === id);
-    modes.send(group ? "openSystem" : "toGalaxy"), group ? renderDetail(group) : renderHome(), layoutOrbits(), editToggle().hidden = !1, updateEditBar(), window.scrollTo({ top: 0, behavior: "instant" });
+    modes.send(group ? "openSystem" : "toGalaxy"), group ? renderDetail(group) : renderHome(), layoutOrbits(), editToggle().hidden = !1, updateEditBar(), window.scrollTo({ top: 0, behavior: "instant" }), revealPendingGroup(group?.id ?? null);
   }
 
   // src/ui/find/palette.js
@@ -3259,7 +3358,7 @@ ${link.note}`), node;
     ];
   }
   function runMatch(match) {
-    match.id ? location.hash = `group/${encodeURIComponent(match.id)}` : modes.linkOpensEditor("palette") ? openEditorAt(match.indices) : openDestination2(match.destination);
+    match.id ? location.hash = `group/${encodeURIComponent(match.id)}` : modes.linkOpensEditor("palette") ? openEditorAt(match.indices) : match.kind === "Group" ? openGroup(match.indices[0], match.indices[1]) : openDestination2(match.destination);
   }
   function paletteEntries(query) {
     let words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean), commands = paletteCommands().filter((command) => words.every((word) => command.label.toLocaleLowerCase().includes(word))), matches = query.trim() ? findMatches(groups, query).slice(0, 40) : [], entries = commands.map((command) => ({ kind: "Command", label: command.label, run: command.run })), address = typedAddress(query);
@@ -3269,14 +3368,17 @@ ${link.note}`), node;
       /** @type {any[]} */
       matches
     )
-      if (entries.push({ kind: match.kind, label: match.name, detail: match.why || match.path, match, run: () => runMatch(match) }), match.kind === "Planet" && !modes.inEditMode()) {
+      if (entries.push({ kind: match.kind, label: match.name, detail: match.why || match.path, match, run: () => runMatch(match) }), ["Planet", "Group"].includes(match.kind) && !modes.inEditMode()) {
         let planet = match.destination;
-        planet.moons.length && entries.push({
-          kind: "Command",
-          label: `Open all: ${planet.name} + ${counted(planet.moons.length, "moon")}`,
-          detail: match.path,
-          run: () => openAll(match.indices[0], match.indices[1])
-        });
+        if (planet.moons.length) {
+          let label = match.kind === "Group" ? `Open all: ${planet.name} · ${counted(planet.moons.length, "link")}` : `Open all: ${planet.name} + ${counted(planet.moons.length, "moon")}`;
+          entries.push({
+            kind: "Command",
+            label,
+            detail: match.path,
+            run: () => openAll(match.indices[0], match.indices[1])
+          });
+        }
       }
     return entries;
   }
@@ -3390,7 +3492,7 @@ ${link.note}`), node;
   // src/app/start.js
   function countDestinations() {
     let destinations = groups.reduce((total, group) => total + group.links.reduce(
-      (sum, link) => sum + 1 + link.moons.length,
+      (sum, link) => sum + +!isGroup(link) + link.moons.length,
       0
     ), 0);
     linkCount.textContent = `${counted(destinations, "link")} · ${counted(groups.length, "sun")}`.toUpperCase();
@@ -3462,7 +3564,7 @@ ${link.note}`), node;
           /** @type {any[]} */
           flattenFolder(sub).map(destination).filter(Boolean)
         );
-        items.length && links.push({ name: sub.name, url: items[0].url, moons: items.slice(1) });
+        items.length && links.push({ name: sub.name, type: "group", moons: items });
       }
       return { name: folder.name, description: "Imported from browser bookmarks", links };
     }).filter((sun) => sun.links.length);
@@ -3475,7 +3577,7 @@ ${link.note}`), node;
       try {
         let { map, stats } = bookmarksToMap(readBookmarksHtml(await file.text()));
         if (!map.groups.length) throw new Error("The file has no website bookmarks.");
-        let note = `Read ${counted(stats.links, "website bookmark")}${stats.skipped ? `; skipped ${counted(stats.skipped, "other link")} (not http or https)` : ""}${stats.truncated ? `; stopped at ${BOOKMARK_LIMIT}` : ""}. Each folder becomes a sun; a subfolder becomes a planet with its links as moons.`;
+        let note = `Read ${counted(stats.links, "website bookmark")}${stats.skipped ? `; skipped ${counted(stats.skipped, "other link")} (not http or https)` : ""}${stats.truncated ? `; stopped at ${BOOKMARK_LIMIT}` : ""}. Each folder becomes a sun; a subfolder becomes a group planet with all its links as moons.`;
         nav.showImportReview(map, { title: "Review bookmarks", replace: !1, label: "Imported browser bookmarks", note });
       } catch (error) {
         editorError(`Bookmark import failed: ${/** @type {any} */
@@ -3639,7 +3741,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     let byUrl = /* @__PURE__ */ new Map();
     return groups.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
       [[planet, [sunIndex, planetIndex]], ...planet.moons.map((moon, moonIndex) => [moon, [sunIndex, planetIndex, moonIndex]])].forEach(([item, path]) => {
-        item.type === "rdp" || templateNames(item.url).length || (byUrl.has(item.url) || byUrl.set(item.url, []), byUrl.get(item.url).push({ item, path }));
+        isGroup(item) || item.type === "rdp" || templateNames(item.url).length || (byUrl.has(item.url) || byUrl.set(item.url, []), byUrl.get(item.url).push({ item, path }));
       });
     })), byUrl;
   }
@@ -3793,15 +3895,17 @@ ${preset.settings}`, `the ${preset.name} preset`);
     let list = element("div", "editor-list");
     sun.links.forEach((planet, planetIndex) => {
       let row = element("div", "editor-list-row");
-      row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, "moon")}`)), row.append(editorButton("View", () => showTeamItem([index, planetIndex]))), list.append(row);
+      row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? "link" : "moon")}`)), row.append(editorButton("View", () => showTeamItem([index, planetIndex]))), list.append(row);
     }), menuContent.append(list);
   }
   function showTeamItem(path) {
     let sun = groups[path[0]], planet = sun.links[path[1]], item = itemAt(groups, path), isMoon = path.length === 3;
     if (!item) return showTeamSun(path[0]);
-    editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0])), menuContent.append(element("p", "", `${sun.name} sun${isMoon ? ` → ${planet.name} planet` : ""} · read-only team ${isMoon ? "moon" : "planet"}`)), menuContent.append(element("p", "data-source", item.type === "rdp" ? `Remote Desktop: ${item.host}` : item.url)), item.tags?.length && menuContent.append(tagChips(item.tags));
+    editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0])), menuContent.append(element("p", "", `${sun.name} sun${isMoon ? ` → ${planet.name} planet` : ""} · read-only team ${isMoon ? "moon" : "planet"}`));
+    let group = isGroup(item), summary = group ? item.moons.length ? counted(item.moons.length, "link") : "No links yet" : item.type === "rdp" ? `Remote Desktop: ${item.host}` : item.url;
+    menuContent.append(element("p", "data-source", summary)), item.tags?.length && menuContent.append(tagChips(item.tags));
     let favorite = isFavorite(item, sun);
-    editorActions().append(editorButton(favorite ? "Remove from favorites" : "Add to favorites", () => {
+    group || editorActions().append(editorButton(favorite ? "Remove from favorites" : "Add to favorites", () => {
       setFavorite(path, !favorite), showTeamItem(path);
     }));
     let options = isMoon ? groups.flatMap((target, targetSun) => target.team ? [] : target.links.map((targetPlanet, targetPlanetIndex) => [`${targetSun}:${targetPlanetIndex}`, `${target.name} → ${targetPlanet.name}`])) : personalSunOptions();
@@ -3809,7 +3913,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       let select = moveTargetField(options);
       select.setAttribute("aria-label", "Copy to"), select.previousElementSibling.textContent = "Copy to", editorActions().append(editorButton(isMoon ? "Copy moon to my map" : "Copy planet to my map", () => {
         let next = copyGroups(), [targetSun, targetPlanet] = select.value.split(":").map(Number);
-        isMoon ? next[targetSun].links[targetPlanet].moons.push(plainCopy(item)) : next[targetSun].links.push(plainCopy(item)), applyEditorChange(
+        isMoon && !isGroup(item) ? next[targetSun].links[targetPlanet].moons.push(plainCopy(item)) : next[targetSun].links.push(plainCopy(item)), applyEditorChange(
           next,
           () => isMoon ? nav.showMoonEditor(targetSun, targetPlanet, next[targetSun].links[targetPlanet].moons.length - 1) : nav.showPlanetEditor(targetSun, next[targetSun].links.length - 1),
           { label: `Copied team ${isMoon ? "moon" : "planet"} ${item.name}` }
@@ -3818,7 +3922,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     } else
       menuContent.append(element("p", "editor-hint", `Add ${isMoon ? "a planet" : "a sun"} to your own map to copy this ${isMoon ? "moon" : "planet"} into it.`));
     if (!isMoon && planet.moons.length) {
-      menuContent.append(element("h4", "editor-section-title", "Moons"));
+      menuContent.append(element("h4", "editor-section-title", group ? "Links" : "Moons"));
       let list = element("div", "editor-list");
       planet.moons.forEach((moon, moonIndex) => {
         let row = element("div", "editor-list-row");
@@ -3828,16 +3932,18 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
 
   // src/ui/editor/screens.js
-  function destinationFields(form, destination, onRdpImported) {
-    let type = element("label", "editor-field");
-    type.append(element("span", "", "Destination type"));
+  function destinationFields(form, destination, onRdpImported, allowGroup = !1) {
+    let type = element("label", "editor-field"), fieldName = allowGroup ? "Kind" : "Destination type";
+    type.append(element("span", "", fieldName));
     let select = document.createElement("select");
-    select.setAttribute("aria-label", "Destination type");
-    for (let [value, label] of [["web", "Website"], ["rdp", "Windows Remote Desktop"]]) {
+    select.setAttribute("aria-label", fieldName);
+    let kinds = [["web", "Website"], ["rdp", "Windows Remote Desktop"]];
+    allowGroup && kinds.push(["group", "Group (no link)"]);
+    for (let [value, label] of kinds) {
       let option = element("option", "", label);
       option.value = value, select.append(option);
     }
-    select.value = destination.type === "rdp" ? "rdp" : "web", type.append(select);
+    select.value = destination.type || "web", type.append(select);
     let url = editorField("Destination URL", destination.url || "", "url"), host = editorField("Computer name or IP address", destination.host || ""), rdpProfile = destination.rdpProfile || null, profileNote = element("p", "data-source", rdpProfile ? "Custom .rdp settings are saved with this link." : "No custom .rdp settings are saved."), settingsField = element("label", "editor-field");
     settingsField.append(element("span", "", "Connection settings"));
     let settingsSelect = document.createElement("select");
@@ -3865,7 +3971,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
           }
       }), input.click();
     }), update = () => {
-      url.wrapper.hidden = select.value !== "web", host.wrapper.hidden = select.value !== "rdp", profileNote.hidden = select.value !== "rdp", importRdp.hidden = select.value !== "rdp", settingsField.hidden = select.value !== "rdp";
+      url.wrapper.hidden = select.value !== "web", host.wrapper.hidden = select.value !== "rdp", profileNote.hidden = select.value !== "rdp", importRdp.hidden = select.value !== "rdp", settingsField.hidden = select.value !== "rdp", favorite.hidden = select.value === "group", url.input.disabled = select.value !== "web";
     };
     select.addEventListener("change", update);
     let note = editorField("Note", destination.note || "", "textarea");
@@ -3876,9 +3982,11 @@ ${preset.settings}`, `the ${preset.name} preset`);
     return favoriteInput.type = "checkbox", favoriteInput.checked = destination.favorite === !0, favorite.append(favoriteInput, element("span", "", "Favorite (shown at the top of the Galaxy)")), url.wrapper.append(element("small", "editor-hint", "Use {name} for a part that changes, such as https://jira.example.com/browse/{ticket}; Orbit asks for it when you open the link.")), form.append(type, url.wrapper, host.wrapper, settingsField, profileNote, importRdp, note.wrapper, tags.wrapper, favorite), update(), () => {
       let extras = {
         ...tags.input.value.trim() ? { tags: tags.input.value } : {},
-        ...favoriteInput.checked ? { favorite: !0 } : {},
+        ...favoriteInput.checked && select.value !== "group" ? { favorite: !0 } : {},
         ...note.input.value.trim() ? { note: note.input.value } : {}
-      }, choice = settingsSelect.value, keepProfile = rdpProfile && choice !== "none" ? { rdpProfile } : {}, preset = choice.startsWith("preset:") ? { rdpPreset: choice.slice(7) } : {};
+      };
+      if (select.value === "group") return { type: "group", ...extras };
+      let choice = settingsSelect.value, keepProfile = rdpProfile && choice !== "none" ? { rdpProfile } : {}, preset = choice.startsWith("preset:") ? { rdpPreset: choice.slice(7) } : {};
       return select.value === "rdp" ? { type: "rdp", host: host.input.value.trim(), ...keepProfile, ...preset, ...extras } : { url: url.input.value.trim(), ...extras };
     };
   }
@@ -3954,10 +4062,14 @@ ${preset.settings}`, `the ${preset.name} preset`);
         return;
       }
       let item = validItemExport(data, kind, sourceKind), back = kind === "sun" ? showSunList : kind === "planet" ? () => showSunEditor(sunIndex) : () => showPlanetEditor(sunIndex, planetIndex);
-      if (editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back), menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun" && (menuContent.append(element("p", "", "The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.")), menuContent.append(element("p", "", `Planet destination: ${item.links[0].host || item.links[0].url}`))), kind === "sun") {
+      if (editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back), menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun") {
+        let planet = item.links[0];
+        menuContent.append(element("p", "", isGroup(planet) ? "The group becomes the first planet in a new sun and keeps all its links." : "The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.")), isGroup(planet) || menuContent.append(element("p", "", `Planet destination: ${planet.host || planet.url}`));
+      }
+      if (kind === "sun") {
         let moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);
         menuContent.append(element("p", "", `${counted(item.links.length, "planet")} · ${counted(moons, "moon")}`));
-      } else kind === "planet" ? menuContent.append(element("p", "", `${counted(item.moons.length, "moon")} · ${item.host || item.url}`)) : menuContent.append(element("p", "", item.host || item.url));
+      } else kind === "planet" ? menuContent.append(element("p", "", isGroup(item) ? item.moons.length ? counted(item.moons.length, "link") : "No links yet" : `${counted(item.moons.length, "moon")} · ${item.host || item.url}`)) : menuContent.append(element("p", "", item.host || item.url));
       let destination = kind === "sun" ? "the Galaxy" : kind === "planet" ? `${groups[sunIndex].name} sun` : `${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet`;
       menuContent.append(element("p", "", `Add to ${destination}. Existing links will remain.`));
       let actions = editorActions();
@@ -4051,7 +4163,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       let list = element("div", "editor-list");
       sun.links.forEach((planet, planetIndex) => {
         let row = element("div", "editor-list-row");
-        row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, "moon")}`)), row.append(editorButton("Edit", () => showPlanetEditor(index, planetIndex))), list.append(row);
+        row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? "link" : "moon")}`)), row.append(editorButton("Edit", () => showPlanetEditor(index, planetIndex))), list.append(row);
       }), menuContent.append(list);
       let planetActions = editorActions();
       planetActions.append(editorButton("Add planet", () => showPlanetEditor(index, null), "editor-primary")), planetActions.append(editorButton("Import planet", () => importItem("planet", index))), planetActions.append(editorButton("Import .rdp files as planets", () => showRdpBatchImport("planet", index)));
@@ -4068,7 +4180,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     form.append(name.wrapper);
     let readDestination = destinationFields(form, planet, (file) => {
       isNew && !name.input.value.trim() && (name.input.value = file.name.replace(/\.rdp$/i, ""));
-    }), actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add planet" : "Save planet");
+    }, !0), actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add planet" : "Save planet");
     if (save.type = "submit", actions.append(save), isNew || (editorMoveControls(actions, planetIndex, groups[sunIndex].links.length, (amount) => {
       let next = copyGroups();
       moveEntry(next[sunIndex].links, planetIndex, amount) && applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex + amount));
@@ -4089,19 +4201,22 @@ ${preset.settings}`, `the ${preset.name} preset`);
         ...readDestination(),
         moons: isNew ? [] : next[sunIndex].links[planetIndex].moons
       };
-      isNew ? next[sunIndex].links.push(value) : next[sunIndex].links[planetIndex] = value, applyEditorChange(next, () => showPlanetEditor(
+      !isNew && isGroup(value) && !isGroup(planet) && !confirmed(`${planet.name} will become a group and lose its link ${planet.type === "rdp" ? planet.host : planet.url}. Continue?`) || (isNew ? next[sunIndex].links.push(value) : next[sunIndex].links[planetIndex] = value, applyEditorChange(next, () => showPlanetEditor(
         sunIndex,
         isNew ? next[sunIndex].links.length - 1 : planetIndex
-      ), { label: `${isNew ? "Added" : "Saved"} planet ${value.name}` });
+      ), { label: `${isNew ? "Added" : "Saved"} planet ${value.name}` }));
     }), menuContent.append(form), !isNew) {
-      editorActions().append(editorButton("Export planet", () => exportItem("planet", planet))), menuContent.append(element("h4", "editor-section-title", "Moons"));
+      let sharing = editorActions();
+      sharing.append(editorButton("Export planet", () => exportItem("planet", planet)));
+      let group = isGroup(planet);
+      group && planet.moons.length && sharing.append(editorButton("Share links as a pack", () => shareGroup(planet))), menuContent.append(element("h4", "editor-section-title", group ? "Links" : "Moons")), group && !planet.moons.length && menuContent.append(element("p", "data-source", "No links yet"));
       let list = element("div", "editor-list");
       planet.moons.forEach((moon, moonIndex) => {
         let row = element("div", "editor-list-row");
         row.append(element("span", "", moon.name)), row.append(editorButton("Edit", () => showMoonEditor(sunIndex, planetIndex, moonIndex))), list.append(row);
       }), menuContent.append(list);
       let moonActions = editorActions();
-      moonActions.append(editorButton("Add moon", () => showMoonEditor(sunIndex, planetIndex, null), "editor-primary")), moonActions.append(editorButton("Import moon", () => importItem("moon", sunIndex, planetIndex))), moonActions.append(editorButton("Import .rdp files as moons", () => showRdpBatchImport("moon", sunIndex, planetIndex))), planet.moons.some((moon) => moon.type === "rdp") && moonActions.append(editorButton("Apply RDP settings to moons", () => showBulkRdp(sunIndex, planetIndex)));
+      moonActions.append(editorButton(group ? "Add link" : "Add moon", () => showMoonEditor(sunIndex, planetIndex, null), "editor-primary")), moonActions.append(editorButton("Import moon", () => importItem("moon", sunIndex, planetIndex))), moonActions.append(editorButton("Import .rdp files as moons", () => showRdpBatchImport("moon", sunIndex, planetIndex))), planet.moons.some((moon) => moon.type === "rdp") && moonActions.append(editorButton("Apply RDP settings to moons", () => showBulkRdp(sunIndex, planetIndex)));
     }
   }
   function showCopyMoon(sunIndex, planetIndex, moonIndex) {
@@ -4125,9 +4240,9 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
   function showMoonEditor(sunIndex, planetIndex, moonIndex) {
     if (groups[sunIndex]?.team) return showTeamItem([sunIndex, planetIndex, moonIndex]);
-    let isNew = moonIndex === null, planet = groups[sunIndex].links[planetIndex], moon = isNew ? { name: "", url: "" } : planet.moons[moonIndex];
+    let isNew = moonIndex === null, planet = groups[sunIndex].links[planetIndex], moon = isNew ? { name: "", url: "" } : planet.moons[moonIndex], addLabel = isGroup(planet) ? "Add link" : "Add moon";
     if (editorHeader(
-      isNew ? "Add moon" : `Edit ${moon.name}`,
+      isNew ? addLabel : `Edit ${moon.name}`,
       () => showPlanetEditor(sunIndex, planetIndex)
     ), menuContent.append(element("p", "", `${groups[sunIndex].name} sun → ${planet.name} planet`)), !isNew) {
       let note = duplicateNote(moon, [sunIndex, planetIndex, moonIndex]);
@@ -4137,7 +4252,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     form.append(name.wrapper);
     let readDestination = destinationFields(form, moon, (file) => {
       isNew && !name.input.value.trim() && (name.input.value = file.name.replace(/\.rdp$/i, ""));
-    }), actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add moon" : "Save moon");
+    }), actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? addLabel : "Save moon");
     if (save.type = "submit", actions.append(save), isNew || (editorMoveControls(actions, moonIndex, planet.moons.length, (amount) => {
       let next = copyGroups();
       moveEntry(next[sunIndex].links[planetIndex].moons, moonIndex, amount) && applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex, moonIndex + amount));
@@ -4197,7 +4312,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       event.preventDefault();
       let inBar = editBar().contains(document.activeElement);
       setEditMode(!1), inBar && editToggle().focus();
-    } else target === "find" ? (event.preventDefault(), document.activeElement?.closest(".find-results") && quickFind.focus(), quickFind.value = "", setFindQuery(""), app.classList.contains("home-view") && quickFind.dispatchEvent(new Event("input"))) : target === "view" && (location.hash = "");
+    } else target === "find" ? (event.preventDefault(), document.activeElement?.closest(".find-results") && quickFind.focus(), quickFind.value = "", setFindQuery(""), app.classList.contains("home-view") && quickFind.dispatchEvent(new Event("input"))) : collapseGroup() ? event.preventDefault() : target === "view" && (location.hash = "");
   }
   function typingInField(target) {
     return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
@@ -4240,7 +4355,12 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
   function planetTarget(planet, [dx, dy]) {
     let cluster = planet.closest(".planet-cluster"), container = cluster.parentElement, planets = [...container.querySelectorAll(":scope > .planet-cluster > :is(.home-satellite, .detail-satellite)")];
-    return dx ? neighbor(planets, planet, dx) : dy > 0 ? cluster.querySelector(".moon-link") : container.querySelector(":scope > .home-hub");
+    if (dx) return neighbor(planets, planet, dx);
+    if (dy > 0) {
+      let moon = cluster.querySelector(".moon-link");
+      return moon && planet.matches(".group-planet") && !cluster.classList.contains("pinned") && !modes.inEditMode() && (collapseGroup(), setGroupExpanded(cluster)), moon;
+    }
+    return container.querySelector(":scope > .home-hub");
   }
   function moonTarget(moon, [dx, dy]) {
     let field = moon.closest(".moon-field");
@@ -4276,7 +4396,14 @@ ${preset.settings}`, `the ${preset.name} preset`);
     noteOpened(itemAt(groups, path));
   }
   function installClicks() {
-    document.addEventListener("click", trackDestinationClicks), document.addEventListener("auxclick", trackDestinationClicks), document.addEventListener("click", (event) => {
+    document.addEventListener("click", (event) => {
+      if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element)) return;
+      let button = event.target.closest("button.group-planet");
+      if (button && app.contains(button) && button.parentElement) {
+        let cluster = button.parentElement, expanded = cluster.classList.contains("pinned");
+        collapseGroup(), expanded || setGroupExpanded(cluster);
+      } else event.target.closest(".pinned") || collapseGroup();
+    }), document.addEventListener("click", trackDestinationClicks), document.addEventListener("auxclick", trackDestinationClicks), document.addEventListener("click", (event) => {
       if (!event.shiftKey || modes.inEditMode() || !(event.target instanceof Element)) return;
       let node = (
         /** @type {HTMLElement | null} */

@@ -8,13 +8,14 @@ import { element, tagChips } from '../dom.js';
 import { askForVariables } from '../dialogs/placeholder.js';
 import { openEditorAt } from '../editor/page.js';
 import { modes } from '../page-modes.js';
+import { openGroup } from '../views/group-planets.js';
 import { isFavorite, setFavorite } from '../views/favorites.js';
 import { app, groups, rdpLaunchMode, rdpPresets } from '../page.js';
 
 /** @param {any} match */
 function findCopy(match) {
   const copy = element('span', 'find-copy');
-  copy.append(element('strong', '', `${match.icon ? `${match.icon} ` : ''}${match.name}`), element('small', '', match.path));
+  copy.append(element('strong', '', `${match.icon ? `${match.icon} ` : ''}${match.name}`), element('small', '', match.kind === 'Group' ? `Group in ${match.path}` : match.path));
   if (match.why) copy.append(element('small', 'find-why', match.why));
   if (match.destination?.note) copy.append(element('small', 'find-note', match.destination.note));
   if (match.tags?.length) copy.append(tagChips(match.tags));
@@ -39,13 +40,17 @@ function editFindResult(match) {
 /** @param {any} match */
 function findResult(match) {
   if (modes.inEditMode() && match.indices) return editFindResult(match);
+  const group = match.kind === 'Group';
   const isRdp = match.destination?.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
-  const template = match.destination && !isRdp && templateNames(match.destination.url).length > 0;
-  const node = /** @type {HTMLAnchorElement & HTMLButtonElement} */ (element(match.id || download || template ? 'button' : 'a', 'find-item'));
+  const template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0;
+  const node = /** @type {HTMLAnchorElement & HTMLButtonElement} */ (element(match.id || group || download || template ? 'button' : 'a', 'find-item'));
   if (match.id) {
     node.type = 'button';
     node.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(match.id)}`; });
+  } else if (group) {
+    node.type = 'button';
+    node.addEventListener('click', () => openGroup(match.indices[0], match.indices[1]));
   } else if (template) {
     node.type = 'button';
     node.dataset.template = 'true';
@@ -62,9 +67,9 @@ function findResult(match) {
     node.target = '_blank';
     node.rel = 'noopener noreferrer';
   }
-  if (match.indices) node.dataset.destination = match.indices.join(':');
+  if (match.indices && !group) node.dataset.destination = match.indices.join(':');
   node.append(element('span', 'find-kind', match.kind), findCopy(match));
-  node.append(element('span', 'find-arrow', match.id ? '→' : download ? '↓' : '↗'));
+  node.append(element('span', 'find-arrow', match.id || group ? '→' : download ? '↓' : '↗'));
   return node;
 }
 
@@ -76,6 +81,10 @@ export function findRow(match) {
   const result = findResult(match);
   if (!match.indices) return result;
   const row = element('div', 'find-row');
+  if (match.kind === 'Group') {
+    row.append(result);
+    return row;
+  }
   const sun = groups[match.indices[0]];
   const on = isFavorite(match.destination, sun);
   const star = element('button', `favorite-toggle${on ? ' is-favorite' : ''}`, on ? '★' : '☆');

@@ -170,7 +170,9 @@ export function pathLabel(path) {
  */
 export function duplicateNote(item, path) {
   if (!item?.name) return null;
-  const others = pathsForKey(groups, destinationKey(item)).filter(other => other.join(':') !== path.join(':'));
+  const key = destinationKey(item);
+  if (key === null) return null;
+  const others = pathsForKey(groups, key).filter(other => other.join(':') !== path.join(':'));
   if (!others.length) return null;
   const where = others.slice(0, 3).map(other => pathLabel(other)).join('; ');
   return element('p', 'editor-note', `Also in ${where}${others.length > 3 ? `, and ${others.length - 3} more` : ''}. This is fine for a deliberate copy.`);

@@ -144,3 +144,5 @@ Each rule says how it's pinned:
 2. The fragment never enters a destination key; `url.hash = ''` is redundant.
 3. Presets have a 100-line limit that the plan's list didn't include.
 4. `rdpProfile: null` and `""` fail with different messages.
+
+Group planets were added in 3.x. The 2.2.1 oracle covers linked planets and compares bookmark imports in the old folder representation. Current-format tests cover group planets directly.

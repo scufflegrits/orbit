@@ -31,7 +31,7 @@ def main():
         page.goto(args.url, wait_until="load")
         page.locator(".home-hub").first.wait_for()
         suns, links = page.evaluate("""() => [ORBIT_DATA.groups.length,
-          ORBIT_DATA.groups.reduce((n, sun) => n + sun.links.reduce((m, planet) => m + 1 + (planet.moons || []).length, 0), 0)]""")
+          ORBIT_DATA.groups.reduce((n, sun) => n + sun.links.reduce((m, planet) => m + Number(planet.type !== "group") + (planet.moons || []).length, 0), 0)]""")
         count = page.locator("#link-count").inner_text()
         assert page.locator(".home-hub").count() == suns and f"{suns} SUNS" in count and f"{links} LINKS" in count, count
         page.locator("#edit-toggle").click()

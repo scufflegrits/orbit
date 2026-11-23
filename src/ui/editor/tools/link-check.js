@@ -1,6 +1,6 @@
 // Check links (2.2.1 tools.js): ask serve.py whether each web address answers; server mode only.
 // Moved in rewrite phase 6b.
-import { destinationKey } from '../../../core/destination.js';
+import { destinationKey, isGroup } from '../../../core/destination.js';
 import { templateNames } from '../../../core/templates.js';
 import { checkLinks } from '../../../services/link-check.js';
 import { counted, element } from '../../dom.js';
@@ -14,7 +14,7 @@ function webLinksByUrl() {
     [[planet, [sunIndex, planetIndex]], ...planet.moons.map((/** @type {any} */ moon, /** @type {any} */ moonIndex) => [moon, [sunIndex, planetIndex, moonIndex]])]
       .forEach(([item, path]) => {
         // Remote Desktop links and links with {placeholders} are not checked.
-        if (item.type === 'rdp' || templateNames(item.url).length) return;
+        if (isGroup(item) || item.type === 'rdp' || templateNames(item.url).length) return;
         if (!byUrl.has(item.url)) byUrl.set(item.url, []);
         byUrl.get(item.url).push({ item, path });
       });

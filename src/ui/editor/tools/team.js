@@ -1,6 +1,6 @@
 // Read-only team screens (2.2.1 tools.js): view a team sun, planet, or moon, and copy it into the personal map.
 // Moved in rewrite phase 6b.
-import { itemAt } from '../../../core/destination.js';
+import { isGroup, itemAt } from '../../../core/destination.js';
 import * as mapOps from '../../../core/map-ops.js';
 import { store } from '../../../state/page-store.js';
 import { counted, descriptionNode, element, tagChips } from '../../dom.js';
@@ -38,7 +38,7 @@ export function showTeamSun(index) {
   const list = element('div', 'editor-list');
   sun.links.forEach((/** @type {any} */ planet, /** @type {any} */ planetIndex) => {
     const row = element('div', 'editor-list-row');
-    row.append(element('span', '', `${planet.name} · ${counted(planet.moons.length, 'moon')}`));
+    row.append(element('span', '', `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? 'link' : 'moon')}`));
     row.append(editorButton('View', () => showTeamItem([index, planetIndex])));
     list.append(row);
   });
@@ -56,10 +56,13 @@ export function showTeamItem(path) {
   if (!item) return showTeamSun(path[0]);
   editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0]));
   menuContent.append(element('p', '', `${sun.name} sun${isMoon ? ` → ${planet.name} planet` : ''} · read-only team ${isMoon ? 'moon' : 'planet'}`));
-  menuContent.append(element('p', 'data-source', item.type === 'rdp' ? `Remote Desktop: ${item.host}` : item.url));
+  const group = isGroup(item);
+  const summary = group ? (item.moons.length ? counted(item.moons.length, 'link') : 'No links yet')
+    : item.type === 'rdp' ? `Remote Desktop: ${item.host}` : item.url;
+  menuContent.append(element('p', 'data-source', summary));
   if (item.tags?.length) menuContent.append(tagChips(item.tags));
   const favorite = isFavorite(item, sun);
-  editorActions().append(editorButton(favorite ? 'Remove from favorites' : 'Add to favorites', () => {
+  if (!group) editorActions().append(editorButton(favorite ? 'Remove from favorites' : 'Add to favorites', () => {
     setFavorite(path, !favorite);
     showTeamItem(path);
   }));
@@ -75,7 +78,7 @@ export function showTeamItem(path) {
     editorActions().append(editorButton(isMoon ? 'Copy moon to my map' : 'Copy planet to my map', () => {
       const next = copyGroups();
       const [targetSun, targetPlanet] = select.value.split(':').map(Number);
-      if (isMoon) next[targetSun].links[targetPlanet].moons.push(mapOps.plainCopy(item));
+      if (isMoon && !isGroup(item)) next[targetSun].links[targetPlanet].moons.push(mapOps.plainCopy(item));
       else next[targetSun].links.push(mapOps.plainCopy(item));
       applyEditorChange(next, () => isMoon
         ? nav.showMoonEditor(targetSun, targetPlanet, next[targetSun].links[targetPlanet].moons.length - 1)
@@ -86,7 +89,7 @@ export function showTeamItem(path) {
     menuContent.append(element('p', 'editor-hint', `Add ${isMoon ? 'a planet' : 'a sun'} to your own map to copy this ${isMoon ? 'moon' : 'planet'} into it.`));
   }
   if (!isMoon && planet.moons.length) {
-    menuContent.append(element('h4', 'editor-section-title', 'Moons'));
+    menuContent.append(element('h4', 'editor-section-title', group ? 'Links' : 'Moons'));
     const list = element('div', 'editor-list');
     planet.moons.forEach((/** @type {any} */ moon, /** @type {any} */ moonIndex) => {
       const row = element('div', 'editor-list-row');

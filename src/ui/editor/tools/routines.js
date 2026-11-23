@@ -1,6 +1,6 @@
 // Routines (2.2.1 routines.js): the list, and the editor for a routine's links and schedule.
 // Moved in rewrite phase 6b.
-import { destinationKey } from '../../../core/destination.js';
+import { destinationKey, isGroup } from '../../../core/destination.js';
 import { confirmed } from '../../dialogs/confirm.js';
 import { counted, element } from '../../dom.js';
 import { routineItems, runRoutine } from '../../views/open.js';
@@ -115,6 +115,7 @@ export function showRoutineEditor(index) {
     block.append(element('legend', '', `${sun.name}${sun.team ? ' (team)' : ''}`));
     sun.links.forEach((/** @type {any} */ planet) => {
       [[planet, planet.name], ...planet.moons.map((/** @type {any} */ moon) => [moon, `${planet.name} → ${moon.name}`])].forEach(([item, label]) => {
+        if (isGroup(item)) return;
         const key = destinationKey(item);
         if (seen.has(key)) return;
         seen.add(key);

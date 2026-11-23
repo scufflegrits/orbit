@@ -20,8 +20,8 @@ test('toolbar folders are unwrapped, other folders become suns, loose links go t
   assert.deepEqual(map.groups.map(sun => sun.name), ['Work', 'Bookmarks bar', 'News', 'Bookmarks']);
   const news = map.groups[2];
   assert.deepEqual(news.links.map(p => p.name), ['Verge', 'Sub'], 'a subfolder becomes one planet');
-  assert.equal(news.links[1].url, 'https://a.test/', 'its first link is the planet');
-  assert.deepEqual(news.links[1].moons.map(m => m.name), ['B', 'C'], 'the rest, deeper folders included, are moons');
+  assert.equal(news.links[1].type, 'group');
+  assert.deepEqual(news.links[1].moons.map(m => m.name), ['A', 'B', 'C'], 'all links, deeper folders included, are moons');
   assert.equal(news.description, 'Imported from browser bookmarks');
   assert.deepEqual(stats, { links: 7, skipped: 0, truncated: false });
 });
@@ -43,7 +43,7 @@ test(`at most ${BOOKMARK_LIMIT} links are imported`, () => {
   assert.deepEqual(stats, { links: BOOKMARK_LIMIT, skipped: 0, truncated: true });
 });
 
-// Differential: random folder trees give 2.2.1's map and counts, or its error.
+// Differential: compare counts, errors, and the legacy projection of each folder tree.
 const nameArb = fc.constantFrom('Work', 'News', 'Bookmarks bar', 'Favorites bar', 'Other bookmarks', 'Mobile bookmarks', 'Sub', '', 'A & B');
 const linkArb = fc.record({ name: fc.constantFrom('', 'Docs', 'Jira', 'x'), url: webUrl });
 const tree = fc.letrec(tie => ({
@@ -51,11 +51,17 @@ const tree = fc.letrec(tie => ({
     folders: fc.oneof({ depthSize: 'small', withCrossShrink: true }, fc.constant([]), fc.array(tie('folder'), { maxLength: 3 })) }),
 })).folder;
 
-test('bookmarksToMap matches 2.2.1 on random folder trees', () => {
+test('bookmarksToMap accounts for every bookmark 2.2.1 imported on random folder trees', () => {
   fc.assert(fc.property(tree, root => {
     let mine;
     try {
-      mine = JSON.parse(JSON.stringify(bookmarksToMap(root)));
+      const { map, stats } = bookmarksToMap(root);
+      const groups = map.groups.map(sun => ({ ...sun, links: sun.links.map(planet => {
+        if (planet.type !== 'group') return planet;
+        const [first, ...moons] = planet.moons;
+        return { name: planet.name, url: /** @type {{url: string}} */ (first).url, moons };
+      }) }));
+      mine = { map: { groups }, stats };
     } catch (error) {
       mine = { error: error.message };
     }

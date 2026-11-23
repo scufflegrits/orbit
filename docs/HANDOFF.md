@@ -30,7 +30,7 @@ Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and t
 
 ## Project intent
 
-Orbit is a local webpage for frequently visited links; no hosting or accounts. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets (destinations); hovering over a planet reveals its moons (nested destinations). Clicking a sun opens its System; clicking a planet or moon opens its link in a new tab, or downloads/launches a Remote Desktop connection. The smallest supported screen is 1920×1080. No personal links have been supplied; the bundled map is sample data (nine suns, 45 planets, 61 moons).
+Orbit is a local webpage for frequently visited links; no hosting or accounts. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets. Clicking a sun opens its System. Linked planets and moons open websites or download or launch Remote Desktop connections. Clicking a group planet shows its moons until dismissed. The smallest supported screen is 1920×1080. The bundled map has ten suns and 123 destinations.
 
 ## Run and edit
 
@@ -65,13 +65,13 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 ## Things to know before changing code
 
-**Map schema.** `{ groups: [sun…], routines?, rdpPresets? }`. A sun has `id`, `name`, `description`, `color`, `links` (planets), optional `icon`. A planet or moon is a web link (`url`) or Remote Desktop link (`type: 'rdp'`, `host`, optional profile), with optional `tags`, `favorite`, `note`, `rdpPreset`; planets have `moons`. Optional fields are dropped when empty. Web URLs may contain up to five `{placeholders}` (`PLACEHOLDER`, `templateNames`, `fillTemplate`). Routines are `{id, name, links: [{key, name}], schedule?: {time, days}}`; presets are `{id, name, settings}` (`.rdp` lines, never passwords).
+**Map schema.** `{ groups: [sun…], routines?, rdpPresets? }`. A sun has `id`, `name`, `description`, `color`, `links` (planets), optional `icon`. A link is a website (`url`) or Remote Desktop destination (`type: 'rdp'`, `host`, optional profile). A planet is a link with `moons`, or a group with `name`, `type: 'group'`, `moons`, and optional `tags` and `note`. Each moon is a link. Optional fields are dropped when empty. Web URLs may contain up to five `{placeholders}` (`PLACEHOLDER`, `templateNames`, `fillTemplate`). Routines are `{id, name, links: [{key, name}], schedule?: {time, days}}`; presets are `{id, name, settings}` (`.rdp` lines, never passwords).
 
-**Saving.** Every change goes through `saveMap(data, label)` (editors call `applyEditorChange(next, after, { label, routines?, rdpPresets? })`). It strips team suns, validates, stores, records the previous map in version history (last 20; `label === false` skips), keeps routines and presets unless given, bumps `mapRevision`, and counts a change for the backup reminder.
+**Saving.** Every change goes through `saveMap(data, label)` (editors call `applyEditorChange(next, after, { label, routines?, rdpPresets? })`). It strips team suns, validates, stores, records the previous map in version history (last 20; `label === false` skips), keeps routines and presets unless given, bumps `mapRevision`, and counts a change for the backup reminder. The first save containing a group marks storage version 1. Before replacing an unreadable map, the store preserves the raw text under that map key with an `:unreadable` suffix. Orbit 3.0.2 and earlier can overwrite saved group maps if run with the same browser storage.
 
 **Team map.** Team suns sit at the front of the same `groups` array, marked `team: true` with ids prefixed `team:`, so every path index is a combined index. Editors, drag, Move/Copy targets, and Quick add skip or refuse them. In tests, a page's `copyGroups()` therefore has the team sun at index 0 when a team map is loaded.
 
-**Destination keys.** `destinationKey(item)` is a normalized URL or `rdp:host[:port]`. Recents, favorites of team links, routines, duplicates, merge import, link packs, link-check results, and team update notices all match on it; `pathsForKey` finds an item's current position.
+**Destination keys.** `destinationKey(item)` is a normalized URL or `rdp:host[:port]` for a link, and `null` for a group planet. Imports match group planets case-insensitively by name within a sun. Recents, favorites of team links, routines, duplicates, merge import, link packs, link-check results, and team update notices all match on it; `pathsForKey` finds an item's current position.
 
 **Workspaces.** `MAP_STORAGE_KEY`, `UNDO_STORAGE_KEY`, and `HISTORY_STORAGE_KEY` are `let` in `app.js`, built by `workspaceKey()`. Main keeps the original keys (so pre-2.2 maps stay put); other workspaces append `:<id>`. Preferences and the team map are shared across workspaces.
 
@@ -97,9 +97,9 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS10 at 1920×1080 | 19 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F29, no F05 | all passed |
+| `tests/features.py` | F01–F30, no F05 | all passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
-| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 182 passed |
+| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 194 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
 | `tests/data_compat_check.py` | The 2.2 storage fixture reads back as recorded | passed |
@@ -153,7 +153,6 @@ Tips:
 
 ## Open follow-ups
 
-- **Unreleased changes on `main`:** the sun picker for whole-map imports, two Galaxy hover fixes, and new Dev Toolbox moons (CHANGELOG "Unreleased"). Release them as 3.0.3 with a zip only when the user asks (docs/RELEASING.md).
-- **Planned, decisions made, not started: group planets** (a planet without a link of its own). The plan is the user's private note `private/request-planet-nolink.md` (gitignored, on this machine only); it lists every file to change, the tests to write first, and the old-version risk.
+- **Unreleased changes on `main`:** group planets, the sun picker for whole-map imports, two Galaxy hover fixes, and new Dev Toolbox links (CHANGELOG "Unreleased"). Release them as 3.0.3 with a zip only when the user asks (docs/RELEASING.md).
 - **Test quirk:** `tests/browser_matrix.py --milestone 11 --only-new` fails on its own (also before 3.0.2); the full matrix passes. Run milestone 11 through the full matrix until it is looked into.
 - Every feature check, including batch 3 (2.2.0), has passed in a visible Edge window (3.0.0, 2026-11-22). No deployment or hosting has been done.

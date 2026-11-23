@@ -197,3 +197,9 @@ export const rawMap = fc.oneof(
 export const runs = (numRuns = 300) => ({ numRuns, seed: process.env.FC_SEED ? Number(process.env.FC_SEED) : 2026 });
 
 export { rawDestination, rawSun, rawRoutine, rawPreset };
+
+/** Group planets are only generated for tests of the current format. */
+export const mapWithGroups = fc.tuple(validMap, validSun, fc.array(validDestination, { maxLength: 8 }))
+  .map(([suns, sun, moons]) => ({ groups: [...suns, { ...sun, id: 'group-test', links: [
+    ...sun.links, { name: 'Monitoring', type: 'group', note: 'Dashboards', moons },
+  ] }] }));

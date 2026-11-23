@@ -53,10 +53,13 @@ test('storage: the backend is looked up on every call, so a swapped storage take
   assert.equal(storage.getItem('orbit:x'), null);
 });
 
-test('migrations: version 0 is 2.2.x, so start-up reads and writes nothing', () => {
-  assert.equal(MIGRATIONS.length, 0);
+test('version 1 migration marks storage without changing earlier data', () => {
+  write(KEYS.map, 'earlier map');
+  assert.deepEqual(MIGRATIONS.map(migration => migration.version), [1]);
+  assert.deepEqual(migrate(), [1]);
+  assert.equal(storage.getItem(KEYS.map), 'earlier map');
+  assert.equal(storage.getItem('orbit:storage-version'), '1');
   assert.deepEqual(migrate(), []);
-  assert.equal(storage.data.size, 0);
 });
 
 test('external change: only Orbit keys from another tab are reported', () => {

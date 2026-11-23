@@ -269,3 +269,26 @@ test('duplicateGroups matches 2.2.1', () => {
     assert.deepEqual(plain(duplicateGroups(map)), sandbox.call('duplicateGroups'));
   }), runs(300));
 });
+
+test('group merges match by name within a sun, and duplicates include only destinations', () => {
+  const map = mapForMoves();
+  const moon = map[1].links[0].moons[0];
+  const group = { name: 'Jira', type: /** @type {const} */ ('group'), moons: [moon] };
+  map[1].links.push(group);
+  map[2].links.push({ ...group, moons: [] });
+  const incoming = [{ ...map[1], links: [
+    { ...group, name: 'JIRA', moons: [moon, { name: 'New', url: 'https://new.test/' }] },
+    { ...group, name: 'Other', moons: [] },
+  ] }];
+  assert.deepEqual(sunAdditions(map, incoming), [{ isNew: false, planets: 1, moons: 1 }]);
+  const merged = mergeMaps(map, incoming).groups;
+  assert.deepEqual(merged[1].links.map(p => p.moons.length), [1, 0, 2, 0]);
+  assert.deepEqual(merged[2].links[1].moons, []);
+  assert.deepEqual(duplicateGroups(merged).map(entries => entries.map(entry => entry.path)), [[[1, 0, 0], [1, 2, 0]]]);
+  const moved = moveMapItem(merged, { kind: 'planet', sun: 1, planet: 2 }, { kind: 'sun', sun: 2 });
+  assert.equal(moved.status, 'moved');
+  if (moved.status !== 'moved') return;
+  const movedMoon = moveMapItem(moved.groups, { kind: 'moon', sun: 1, planet: 0, moon: 0 }, moved.path);
+  assert.equal(movedMoon.status, 'moved');
+  if (movedMoon.status === 'moved') assert.equal(movedMoon.groups[2].links[2].moons.length, 3);
+});

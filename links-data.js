@@ -248,9 +248,13 @@ window.ORBIT_DATA = {
           "url": "https://devdocs.io/"
         },
         {
-          "name": "Excalidraw",
-          "url": "https://excalidraw.com/",
+          "name": "Diagramming",
+          "type": "group",
           "moons": [
+            {
+              "name": "Excalidraw",
+              "url": "https://excalidraw.com/"
+            },
             {
               "name": "PlantUML JSON diagrams",
               "url": "https://plantuml.com/json"

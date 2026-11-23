@@ -6,6 +6,7 @@
 // Where the code looks odd, it's on purpose: the differential test compares
 // error messages, and a raw TypeError's message quotes the expression that
 // failed (see `days` in validRoutines).
+import { isGroup } from './destination.js';
 import { templateNames, PLACEHOLDER } from './templates.js';
 import { parseRdpProfile, presetSettings, validRdpHost } from './rdp.js';
 
@@ -69,6 +70,7 @@ function destinationExtras(value, label) {
  * @returns {Destination}
  */
 export function validDestination(value, label) {
+  if (isGroup(value)) throw new Error(`${label} can't be a group; only a planet can.`);
   if (!value || typeof value !== 'object') throw new Error(`${label} needs a name and destination.`);
   const name = String(value.name || '').trim();
   if (!name) throw new Error(`${label} needs a name.`);
@@ -125,6 +127,29 @@ export function uniqueSunId(name, used) {
 }
 
 /**
+ * @param {any} value
+ * @param {string} label
+ * @returns {Planet}
+ */
+function validPlanet(value, label) {
+  const planet = isGroup(value) ? validGroup(value, label) : validDestination(value, label);
+  if (value.moons !== undefined && !Array.isArray(value.moons)) {
+    throw new Error(`${planet.name} needs a moons array.`);
+  }
+  const moons = (value.moons || []).map((/** @type {any} */ moon, /** @type {number} */ index) =>
+    validDestination(moon, `Moon ${index + 1} around ${planet.name}`));
+  return { ...planet, moons };
+}
+
+/** @param {any} value @param {string} label */
+function validGroup(value, label) {
+  const name = String(value.name || '').trim();
+  if (!name) throw new Error(`${label} needs a name.`);
+  const { tags, note } = destinationExtras(value, label);
+  return { name, type: /** @type {const} */ ('group'), ...(tags ? { tags } : {}), ...(note ? { note } : {}) };
+}
+
+/**
  * A whole map, in its stored shape: unknown fields dropped, defaults filled
  * in, empty routine and preset lists left out. Throws an Error with a message
  * for the user when something can't be fixed.
@@ -149,13 +174,7 @@ export function validateMap(data) {
     used.add(id);
     /** @type {Planet[]} */
     const links = group.links.map((/** @type {any} */ link, /** @type {number} */ linkIndex) => {
-      const planet = validDestination(link, `Planet ${linkIndex + 1} in ${name}`);
-      if (link.moons !== undefined && !Array.isArray(link.moons)) {
-        throw new Error(`${planet.name} needs a moons array.`);
-      }
-      const moons = (link.moons || []).map((/** @type {any} */ moon, /** @type {number} */ moonIndex) =>
-        validDestination(moon, `Moon ${moonIndex + 1} around ${planet.name}`));
-      return { ...planet, moons };
+      return validPlanet(link, `Planet ${linkIndex + 1} in ${name}`);
     });
     const icon = validSunIcon(group.icon, name);
     return { id, name, description: String(group.description || ''), color, ...(icon ? { icon } : {}), links };
@@ -250,12 +269,14 @@ export function validRoutines(value) {
   });
 }
 
+/** @typedef {{name: string, links: Destination[], routine: {name: string, schedule: any} | null}} LinkPack */
+
 /**
  * A link pack file (orbit-pack-v1). Links are validated one by one; a
  * routine's schedule is passed through unchecked, as in 2.2.1 (it's checked
  * when the routine is added).
  * @param {any} data
- * @returns {{name: string, links: Destination[], routine: {name: string, schedule: any} | null}}
+ * @returns {LinkPack}
  */
 export function validPack(data) {
   if (!data || data.format !== 'orbit-pack-v1' || !Array.isArray(data.links)) {

@@ -2,7 +2,7 @@
 // duplicates, and copying team items into the personal map. Pure: each takes
 // the map and returns a new value, never changing its input. Moved from
 // drag.js, tools.js, routines.js, team.js, sharing.js, and storage.js (2.2.1).
-import { destinationKey } from './destination.js';
+import { destinationKey, isGroup } from './destination.js';
 import { uniqueSunId } from './schema.js';
 
 export { uniqueSunId };
@@ -113,7 +113,7 @@ export function personalGroups(list) {
 /**
  * Add what is new in `incoming` to `personal`, never changing what is there.
  * Suns match by id, then by name (ignoring case); planets match inside their
- * sun, and moons inside their planet, by destination key. When two planets in
+ * sun, and moons inside their planet, by destination key. Groups match groups by name within the sun. When two planets in
  * a sun share an address, moons merge into the first.
  * @param {Sun[]} personal
  * @param {Sun[]} incoming
@@ -140,7 +140,9 @@ export function mergeMaps(personal, incoming) {
     skipped.suns++;
     for (const sourcePlanet of source.links) {
       const key = destinationKey(sourcePlanet);
-      const planet = sun.links.find(item => destinationKey(item) === key);
+      const planet = isGroup(sourcePlanet)
+        ? sun.links.find(item => isGroup(item) && item.name.toLocaleLowerCase() === sourcePlanet.name.toLocaleLowerCase())
+        : sun.links.find(item => destinationKey(item) === key);
       if (!planet) {
         sun.links.push(plainCopy(sourcePlanet));
         added.planets++;
@@ -211,8 +213,9 @@ export function duplicateGroups(list) {
   const byKey = new Map();
   list.forEach((sun, sunIndex) => sun.links.forEach((planet, planetIndex) => {
     /** @type {[Destination, number[]][]} */
-    const entries = [[planet, [sunIndex, planetIndex]], ...planet.moons.map((moon, moonIndex) =>
-      /** @type {[Destination, number[]]} */ ([moon, [sunIndex, planetIndex, moonIndex]]))];
+    const entries = planet.moons.map((moon, moonIndex) =>
+      /** @type {[Destination, number[]]} */ ([moon, [sunIndex, planetIndex, moonIndex]]));
+    if (!isGroup(planet)) entries.unshift([planet, [sunIndex, planetIndex]]);
     for (const [item, path] of entries) {
       const key = destinationKey(item);
       const found = byKey.get(key) || [];

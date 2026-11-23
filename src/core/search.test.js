@@ -144,3 +144,9 @@ test('editDistance matches 2.2.1', () => {
     assert.equal(editDistance(a, b, limit), old.call('editDistance', a, b, limit));
   }), runs(1000));
 });
+
+test('empty groups are found by name without an address field', () => {
+  const groups = [sun('Work', [{ name: 'Monitoring', type: 'group', moons: [] }])];
+  assert.equal(findMatches(groups, 'monitoring')[0].kind, 'Group');
+  assert.ok(!searchEntries(groups)[1].fields.some(field => field.kind === 'address'));
+});

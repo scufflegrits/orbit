@@ -2,7 +2,7 @@
 // routines are due, whether a backup reminder is due, and what changed in the
 // team map since it was last seen. Owns the clock, so tests can set it
 // (OrbitTest.setNow).
-import { destinationKey } from '../core/destination.js';
+import { destinationKey, isGroup } from '../core/destination.js';
 
 export const BACKUP_CHANGES = 20;
 export const BACKUP_DAYS = 14;
@@ -73,7 +73,7 @@ export function backupDue(entry, enabled, time = now()) {
  */
 export function teamEntries(teamGroups) {
   return teamGroups.flatMap(sun => sun.links.flatMap(planet => [
-    { key: destinationKey(planet), name: planet.name, path: sun.name },
+    ...(isGroup(planet) ? [] : [{ key: destinationKey(planet), name: planet.name, path: sun.name }]),
     ...planet.moons.map(moon => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` })),
   ]));
 }

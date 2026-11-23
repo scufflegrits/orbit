@@ -1,6 +1,7 @@
 // A System (2.2.1 render.js): one sun with up to eight planets on its
 // orbit, the Open all buttons, and the planets and moons that don't fit.
 // Moved in rewrite phase 5.
+import { isGroup } from '../../core/destination.js';
 import { counted, descriptionNode, element, safeColor, tagPath } from '../dom.js';
 import { SYSTEM_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
 import { modes } from '../page-modes.js';
@@ -19,11 +20,17 @@ function openAllActions(group, sunIndex) {
     .filter((/** @type {any} */ { planet }) => planet.moons.length);
   if (!planets.length) return null;
   const row = element('div', 'open-all-row');
-  row.append(element('span', 'open-all-label', 'Open a planet with all its moons:'));
+  row.append(element('span', 'open-all-label', planets.some((/** @type {{planet: any}} */ { planet }) => isGroup(planet))
+    ? 'Open all links for a planet:' : 'Open a planet with all its moons:'));
   planets.forEach((/** @type {any} */ { planet, planetIndex }) => {
-    const button = element('button', 'open-all-button', `${planet.name} + ${counted(planet.moons.length, 'moon')}`);
+    const groupPlanet = isGroup(planet);
+    const button = element('button', 'open-all-button', groupPlanet
+      ? `${planet.name} · ${counted(planet.moons.length, 'link')}`
+      : `${planet.name} + ${counted(planet.moons.length, 'moon')}`);
     button.type = 'button';
-    button.title = `Open ${planet.name} and its moons in new tabs (Shift+click a planet does the same)`;
+    button.title = groupPlanet
+      ? `Open links in ${planet.name} in new tabs (Shift+click the group does the same)`
+      : `Open ${planet.name} and its moons in new tabs (Shift+click a planet does the same)`;
     button.addEventListener('click', () => openAll(sunIndex, planetIndex));
     row.append(button);
   });
@@ -79,6 +86,9 @@ export function renderDetail(group) {
       ? 'Select a lab to open Remote Desktop Connection with its target loaded. Your browser may ask to open the helper.'
       : 'Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect.'
     : 'Select a planet to open its destination in a new tab.');
+  if (!modes.inEditMode() && group.links.some(isGroup)) {
+    note.textContent = 'Select a group planet to show its links. Select a linked planet to open its destination.';
+  }
   app.append(top, heading, stage, note);
   const openAllRow = openAllActions(group, sunIndex);
   if (openAllRow) app.append(openAllRow);
@@ -91,7 +101,8 @@ export function renderDetail(group) {
     more.append(list);
     app.append(more);
   }
-  const extraMoons = group.links.filter((/** @type {any} */ link) => link.moons.length > VISIBLE_MOONS);
+  const extraMoons = group.links.filter((/** @type {any} */ link, /** @type {number} */ index) =>
+    link.moons.length > VISIBLE_MOONS && (!isGroup(link) || index < visible.length));
   if (extraMoons.length) {
     const section = element('section', 'moon-overflow');
     section.append(element('h2', '', 'More moons'));

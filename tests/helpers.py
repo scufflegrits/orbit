@@ -18,7 +18,8 @@ APP_SCRIPTS = ()
 # The bundled sample map (links.json), so checks follow it when suns or links are added.
 _SAMPLE = json.loads((ROOT / "links.json").read_text())
 SAMPLE_SUNS = len(_SAMPLE["groups"])
-SAMPLE_LINKS = sum(1 + len(planet.get("moons", [])) for sun in _SAMPLE["groups"] for planet in sun["links"])
+SAMPLE_LINKS = sum((planet.get("type") != "group") + len(planet.get("moons", []))
+                   for sun in _SAMPLE["groups"] for planet in sun["links"])
 # The bundle built from src/ (scripts/build.mjs). Fixtures get the test bundle under this name, so index.html
 # is the same file in tests and in release; the committed release bundle is checked by
 # `npm run check:bundle` and tests/release_smoke.py instead.

@@ -4,6 +4,7 @@
 import { cancelDrag, editBar, editToggle, setEditMode } from '../drag/drag.js';
 import { handlePaletteKey, handlePaletteShortcut } from '../find/palette.js';
 import { closeMenu } from '../menu/menu.js';
+import { collapseGroup, setGroupExpanded } from '../views/group-planets.js';
 import { modes } from '../page-modes.js';
 import { app, menuOverlay, quickFind, setFindQuery, topbarSearch } from '../page.js';
 
@@ -61,6 +62,8 @@ function handleEscape(event) {
     setFindQuery('');
     // On the Galaxy the input handler refreshes results; in a System it would leave the System.
     if (app.classList.contains('home-view')) quickFind.dispatchEvent(new Event('input'));
+  } else if (collapseGroup()) {
+    event.preventDefault();
   } else if (target === 'view') {
     location.hash = '';
   }
@@ -157,7 +160,14 @@ function planetTarget(planet, [dx, dy]) {
   const container = cluster.parentElement;
   const planets = [...container.querySelectorAll(':scope > .planet-cluster > :is(.home-satellite, .detail-satellite)')];
   if (dx) return neighbor(planets, planet, dx);
-  if (dy > 0) return cluster.querySelector('.moon-link');
+  if (dy > 0) {
+    const moon = cluster.querySelector('.moon-link');
+    if (moon && planet.matches('.group-planet') && !cluster.classList.contains('pinned') && !modes.inEditMode()) {
+      collapseGroup();
+      setGroupExpanded(cluster);
+    }
+    return moon;
+  }
   return container.querySelector(':scope > .home-hub');
 }
 

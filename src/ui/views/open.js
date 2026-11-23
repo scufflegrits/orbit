@@ -2,7 +2,7 @@
 // destination, a planet with its moons, every favorite, or a routine. The
 // opening itself is services/opener.js; this asks the confirm question and
 // shows the report. Moved in rewrite phase 6a.
-import { itemAt, pathsForKey } from '../../core/destination.js';
+import { isGroup, itemAt, pathsForKey } from '../../core/destination.js';
 import { counted } from '../../core/words.js';
 import * as opener from '../../services/opener.js';
 import { askForVariables } from '../dialogs/placeholder.js';
@@ -16,7 +16,9 @@ import { groups, rdpLaunchMode, rdpPresets } from '../page.js';
  * @param {any} item
  */
 export function openDestination(item) {
-  if (opener.openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode }) === 'ask') return askForVariables(item);
+  const result = opener.openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode });
+  if (result === 'ask') return askForVariables(item);
+  if (result === 'skipped') return;
   noteOpened(item);
 }
 
@@ -42,6 +44,7 @@ export function openLinks(items, label, { confirm = true, question = null, extra
 export function openAll(sunIndex, planetIndex) {
   const planet = groups[sunIndex]?.links[planetIndex];
   if (!planet) return null;
+  if (isGroup(planet)) return openLinks(planet.moons, planet.name);
   return openLinks([planet, ...planet.moons], planet.name,
     { question: count => `Open ${count} tabs for ${planet.name} and its moons?` });
 }
@@ -60,7 +63,8 @@ export function routineItems(routine) {
   let missing = 0;
   for (const link of routine.links) {
     const path = pathsForKey(groups, link.key)[0];
-    if (path) items.push({ path, item: itemAt(groups, path) });
+    const item = path && itemAt(groups, path);
+    if (item && !isGroup(item)) items.push({ path, item });
     else missing++;
   }
   return { items, missing };

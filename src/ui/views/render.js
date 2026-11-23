@@ -4,6 +4,7 @@
 import { editToggle, updateEditBar } from '../drag/drag.js';
 import { layoutOrbits, updateMapLabelSizes } from '../layout/orbits.js';
 import { modes } from '../page-modes.js';
+import { revealPendingGroup } from './group-planets.js';
 import { renderHome } from './galaxy.js';
 import { renderDetail } from './system.js';
 import { groups } from '../page.js';
@@ -22,4 +23,5 @@ export function render() {
   editToggle().hidden = false;
   updateEditBar();
   window.scrollTo({ top: 0, behavior: 'instant' });
+  revealPendingGroup(group?.id ?? null);
 }

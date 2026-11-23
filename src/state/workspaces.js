@@ -6,6 +6,7 @@ import { uniqueSunId } from '../core/schema.js';
 /** @typedef {{id: string, name: string}} Workspace */
 
 export const MAIN = 'main';
+export const UNREADABLE = 'unreadable';
 /** The keys that belong to one workspace. */
 export const WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
 
@@ -65,7 +66,7 @@ export function newWorkspace(name) {
   if (list.some(item => item.name.toLocaleLowerCase() === clean.toLocaleLowerCase())) {
     throw new Error(`There is already a workspace named ${clean}.`);
   }
-  return { id: uniqueSunId(clean, new Set(list.map(item => item.id))), name: clean };
+  return { id: uniqueSunId(clean, new Set([UNREADABLE, ...list.map(item => item.id)])), name: clean };
 }
 
 /**

@@ -1,7 +1,7 @@
 // Favorites and recent links (2.2.1 favorites.js). A personal favorite is
 // stored on the item, so it moves and exports with it; a team favorite is a
 // preference, because team items can't be edited. Moved in rewrite phase 6a.
-import { destinationKey, itemAt, pathsForKey } from '../../core/destination.js';
+import { destinationKey, isGroup, itemAt, pathsForKey } from '../../core/destination.js';
 import { KEYS } from '../../state/storage.js';
 import { readRecent, readStoredSet, recordRecent, writeStoredSet } from '../../state/prefs.js';
 import { store } from '../../state/page-store.js';
@@ -16,9 +16,10 @@ import { groups } from '../page.js';
  * @param {any} [sun]
  */
 export function isFavorite(item, sun) {
-  if (!item) return false;
-  if (sun?.team) return readStoredSet(KEYS.teamFavorites).has(destinationKey(item));
-  return item.favorite === true;
+  if (!item || isGroup(item)) return false;
+  if (!sun?.team) return item.favorite === true;
+  const key = destinationKey(item);
+  return key !== null && readStoredSet(KEYS.teamFavorites).has(key);
 }
 
 /** Every favorite on the map, in map order. */
@@ -42,7 +43,7 @@ export function favoriteItems() {
 export function setFavorite(path, on) {
   const sun = groups[path[0]];
   const item = itemAt(groups, path);
-  if (!item) return;
+  if (!item || isGroup(item)) return;
   if (sun.team) {
     const set = readStoredSet(KEYS.teamFavorites);
     if (on) set.add(destinationKey(item));
@@ -72,7 +73,9 @@ export function recentItems() {
  */
 export function noteOpened(item) {
   if (!item || modes.inEditMode()) return;
-  recordRecent(destinationKey(item), item.name, Date.now());
+  const key = destinationKey(item);
+  if (key === null) return;
+  recordRecent(key, item.name, Date.now());
   // After the click has opened the link, show it in the Galaxy's quick bar.
   setTimeout(() => hooks.refreshQuickBar(), 0);
 }

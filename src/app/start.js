@@ -2,6 +2,7 @@
 // the store and the mode store, wire the top bar and menu, then load the
 // bundled and team maps and show them. Moved in rewrite phase 8; main.js
 // calls start() once the page has loaded.
+import { isGroup } from '../core/destination.js';
 import { counted } from '../core/words.js';
 import { loadBundledMap } from '../services/sources.js';
 import { store } from '../state/page-store.js';
@@ -21,7 +22,7 @@ import { render } from '../ui/views/render.js';
 
 function countDestinations() {
   const destinations = page.groups.reduce((total, group) => total + group.links.reduce(
-    (/** @type {number} */ sum, /** @type {any} */ link) => sum + 1 + link.moons.length, 0), 0);
+    (/** @type {number} */ sum, /** @type {any} */ link) => sum + Number(!isGroup(link)) + link.moons.length, 0), 0);
   page.linkCount.textContent = `${counted(destinations, 'link')} · ${counted(page.groups.length, 'sun')}`.toUpperCase();
 }
 

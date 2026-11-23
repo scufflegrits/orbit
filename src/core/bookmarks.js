@@ -18,7 +18,7 @@ function flattenFolder(folder) {
 
 /**
  * Turn bookmark folders into suns, links into planets, and each subfolder into
- * a planet (its first link) with moons (the rest). Toolbar folders are
+ * a group planet with all its links as moons. Toolbar folders are
  * unwrapped; loose links go into a "Bookmarks" sun. Non-web links are skipped.
  * @param {BookmarkFolder} root
  */
@@ -58,7 +58,7 @@ export function bookmarksToMap(root) {
     for (const sub of folder.folders) {
       const items = /** @type {any[]} */ (flattenFolder(sub).map(destination).filter(Boolean));
       if (!items.length) continue;
-      links.push({ name: sub.name, url: items[0].url, moons: items.slice(1) });
+      links.push({ name: sub.name, type: 'group', moons: items });
     }
     return { name: folder.name, description: 'Imported from browser bookmarks', links };
   }).filter(sun => sun.links.length);

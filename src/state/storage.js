@@ -129,21 +129,18 @@ export function remove(key) {
 // ---- Migrations ---------------------------------------------------------
 
 /**
- * Numbered changes to the stored format. Version 0 is 2.2.x; there are none
- * yet, so nothing is ever written for them. Each future entry is
- * {version, up()} and needs a test that loads the 2.2 fixture.
+ * Numbered changes to the stored format. Version 0 is 2.2.x. Version 1
+ * supports group planets and can read the earlier format as-is.
  * @type {{version: number, up: () => void}[]}
  */
-export const MIGRATIONS = [];
+export const MIGRATIONS = [{ version: 1, up() {} }];
 export const STORAGE_VERSION_KEY = 'orbit:storage-version';
 
 /**
- * Run the migrations newer than the stored version. With no migrations this
- * reads nothing and writes nothing, so 2.2 data is left exactly as it is.
+ * Run the migrations newer than the stored version.
  * @returns {number[]} The versions applied.
  */
 export function migrate() {
-  if (!MIGRATIONS.length) return [];
   const current = Number(readSafely(STORAGE_VERSION_KEY) || 0);
   const applied = [];
   for (const migration of MIGRATIONS) {

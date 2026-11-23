@@ -164,3 +164,12 @@ test('openLinks does what 2.2.1 openLinks did: tabs, question, report, and recor
     assert.equal(result === null ? null : result.message, oldReturn ?? null);
   }), runs(400));
 });
+
+test('opening a group is a no-op and bulk opening only plans its moons', () => {
+  const group = { name: 'Monitoring', type: /** @type {const} */ ('group'), moons: [web('Status', 'https://status.test/')] };
+  openDestination(group, { presets: [], launchMode: 'download' });
+  assert.deepEqual(opened, []);
+  const plan = planLinks([group, ...group.moons], group.name);
+  assert.deepEqual(plan.web.map(item => item.url), ['https://status.test/']);
+  assert.equal(plan.note, '');
+});

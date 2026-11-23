@@ -38,7 +38,7 @@ FIXTURE = {"groups": [
     {"id": "alpha", "name": "Alpha", "description": "First row sun", "color": "#79d9f8", "links": [
         web("Basic Confluence", "confluence", [web(name, f"m{i}") for i, name in enumerate(MOON_NAMES)]),
         web("International", "intl", [web(f"Five {i}", f"f{i}") for i in range(5)]),
-        web("Documentation Hub", "docs", [web("Guides", "g"), web("API", "api")]),
+        {"name": "Documentation Hub", "type": "group", "moons": [web("Guides", "g"), web("API", "api")]},
         web("Telecommunications", "telecom", [web("Lines", "l"), web("Phones", "p"), web("Faxes", "fx"),
                                               web("Pagers", "pg")]),
         web("Wiki", "wiki", []),
@@ -205,10 +205,13 @@ def run_mode(page, url, mode):
       return { covered, opacity: Number(getComputedStyle(caption).opacity) };
     }"""
     hover_galaxy_planet(page, 0, 2)
+    group = node(page, ".group-planet", 0, 2)
+    group.click()
     page.wait_for_timeout(400)
     lower = page.evaluate(caption_state, 0)
     check(not lower["covered"] or lower["opacity"] < .05,
           f"{mode}: a lower planet's moons don't cover a visible caption ({lower})")
+    page.keyboard.press("Escape")
     hover_galaxy_planet(page, 0, 0)
     page.wait_for_timeout(400)
     top = page.evaluate(caption_state, 0)
@@ -217,11 +220,12 @@ def run_mode(page, url, mode):
 
     # OS10: moving slowly from a lower planet to each of its moons keeps them open,
     # and the moon is what the pointer lands on (a faded caption once caught it).
+    hover_galaxy_planet(page, 0, 2)
+    group.click()
     for index in range(2):
-        hover_galaxy_planet(page, 0, 2)
-        planet = node(page, ".home-satellite", 0, 2)
-        start = center(planet)
-        moon = page.locator(".planet-cluster:hover .moon-link").nth(index)
+        start = center(group)
+        page.mouse.move(*start)
+        moon = node(page, ".moon-link", 0, 2, index)
         name = moon.inner_text()
         end = center(moon)
         for step in range(1, 13):

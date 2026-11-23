@@ -32,6 +32,11 @@ export function shareRoutine(routine) {
   exportPack(routine.name, routineItems(routine).items.map(entry => entry.item), routine);
 }
 
+/** @param {import('../../../core/types.js').GroupPlanet} group */
+export function shareGroup(group) {
+  exportPack(group.name, group.moons);
+}
+
 export function shareFavorites() {
   const items = favoriteItems().map(entry => entry.item);
   if (!items.length) return editorError('You have no favorites to share yet.');
@@ -52,11 +57,11 @@ export function showPackImport() {
   }, 'editor-primary'));
 }
 
-/** @param {any} pack */
+/** @param {import('../../../core/schema.js').LinkPack} pack */
 function showPackReview(pack) {
   editorHeader(`Review ${pack.name}`, showPackImport);
-  const known = pack.links.filter((/** @type {any} */ link) => pathsForKey(groups, destinationKey(link)).length);
-  const fresh = pack.links.filter((/** @type {any} */ link) => !pathsForKey(groups, destinationKey(link)).length);
+  const known = pack.links.filter(link => pathsForKey(groups, destinationKey(link)).length);
+  const fresh = pack.links.filter(link => !pathsForKey(groups, destinationKey(link)).length);
   menuContent.append(element('p', 'import-merge-summary', `${counted(pack.links.length, 'link')}: ${counted(fresh.length, 'new link')} to add${known.length ? `, ${known.length} already on your map` : ''}.`));
   const list = element('ul', 'rdp-batch-list');
   pack.links.forEach((/** @type {any} */ link) => list.append(element('li', '', `${link.name} → ${link.type === 'rdp' ? link.host : link.url}${known.includes(link) ? ' (already on your map)' : ''}`)));
@@ -99,12 +104,12 @@ function showPackReview(pack) {
       }
     }
     /** @type {any[] | undefined} */
-  let nextRoutines;
-    if (withRoutine?.checked) {
+    let nextRoutines;
+    if (withRoutine?.checked && pack.routine) {
       const taken = new Set(routines.map(routine => routine.name.toLocaleLowerCase()));
       let name = pack.routine.name;
       for (let n = 2; taken.has(name.toLocaleLowerCase()); n++) name = `${pack.routine.name} ${n}`;
-      nextRoutines = [...routines, { name, links: pack.links.map((/** @type {any} */ link) => ({ key: destinationKey(link), name: link.name })),
+      nextRoutines = [...routines, { name, links: pack.links.map(link => ({ key: destinationKey(link), name: link.name })),
         ...(pack.routine.schedule ? { schedule: pack.routine.schedule } : {}) }];
     }
     applyEditorChange(next, nav.showSunList, { label: `Imported link pack ${pack.name}`,

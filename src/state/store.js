@@ -7,10 +7,11 @@
 //
 // Nothing is read at import time: createStore() makes an empty store, and
 // start() loads it.
+import { isGroup } from '../core/destination.js';
 import { validateMap } from '../core/schema.js';
 import { personalGroups, uniqueSunId } from '../core/map-ops.js';
-import { KEYS, read, readSafely, remove, write } from './storage.js';
-import { MAIN, WORKSPACE_KEYS, loadWorkspaces, newWorkspace, readActiveWorkspace, saveActiveWorkspace, saveWorkspaces, workspaceKey } from './workspaces.js';
+import { KEYS, migrate, read, readSafely, remove, write } from './storage.js';
+import { MAIN, UNREADABLE, WORKSPACE_KEYS, loadWorkspaces, newWorkspace, readActiveWorkspace, saveActiveWorkspace, saveWorkspaces, workspaceKey } from './workspaces.js';
 import { forgetOffered, hiddenTeamSuns, writeStoredSet } from './prefs.js';
 import { recordHistory } from './history.js';
 import { countChange, forgetWorkspace } from './backup.js';
@@ -68,18 +69,41 @@ export function createStore() {
 
   /**
    * The workspace's saved map, or null when there is none or it can't be
-   * used; then `warning` says why. (2.2.1: the stored map is overwritten by
-   * the next save.)
+   * used; then `warning` says why.
    * @returns {MapData|null}
    */
   function loadBrowserMap() {
     try {
       const text = read(key(KEYS.map));
-      return text ? validateMap(JSON.parse(text)) : null;
+      return text === null ? null : validateMap(JSON.parse(text));
     } catch (error) {
       set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */ (error).message}` });
       return null;
     }
+  }
+
+  /**
+   * Preserve the exact stored text before a save or reset replaces an unreadable map.
+   * @param {string} mapKey
+   */
+  function backupUnreadableMap(mapKey) {
+    const text = read(mapKey);
+    if (text === null) return;
+    try {
+      validateMap(JSON.parse(text));
+    } catch {
+      // Older versions could give a workspace the id "unreadable".
+      const suffix = mapKey === KEYS.map && loadWorkspaces().some(item => item.id === UNREADABLE)
+        ? `:${UNREADABLE}` : UNREADABLE;
+      write(`${mapKey}:${suffix}`, text);
+    }
+  }
+
+  /** @param {string} mapKey @param {MapData} map */
+  function writeMap(mapKey, map) {
+    backupUnreadableMap(mapKey);
+    if (map.groups.some(sun => sun.links.some(isGroup))) migrate();
+    write(mapKey, JSON.stringify(map));
   }
 
   const store = {
@@ -137,7 +161,7 @@ export function createStore() {
           routines: data.routines !== undefined ? data.routines : state.routines,
           rdpPresets: data.rdpPresets !== undefined ? data.rdpPresets : state.rdpPresets });
         const previous = personalGroups(state.groups);
-        write(key(KEYS.map), JSON.stringify(normalized));
+        writeMap(key(KEYS.map), normalized);
         const changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !==
           JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
         if (label !== false && changed) recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets);
@@ -172,9 +196,13 @@ export function createStore() {
      */
     resetToBundled() {
       const fileData = validateMap(state.seed);
+      if (state.workspace === MAIN) {
+        backupUnreadableMap(key(KEYS.map));
+        remove(key(KEYS.map));
+      } else {
+        writeMap(key(KEYS.map), fileData);
+      }
       recordHistory(key(KEYS.history), personalGroups(state.groups), 'Reset to file data', state.routines, state.rdpPresets);
-      if (state.workspace === MAIN) remove(key(KEYS.map));
-      else write(key(KEYS.map), JSON.stringify(fileData));
       remove(key(KEYS.undo));
       set({ groups: [...visibleTeam(), ...fileData.groups], routines: fileData.routines || [], rdpPresets: fileData.rdpPresets || [],
         revision: state.revision + 1, source: state.workspace === MAIN ? 'bundled' : 'browser', warning: '' });
@@ -268,7 +296,7 @@ export function createStore() {
       const map = start === 'copy'
         ? { groups: personalGroups(state.groups), routines: state.routines, rdpPresets: state.rdpPresets }
         : start === 'bundled' ? state.seed : { groups: [] };
-      write(workspaceKey(KEYS.map, added.id), JSON.stringify(validateMap(map)));
+      writeMap(workspaceKey(KEYS.map, added.id), validateMap(map));
       saveWorkspaces([...loadWorkspaces(), added]);
       return added.id;
     },

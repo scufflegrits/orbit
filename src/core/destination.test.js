@@ -119,3 +119,11 @@ test('pathsForKey and itemAt match 2.2.1 on random combined maps', () => {
     }
   }), runs(300));
 });
+
+test('a group has no destination key while its moons retain theirs', () => {
+  const group = { name: 'Group', type: /** @type {const} */ ('group'), moons: [{ name: 'Web', url: 'https://a.test/' }] };
+  const map = [{ id: 'work', name: 'Work', description: '', color: '#123456', links: [group] }];
+  assert.equal(destinationKey(group), null);
+  assert.deepEqual(pathsForKey(map, ''), []);
+  assert.deepEqual(pathsForKey(map, 'https://a.test'), [[0, 0, 0]]);
+});

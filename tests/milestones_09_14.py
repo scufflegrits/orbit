@@ -18,7 +18,8 @@ def run_milestone_9(page, url, mode):
     check(len(original_suns) == SAMPLE_SUNS - 1 and all(len(sun["links"]) >= 5 for sun in original_suns) and original_moons,
           "web sample suns each have at least five planets")
     check(len({sun["id"] for sun in suns}) == SAMPLE_SUNS, "unique sun IDs")
-    for destination in original_planets + original_moons:
+    web_planets = [planet for planet in original_planets if planet.get("type") != "group"]
+    for destination in web_planets + original_moons:
         parsed = urlparse(destination["url"])
         check(destination["name"].strip() and parsed.scheme == "https" and parsed.netloc,
               f"valid sample destination: {destination}")

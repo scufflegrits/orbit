@@ -1,7 +1,7 @@
 // The full-page editor (2.2.1 editor-page.js): opening and leaving it, the
 // Galaxy tree beside the forms, moving a planet or moon to another parent,
 // and importing many .rdp files at once. Moved in rewrite phase 6b.
-import { destinationKey } from '../../core/destination.js';
+import { destinationKey, isGroup } from '../../core/destination.js';
 import * as mapOps from '../../core/map-ops.js';
 import * as rdp from '../../core/rdp.js';
 import * as fileIo from '../../services/file-io.js';
@@ -79,7 +79,14 @@ export function renderEditorTree() {
  * @param {any} item
  */
 export function decorateTreeItem(button, item) {
-  const result = linkCheckResults.get(destinationKey(item));
+  const group = isGroup(item);
+  if (group) {
+    const marker = element('span', 'editor-tree-group', '📁 ');
+    marker.setAttribute('role', 'img');
+    marker.setAttribute('aria-label', 'Group');
+    button.prepend(marker);
+  }
+  const result = group ? undefined : linkCheckResults.get(destinationKey(item));
   if (result && !result.ok) {
     button.classList.add('editor-tree-broken');
     button.prepend(element('span', 'broken-mark', '⚠ '));

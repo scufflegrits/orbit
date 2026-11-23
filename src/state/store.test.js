@@ -362,3 +362,42 @@ test('sequences of saves match 2.2.1: shown map, stored map, history, change cou
     }
   }), runs(300));
 });
+
+test('a save backs up unreadable browser data before replacing it', () => {
+  fresh({ 'orbit:map:v1': 'broken JSON' });
+  const store = started();
+  const writes = [];
+  const setItem = storage.setItem.bind(storage);
+  storage.setItem = (key, value) => { writes.push(key); setItem(key, value); };
+  store.saveMap(SEED);
+  assert.equal(storage.getItem('orbit:map:v1:unreadable'), 'broken JSON');
+  assert.deepEqual(writes.slice(0, 2), ['orbit:map:v1:unreadable', 'orbit:map:v1']);
+  store.saveMap(SEED);
+  assert.equal(storage.getItem('orbit:map:v1:unreadable'), 'broken JSON');
+});
+
+test('a failed unreadable-map backup leaves the original in place', () => {
+  fresh({ 'orbit:map:v1': 'broken JSON' });
+  const store = started();
+  const setItem = storage.setItem.bind(storage);
+  storage.setItem = (key, value) => {
+    if (key.endsWith(':unreadable')) throw new Error('Backup failed');
+    setItem(key, value);
+  };
+  assert.throws(() => store.saveMap(SEED), /Backup failed/);
+  assert.equal(storage.getItem('orbit:map:v1'), 'broken JSON');
+  assert.equal(store.state().source, 'bundled');
+});
+
+test('saving a map with groups sets storage version 1', () => {
+  started().saveMap({ groups: [sun('work', [{ name: 'Group', type: 'group', moons: [] }])] });
+  assert.equal(storage.getItem('orbit:storage-version'), '1');
+});
+
+test('the Main backup does not overwrite a preexisting workspace named Unreadable', () => {
+  fresh({ 'orbit:map:v1': 'broken JSON', 'orbit:map:v1:unreadable': '{"groups":[]}',
+    'orbit:workspaces:v1': JSON.stringify([{ id: 'unreadable', name: 'Unreadable' }]) });
+  started().saveMap(SEED);
+  assert.equal(storage.getItem('orbit:map:v1:unreadable'), '{"groups":[]}');
+  assert.equal(storage.getItem('orbit:map:v1::unreadable'), 'broken JSON');
+});
