@@ -1,7 +1,9 @@
 import { isGroup, itemAt } from '../../core/destination.js';
 import { element } from '../dom.js';
+import { showOpenAllNotice } from '../notices/area.js';
 import { openEditorAt } from '../editor/page.js';
 import { app, groups, showEditButtons } from '../page.js';
+import { removeMapItem } from '../remove-item.js';
 import { modes } from '../page-modes.js';
 import { buttonTipsDelay, tip } from '../tooltip.js';
 import { setGroupExpanded } from './group-planets.js';
@@ -9,8 +11,8 @@ import { setGroupExpanded } from './group-planets.js';
 const MAP_ITEM = ':is(.home-hub, .detail-hub, .home-satellite, .detail-satellite, .more-link, .moon-link, .overflow-moon-link)';
 /** @type {HTMLElement | null} */
 let hovered = null;
-/** @type {HTMLButtonElement | null} */
-let pencil = null;
+/** @type {HTMLElement | null} */
+let hoverActions = null;
 let timer = 0;
 
 /** @param {EventTarget | null} target */
@@ -76,25 +78,16 @@ export function handleMapEditKey(event) {
   return true;
 }
 
-function hidePencil() {
+function hideActions() {
   window.clearTimeout(timer);
   hovered = null;
-  pencil?.remove();
-  pencil = null;
+  hoverActions?.remove();
+  hoverActions = null;
 }
 
-/** @param {HTMLElement} item */
-function showPencil(item) {
-  const parent = item.parentElement;
-  if (!parent || !item.isConnected || !item.matches(':hover') || !showEditButtons || !canEditFromMap()) return;
-  const path = mapPath(item);
-  const sun = groups[path[0]];
-  const target = path.length === 1 ? sun : itemAt(groups, path);
-  if (!target) return;
-  const verb = sun.team ? 'View' : 'Edit';
-  const detail = path.length === 2 ? (isGroup(target) ? ' and its links' : ' and its moons') : '';
-  const name = `${verb} ${target.name}${detail}`;
-  const button = tip(element('button', 'map-edit-button', '✎'), name);
+/** @param {string} className @param {string} icon @param {string} name @param {() => void} action */
+function mapAction(className, icon, name, action) {
+  const button = tip(element('button', className, icon), name);
   button.type = 'button';
   button.tabIndex = -1;
   button.setAttribute('aria-label', name);
@@ -104,36 +97,63 @@ function showPencil(item) {
   });
   button.addEventListener('click', event => {
     event.stopPropagation();
-    if (canEditFromMap()) editItem(item);
+    if (canEditFromMap()) action();
   });
+  return button;
+}
 
-  // Keep the pencil beside its anchor in the existing hover region.
+/** @param {HTMLElement} item */
+function showActions(item) {
+  const parent = item.parentElement;
+  if (!parent || !item.isConnected || !item.matches(':hover') || !showEditButtons || !canEditFromMap()) return;
+  const path = mapPath(item);
+  const sun = groups[path[0]];
+  const target = path.length === 1 ? sun : itemAt(groups, path);
+  if (!target) return;
+  const verb = sun.team ? 'View' : 'Edit';
+  const detail = path.length === 2 ? (isGroup(target) ? ' and its links' : ' and its moons') : '';
+  const actions = element('div', 'map-item-actions');
+  actions.append(mapAction('map-edit-button', '✎', `${verb} ${target.name}${detail}`, () => {
+    if (item.isConnected) editItem(item);
+  }));
+  if (!sun.team) {
+    actions.append(mapAction('map-remove-button', '🗑︎', `Remove ${target.name}`, () => {
+      if (!item.isConnected) return;
+      try {
+        removeMapItem(path);
+      } catch (error) {
+        showOpenAllNotice(`Could not remove ${target.name}: ${/** @type {Error} */ (error).message}`, true);
+      }
+    }));
+  }
+
+  // Keep both actions beside their anchor in the existing hover region.
   // Measure its CSS origin to account for the orbit's translated container.
-  parent.append(button);
+  parent.append(actions);
   const anchor = item.getBoundingClientRect();
-  const base = button.getBoundingClientRect();
-  const scale = base.width / button.offsetWidth;
-  button.style.left = `${(anchor.left + anchor.width * .82 - base.left) / scale - 12}px`;
-  button.style.top = `${(anchor.top + anchor.height * .18 - base.top) / scale - 12}px`;
-  pencil = button;
+  const base = actions.getBoundingClientRect();
+  const scale = base.width / actions.offsetWidth;
+  actions.style.left = `${(anchor.left + anchor.width * .82 - base.left) / scale - 12}px`;
+  actions.style.top = `${(anchor.top + anchor.height * .18 - base.top) / scale - 12}px`;
+  hoverActions = actions;
 }
 
 export function installMapEditButtons() {
   document.addEventListener('pointerover', event => {
     const item = mapItem(event.target);
     if (!item || item === hovered || event.pointerType === 'touch' || !showEditButtons || !canEditFromMap()) return;
-    hidePencil();
+    hideActions();
     hovered = item;
-    timer = window.setTimeout(() => showPencil(item), buttonTipsDelay() ?? 800);
+    timer = window.setTimeout(() => showActions(item), buttonTipsDelay() ?? 800);
   });
   document.addEventListener('pointerout', event => {
-    if (!hovered || !(event.target instanceof Node) || (!hovered.contains(event.target) && !pencil?.contains(event.target))) return;
+    if (!hovered || !(event.target instanceof Node) || (!hovered.contains(event.target) && !hoverActions?.contains(event.target))) return;
     const next = event.relatedTarget;
-    if (next instanceof Node && (hovered.contains(next) || pencil?.contains(next))) return;
-    hidePencil();
+    if (next instanceof Node && (hovered.contains(next) || hoverActions?.contains(next))) return;
+    hideActions();
   });
   modes.subscribe(() => {
-    if (!canEditFromMap()) hidePencil();
+    if (!canEditFromMap()) hideActions();
   });
-  window.addEventListener('resize', hidePencil);
+  window.addEventListener('resize', hideActions);
 }

@@ -1679,7 +1679,8 @@ def f33_edit_from_map(ctx):
     system_planet.focus()
     page.keyboard.press("e")
     page.wait_for_timeout(1000)
-    check(not pencil.is_visible() and page.locator("#menu-overlay").is_hidden(), "Edit mode suppresses the hover button and E")
+    check(not pencil.is_visible() and not page.locator(".map-remove-button").is_visible() and
+          page.locator("#menu-overlay").is_hidden(), "Edit mode suppresses the hover buttons and E")
     page.locator("#edit-toggle").click()
     page.locator("#settings-trigger").click()
     page.locator('[data-menu-panel="Settings"]').click()
@@ -1693,7 +1694,8 @@ def f33_edit_from_map(ctx):
     page.locator("#menu-close").click()
     hub.hover()
     page.wait_for_timeout(1000)
-    check(not pencil.is_visible(), "the setting disables hover buttons")
+    check(not pencil.is_visible() and not page.locator(".map-remove-button").is_visible(),
+          "the setting disables both hover buttons")
     system_planet.focus()
     page.keyboard.press("e")
     title.get_by_text("Edit Docs Portal", exact=True).wait_for()
@@ -1705,11 +1707,95 @@ def f33_edit_from_map(ctx):
     print(f"PASS F33 Edit from the map ({ctx.mode})")
 
 
+def f34_remove_map_items(ctx):
+    page = ctx.page
+    fresh(ctx)
+    prompts = []
+    page.on("dialog", lambda dialog: prompts.append(dialog.message))
+    notice = page.locator("#map-removal-notice")
+    pencil = page.locator(".map-edit-button")
+    trash = page.locator(".map-remove-button")
+    undo = notice.get_by_role("button", name="Undo removal")
+
+    def remove(item, name, cancel=False):
+        item.hover()
+        button = page.get_by_role("button", name=f"Remove {name}", exact=True)
+        button.wait_for(timeout=2000)
+        check(button.bounding_box()["y"] > pencil.bounding_box()["y"], "the trash button sits below the pencil")
+        if cancel:
+            DISMISS_NEXT.add(page)
+        button.click()
+
+    team = page.locator(".home-hub").filter(has_text="Ops")
+    team.hover()
+    pencil.wait_for()
+    check(trash.count() == 0, "team items only offer View")
+
+    alpha = page.locator(".home-hub").filter(has_text="Alpha")
+    alpha.click()
+    hub = page.locator(".detail-hub")
+    planet = page.locator(".detail-satellite").filter(has_text="Docs Portal")
+    moon = page.locator(".moon-link").filter(has_text="Guide")
+    planet.hover()
+    remove(moon, "Guide", cancel=True)
+    check(prompts[-1] == "Remove Guide?" and moon.count() == 1 and not notice.is_visible(),
+          "cancelling a map removal leaves the item in place")
+    planet.hover()
+    remove(moon, "Guide")
+    check(moon.count() == 0 and "Guide" in notice.inner_text(), "removing a moon shows its map undo")
+    page.reload(wait_until="load")
+    undo.click()
+    check(moon.count() == 1 and not notice.is_visible(), "map Undo restores the moon")
+
+    remove(planet, "Docs Portal")
+    check("2 moons" in prompts[-1] and planet.count() == 0, "a planet prompt counts its moons")
+    undo.click()
+    check(planet.count() == 1 and moon.count() == 1, "map Undo restores the planet and its moons")
+    remove(hub, "Alpha")
+    check("3 planets" in prompts[-1] and "5 moons" in prompts[-1], "a sun prompt counts its planets and moons")
+    check(alpha.count() == 0 and not page.evaluate("location.hash"), "removing the current sun returns to the Galaxy")
+    undo.click()
+    alpha.wait_for()
+
+    open_editor(page)
+    tree(page, "editor-tree-moon", "Guide").click()
+    DISMISS_NEXT.add(page)
+    page.get_by_role("button", name="Remove moon").click()
+    check(prompts[-1] == "Remove Guide?" and tree(page, "editor-tree-moon", "Guide").count() == 1,
+          "editor removal prompts by default too")
+    close_menu(page)
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    preference = page.get_by_role("checkbox", name="Confirm before deleting")
+    check(preference.is_checked(), "confirmation is on by default")
+    preference.uncheck()
+    close_menu(page)
+    page.reload(wait_until="load")
+    alpha.wait_for()
+    before = len(prompts)
+    remove(alpha, "Alpha")
+    check(len(prompts) == before and alpha.count() == 0, "map removal skips confirmation after reloading the preference")
+    undo.click()
+    open_editor(page)
+    tree(page, "editor-tree-moon", "Guide").click()
+    page.get_by_role("button", name="Remove moon").click()
+    check(len(prompts) == before and tree(page, "editor-tree-moon", "Guide").count() == 0,
+          "editor removal shares the same preference")
+    check(not notice.is_visible(), "the map notice hides while the editor offers Undo")
+    page.locator(".editor-undo").get_by_role("button", name="Undo removal").click()
+    check(tree(page, "editor-tree-moon", "Guide").count() == 1, "editor Undo restores the moon")
+    DISMISS_NEXT.add(page)
+    page.get_by_role("button", name="Reset to file data").click()
+    check(len(prompts) == before + 1 and "project files" in prompts[-1],
+          "reset still asks for confirmation")
+    print(f"PASS F34 Remove map items ({ctx.mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items)
 
 
 def run_checks(make_ctx, only):

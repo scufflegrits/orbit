@@ -8,6 +8,7 @@ import { hooks } from '../hooks.js';
 import { showBackupReminder } from '../notices/backup.js';
 import { editorButton, restoreEditorOrigin, setEditorTree } from '../editor/kit.js';
 import { openEditorPage } from '../editor/page.js';
+import { CONFIRM_DELETE_KEY } from '../remove-item.js';
 import { modes } from '../page-modes.js';
 import { store } from '../../state/page-store.js';
 import { team } from '../team-map.js';
@@ -182,8 +183,10 @@ export function showMenuPanel(name) {
     tipsSelect.addEventListener('change', () => setButtonTips(tipsSelect.value));
     tipsRow.append(tipsCopy, tipsSelect);
     menuContent.append(tipsRow);
-    menuContent.append(settingToggle('Edit buttons on hover', 'Show a pencil when you rest the pointer on a map item',
+    menuContent.append(settingToggle('Edit buttons on hover', 'Show editing and removal controls when you rest the pointer on a map item',
       showEditButtons, setShowEditButtons));
+    menuContent.append(settingToggle('Confirm before deleting', 'Ask before removing a sun, planet, or moon from the map or editor',
+      prefs.readBoolean(CONFIRM_DELETE_KEY, true), checked => prefs.savePreference(CONFIRM_DELETE_KEY, checked)));
     menuContent.append(settingToggle('Show favorites and recent', 'A row of your favorite and recently opened links above the Galaxy',
       showQuickBar, checked => {
         setShowQuickBar(checked);
@@ -251,7 +254,7 @@ export function showMenuPanel(name) {
     menuContent.append(element('p', '', 'Links that are not shown on the map, and keyboard-only editing, are covered by Edit links: Move up and Move down set the order, and Move to another sun or planet lets you choose the position. In Edit mode, a Quick find result opens that planet or moon in Edit links.'));
     menuContent.append(element('h4', 'editor-section-title', 'Keyboard'));
     menuContent.append(element('p', '', 'Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.'));
-    menuContent.append(element('p', '', 'Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil.'));
+    menuContent.append(element('p', '', 'Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.'));
     menuContent.append(element('p', '', 'Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.'));
     menuContent.append(element('p', '', 'Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.'));
     menuContent.append(element('p', '', 'Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.'));

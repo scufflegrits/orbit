@@ -1,6 +1,6 @@
 # Orbit handoff
 
-Last updated 2026-11-23 for the unreleased Edit links and map editing changes, including row exports and the sun editor layout.
+Last updated 2026-11-24 for the unreleased Edit links and map editing changes, including row exports, the sun editor layout, and map removal.
 
 ## Status
 
@@ -90,7 +90,7 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 **Server security.** `POST /api/check-links` requires a same-origin Host/Origin, a JSON body, and an `X-Orbit-Check: 1` header.
 
-Display preferences are shared across workspaces. **Button tips** uses `orbit:button-tips` with values `normal`, `slow`, and `off`. **Edit buttons on hover** uses `orbit:edit-buttons` and defaults to on.
+Display preferences are shared across workspaces. **Button tips** uses `orbit:button-tips` with values `normal`, `slow`, and `off`. **Edit buttons on hover** uses `orbit:edit-buttons` and defaults to on. **Confirm before deleting** uses `orbit:confirm-before-delete` and defaults to on. Both map and editor deletions use `src/ui/remove-item.js` and the workspace’s existing removal undo.
 
 ## Tests
 
@@ -102,7 +102,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS11 at 1920×1080 | 21 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F33, no F05 | 64 feature cases passed |
+| `tests/features.py` | F01–F34, no F05 | 66 feature cases passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 195 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |

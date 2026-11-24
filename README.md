@@ -108,6 +108,8 @@ Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` r
 
 **Edit from the map** by resting the pointer on a sun, planet, or moon in the Galaxy’s Orbits view or a System, then clicking the pencil. A planet’s editor also lists its moons. Back from the first editor screen or Close returns to the map item. Team items open read-only.
 
+**Remove from the map** with the trash button below the pencil. The confirmation names the item and counts the planets or moons that go with it. **Undo removal** on the map restores the last removed item and its contents.
+
 **Icons:** give a sun an icon (one or two characters, such as an emoji) in its editor; it appears above the sun's name. **Show site icons** in Settings adds each website's own icon to its planets and moons. It is off by default because it loads `/favicon.ico` from every site on your map; when off, Orbit contacts no site until you open it.
 
 ## Notes, placeholders, and quick add
@@ -207,9 +209,11 @@ Click the cog on the Galaxy or any System to open Settings, Help, or About. Sett
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
 Circle labels use a shared size for each level across the Galaxy, and long names wrap inside their circles. Moons have larger circles and text; other interface text grows slightly on wide desktop screens.
 
-Settings also includes **Always show moons**, **Show favorites and recent** (with **Clear recent links**), **Galaxy view** (Orbits or List), **Show site icons**, **Button tips** (after 0.8 seconds by default, after 1.5 seconds, or off), **Edit buttons on hover**, the [team map](#team-map) status, and **Edit links**. Edit links opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Changes appear immediately and are stored in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
+Settings also includes **Always show moons**, **Show favorites and recent** (with **Clear recent links**), **Galaxy view** (Orbits or List), **Show site icons**, **Button tips** (after 0.8 seconds by default, after 1.5 seconds, or off), **Edit buttons on hover**, **Confirm before deleting**, the [team map](#team-map) status, and **Edit links**. Edit links opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Changes appear immediately and are stored in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
 
-**Edit buttons on hover** is on by default. It shares the Button tips delay and uses 0.8 seconds when tips are off. You can turn off the pencil and still press **E** to open an editor.
+**Edit buttons on hover** is on by default. It shares the Button tips delay and uses 0.8 seconds when tips are off. It controls the pencil and trash buttons. **E** still opens the focused item’s editor when hover buttons are off.
+
+**Confirm before deleting** is checked by default and applies to removing suns, planets, and moons from the map or the editor. Turning it off removes those items immediately, with **Undo removal** still available. **Reset to file data** has its own confirmation.
 
 Sun descriptions can include links within their text. In a sun's Description field, write `[label](https://example.com)`; use an `http` or `https` URL. The link appears in the Galaxy and System and opens in a new tab. Unsupported link markup remains plain text. Descriptions are included in JSON exports.
 

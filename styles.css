@@ -1471,10 +1471,15 @@ html[data-animations='off'] *::after {
 .empty-galaxy .editor-primary { padding: 8px 16px; border-radius: 10px; font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif; cursor: pointer; }
 .preset-settings { min-height: 120px; font-family: ui-monospace, monospace; }
 
-.map-edit-button {
+.map-item-actions {
   position: absolute;
   z-index: 12;
   inset: 0 auto auto 0;
+  display: grid;
+  gap: 4px;
+  animation: fade-in .12s ease-out;
+}
+.map-edit-button, .map-remove-button {
   display: grid;
   place-items: center;
   width: 24px;
@@ -1486,13 +1491,38 @@ html[data-animations='off'] *::after {
   color: var(--text);
   font: 16px/1 system-ui, sans-serif;
   cursor: pointer;
-  animation: fade-in .12s ease-out;
 }
 .map-edit-button:hover { background: var(--hover-base); }
+.map-remove-button {
+  border-color: rgba(245, 167, 200, .5);
+  color: #ffd5e4;
+  font-size: 13px;
+}
+.map-remove-button:hover { background: color-mix(in srgb, #f5a7c8 17%, var(--surface)); }
+
+.map-removal-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 29;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: min(530px, calc(100% - 32px));
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: calc(13px * var(--font-scale));
+  box-shadow: 0 12px 35px rgba(0, 0, 0, .35);
+}
+.map-removal-notice span { overflow-wrap: anywhere; }
 .moon-overflow-links { position: relative; }
 .home-orbit.restoring-map-focus .home-planet-cluster,
 .planet-cluster.restoring-map-focus .moon-field { visibility: visible !important; transition: none; }
 .overflow-planet:is(:focus-within, .restoring-map-focus) .overflow-moons { display: flex; }
 @media (prefers-reduced-motion: reduce) {
-  .map-edit-button { animation: none; }
+  .map-item-actions { animation: none; }
 }

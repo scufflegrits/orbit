@@ -9,6 +9,7 @@ import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
 import { element } from '../dom.js';
 import { modes } from '../page-modes.js';
+import { removeMapItem } from '../remove-item.js';
 import { nav } from './nav.js';
 import { groups, menuContent, setStorageWarning, storageWarning } from '../page.js';
 
@@ -275,6 +276,17 @@ export function profileRows(text) {
 export function editPath(path) {
   if (path.length === 3) nav.showMoonEditor(path[0], path[1], path[2]);
   else nav.showPlanetEditor(path[0], path[1]);
+}
+
+/** @param {number[]} path @param {() => void} after */
+export function removeEditorItem(path, after) {
+  try {
+    if (!removeMapItem(path)) return;
+    after();
+    nav.renderEditorTree();
+  } catch (error) {
+    editorError(/** @type {Error} */ (error).message);
+  }
 }
 
 /** Put back the last removed sun, planet, or moon (the header's Undo removal). */

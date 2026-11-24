@@ -18,7 +18,7 @@ import { backupDue, backupReminder, noteBackupMade } from '../notices/backup.js'
 import { team } from '../team-map.js';
 import { showQuickAdd } from './quick-add.js';
 import { applyEditorChange, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader,
-  editorMoveControls, editorTree, exportItem, moveEntry, selectJsonFile } from './kit.js';
+  editorMoveControls, editorTree, exportItem, moveEntry, removeEditorItem, selectJsonFile } from './kit.js';
 import { leaveEditorPage, renderEditorTree, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
 import { reviewBookmarks } from './tools/bookmarks.js';
 import { showBulkRdp } from './tools/bulk-rdp.js';
@@ -504,14 +504,8 @@ export function showSunEditor(index) {
     planetActions.append(editorButton('Import .rdp files as planets', () => showRdpBatchImport('planet', index)));
 
     const removal = element('div', 'editor-sun-removal');
-    removal.append(editorButton('Remove sun', () => {
-      if (!confirmed(`Remove ${sun.name} and all its planets and moons?`)) return;
-      const next = copyGroups();
-      next.splice(index, 1);
-      applyEditorChange(next, showSunList, { label: `Removed sun ${sun.name}`, undoRecord: {
-        kind: 'sun', index, item: sun, label: `${sun.name} sun`,
-      } });
-    }, 'editor-danger'), element('p', 'editor-hint', 'Removes this sun and all its planets and moons.'));
+    removal.append(editorButton('Remove sun', () => removeEditorItem([index], showSunList), 'editor-danger'),
+      element('p', 'editor-hint', 'Removes this sun and all its planets and moons.'));
     menuContent.append(removal);
   }
 }
@@ -548,15 +542,8 @@ export function showPlanetEditor(sunIndex, planetIndex) {
       }
     });
     actions.append(editorButton('Move to another sun', () => showMovePlanet(sunIndex, planetIndex)));
-    actions.append(editorButton('Remove planet', () => {
-      if (!confirmed(`Remove ${planet.name} and all its moons?`)) return;
-      const next = copyGroups();
-      next[sunIndex].links.splice(planetIndex, 1);
-      applyEditorChange(next, () => showSunEditor(sunIndex), { label: `Removed planet ${planet.name}`, undoRecord: {
-        kind: 'planet', sunId: groups[sunIndex].id, index: planetIndex,
-        item: planet, label: `${planet.name} planet`,
-      } });
-    }, 'editor-danger'));
+    actions.append(editorButton('Remove planet', () =>
+      removeEditorItem([sunIndex, planetIndex], () => showSunEditor(sunIndex)), 'editor-danger'));
   }
   form.append(actions);
   form.addEventListener('submit', event => {
@@ -668,16 +655,8 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
       }
     });
     actions.append(editorButton('Move to another planet', () => showMoveMoon(sunIndex, planetIndex, moonIndex)));
-    actions.append(editorButton('Remove moon', () => {
-      if (!confirmed(`Remove ${moon.name}?`)) return;
-      const next = copyGroups();
-      next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
-      applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex), { label: `Removed moon ${moon.name}`, undoRecord: {
-        kind: 'moon', sunId: groups[sunIndex].id, planetIndex,
-        planetName: planet.name, planetUrl: planet.url, planetHost: planet.host,
-        index: moonIndex, item: moon, label: `${moon.name} moon`,
-      } });
-    }, 'editor-danger'));
+    actions.append(editorButton('Remove moon', () =>
+      removeEditorItem([sunIndex, planetIndex, moonIndex], () => showPlanetEditor(sunIndex, planetIndex)), 'editor-danger'));
   }
   form.append(actions);
   form.addEventListener('submit', event => {

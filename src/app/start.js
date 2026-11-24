@@ -13,6 +13,7 @@ import { variableFormClosed, variableFormOpened } from '../ui/dialogs/placeholde
 import { closeMenu, menuHidden, openMenu, showMenuPanel } from '../ui/menu/menu.js';
 import { updateWorkspaceSwitch } from '../ui/menu/workspaces.js';
 import { showBackupReminder } from '../ui/notices/backup.js';
+import { syncRemovalNoticeVisibility, updateRemovalNotice } from '../ui/notices/removal.js';
 import { offerDueRoutines } from '../ui/notices/routine-offer.js';
 import { checkTeamUpdates } from '../ui/notices/team-updates.js';
 import * as page from '../ui/page.js';
@@ -55,6 +56,7 @@ export function start() {
     countDestinations();
     // A workspace switch redraws itself after deciding whether to leave the System.
     if (kind !== 'switch') render();
+    updateRemovalNotice();
   });
 
   // The one place that shows the interaction modes: a held item is tidied
@@ -64,6 +66,7 @@ export function start() {
     const held = (/** @type {typeof next} */ state) => state.mode === 'pressed' || state.mode === 'dragging';
     if (held(previous) && !held(next)) gestureEnded(previous.mode === 'dragging', event);
     if (previous.overlay !== next.overlay) {
+      syncRemovalNoticeVisibility();
       const menu = (/** @type {typeof next} */ state) => ['menu', 'menuPanel', 'menuEditor'].includes(state.overlay);
       if (previous.overlay === 'palette') paletteClosed();
       if (previous.overlay === 'placeholder') variableFormClosed();
