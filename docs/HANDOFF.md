@@ -22,6 +22,7 @@ Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and t
 - **Commit straight to `main`.** No branches or pull requests unless asked. The remote is named `main`, so push with `git push main main`.
 - **Plans** for multi-part work go in a Markdown file with `[ ]` checkboxes, ticked as items land; testing may wait until every item is built.
 - **Tests are focused**, not full-matrix: check changed behavior and its direct dependencies (see [TEST_MATRIX.md](TEST_MATRIX.md)). Run the full matrix only for app-wide changes, a release, or an explicit request.
+- **Keep Python testing scripts in this repository.** Put browser checks and preview scripts under `tests/`. Put manual checks under `tests/manual/` and test output under the gitignored `.artifacts/`.
 
 ## Private material — never commit, copy, print, or quote
 
@@ -64,7 +65,7 @@ Since 3.0.0 the app is ES modules in `src/`, bundled by `scripts/build.mjs` into
 | `docs/` | This handoff, the test matrix, release steps, the Remote Desktop signing guide; finished plans in `docs/plans/` |
 | `private/` | Gitignored private notes |
 
-Test output and the test bundle (`orbit.test.js`) go in the gitignored `.artifacts/`.
+Test output and the test bundle (`orbit.test.js`) go in the gitignored `.artifacts/`. Run `~/.venv/bin/python tests/editor_previews.py` to generate editor screenshots. See [manual browser checks](../tests/manual/README.md) for the release-specific probes.
 
 Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md), [ROADMAP.md](plans/ROADMAP.md), [TEST_MATRIX.md](TEST_MATRIX.md), [FEATURES_PLAN.md](plans/FEATURES_PLAN.md), [DRAG_DROP_PLAN.md](plans/DRAG_DROP_PLAN.md), [REFACTOR_PLAN.md](plans/REFACTOR_PLAN.md) (done), [RDP_SIGNING.md](RDP_SIGNING.md).
 
