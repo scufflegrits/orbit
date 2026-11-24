@@ -3,6 +3,7 @@
 // and arrows between suns, planets, and moons. Moved in rewrite phase 7.
 import { cancelDrag, editBar, editToggle, setEditMode } from '../drag/drag.js';
 import { handlePaletteKey, handlePaletteShortcut } from '../find/palette.js';
+import { hideTooltip } from '../tooltip.js';
 import { closeMenu } from '../menu/menu.js';
 import { collapseGroup, setGroupExpanded } from '../views/group-planets.js';
 import { modes } from '../page-modes.js';
@@ -42,6 +43,10 @@ function trapMenuFocus(event) {
  * @param {any} event
  */
 function handleEscape(event) {
+  if (hideTooltip()) {
+    event.preventDefault();
+    return;
+  }
   const target = modes.escapeTarget();
   if (target === 'overlay') {
     event.preventDefault();

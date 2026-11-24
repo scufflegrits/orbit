@@ -399,12 +399,16 @@ def f08_link_check(ctx):
     page, mode = ctx.page, ctx.mode
     fresh(ctx)
     open_editor(page)
-    page.get_by_role("button", name="Check links").click()
+    button = page.get_by_role("button", name="Check links")
     if not ctx.server_mode:
-        check("python3 serve.py" in page.locator(".editor-pane").inner_text(), f"{mode}: file mode explains serve.py")
+        button.hover()
+        tooltip = page.get_by_role("tooltip")
+        tooltip.wait_for()
+        check(button.is_disabled() and "python3 serve.py" in tooltip.inner_text(), f"{mode}: file mode explains serve.py")
         close_menu(page)
         print(f"PASS F08 link check explains serve.py ({mode})")
         return
+    button.click()
     page.get_by_role("button", name="Start check").click()
     page.wait_for_function("document.querySelector('.link-check-status').textContent.startsWith('Checked ') && !document.querySelector('.link-check-status').textContent.includes('…')", timeout=60000)
     failures = page.locator(".link-check-failure strong").all_inner_texts()
@@ -513,7 +517,7 @@ def f11_merge_import(ctx):
     ]}
     open_editor(page)
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import JSON", exact=True).click()
+        page.get_by_role("button", name="Import a file", exact=True).click()
     chooser.value.set_files({"name": "more.json", "mimeType": "application/json", "buffer": json.dumps(incoming).encode()})
     page.wait_for_selector(".import-merge-summary, .editor-error")
     summary = page.locator(".import-merge-summary").inner_text()
@@ -531,7 +535,7 @@ def f11_merge_import(ctx):
     check([sun["name"] for sun in after] == ["Alpha", "Beta", "Gamma"], f"{mode}: the new sun is added")
     # The same file again adds nothing.
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import JSON", exact=True).click()
+        page.get_by_role("button", name="Import a file", exact=True).click()
     chooser.value.set_files({"name": "more.json", "mimeType": "application/json", "buffer": json.dumps(incoming).encode()})
     page.wait_for_selector(".import-merge-summary, .editor-error")
     check(page.get_by_role("button", name="Merge into my map").is_disabled(), f"{mode}: nothing new means nothing to merge")
@@ -587,7 +591,7 @@ def f12_team(ctx):
         exported = page.evaluate("OrbitTest.captureDownload(() => OrbitTest.actions.exportMap())")
     else:
         with page.expect_download() as download:
-            page.get_by_role("button", name="Export JSON", exact=True).click()
+            page.get_by_role("button", name="Whole map (JSON)", exact=True).click()
         exported = json.loads(Path(download.value.path()).read_text())
     check([sun["name"] for sun in exported["groups"]] == ["Alpha", "Beta"], f"{mode}: Export leaves the team map out")
     tree(page, "editor-tree-sun", "Ops").click()
@@ -611,7 +615,7 @@ def f13_bookmarks(ctx):
     fresh(ctx)
     open_editor(page)
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import bookmarks").click()
+        page.get_by_role("button", name="Import a file").click()
     chooser.value.set_files({"name": "bookmarks.html", "mimeType": "text/html", "buffer": BOOKMARKS.encode()})
     page.wait_for_selector(".import-merge-summary, .editor-error")
     pane = page.locator(".editor-pane").inner_text()
@@ -808,14 +812,14 @@ def f17_routines(ctx):
     page.locator("#edit-toggle").click()
     # Export includes routines; merge adds new names only.
     exported = page.evaluate("OrbitTest.captureDownload(() => OrbitTest.actions.exportMap())")
-    check([routine["name"] for routine in exported.get("routines", [])] == ["Morning"], f"{mode}: Export JSON includes routines")
+    check([routine["name"] for routine in exported.get("routines", [])] == ["Morning"], f"{mode}: Whole map (JSON) includes routines")
     incoming = {"groups": [], "routines": [
         {"name": "MORNING", "links": [{"key": "https://wiki.example.test", "name": "Wiki"}]},
         {"name": "Evening", "links": [{"key": "https://status.example.test", "name": "Status"}],
          "schedule": {"time": "18:00", "days": [1, 2, 3, 4, 5]}}]}
     open_editor(page)
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import JSON", exact=True).click()
+        page.get_by_role("button", name="Import a file", exact=True).click()
     chooser.value.set_files({"name": "routines.json", "mimeType": "application/json", "buffer": json.dumps(incoming).encode()})
     page.wait_for_selector(".import-merge-summary, .editor-error")
     check("and 1 routine" in page.locator(".import-merge-summary").inner_text(), f"{mode}: the review counts the new routine")
@@ -1163,7 +1167,7 @@ def f29_sun_picker(ctx):
     row = lambda name: page.locator(".import-sun").filter(has=page.locator(".import-sun-name", has_text=name))
     open_editor(page)
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import JSON", exact=True).click()
+        page.get_by_role("button", name="Import a file", exact=True).click()
     chooser.value.set_files({"name": "galaxy.json", "mimeType": "application/json", "buffer": buffer})
     page.wait_for_selector(".import-merge-summary, .editor-error")
     check(page.locator(".import-sun").count() == 3, f"{mode}: the review lists every sun in the file")
@@ -1183,7 +1187,7 @@ def f29_sun_picker(ctx):
           f"{mode}: a sun you already have gains only what is missing")
     # The same file again: Alpha and Gamma have nothing new; Delta still does.
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import JSON", exact=True).click()
+        page.get_by_role("button", name="Import a file", exact=True).click()
     chooser.value.set_files({"name": "galaxy.json", "mimeType": "application/json", "buffer": buffer})
     page.wait_for_selector(".import-merge-summary, .editor-error")
     check(row("Gamma").locator("input").is_disabled() and "nothing new" in row("Gamma").inner_text() and
@@ -1192,18 +1196,19 @@ def f29_sun_picker(ctx):
     row("Delta").locator("input").uncheck()
     page.get_by_role("button", name="Replace my map").click()
     check([sun["name"] for sun in stored(page)] == ["Alpha", "Gamma", "Delta"], f"{mode}: Replace takes the whole map")
-    # Import sun with a whole-map file opens the picker with nothing ticked.
+    # Select none gives a clean slate for choosing a single sun.
     fresh(ctx)
     open_editor(page)
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import sun", exact=True).click()
+        page.get_by_role("button", name="Import a file", exact=True).click()
     chooser.value.set_files({"name": "galaxy.json", "mimeType": "application/json", "buffer": buffer})
     page.wait_for_selector(".import-merge-summary, .editor-error")
+    page.get_by_role("button", name="Select none").click()
     check(page.locator(".import-sun input:checked").count() == 0 and page.get_by_role("button", name="Merge into my map").is_disabled(),
-          f"{mode}: Import sun opens the picker with nothing ticked")
+          f"{mode}: Select none clears all the suns")
     row("Gamma").locator("input").check()
     page.get_by_role("button", name="Merge into my map").click()
-    check([sun["name"] for sun in stored(page)] == ["Alpha", "Beta", "Gamma"], f"{mode}: Import sun adds the picked sun")
+    check([sun["name"] for sun in stored(page)] == ["Alpha", "Beta", "Gamma"], f"{mode}: the import adds the picked sun")
     close_menu(page)
     print(f"PASS F29 sun picker ({mode})")
 
@@ -1229,7 +1234,7 @@ def f23_link_packs(ctx):
     check("no favorites" in page.locator(".editor-error").inner_text(), f"{mode}: sharing no favorites explains why")
     # Someone else's pack, with one link that is new here.
     pack["links"].append({"name": "Calendar", "url": "https://calendar.example.test/"})
-    page.get_by_role("button", name="Import link pack").click()
+    page.get_by_role("button", name="Link pack").click()
     page.get_by_label("Pack text", exact=True).fill(json.dumps(pack))
     page.get_by_role("button", name="Review pasted pack").click()
     summary = page.locator(".import-merge-summary").inner_text()
@@ -1240,7 +1245,7 @@ def f23_link_packs(ctx):
           f"{mode}: only the new link is added, in a new sun")
     check([routine["name"] for routine in after["routines"]] == ["Morning", "Morning 2"] and
           len(after["routines"][1]["links"]) == 3, f"{mode}: the routine is added under a free name")
-    page.get_by_role("button", name="Import link pack").click()
+    page.get_by_role("button", name="Link pack").click()
     page.get_by_label("Pack text", exact=True).fill('{"format": "something-else"}')
     page.get_by_role("button", name="Review pasted pack").click()
     check("not an Orbit link pack" in page.locator(".editor-error").inner_text(), f"{mode}: other files are refused")
@@ -1442,10 +1447,10 @@ def f30_group_planets(ctx):
     check(group.get_attribute("aria-expanded") == "true", f"{mode}: Enter pins a focused group")
 
     open_editor(page)
-    exported = export("Export JSON")
-    upload_json(page, "Import JSON", exported)
+    exported = export("Whole map (JSON)")
+    upload_json(page, "Import a file", exported)
     page.get_by_role("button", name="Replace my map").click()
-    upload_json(page, "Import JSON", {"groups": [{"name": "Alpha", "links": [
+    upload_json(page, "Import a file", {"groups": [{"name": "Alpha", "links": [
         {"name": "MONITORING", "type": "group", "moons": [{"name": "Status Board", "url": ctx.target + "/status"}]},
     ]}]})
     check("adds 0 planets, 1 moon" in page.locator(".import-sun").inner_text(), f"{mode}: the picker matches the existing group")
@@ -1499,11 +1504,102 @@ def f30_group_planets(ctx):
     print(f"PASS F30 group planets ({mode})")
 
 
+def f31_edit_links_layout(ctx):
+    page = ctx.page
+    fresh(ctx)
+    open_editor(page)
+    pane = page.locator(".editor-pane")
+    check(pane.locator(".editor-actions").first.locator("button").all_inner_texts() == ["Add sun", "Add a link"] and
+          pane.locator(".editor-list").evaluate("el => el.previousElementSibling.textContent === 'Suns' && el.previousElementSibling.previousElementSibling.matches('.editor-actions')"),
+          "the add actions come before the sun list")
+    groups = pane.locator(".editor-group")
+    check(groups.locator("h4").all_text_contents() == ["Import", "Export", "Organize", "Start over"],
+          "the groups appear in order")
+    for i, labels in enumerate([["Import a file", "Link pack"], ["Whole map (JSON)", "Share favorites"],
+                                ["Routines", "RDP presets", "Find duplicates", "Check links", "History"],
+                                ["Reset to file data"]]):
+        check(groups.nth(i).locator("button").all_inner_texts() == labels, f"expected buttons {labels}")
+    check(page.get_by_role("button", name="Check links").is_enabled() == ctx.server_mode,
+          "Check links can only run in server mode")
+    planet = {"name": "Imported planet", "url": "https://example.test/"}
+    sun = {"name": "Imported sun", "links": [planet]}
+    cases = [
+        ({"groups": [sun]}, "Review import"),
+        ({"format": "orbit-item-v1", "kind": "sun", "item": sun}, "Review sun import"),
+        ({"format": "orbit-item-v1", "kind": "planet", "item": planet}, "Review planet as sun"),
+        ({"format": "orbit-item-v1", "kind": "moon", "item": planet}, "This file is a moon"),
+        ({}, "This isn't an Orbit map"),
+    ]
+    for data, title in cases:
+        with page.expect_file_chooser() as chooser:
+            page.get_by_role("button", name="Import a file").click()
+        chooser.value.set_files({"name": "orbit.json", "mimeType": "application/json", "buffer": json.dumps(data).encode()})
+        pane.get_by_text(title).wait_for()
+        if title.startswith("Review"):
+            check(page.get_by_role("button", name="Replace my map").count() == (title == "Review import"),
+                  "only whole-map imports can replace the map")
+            page.get_by_role("button", name="Cancel").click()
+    with page.expect_file_chooser() as chooser:
+        page.get_by_role("button", name="Import a file").click()
+    chooser.value.set_files({"name": "bookmarks.html", "mimeType": "text/html", "buffer": BOOKMARKS.encode()})
+    pane.get_by_text("Review bookmarks").wait_for()
+    check(page.get_by_role("button", name="Replace my map").count() == 0, "bookmarks merge only")
+    print(f"PASS F31 Edit links layout and import ({ctx.mode})")
+
+
+def f32_button_tips(ctx):
+    page = ctx.page
+    fresh(ctx)
+    open_editor(page)
+    tip = page.get_by_role("tooltip")
+    add = page.get_by_role("button", name="Add sun", exact=True)
+    link = page.get_by_role("button", name="Add a link", exact=True)
+    add.hover()
+    page.wait_for_timeout(500)
+    check(not tip.is_visible(), "the normal delay has not elapsed")
+    link.hover()
+    page.wait_for_timeout(500)
+    check(not tip.is_visible(), "the delay restarts for the next button")
+    tip.wait_for(timeout=900)
+    box = tip.bounding_box()
+    check(box["x"] >= 8 and box["x"] + box["width"] <= page.evaluate("innerWidth") - 8,
+          "tooltip remains inside the viewport")
+    page.keyboard.press("Escape")
+    check(not tip.is_visible() and page.locator("#menu-overlay").is_visible(), "Escape only hides the visible tip")
+    page.locator(".editor-back").focus()
+    page.keyboard.press("Tab")
+    tip.wait_for(timeout=1300)
+    check(add.evaluate("el => el === document.activeElement"), "keyboard focus shows a tip")
+    for value in ("off", "slow"):
+        close_menu(page)
+        page.locator("#settings-trigger").click()
+        page.locator('[data-menu-panel="Settings"]').click()
+        page.get_by_role("combobox", name="Button tips").select_option(value)
+        page.get_by_role("button", name="Edit links").click()
+        add.hover()
+        page.wait_for_timeout(1000)
+        check(not tip.is_visible(), f"{value} shows no tip after one second")
+        if value == "off":
+            check("Create a new sun" in add.evaluate("""el => document.getElementById(el.getAttribute("aria-describedby")).textContent"""),
+                  "the description is available with tips off")
+            page.locator(".editor-back").focus()
+            page.keyboard.press("Tab")
+            page.wait_for_timeout(900)
+            check(not tip.is_visible(), "tips off also disables visual tips from keyboard focus")
+        else:
+            tip.wait_for(timeout=850)
+    page.reload(wait_until="load")
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    check(page.get_by_role("combobox", name="Button tips").input_value() == "slow", "the setting survives a reload")
+    print(f"PASS F32 Button tips ({ctx.mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips)
 
 
 def run_checks(make_ctx, only):

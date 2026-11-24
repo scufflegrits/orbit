@@ -37,7 +37,7 @@ Orbit is a local webpage for frequently visited links; no hosting or accounts. T
 ## Run and edit
 
 - Open `index.html` directly (file mode), or run `python3 serve.py` and open `http://localhost:8000` (server mode). `serve.py` binds to `127.0.0.1:8000`; `--port` changes the port and `--team PATH` serves a team map at `/team.json`.
-- The editor saves to the current browser's storage. Export JSON backs a map up; Import JSON merges or replaces. The browser never writes `links.json`.
+- The editor saves to the current browser's storage. **Export → Whole map (JSON)** backs up the map. **Import → Import a file** accepts a whole map, an exported sun or planet, or browser bookmarks. The browser never writes `links.json`.
 - To change the bundled map, edit `links.json` and run `python3 sync.py` (regenerates `links-data.js` for file mode). `sync.py --team PATH` writes the gitignored `team-data.js`; `--no-team` removes it. A map saved in the browser takes precedence until **Reset to file data**.
 
 ## Code layout
@@ -85,9 +85,11 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 **Sizing.** `fitOrbitSizes` measures labels with a canvas and grows each level's circle until no word splits, up to a per-level max, then shrinks only that label (to 60% at most). Sizes are shared map-wide as CSS variables. Up to six moons orbit a planet (`VISIBLE_MOONS`); `layoutMoonField` fans them and clips the hover field.
 
-**Keyboard.** Escape order: palette, then menu, then drag, then Edit mode, then Quick find, then leaving a System.
+**Keyboard.** Escape order: a visible button tip, palette, then menu, then drag, then Edit mode, then Quick find, then leaving a System.
 
 **Server security.** `POST /api/check-links` requires a same-origin Host/Origin, a JSON body, and an `X-Orbit-Check: 1` header.
+
+Display preferences are shared across workspaces. **Button tips** uses `orbit:button-tips` with values `normal`, `slow`, and `off`.
 
 ## Tests
 
@@ -99,7 +101,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS10 at 1920×1080 | 19 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F30, no F05 | all passed |
+| `tests/features.py` | F01–F32, no F05 | all passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 194 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |

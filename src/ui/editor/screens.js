@@ -1,6 +1,7 @@
 // The editor's screens (2.2.1 editor.js): the sun list with the import,
 // export, reset, and tool buttons; the sun, planet, and moon forms; copying
 // a moon; and reviewing an imported map or item. Moved in rewrite phase 6b.
+import { importKind } from '../../core/import-kind.js';
 import { validateMap, validItemExport } from '../../core/schema.js';
 import { isGroup } from '../../core/destination.js';
 import * as mapOps from '../../core/map-ops.js';
@@ -11,6 +12,7 @@ import * as prefs from '../../state/prefs.js';
 import { confirmed } from '../dialogs/confirm.js';
 import { counted, element } from '../dom.js';
 import { hooks } from '../hooks.js';
+import { tip } from '../tooltip.js';
 import { closeMenu, showMenuPanel } from '../menu/menu.js';
 import { backupDue, backupReminder, noteBackupMade } from '../notices/backup.js';
 import { team } from '../team-map.js';
@@ -18,7 +20,7 @@ import { showQuickAdd } from './quick-add.js';
 import { applyEditorChange, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorField, editorHeader,
   editorMoveControls, editorTree, exportItem, moveEntry, selectJsonFile } from './kit.js';
 import { leaveEditorPage, renderEditorTree, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
-import { importBookmarks } from './tools/bookmarks.js';
+import { reviewBookmarks } from './tools/bookmarks.js';
 import { showBulkRdp } from './tools/bulk-rdp.js';
 import { showDuplicates } from './tools/duplicates.js';
 import { showHistory } from './tools/history.js';
@@ -167,7 +169,7 @@ function reviewCheck(className, checked, parts) {
  * planets and moons (a sun you already have gains only what it is missing).
  * Replace my map takes the whole file whatever is ticked.
  * @param {any} data
- * @param {{title?: string, note?: string, label?: string, replace?: boolean, picked?: 'all' | 'none'}} [options]
+ * @param {{title?: string, note?: string, label?: string, replace?: boolean}} [options]
  */
 export function showImportReview(data, options = {}) {
   editorHeader(options.title || 'Review import', showSunList);
@@ -200,7 +202,7 @@ export function showImportReview(data, options = {}) {
     const what = adds.isNew ? `new sun · ${counted(adds.planets, 'planet')} · ${counted(adds.moons, 'moon')}`
       : something ? `already yours · adds ${counted(adds.planets, 'planet')}, ${counted(adds.moons, 'moon')}`
         : 'already yours · nothing new';
-    const { label, box } = reviewCheck('import-sun', something && options.picked !== 'none',
+    const { label, box } = reviewCheck('import-sun', something,
       [element('span', 'import-sun-name', sun.name), element('span', 'import-sun-adds', what)]);
     box.disabled = !something;
     box.addEventListener('change', () => update());
@@ -249,73 +251,91 @@ export function showImportReview(data, options = {}) {
   actions.append(editorButton('Cancel', showSunList));
 }
 
-function importMap() {
-  selectJsonFile((/** @type {any} */ data) => showImportReview(validateMap(data)));
+function importFile() {
+  fileIo.pickFile('.json,application/json,.html,.htm,text/html', async file => {
+    try {
+      const { text, data } = await fileIo.readImportFile(file);
+      const kind = importKind(data === undefined ? text : typeof data === 'string' ? null : data, file.name);
+      switch (kind) {
+        case 'bookmarks': return reviewBookmarks(text);
+        case 'map': return showImportReview(validateMap(data));
+        case 'sun': return reviewItem(data, 'sun');
+        case 'planet': return reviewItem(data, 'sun', null, null, 'planet');
+        case 'moon': return editorError('This file is a moon. Import moons inside a planet: Edit → the planet → Import moon.');
+        default: return editorError("This isn't an Orbit map, sun, planet, or bookmarks file.");
+      }
+    } catch (error) {
+      editorError(`Import failed: ${/** @type {Error} */ (error).message}`);
+    }
+  });
 }
 
 /**
+ * @param {'planet' | 'moon'} kind
+ * @param {number} sunIndex
+ * @param {number | null} [planetIndex]
+ */
+function importItem(kind, sunIndex, planetIndex = null) {
+  selectJsonFile((/** @type {any} */ data) => reviewItem(data, kind, sunIndex, planetIndex));
+}
+
+/**
+ * @param {any} data
  * @param {any} kind
  * @param {any} [sunIndex]
  * @param {any} [planetIndex]
  * @param {any} [sourceKind]
  */
-function importItem(kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
-  selectJsonFile((/** @type {any} */ data) => {
-    // A whole map given to Import sun: pick suns from it instead.
-    if (kind === 'sun' && sourceKind === 'sun' && data && typeof data === 'object' && Array.isArray(data.groups) && !data.format) {
-      showImportReview(validateMap(data), { title: 'Choose suns to import', picked: 'none' });
-      return;
-    }
-    const item = validItemExport(data, kind, sourceKind);
-    const back = kind === 'sun' ? showSunList
-      : kind === 'planet' ? () => showSunEditor(sunIndex)
-        : () => showPlanetEditor(sunIndex, planetIndex);
-    editorHeader(sourceKind === kind ? `Review ${kind} import` : 'Review planet as sun', back);
-    menuContent.append(element('p', '', item.name));
-    if (sourceKind === 'planet' && kind === 'sun') {
-      const planet = item.links[0];
-      menuContent.append(element('p', '', isGroup(planet)
-        ? 'The group becomes the first planet in a new sun and keeps all its links.'
-        : 'The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.'));
-      if (!isGroup(planet)) menuContent.append(element('p', '', `Planet destination: ${planet.host || planet.url}`));
-    }
+function reviewItem(data, kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
+  const item = validItemExport(data, kind, sourceKind);
+  const back = kind === 'sun' ? showSunList
+    : kind === 'planet' ? () => showSunEditor(sunIndex)
+      : () => showPlanetEditor(sunIndex, planetIndex);
+  editorHeader(sourceKind === kind ? `Review ${kind} import` : 'Review planet as sun', back);
+  menuContent.append(element('p', '', item.name));
+  if (sourceKind === 'planet' && kind === 'sun') {
+    const planet = item.links[0];
+    menuContent.append(element('p', '', isGroup(planet)
+      ? 'The group becomes the first planet in a new sun and keeps all its links.'
+      : 'The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.'));
+    if (!isGroup(planet)) menuContent.append(element('p', '', `Planet destination: ${planet.host || planet.url}`));
+  }
+  if (kind === 'sun') {
+    const moons = item.links.reduce((/** @type {any} */ sum, /** @type {any} */ planet) => sum + planet.moons.length, 0);
+    menuContent.append(element('p', '', `${counted(item.links.length, 'planet')} · ${counted(moons, 'moon')}`));
+  } else if (kind === 'planet') {
+    menuContent.append(element('p', '', isGroup(item)
+      ? (item.moons.length ? counted(item.moons.length, 'link') : 'No links yet')
+      : `${counted(item.moons.length, 'moon')} · ${item.host || item.url}`));
+  } else {
+    menuContent.append(element('p', '', item.host || item.url));
+  }
+  const destination = kind === 'sun' ? 'the Galaxy'
+    : kind === 'planet' ? `${groups[sunIndex].name} sun`
+      : `${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet`;
+  menuContent.append(element('p', '', `Add to ${destination}. Existing links will remain.`));
+  const actions = editorActions();
+  actions.append(editorButton(`Add ${kind}`, () => {
+    const next = copyGroups();
+    const imported = JSON.parse(JSON.stringify(item));
+    let showNext;
     if (kind === 'sun') {
-      const moons = item.links.reduce((/** @type {any} */ sum, /** @type {any} */ planet) => sum + planet.moons.length, 0);
-      menuContent.append(element('p', '', `${counted(item.links.length, 'planet')} · ${counted(moons, 'moon')}`));
-    } else if (kind === 'planet') {
-      menuContent.append(element('p', '', isGroup(item)
-        ? (item.moons.length ? counted(item.moons.length, 'link') : 'No links yet')
-        : `${counted(item.moons.length, 'moon')} · ${item.host || item.url}`));
-    } else {
-      menuContent.append(element('p', '', item.host || item.url));
-    }
-    const destination = kind === 'sun' ? 'the Galaxy'
-      : kind === 'planet' ? `${groups[sunIndex].name} sun`
-        : `${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet`;
-    menuContent.append(element('p', '', `Add to ${destination}. Existing links will remain.`));
-    const actions = editorActions();
-    actions.append(editorButton(`Add ${kind}`, () => {
-      const next = copyGroups();
-      const imported = JSON.parse(JSON.stringify(item));
-      let showNext;
-      if (kind === 'sun') {
-        if (next.some((/** @type {any} */ sun) => sun.id === imported.id)) {
-          imported.id = mapOps.uniqueSunId(imported.name, new Set(next.map((/** @type {any} */ sun) => sun.id)));
-        }
-        next.push(imported);
-        showNext = () => showSunEditor(next.length - 1);
-      } else if (kind === 'planet') {
-        next[sunIndex].links.push(imported);
-        showNext = () => showPlanetEditor(sunIndex, next[sunIndex].links.length - 1);
-      } else {
-        next[sunIndex].links[planetIndex].moons.push(imported);
-        showNext = () => showMoonEditor(sunIndex, planetIndex,
-          next[sunIndex].links[planetIndex].moons.length - 1);
+      if (next.some((/** @type {any} */ sun) => sun.id === imported.id)) {
+        imported.id = mapOps.uniqueSunId(imported.name, new Set(next.map((/** @type {any} */ sun) => sun.id)));
       }
-      applyEditorChange(next, showNext);
-    }, 'editor-primary'));
-    actions.append(editorButton('Cancel', back));
-  });
+      next.push(imported);
+      showNext = () => showSunEditor(next.length - 1);
+    } else if (kind === 'planet') {
+      next[sunIndex].links.push(imported);
+      showNext = () => showPlanetEditor(sunIndex, next[sunIndex].links.length - 1);
+    } else {
+      next[sunIndex].links[planetIndex].moons.push(imported);
+      showNext = () => showMoonEditor(sunIndex, planetIndex,
+        next[sunIndex].links[planetIndex].moons.length - 1);
+    }
+    applyEditorChange(next, showNext);
+  }, 'editor-primary'));
+  actions.append(editorButton('Cancel', back));
 }
 
 function resetMap() {
@@ -330,15 +350,38 @@ function resetMap() {
   }
 }
 
+/**
+ * @param {string} label
+ * @param {...HTMLElement} controls
+ */
+function editorGroup(label, ...controls) {
+  const group = element('section', 'editor-group');
+  const heading = element('h4', 'editor-group-label', label);
+  heading.id = `editor-group-${label.toLowerCase().replaceAll(' ', '-')}`;
+  group.setAttribute('aria-labelledby', heading.id);
+  const actions = element('div', 'editor-actions');
+  actions.append(...controls);
+  group.append(heading, actions);
+  menuContent.append(group);
+}
+
 export function showSunList() {
   editorHeader('Edit links', () => editorTree ? leaveEditorPage() : showMenuPanel('Settings'));
-  menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons. Import JSON and Import bookmarks add what is new (Import JSON can also replace your map); item imports add links. Changes are saved in this browser, and History keeps earlier versions.'));
+  menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons, or add, import, and export below. Changes are saved in this browser. History keeps earlier versions.'));
   menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
+  const due = backupDue();
+  if (due) menuContent.append(backupReminder(due));
+  editorActions().append(
+    tip(editorButton('Add sun', () => showSunEditor(null), 'editor-primary'), 'Create a new sun, a group of planets, at the end of your Galaxy.'),
+    tip(editorButton('Add a link', () => showQuickAdd('')), 'Add a planet or moon quickly by pasting its address.'),
+  );
+  menuContent.append(element('h4', 'editor-section-title', 'Suns'));
   const list = element('div', 'editor-list');
   groups.forEach((sun, index) => {
     const row = element('div', 'editor-list-row');
     row.append(element('span', '', `${sun.icon ? `${sun.icon} ` : ''}${sun.name} · ${counted(sun.links.length, 'planet')}${sun.team ? ' · team, read-only' : ''}`));
-    row.append(editorButton(sun.team ? 'View' : 'Edit', () => showSunEditor(index)));
+    row.append(tip(editorButton(sun.team ? 'View' : 'Edit', () => showSunEditor(index)),
+      sun.team ? `View ${sun.name}: a read-only team sun.` : `Edit ${sun.name}: its name, color, planets, and moons.`));
     list.append(row);
   });
   menuContent.append(list);
@@ -346,26 +389,33 @@ export function showSunList() {
   if (hidden.length) {
     menuContent.append(element('p', 'data-source', `${counted(hidden.length, 'team sun')} hidden. Show them again in Settings.`));
   }
-  const actions = editorActions();
-  actions.append(editorButton('Add sun', () => showSunEditor(null), 'editor-primary'));
-  actions.append(editorButton('Import JSON', importMap));
-  actions.append(editorButton('Import bookmarks', importBookmarks));
-  actions.append(editorButton('Export JSON', exportMap));
-  actions.append(editorButton('Import sun', () => importItem('sun')));
-  actions.append(editorButton('Import planet as sun', () => importItem('sun', null, null, 'planet')));
-  actions.append(editorButton('Reset to file data', resetMap));
-  const due = backupDue();
-  if (due) menuContent.insertBefore(backupReminder(due), menuContent.querySelector('.editor-list'));
-  menuContent.append(element('h4', 'editor-section-title', 'Tools'));
-  const tools = editorActions();
-  tools.append(editorButton('Add a link', () => showQuickAdd('')));
-  tools.append(editorButton('Routines', showRoutines));
-  tools.append(editorButton('RDP presets', showPresets));
-  tools.append(editorButton('Share favorites', shareFavorites));
-  tools.append(editorButton('Import link pack', showPackImport));
-  tools.append(editorButton('History', showHistory));
-  tools.append(editorButton('Find duplicates', showDuplicates));
-  tools.append(editorButton('Check links', showLinkCheck));
+
+  editorGroup('Import',
+    tip(editorButton('Import a file', importFile), 'Add from a file: a whole map (pick which suns, or replace your map), a single sun, a planet as a new sun, or a browser bookmarks file.'),
+    tip(editorButton('Link pack', showPackImport), "Paste a link pack someone shared and add the links you don't have yet."),
+  );
+  editorGroup('Export',
+    tip(editorButton('Whole map (JSON)', exportMap), 'Download your whole map, with routines and presets, as a backup or to move it to another browser.'),
+    tip(editorButton('Share favorites', shareFavorites), 'Copy your favorites as a link pack to send to someone.'),
+  );
+  const fileMode = location.protocol === 'file:';
+  const checkLinks = editorButton('Check links', () => {
+    if (!fileMode) showLinkCheck();
+  });
+  if (fileMode) checkLinks.setAttribute('aria-disabled', 'true');
+  editorGroup('Organize',
+    tip(editorButton('Routines', showRoutines), 'Name sets of links to open together, and have Orbit offer them at set times.'),
+    tip(editorButton('RDP presets', showPresets), 'Saved Remote Desktop settings (screen size, monitors) to reuse across computers.'),
+    tip(editorButton('Find duplicates', showDuplicates), 'List links that appear more than once in your map.'),
+    tip(checkLinks, fileMode
+      ? 'Check links needs the local server: run python3 serve.py and open http://localhost:8000.'
+      : "Test every web link and mark the ones that don't answer."),
+    tip(editorButton('History', showHistory), 'Your map before each of your last 20 changes; restore any of them.'),
+  );
+  editorGroup('Start over',
+    tip(editorButton('Reset to file data', resetMap, 'editor-danger'), "Replace your browser edits with the project's map. History keeps the current one."),
+    element('p', 'editor-hint', "Replaces your browser edits with the project's map. History keeps the current one."),
+  );
   const tags = tagCounts();
   if (tags.length) {
     menuContent.append(element('h4', 'editor-section-title', 'Tags'));

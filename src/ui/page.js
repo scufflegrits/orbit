@@ -3,7 +3,7 @@
 // by app/start.js's subscriber, exactly once per change), the display
 // preferences, and Quick find's text. Screens import these as live bindings;
 // only the setters here change them. Moved in rewrite phase 8.
-import { readBoolean, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
+import { readBoolean, readButtonTips, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
 import { hooks } from './hooks.js';
 import { modes } from './page-modes.js';
 
@@ -77,6 +77,8 @@ export function dataSourceLabel() {
 
 export let animationsEnabled = true;
 export let alwaysShowMoons = false;
+/** @type {'normal'|'slow'|'off'} */
+export let buttonTips = 'normal';
 export let activeTheme = 'default';
 export let activeFontSize = 'standard';
 /** @type {'download'|'client'} */
@@ -91,6 +93,7 @@ export function readPreferences() {
   animationsEnabled = readBoolean('orbit:animations', true);
   alwaysShowMoons = readBoolean('orbit:always-show-moons', false);
   activeTheme = readTheme();
+  buttonTips = readButtonTips();
   activeFontSize = readFontSize();
   rdpLaunchMode = readRdpLaunch();
   showQuickBar = readBoolean('orbit:quick-bar', true);
@@ -107,6 +110,12 @@ export function readPreferences() {
 export function setAnimationsEnabled(on) { animationsEnabled = on; }
 /** @param {boolean} on */
 export function setAlwaysShowMoons(on) { alwaysShowMoons = on; }
+/** @param {string} value */
+export function setButtonTips(value) {
+  buttonTips = value === 'slow' || value === 'off' ? value : 'normal';
+  savePreference('orbit:button-tips', buttonTips);
+}
+
 /** @param {string} theme */
 export function setActiveTheme(theme) { activeTheme = theme; }
 /** @param {string} size */

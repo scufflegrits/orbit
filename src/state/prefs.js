@@ -34,6 +34,7 @@ function readChoice(key, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
 }
 
+export const readButtonTips = () => readChoice('orbit:button-tips', ['normal', 'slow', 'off'], 'normal');
 export const readTheme = () => readChoice('orbit:theme', ['default', 'alabama', 'auburn'], 'default');
 export const readFontSize = () => readChoice('orbit:font-size', ['small', 'standard', 'large', 'extra'], 'standard');
 export const readGalaxyView = () => readSafely('orbit:galaxy-view') === 'list' ? 'list' : 'orbits';

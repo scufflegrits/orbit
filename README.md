@@ -12,7 +12,7 @@ The bundled map has ten sample suns, including **Dev Toolbox**, **Stocks & Inves
 
 Orbit 3.0.0 carried over saved links, routines, workspaces, and settings from 2.2.1. It rebuilt the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. It is just as fast: the Galaxy draws 2% faster, typing in Quick find is unchanged, and the code is 1.5% larger. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md). 3.0.1 fixes routine offers in workspaces other than Main; 3.0.2 gives Galaxy planets more room around their sun and adds a Dev Toolbox sun to the sample map (see the changelog).
 
-**Once you save a map containing group planets, avoid opening Orbit 3.0.2 or earlier with the same browser storage. Older versions reject the saved map, fall back to the sample map, and can overwrite your saved map on the next edit.** Export JSON before switching versions. The current version backs up unreadable browser data before replacing it.
+**Once you save a map containing group planets, avoid opening Orbit 3.0.2 or earlier with the same browser storage. Older versions reject the saved map, fall back to the sample map, and can overwrite your saved map on the next edit.** Back up your map using **Export → Whole map (JSON)** before switching versions. The current version backs up unreadable browser data before replacing it.
 
 ## Run
 
@@ -118,13 +118,13 @@ Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` r
 
 ## Workspaces
 
-**Settings → Workspaces** keeps separate maps, such as Work and Home, each with its own suns, favorites, routines, history, and undo. Add a workspace starting from an empty map, a copy of the current one, or the sample map; rename or remove it (Main stays). Once there is more than one, a workspace menu appears in the top bar, and the command palette offers **Switch to workspace**. The team map and your settings are shared by all workspaces. Export JSON and Import JSON work on the open workspace. **Reset to file data** in Main goes back to following the project's link data; in any other workspace it saves a copy of that link data as the workspace's map, so it stays after a reload.
+**Settings → Workspaces** keeps separate maps, such as Work and Home, each with its own suns, favorites, routines, history, and undo. Add a workspace starting from an empty map, a copy of the current one, or the sample map; rename or remove it (Main stays). Once there is more than one, a workspace menu appears in the top bar, and the command palette offers **Switch to workspace**. The team map and your settings are shared by all workspaces. **Whole map (JSON)** and **Import a file** work on the open workspace. **Reset to file data** in Main goes back to following the project's link data; in any other workspace it saves a copy of that link data as the workspace's map, so it stays after a reload.
 
 ## Start your day with Orbit
 
 A **routine** is a named set of links you open together, such as the sites you start every morning with. Create one in **Settings → Edit links → Routines → New routine**: name it, tick its planets and moons (team links work too), and save. It appears as a chip in the Routines row above the Galaxy; one click opens all its websites in new tabs. Remote Desktop links in a routine are left out when it opens. The command palette lists **Run routine: <name>**.
 
-Routines remember links by their address, so renaming or moving a link on the map keeps the routine working; a link you remove is skipped and counted. Routines are saved with your map: Export JSON includes them, Import JSON merges routines with new names, and History restores them.
+Routines remember links by their address, so renaming or moving a link on the map keeps the routine working; a link you remove is skipped and counted. Routines are saved with your map: **Whole map (JSON)** includes them, whole-map imports merge routines with new names, and History restores them.
 
 Tick **Offer this routine when Orbit opens** to give a routine a time and days (weekdays by default). When Orbit opens on one of those days at or after that time, a banner offers **Open <routine>** or **Not today**. Browsers open tabs only after a click, so Orbit asks instead of opening them by itself, and it asks once a day in each workspace.
 
@@ -135,18 +135,37 @@ To make this your morning start:
 
 ## Edit links tools
 
-- **Routines** lists your routines with Open, Share, Edit, and Remove; see [Start your day with Orbit](#start-your-day-with-orbit).
-- **History** keeps the map (and its routines) as it was before each of your last 20 changes in this browser (edits, drags, imports, restores, and resets), with what changed. **Restore** brings a version back as a new change, so it can be undone too.
-- **Find duplicates** lists links that point to the same address or computer, with where each one is. An item's editor also notes when its destination exists elsewhere. A copy you made on purpose is fine.
-- **Check links** asks each website on your map whether it answers and lists the ones that do not, with Edit buttons. It needs `python3 serve.py`, because a page opened from a file cannot contact other sites. Remote Desktop links are not checked.
-- **Import bookmarks** reads a bookmarks file exported from Chrome, Edge, or Firefox (HTML). Each folder becomes a sun, its links become planets, and each subfolder becomes a group planet with all its links as moons. Bars such as “Bookmarks bar” are unwrapped. Only web links are kept, and the result is merged, never replacing your map.
-- **Import JSON** lists every sun in a map file with what it would add, so you can pick which suns to bring in (all that add something start ticked; **Select all** and **Select none** help). **Merge into my map** adds the ticked suns, each with all its planets and moons; for a sun you already have (matched by ID or name) it adds only the planets and moons you're missing, matching links by destination and group planets by name within the sun, and keeps your existing entries. Routines and Remote Desktop presets in the file have their own boxes. **Replace my map** swaps your whole map for the file, whatever is ticked; History keeps the old one. **Import sun** also accepts a whole map file: it opens the same picker with nothing ticked, so you can take just the suns you want. **Import bookmarks** uses the same picker, one sun per bookmark folder.
-- **Tags:** a planet or moon can have up to eight tags (letters, digits, spaces, and hyphens). The Edit links start screen lists the tags in use; select one to search for it.
-- **Add a link** opens Quick add.
-- **Share favorites**, and **Share** beside a routine, save a **link pack**: a small `orbit-pack-*.json` file with those links (names, addresses, tags, and notes; never passwords) and, for a routine, its name and schedule. **Import link pack** reads a pack file or pasted text, shows which links are new, adds only those (to a new sun named after the pack, or to one of your suns), and can add the routine too.
-- **RDP presets** are named Remote Desktop settings, such as full screen on all monitors. Build one from common choices (display, all monitors, clipboard, drives), edit its settings text, or start from an `.rdp` file; computer addresses and passwords are never kept. In a Remote Desktop link's editor, **Connection settings** chooses none, its own imported settings, or a preset; downloads and `mstsc.exe` launches then use that preset with the link's own computer. Presets are saved and exported with the map.
-- **Backup reminders:** after 20 changes or 14 days with changes since your last Export JSON, Orbit suggests a backup above the Galaxy and in Edit links (**Back up now** or **Remind me later**). Turn this off in Settings.
-- **Apply RDP settings to moons**, in a planet with Remote Desktop moons, copies one set of connection settings (from an `.rdp` file, another moon, or a preset) to the planet and its moons. Each keeps its own computer, and passwords, tokens, and signatures are never kept. **Clear imported settings** removes them again.
+**Add sun** and **Add a link** are above the sun list. The tools below the list are grouped by task.
+
+### Import
+
+- **Import a file** accepts a whole map, a single sun, a planet to add as a new sun, or browser bookmarks.
+- For a whole map, the review shows what each sun adds and starts with every sun that has something to add ticked. Use **Select all** or **Select none** to change the selection. **Merge into my map** adds the ticked suns with their planets and moons. If you already have a sun (matched by ID or name), Orbit adds the links you’re missing, matching links by destination and group planets by name. Routines and Remote Desktop presets have their own boxes. **Replace my map** takes the whole file and keeps the old map in History.
+- For an HTML bookmark export from Chrome, Edge, or Firefox, folders become suns and subfolders become group planets. Orbit unwraps bars such as “Bookmarks bar” and keeps web links. Pick which suns to merge.
+- **Link pack** reads a pack file or pasted text, shows which links are new, and adds those links to a new or existing sun. It can add a shared routine too.
+
+### Export
+
+- **Whole map (JSON)** downloads the active workspace’s map with its routines and Remote Desktop presets.
+- **Share favorites**, and **Share** beside a routine, save a small `orbit-pack-*.json` file with link names, addresses, tags, and notes. A routine pack also includes its name and schedule.
+
+### Organize
+
+- **Routines** lists your routines with Open, Share, Edit, and Remove. See [Start your day with Orbit](#start-your-day-with-orbit).
+- **RDP presets** store Remote Desktop settings such as full screen on all monitors. Build a preset from common choices, edit its settings text, or start from an `.rdp` file. A link’s **Connection settings** can select a preset or its own imported settings. Presets omit computer addresses and passwords.
+- **Find duplicates** lists links that point to the same address or computer and shows where each one is.
+- **Check links** lists websites that don’t answer and offers Edit buttons. Start Orbit with `python3 serve.py` to enable this button. The check covers web links.
+- **History** keeps the map and routines from before each of the last 20 changes. Restoring a version records a new change you can undo.
+
+### Start over
+
+- **Reset to file data** replaces your browser edits with the project’s map. History keeps the current map.
+
+The sun list also shows the tags in use. Select a tag to search for it. A planet or moon can have up to eight tags made of letters, digits, spaces, and hyphens.
+
+Orbit suggests a backup after 20 changes or 14 days with changes since your last export. Choose **Back up now** or **Remind me later** above the Galaxy or in Edit links. You can turn reminders off in Settings.
+
+**Apply RDP settings to moons**, in a planet with Remote Desktop moons, copies one set of connection settings (from an `.rdp` file, another moon, or a preset) to the planet and its moons. Each keeps its own computer, and passwords, tokens, and signatures are never kept. **Clear imported settings** removes them again.
 
 ## Team map
 
@@ -186,12 +205,12 @@ Click the cog on the Galaxy or any System to open Settings, Help, or About. Sett
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
 Circle labels use a shared size for each level across the Galaxy, and long names wrap inside their circles. Moons have larger circles and text; other interface text grows slightly on wide desktop screens.
 
-Settings also includes **Always show moons**, **Show favorites and recent** (with **Clear recent links**), **Galaxy view** (Orbits or List), **Show site icons**, the [team map](#team-map) status, and **Edit links**. Edit links opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Changes appear immediately and are stored in this browser. Export JSON for a portable backup, import a JSON file to merge into (or replace) the browser map, or reset to the link data loaded from the project files. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
+Settings also includes **Always show moons**, **Show favorites and recent** (with **Clear recent links**), **Galaxy view** (Orbits or List), **Show site icons**, **Button tips** (after 0.8 seconds by default, after 1.5 seconds, or off), the [team map](#team-map) status, and **Edit links**. Edit links opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Changes appear immediately and are stored in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
 Sun descriptions can include links within their text. In a sun's Description field, write `[label](https://example.com)`; use an `http` or `https` URL. The link appears in the Galaxy and System and opens in a new tab. Unsupported link markup remains plain text. Descriptions are included in JSON exports.
 
-To share part of your map, open a sun, planet, or moon in **Edit links** and choose **Export sun**, **Export planet**, or **Export moon**. A sun export includes its planets and moons; a planet export includes its moons; a moon export includes only that moon. The downloaded `orbit-*.json` file contains just that item and its descendants. To receive one, use **Import sun** in the editor's sun list, **Import planet** inside the destination sun, or **Import moon** inside the destination planet. Review the item and destination, then add it. This appends the imported links and keeps your existing map. If an imported sun ID already exists, Orbit gives the new sun a unique ID. **Import JSON** reviews a whole map and merges it by default; it can also replace your map.
+To share part of your map, open a sun, planet, or moon in **Edit links** and choose **Export sun**, **Export planet**, or **Export moon**. A sun export includes its planets and moons; a planet export includes its moons; a moon export includes only that moon. The downloaded `orbit-*.json` file contains just that item and its descendants. To receive one, use **Import a file** in the editor’s sun list for a sun, **Import planet** inside the destination sun, or **Import moon** inside the destination planet. Review the item and destination, then add it. This appends the imported links and keeps your existing map. If an imported sun ID already exists, Orbit gives the new sun a unique ID.
 
-If someone shares a planet and you want it at the top level, choose **Import planet as sun** in the sun list. Orbit creates a sun named after the planet and places the shared planet inside it as its first planet. The planet's destination and moons remain available. The new sun receives a default color that you can change in the editor.
+If someone shares a planet and you want it at the top level, choose **Import a file** in the sun list and select the planet export. Orbit creates a sun named after the planet and places the shared planet inside it as its first planet. The planet's destination and moons remain available. The new sun receives a default color that you can change in the editor.
 
 Settings and Edit links show whether the active map is bundled project data or browser edits. After removing a sun, planet, or moon, use **Undo removal** in the editor to restore it. The latest removal remains available after a reload; replacing or resetting the map clears it. For anything older, use **History** (see [Edit links tools](#edit-links-tools)).
 To copy a moon to another planet, open that moon in **Edit links** and choose **Copy moon**. Pick a target planet in the review screen. The copy keeps the saved destination and any imported Remote Desktop profile, and later edits to either moon are independent.

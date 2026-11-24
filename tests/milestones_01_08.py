@@ -261,7 +261,7 @@ def run_milestone_4(page, url, mode):
     page.locator(".editor-back").click()
 
     with page.expect_download() as download_info:
-        page.get_by_role("button", name="Export JSON").click()
+        page.get_by_role("button", name="Whole map (JSON)").click()
     exported = Path(download_info.value.path()).read_bytes()
     exported_map = json.loads(exported)
     check(len(exported_map["groups"]) == SAMPLE_SUNS + 1, f"{mode}: export includes new sun")
@@ -270,13 +270,13 @@ def run_milestone_4(page, url, mode):
           f"{mode}: export preserves moon order")
 
     with page.expect_file_chooser() as chooser_info:
-        page.get_by_role("button", name="Import JSON").click()
+        page.get_by_role("button", name="Import a file").click()
     chooser_info.value.set_files({"name": "bad.json", "mimeType": "application/json", "buffer": b"{bad"})
     page.locator(".editor-error").wait_for()
     check(page.evaluate("localStorage.getItem('orbit:map:v1')") == before_invalid,
           f"{mode}: malformed import leaves map intact")
     with page.expect_file_chooser() as chooser_info:
-        page.get_by_role("button", name="Import JSON").click()
+        page.get_by_role("button", name="Import a file").click()
     chooser_info.value.set_files({"name": "bad-color.json", "mimeType": "application/json",
                                   "buffer": b'{"groups":[{"name":"Bad","color":"#zzzzzz","links":[]}]}'})
     page.locator(".editor-error").filter(has_text="six-digit hex").wait_for()
@@ -299,7 +299,7 @@ def run_milestone_4(page, url, mode):
     check(page.locator(".editor-list-row").count() == SAMPLE_SUNS,
           f"{mode}: reset restores bundled suns")
     with page.expect_file_chooser() as chooser_info:
-        page.get_by_role("button", name="Import JSON").click()
+        page.get_by_role("button", name="Import a file").click()
     chooser_info.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
                                   "buffer": exported})
     page.get_by_role("button", name="Replace my map").click()
@@ -521,7 +521,7 @@ def run_milestone_7(page, url, mode):
                             "links": [{"name": "Papers", "url": "https://example.com/papers",
                                        "moons": [{"name": "Preprints", "url": "https://example.com/preprints"}]}]}]}
     with page.expect_file_chooser() as chooser_info:
-        page.get_by_role("button", name="Import JSON").click()
+        page.get_by_role("button", name="Import a file").click()
     chooser_info.value.set_files({"name": "search.json", "mimeType": "application/json",
                                   "buffer": json.dumps(imported).encode()})
     page.get_by_role("button", name="Replace my map").click()
@@ -598,7 +598,7 @@ def run_milestone_8(page, url, mode):
     imported = {"groups": [{"id": "sample", "name": "Sample", "color": "#8899aa",
                             "links": []}]}
     with page.expect_file_chooser() as chooser_info:
-        page.get_by_role("button", name="Import JSON").click()
+        page.get_by_role("button", name="Import a file").click()
     chooser_info.value.set_files({"name": "source.json", "mimeType": "application/json",
                                   "buffer": json.dumps(imported).encode()})
     page.get_by_role("button", name="Replace my map").click()

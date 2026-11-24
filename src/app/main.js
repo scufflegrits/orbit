@@ -15,6 +15,7 @@ import { installKeys } from '../ui/keys/keys.js';
 import { installLayout } from '../ui/layout/orbits.js';
 import * as menu from '../ui/menu/menu.js';
 import { installRoutineOffers } from '../ui/notices/routine-offer.js';
+import { installTooltip } from '../ui/tooltip.js';
 import { setVersion } from '../ui/page.js';
 import { modes } from '../ui/page-modes.js';
 import { installClicks } from '../ui/views/clicks.js';
@@ -41,5 +42,10 @@ installKeys();
 
 if (ORBIT_TEST) installTestHook(store, { schedule, modes });
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
-else start();
+function startPage() {
+  installTooltip();
+  start();
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startPage);
+else startPage();

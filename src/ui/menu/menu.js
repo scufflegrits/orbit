@@ -12,7 +12,7 @@ import { modes } from '../page-modes.js';
 import { store } from '../../state/page-store.js';
 import { team } from '../team-map.js';
 import { workspaceSettings } from './workspaces.js';
-import { activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowQuickBar, setShowSiteIcons, settingsTrigger, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
+import { activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowQuickBar, setShowSiteIcons, settingsTrigger, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
 
 /** The element that opened the menu, to refocus when it closes. @type {HTMLElement | null} */
 let menuOpener = null;
@@ -168,6 +168,20 @@ export function showMenuPanel(name) {
     });
     moonRow.append(moonCopy, moonInput);
     menuContent.append(moonRow);
+    const tipsRow = element('label', 'setting-row');
+    const tipsCopy = element('span', 'setting-copy');
+    tipsCopy.append(element('strong', '', 'Button tips'));
+    const tipsSelect = document.createElement('select');
+    tipsSelect.setAttribute('aria-label', 'Button tips');
+    for (const [value, label] of [['slow', 'After 1.5 seconds'], ['normal', 'After 0.8 seconds'], ['off', 'Off']]) {
+      const option = element('option', '', label);
+      option.value = value;
+      tipsSelect.append(option);
+    }
+    tipsSelect.value = buttonTips;
+    tipsSelect.addEventListener('change', () => setButtonTips(tipsSelect.value));
+    tipsRow.append(tipsCopy, tipsSelect);
+    menuContent.append(tipsRow);
     menuContent.append(settingToggle('Show favorites and recent', 'A row of your favorite and recently opened links above the Galaxy',
       showQuickBar, checked => {
         setShowQuickBar(checked);
@@ -203,7 +217,7 @@ export function showMenuPanel(name) {
         prefs.savePreference('orbit:site-icons', checked);
         hooks.render();
       }));
-    menuContent.append(settingToggle('Backup reminders', 'Suggest a backup (Export JSON) after 20 changes or 14 days without one',
+    menuContent.append(settingToggle('Backup reminders', 'Suggest a backup (Edit links → Export → Whole map (JSON)) after 20 changes or 14 days without one',
       prefs.readBoolean('orbit:backup-reminders', true), checked => {
         prefs.savePreference('orbit:backup-reminders', checked);
         showBackupReminder();
@@ -222,7 +236,7 @@ export function showMenuPanel(name) {
     menuContent.append(element('p', '', 'A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.'));
     menuContent.append(element('p', '', 'Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.'));
     menuContent.append(element('p', '', 'The ☰ button in the top bar switches the Galaxy between orbits and a compact list.'));
-    menuContent.append(element('p', '', 'Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing browser bookmarks. Import JSON merges by default and never changes what is already in your map.'));
+    menuContent.append(element('p', '', 'Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.'));
     menuContent.append(element('p', '', 'A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.'));
     menuContent.append(element('p', '', 'Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.'));
     menuContent.append(element('p', '', 'A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.'));

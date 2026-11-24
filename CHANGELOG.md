@@ -2,6 +2,12 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
+## Unreleased
+
+- Grouped the Edit links tools and moved **Add sun** and **Add a link** above the sun list.
+- **Import a file** reviews whole maps, suns, planets as new suns, and browser bookmarks from one picker.
+- Added button tips that appear on hover or keyboard focus. Settings offers a shorter delay, a longer delay, or Off. In file mode, the **Check links** tip explains how to enable the check.
+
 ## 3.0.3 — 2026-11-22
 
 - **Added group planets.** Create a planet that holds related links without an address of its own. Select it to show its links or Shift+click to open them in bulk. Bookmark subfolders now import as groups, and the sample map's Dev Toolbox shows a **Diagramming** group.

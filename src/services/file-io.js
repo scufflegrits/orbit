@@ -80,6 +80,19 @@ export async function readJsonFile(file) {
 }
 
 /**
+ * Read a file that can be JSON or HTML. An unparsed file still carries its text.
+ * @param {File} file
+ */
+export async function readImportFile(file) {
+  const text = await file.text();
+  try {
+    return { text, data: JSON.parse(text) };
+  } catch {
+    return { text, data: undefined };
+  }
+}
+
+/**
  * A .rdp file's text, whatever its encoding (UTF-16 with or without a BOM,
  * or UTF-8). Throws when it is over 64,000 bytes.
  * @param {{size: number, arrayBuffer(): Promise<ArrayBuffer>}} file

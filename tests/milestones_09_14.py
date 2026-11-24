@@ -350,7 +350,7 @@ def run_milestone_13(page, url, mode):
     sheet = page.locator(".menu-sheet").bounding_box()
     check(sheet is not None and sheet["x"] >= 0 and sheet["x"] + sheet["width"] <= 900,
           f"{mode}: scoped import controls fit narrower editor")
-    page.get_by_role("button", name="Import sun").scroll_into_view_if_needed()
+    page.get_by_role("button", name="Import a file").scroll_into_view_if_needed()
     page.screenshot(path=str(ARTIFACTS / f"milestone13-editor-{mode}-900.png"))
     page.set_viewport_size({"width": 1280, "height": 900})
     page.locator(".editor-list-row").filter(has_text="Labs").get_by_role("button", name="Edit").click()
@@ -372,22 +372,22 @@ def run_milestone_13(page, url, mode):
     page.locator(".editor-back").click()
 
     original = page.evaluate("JSON.stringify(OrbitTest.groups())")
-    upload_json(page, "Import sun", planet_file)
-    page.locator(".editor-error").filter(has_text="Choose an Orbit sun export file").wait_for()
+    upload_json(page, "Import a file", moon_file)
+    page.locator(".editor-error").filter(has_text="This file is a moon").wait_for()
     check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: mismatched item file leaves Galaxy unchanged")
-    upload_json(page, "Import sun", b"{bad")
-    page.locator(".editor-error").filter(has_text="Import failed").wait_for()
+    upload_json(page, "Import a file", b"{bad")
+    page.locator(".editor-error").filter(has_text="This isn't an Orbit map").wait_for()
     check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: malformed item file leaves Galaxy unchanged")
-    upload_json(page, "Import sun", sun_file)
+    upload_json(page, "Import a file", sun_file)
     page.locator(".editor-header h3").filter(has_text="Review sun import").wait_for()
     check("Add to the Galaxy" in page.locator("#menu-content").inner_text(),
           f"{mode}: sun review shows target")
     page.get_by_role("button", name="Cancel").click()
     check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: cancelling a valid item import leaves Galaxy unchanged")
-    upload_json(page, "Import sun", sun_file)
+    upload_json(page, "Import a file", sun_file)
     page.locator(".editor-header h3").filter(has_text="Review sun import").wait_for()
     page.get_by_role("button", name="Add sun", exact=True).click()
     suns = page.evaluate("OrbitTest.groups().map(sun => sun.id)")
@@ -434,14 +434,14 @@ def run_milestone_13(page, url, mode):
           f"{mode}: imported moon appears under its chosen planet")
     click_logo_to_galaxy(page)
     open_editor(page)
-    full_file = download_json(page, "Export JSON")
+    full_file = download_json(page, "Whole map (JSON)")
     check(len(full_file["groups"]) == SAMPLE_SUNS + 1 and
           full_file["groups"][0]["links"][0]["moons"][-1]["host"] == "lab1-server1",
           f"{mode}: full export includes scoped imports")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Reset to file data").click()
     check(page.evaluate("OrbitTest.groups().length") == SAMPLE_SUNS, f"{mode}: reset removes scoped imports")
-    upload_json(page, "Import JSON", full_file)
+    upload_json(page, "Import a file", full_file)
     page.get_by_role("button", name="Replace my map").click()
     check(page.evaluate("OrbitTest.groups().length") == SAMPLE_SUNS + 1, f"{mode}: full import restores scoped imports")
     print(f"PASS milestone 13 ({mode})")
@@ -459,16 +459,16 @@ def run_milestone_14(page, url, mode):
         ],
     }}
     original = page.evaluate("JSON.stringify(OrbitTest.groups())")
-    upload_json(page, "Import planet as sun", {**shared_planet, "kind": "moon"})
-    page.locator(".editor-error").filter(has_text="Choose an Orbit planet export file").wait_for()
+    upload_json(page, "Import a file", {**shared_planet, "kind": "moon"})
+    page.locator(".editor-error").filter(has_text="This file is a moon").wait_for()
     check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: wrong item type does not change Galaxy")
     invalid = {**shared_planet, "item": {**shared_planet["item"], "url": "javascript:alert(1)"}}
-    upload_json(page, "Import planet as sun", invalid)
+    upload_json(page, "Import a file", invalid)
     page.locator(".editor-error").filter(has_text="http or https URL").wait_for()
     check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: invalid planet does not change Galaxy")
-    upload_json(page, "Import planet as sun", shared_planet)
+    upload_json(page, "Import a file", shared_planet)
     page.locator(".editor-header h3").filter(has_text="Review planet as sun").wait_for()
     check("first planet in a new sun" in page.locator("#menu-content").inner_text() and
           "Planet destination: https://example.com/research" in page.locator("#menu-content").inner_text(),
@@ -480,7 +480,7 @@ def run_milestone_14(page, url, mode):
     check(page.evaluate("JSON.stringify(OrbitTest.groups())") == original,
           f"{mode}: cancelled conversion leaves Galaxy unchanged")
     for expected_id in ("shared-research", "shared-research-2"):
-        upload_json(page, "Import planet as sun", shared_planet)
+        upload_json(page, "Import a file", shared_planet)
         page.locator(".editor-header h3").filter(has_text="Review planet as sun").wait_for()
         page.get_by_role("button", name="Add sun", exact=True).click()
         saved = page.evaluate("OrbitTest.groups().at(-1)")

@@ -378,7 +378,7 @@ def run_galaxy_moves(page, url, mode):
         page.locator("#settings-trigger").click()
         page.locator('[data-menu-panel="Settings"]').click()
         page.get_by_role("button", name="Edit links").click()
-        check(download_json(page, "Export JSON") == expected, f"{mode}: Export JSON matches the moved map")
+        check(download_json(page, "Whole map (JSON)") == expected, f"{mode}: Whole map (JSON) matches the moved map")
         tree = page.locator(".editor-tree-item").all_inner_texts()
         check(tree.index("M2") > tree.index("B2 · 1 moon"), f"{mode}: the editor tree shows the moved moon under B2")
     print(f"PASS DD04-DD05 Galaxy moves, reload, export ({mode})")
@@ -714,13 +714,13 @@ def export_map(page):
             page.get_by_role("button", name="Edit links").click()
     page.evaluate("OrbitTest.actions.showSunList()")
     if not CDP:
-        return download_json(page, "Export JSON")
+        return download_json(page, "Whole map (JSON)")
     # A remote browser saves downloads on its own disk, so read the file's bytes as they are made.
     page.evaluate("""() => {
         const original = URL.createObjectURL;
         URL.createObjectURL = blob => { window.exportedText = blob.text(); return original.call(URL, blob); };
     }""")
-    page.get_by_role("button", name="Export JSON", exact=True).click()
+    page.get_by_role("button", name="Whole map (JSON)", exact=True).click()
     return json.loads(page.evaluate("window.exportedText"))
 
 
@@ -996,7 +996,7 @@ def run_editor_positions(page, url, mode):
     beta = tree.index("Beta · 3 planets")
     check(tree[beta + 1:beta + 4] == ["Dup · 2 moons", "Dup", "Dup"] and tree[beta + 4] == "Dup · 2 moons",
           f"{mode}: the editor tree follows the new order")
-    check(export_map(page) == expected, f"{mode}: Export JSON follows the new order")
+    check(export_map(page) == expected, f"{mode}: Whole map (JSON) follows the new order")
     page.reload(wait_until="load")
     page.locator(".home-hub").first.wait_for()
     check(memory(page) == expected, f"{mode}: the new order survives a reload")
@@ -1049,7 +1049,7 @@ def run_export_after_moves(page, url, mode):
     check(stored(page) == expected and memory(page) == expected, f"{mode}: the mixed run of drags and Undo is stored")
 
     exported = export_map(page)
-    check(exported == expected, f"{mode}: Export JSON matches the map after the drags")
+    check(exported == expected, f"{mode}: Whole map (JSON) matches the map after the drags")
     check([group["id"] for group in exported["groups"]] == ["gamma", "alpha", "beta"],
           f"{mode}: the export keeps sun IDs in the new order")
     gamma, beta = exported["groups"][0], exported["groups"][2]
@@ -1068,7 +1068,7 @@ def run_export_after_moves(page, url, mode):
     page.locator('[data-menu-panel="Settings"]').click()
     page.get_by_role("button", name="Edit links").click()
     with page.expect_file_chooser() as chooser:
-        page.get_by_role("button", name="Import JSON", exact=True).click()
+        page.get_by_role("button", name="Import a file", exact=True).click()
     chooser.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
                              "buffer": (json.dumps(exported, indent=2) + "\n").encode()})
     page.get_by_role("button", name="Replace my map").click()

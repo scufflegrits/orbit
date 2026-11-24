@@ -44,7 +44,7 @@ export function shareFavorites() {
 }
 
 export function showPackImport() {
-  editorHeader('Import link pack', nav.showSunList);
+  editorHeader('Link pack', nav.showSunList);
   menuContent.append(element('p', '', 'A link pack is a small file someone shared from their Orbit: a routine or their favorites. Choose the file, or paste its text.'));
   const text = editorField('Pack text', '', 'textarea');
   text.input.setAttribute('aria-label', 'Pack text');

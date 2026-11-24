@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { oracle } from '../../tests/oracle/oracle.mjs';
 import { KEYS, MIGRATIONS, memoryStorage, migrate, onExternalChange, readJson, useBackend, write, writeSafely } from './storage.js';
 import { loadWorkspaces, newWorkspace, readActiveWorkspace, renameWorkspace, workspaceKey, workspaceName } from './workspaces.js';
-import { hiddenTeamSuns, markOffered, offeredIn, readBoolean, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
+import { hiddenTeamSuns, markOffered, offeredIn, readBoolean, readButtonTips, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
 import { HISTORY_LIMIT, loadHistory, recordHistory } from './history.js';
 import { countChange, forgetWorkspace, noteBackupMade, readBackupState } from './backup.js';
 
@@ -107,7 +107,7 @@ test('prefs: booleans are the strings true and false; unknown values fall back',
   assert.equal(readBoolean('orbit:animations', true), false);
   storage.setItem('orbit:quick-bar', 'yes');
   assert.equal(readBoolean('orbit:quick-bar', true), false, '2.2.1: anything but "true" is false');
-  for (const [key, bad, read, fallback] of [['orbit:theme', 'red', readTheme, 'default'], ['orbit:font-size', 'huge', readFontSize, 'standard'],
+  for (const [key, bad, read, fallback] of [['orbit:theme', 'red', readTheme, 'default'], ['orbit:button-tips', 'unknown', readButtonTips, 'normal'], ['orbit:font-size', 'huge', readFontSize, 'standard'],
     ['orbit:galaxy-view', 'grid', readGalaxyView, 'orbits'], ['orbit:rdp-launch', 'x', readRdpLaunch, 'download']]) {
     storage.setItem(/** @type {string} */ (key), /** @type {string} */ (bad));
     assert.equal(/** @type {Function} */ (read)(), fallback);
