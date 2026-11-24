@@ -1,6 +1,6 @@
 # Orbit handoff
 
-Last updated 2026-11-24 for the unreleased Edit links and map editing changes, including row exports, the sun editor layout, and map removal.
+Last updated 2026-11-24 for the unreleased Edit links and map editing changes, including row exports, the sun editor layout, map removal, and sticky item editor actions.
 
 ## Status
 
@@ -39,6 +39,7 @@ Orbit is a local webpage for frequently visited links; no hosting or accounts. T
 - Open `index.html` directly (file mode), or run `python3 serve.py` and open `http://localhost:8000` (server mode). `serve.py` binds to `127.0.0.1:8000`; `--port` changes the port and `--team PATH` serves a team map at `/team.json`.
 - The editor saves to the current browser's storage. **Export → Whole map (JSON)** backs up the map. **Import → Import a file** accepts a whole map, an exported sun or planet, or browser bookmarks. The browser never writes `links.json`.
 - In the sun and planet editors, planet and moon rows export individual items directly. The read-only team views offer the same row exports. The sun form holds Save, with export and position below it and removal after the planet list.
+- Planet and moon editors associate their sticky Save button with the form using the `form` attribute. Their Move disclosure reuses the existing reorder and cross-parent move actions.
 - To change the bundled map, edit `links.json` and run `python3 sync.py` (regenerates `links-data.js` for file mode). `sync.py --team PATH` writes the gitignored `team-data.js`; `--no-team` removes it. A map saved in the browser takes precedence until **Reset to file data**.
 
 ## Code layout
@@ -102,7 +103,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS11 at 1920×1080 | 21 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F34, no F05 | 66 feature cases passed |
+| `tests/features.py` | F01–F35, no F05 | 68 feature cases passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 195 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |

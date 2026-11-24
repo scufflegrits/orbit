@@ -1404,7 +1404,7 @@ def f30_group_planets(ctx):
         page.get_by_role("button", name="Add link", exact=True).click()
         page.get_by_label("Moon name").fill(name)
         page.get_by_label("Destination URL").fill(ctx.target + path)
-        page.locator(".editor-form button[type=submit]").click()
+        page.locator("button[form='item-editor-form']").click()
         tree(page, "editor-tree-planet", "Monitoring").click()
 
     def export(button):
@@ -1791,11 +1791,65 @@ def f34_remove_map_items(ctx):
     print(f"PASS F34 Remove map items ({ctx.mode})")
 
 
+def f35_item_editor_toolbar(ctx):
+    page = ctx.page
+    fresh(ctx)
+    open_editor(page)
+    tree(page, "editor-tree-sun", "Alpha").click()
+    row = page.locator(".editor-list-row").filter(has_text="Docs Portal")
+    edit = row.get_by_role("button", name="Edit", exact=True)
+    check(edit.inner_text() == "✎", "the planet row uses an icon with its Edit name")
+    edit.click()
+    header = page.locator(".editor-header")
+    save = header.get_by_role("button", name="Save planet", exact=True)
+    export = header.get_by_role("button", name="Export planet", exact=True)
+    move = header.get_by_role("button", name="Move planet", exact=True)
+    remove = header.get_by_role("button", name="Remove planet", exact=True)
+    for action in (save, export, move, remove):
+        check(action.is_visible(), "the planet action is available at the top")
+    check("💾" in save.inner_text() and "Save planet" in save.inner_text(), "Save has an icon and a label")
+    export.hover()
+    page.get_by_role("tooltip").filter(has_text="Export planet").wait_for(timeout=2000)
+
+    original_viewport = page.viewport_size
+    page.set_viewport_size({"width": 950, "height": 580})
+    pane = page.locator(".editor-pane")
+    pane.evaluate("el => el.scrollTop = el.scrollHeight")
+    check(pane.evaluate("el => el.scrollTop") > 50, "the editor pane actually scrolls")
+    check(abs(header.bounding_box()["y"] - pane.bounding_box()["y"]) < 24, "the action bar stays at the top")
+    page.set_viewport_size(original_viewport)
+
+    move.focus()
+    page.keyboard.press("Enter")
+    check(header.get_by_role("button", name="Move up", exact=True).is_disabled(), "the first planet can't move up")
+    check(header.get_by_role("button", name="Move down", exact=True).is_enabled(), "the planet can move down")
+    check(header.get_by_role("button", name="Move to another sun").is_visible(), "the cross-sun move is offered")
+    page.keyboard.press("Escape")
+    check(page.locator("#menu-overlay").is_visible() and not header.get_by_role("button", name="Move down").is_visible(),
+          "Escape closes the Move choices and leaves the editor open")
+    page.get_by_role("textbox", name="Planet name").fill("Renamed Portal")
+    save.click()
+    check(header.get_by_role("heading", name="Edit Renamed Portal").is_visible(), "the header submit saves the planet")
+    row = page.locator(".editor-list-row").filter(has_text="Guide")
+    row.get_by_role("button", name="Edit", exact=True).click()
+    check(header.get_by_role("button", name="Save moon", exact=True).is_visible() and
+          header.get_by_role("button", name="Export moon", exact=True).is_visible() and
+          header.get_by_role("button", name="Copy moon", exact=True).is_visible(),
+          "the moon's actions are also at the top")
+    header.get_by_role("button", name="Move moon", exact=True).click()
+    header.get_by_role("button", name="Move down", exact=True).click()
+    check(stored(page)[0]["links"][0]["moons"][1]["name"] == "Guide", "the menu moves the moon")
+    DISMISS_NEXT.add(page)
+    header.get_by_role("button", name="Remove moon", exact=True).click()
+    check(header.get_by_role("heading", name="Edit Guide").is_visible(), "Remove still asks before deleting")
+    print(f"PASS F35 Item editor toolbar ({ctx.mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar)
 
 
 def run_checks(make_ctx, only):

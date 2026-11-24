@@ -139,7 +139,7 @@ def open_editor(page):
 
 
 def submit_editor_form(page):
-    page.locator(".editor-form button[type='submit']").click()
+    page.locator(".editor-form button[type='submit'], button[form='item-editor-form']").click()
 
 
 def upload_json(page, button, data):

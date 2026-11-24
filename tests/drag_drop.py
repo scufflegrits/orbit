@@ -973,6 +973,7 @@ def run_editor_positions(page, url, mode):
     """DD15: keyboard-reachable positions in Edit links; search, tree, reload, export."""
     fresh(page, url)
     page.evaluate("OrbitTest.actions.openEditorAt([0, 1])")
+    page.get_by_role("button", name="Move planet", exact=True).click()
     page.get_by_role("button", name="Move to another sun").click()
     page.get_by_label("Move to").select_option("1")
     position = page.get_by_label("Position")
@@ -985,6 +986,7 @@ def run_editor_positions(page, url, mode):
     check("Sun: Beta" in page.locator(".editor-pane").inner_text(), f"{mode}: the editor follows the moved planet")
 
     page.evaluate("OrbitTest.actions.openEditorAt([0, 0, 0])")
+    page.get_by_role("button", name="Move moon", exact=True).click()
     page.get_by_role("button", name="Move to another planet").click()
     page.get_by_label("Move to").select_option("1:0")
     page.get_by_label("Position").select_option("0")

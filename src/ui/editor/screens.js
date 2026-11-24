@@ -17,7 +17,7 @@ import { closeMenu, showMenuPanel } from '../menu/menu.js';
 import { backupDue, backupReminder, noteBackupMade } from '../notices/backup.js';
 import { team } from '../team-map.js';
 import { showQuickAdd } from './quick-add.js';
-import { applyEditorChange, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader,
+import { applyEditorChange, attachItemToolbar, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader,
   editorMoveControls, editorTree, exportItem, moveEntry, removeEditorItem, selectJsonFile } from './kit.js';
 import { leaveEditorPage, renderEditorTree, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
 import { reviewBookmarks } from './tools/bookmarks.js';
@@ -518,7 +518,7 @@ export function showPlanetEditor(sunIndex, planetIndex) {
   if (groups[sunIndex]?.team) return showTeamItem([sunIndex, planetIndex]);
   const isNew = planetIndex === null;
   const planet = isNew ? { name: '', url: '', moons: [] } : groups[sunIndex].links[planetIndex];
-  editorHeader(isNew ? 'Add planet' : `Edit ${planet.name}`, () => showSunEditor(sunIndex), [sunIndex, planetIndex]);
+  const header = editorHeader(isNew ? 'Add planet' : `Edit ${planet.name}`, () => showSunEditor(sunIndex), [sunIndex, planetIndex]);
   menuContent.append(element('p', '', `Sun: ${groups[sunIndex].name}`));
   if (!isNew) {
     const note = duplicateNote(planet, [sunIndex, planetIndex]);
@@ -530,22 +530,21 @@ export function showPlanetEditor(sunIndex, planetIndex) {
   const readDestination = destinationFields(form, planet, (/** @type {any} */ file) => {
     if (isNew && !name.input.value.trim()) name.input.value = file.name.replace(/\.rdp$/i, '');
   }, true);
-  const actions = element('div', 'editor-actions');
-  const save = element('button', 'editor-primary', isNew ? 'Add planet' : 'Save planet');
-  save.type = 'submit';
-  actions.append(save);
-  if (!isNew) {
-    editorMoveControls(actions, planetIndex, groups[sunIndex].links.length, (/** @type {any} */ amount) => {
+  const group = isGroup(planet);
+  attachItemToolbar(header, form, isNew ? 'Add planet' : 'Save planet', isNew ? undefined : {
+    kind: 'planet', item: planet, index: planetIndex, count: groups[sunIndex].links.length,
+    reorder: amount => {
       const next = copyGroups();
       if (moveEntry(next[sunIndex].links, planetIndex, amount)) {
         applyEditorChange(next, () => showPlanetEditor(sunIndex, planetIndex + amount));
       }
-    });
-    actions.append(editorButton('Move to another sun', () => showMovePlanet(sunIndex, planetIndex)));
-    actions.append(editorButton('Remove planet', () =>
-      removeEditorItem([sunIndex, planetIndex], () => showSunEditor(sunIndex)), 'editor-danger'));
-  }
-  form.append(actions);
+    },
+    move: () => showMovePlanet(sunIndex, planetIndex),
+    remove: () => removeEditorItem([sunIndex, planetIndex], () => showSunEditor(sunIndex)),
+    ...(group && planet.moons.length ? { extra: {
+      label: 'Share links as a pack', glyph: '↗', action: () => shareGroup(planet),
+    } } : {}),
+  });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = copyGroups();
@@ -560,10 +559,6 @@ export function showPlanetEditor(sunIndex, planetIndex) {
   });
   menuContent.append(form);
   if (!isNew) {
-    const sharing = editorActions();
-    sharing.append(editorButton('Export planet', () => exportItem('planet', planet)));
-    const group = isGroup(planet);
-    if (group && planet.moons.length) sharing.append(editorButton('Share links as a pack', () => shareGroup(planet)));
     menuContent.append(element('h4', 'editor-section-title', group ? 'Links' : 'Moons'));
     if (group && !planet.moons.length) menuContent.append(element('p', 'data-source', 'No links yet'));
     const list = element('div', 'editor-list');
@@ -630,7 +625,7 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   const planet = groups[sunIndex].links[planetIndex];
   const moon = isNew ? { name: '', url: '' } : planet.moons[moonIndex];
   const addLabel = isGroup(planet) ? 'Add link' : 'Add moon';
-  editorHeader(isNew ? addLabel : `Edit ${moon.name}`,
+  const header = editorHeader(isNew ? addLabel : `Edit ${moon.name}`,
     () => showPlanetEditor(sunIndex, planetIndex), [sunIndex, planetIndex, moonIndex]);
   menuContent.append(element('p', '', `${groups[sunIndex].name} sun → ${planet.name} planet`));
   if (!isNew) {
@@ -643,22 +638,18 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   const readDestination = destinationFields(form, moon, (/** @type {any} */ file) => {
     if (isNew && !name.input.value.trim()) name.input.value = file.name.replace(/\.rdp$/i, '');
   });
-  const actions = element('div', 'editor-actions');
-  const save = element('button', 'editor-primary', isNew ? addLabel : 'Save moon');
-  save.type = 'submit';
-  actions.append(save);
-  if (!isNew) {
-    editorMoveControls(actions, moonIndex, planet.moons.length, (/** @type {any} */ amount) => {
+  attachItemToolbar(header, form, isNew ? addLabel : 'Save moon', isNew ? undefined : {
+    kind: 'moon', item: moon, index: moonIndex, count: planet.moons.length,
+    reorder: amount => {
       const next = copyGroups();
       if (moveEntry(next[sunIndex].links[planetIndex].moons, moonIndex, amount)) {
         applyEditorChange(next, () => showMoonEditor(sunIndex, planetIndex, moonIndex + amount));
       }
-    });
-    actions.append(editorButton('Move to another planet', () => showMoveMoon(sunIndex, planetIndex, moonIndex)));
-    actions.append(editorButton('Remove moon', () =>
-      removeEditorItem([sunIndex, planetIndex, moonIndex], () => showPlanetEditor(sunIndex, planetIndex)), 'editor-danger'));
-  }
-  form.append(actions);
+    },
+    move: () => showMoveMoon(sunIndex, planetIndex, moonIndex),
+    remove: () => removeEditorItem([sunIndex, planetIndex, moonIndex], () => showPlanetEditor(sunIndex, planetIndex)),
+    extra: { label: 'Copy moon', glyph: '⧉', action: () => showCopyMoon(sunIndex, planetIndex, moonIndex) },
+  });
   form.addEventListener('submit', event => {
     event.preventDefault();
     const next = copyGroups();
@@ -669,9 +660,4 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
       isNew ? next[sunIndex].links[planetIndex].moons.length - 1 : moonIndex), { label: `${isNew ? 'Added' : 'Saved'} moon ${value.name}` });
   });
   menuContent.append(form);
-  if (!isNew) {
-    const extraActions = editorActions();
-    extraActions.append(editorButton('Copy moon', () => showCopyMoon(sunIndex, planetIndex, moonIndex)));
-    extraActions.append(editorButton('Export moon', () => exportItem('moon', moon)));
-  }
 }

@@ -9,6 +9,7 @@ import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
 import { element } from '../dom.js';
 import { modes } from '../page-modes.js';
+import { hideTooltip, tip } from '../tooltip.js';
 import { removeMapItem } from '../remove-item.js';
 import { nav } from './nav.js';
 import { groups, menuContent, setStorageWarning, storageWarning } from '../page.js';
@@ -36,6 +37,94 @@ export function editorButton(label, action, className = 'editor-button') {
   return button;
 }
 
+/** @param {string} glyph */
+function editorIcon(glyph) {
+  const icon = element('span', 'editor-icon', glyph);
+  icon.setAttribute('aria-hidden', 'true');
+  return icon;
+}
+
+/**
+ * @param {string} label
+ * @param {string} glyph
+ * @param {() => void} action
+ * @param {string} [className]
+ * @param {string} [description]
+ */
+function editorIconButton(label, glyph, action, className = 'editor-button', description = label) {
+  const button = editorButton('', action, `${className} editor-icon-button`);
+  button.append(editorIcon(glyph));
+  button.setAttribute('aria-label', label);
+  return tip(button, description);
+}
+
+/**
+ * @typedef {object} ItemToolbarOptions
+ * @property {'planet' | 'moon'} kind
+ * @property {{name: string}} item
+ * @property {number} index
+ * @property {number} count
+ * @property {(amount: number) => void} reorder
+ * @property {() => void} move
+ * @property {() => void} remove
+ * @property {{label: string, glyph: string, action: () => void}} [extra]
+ */
+
+/** @param {ItemToolbarOptions} options */
+function itemMoveMenu({ kind, index, count, reorder, move }) {
+  const choices = element('details', 'editor-move-menu');
+  const label = `Move ${kind}`;
+  const trigger = element('summary', 'editor-button editor-icon-button');
+  trigger.setAttribute('role', 'button');
+  trigger.setAttribute('aria-label', label);
+  trigger.append(editorIcon('↕'));
+  tip(trigger, label);
+  const panel = element('div', 'editor-move-choices');
+  editorMoveControls(panel, index, count, reorder);
+  panel.append(editorButton(kind === 'planet' ? 'Move to another sun' : 'Move to another planet', move));
+  choices.append(trigger, panel);
+  choices.addEventListener('focusout', event => {
+    const next = event.relatedTarget;
+    if (!(next instanceof Node) || !choices.contains(next)) choices.open = false;
+  });
+  choices.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || !choices.open) return;
+    event.preventDefault();
+    if (hideTooltip()) return;
+    choices.open = false;
+    trigger.focus();
+  });
+  return choices;
+}
+
+/**
+ * Keep the form's native submit behavior with the button associated by id.
+ * @param {HTMLElement} header
+ * @param {HTMLFormElement} form
+ * @param {string} label
+ * @param {ItemToolbarOptions} [options]
+ */
+export function attachItemToolbar(header, form, label, options) {
+  form.id = 'item-editor-form';
+  const actions = element('div', 'editor-item-actions');
+  actions.setAttribute('role', 'group');
+  actions.setAttribute('aria-label', 'Item actions');
+  const save = element('button', 'editor-primary editor-save-button', label);
+  save.type = 'submit';
+  save.setAttribute('form', form.id);
+  if (options) save.prepend(editorIcon('💾'));
+  actions.append(save);
+  if (options) {
+    const { kind, item, extra, remove } = options;
+    actions.append(editorIconButton(`Export ${kind}`, '⤓', () => exportItem(kind, item)), itemMoveMenu(options));
+    if (extra) actions.append(editorIconButton(extra.label, extra.glyph, extra.action));
+    actions.append(editorIconButton(`Remove ${kind}`, '🗑︎', remove, 'editor-danger editor-item-remove'));
+  }
+  header.classList.add('editor-header-sticky');
+  header.append(actions);
+  menuContent.scrollTop = 0;
+}
+
 /**
  * @param {any} label
  * @param {any} value
@@ -57,7 +146,14 @@ export function editorField(label, value, type = 'text') {
 export function editorError(message) {
   const previous = menuContent.querySelector('.editor-error');
   if (previous) previous.remove();
-  menuContent.prepend(element('p', 'editor-error', message));
+  const error = element('p', 'editor-error', message);
+  const stickyHeader = menuContent.querySelector('.editor-header-sticky');
+  if (stickyHeader) {
+    stickyHeader.after(error);
+    menuContent.scrollTop = 0;
+  } else {
+    menuContent.prepend(error);
+  }
 }
 
 /** @type {string | null} */
@@ -98,6 +194,7 @@ export function editorHeader(title, back, path) {
     notice.append(editorButton('Undo removal', undoRemoval));
     menuContent.append(notice);
   }
+  return header;
 }
 
 export function copyGroups() {
@@ -187,9 +284,10 @@ export function exportItem(kind, item) {
 export function editorExportRow(kind, item, summary, actionLabel, open) {
   const row = element('div', 'editor-list-row editor-export-row');
   const actions = element('div', 'editor-row-actions');
-  const download = editorButton('Export', () => exportItem(kind, item));
-  download.setAttribute('aria-label', `Export ${item.name}`);
-  actions.append(editorButton(actionLabel, open), download);
+  actions.append(
+    editorIconButton(actionLabel, actionLabel === 'Edit' ? '✎' : '👁︎', open, 'editor-button', `${actionLabel} ${item.name}`),
+    editorIconButton(`Export ${item.name}`, '⤓', () => exportItem(kind, item)),
+  );
   row.append(element('span', '', summary), actions);
   return row;
 }

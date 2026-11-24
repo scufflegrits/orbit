@@ -298,6 +298,7 @@ def b09_workspace(page, url, mode):
     target = build["links"][0]
     tree_item(page, "editor-tree-moon", moon["name"]).click()
     check(page.locator(".editor-pane").get_by_text(f"Edit {moon['name']}").count() >= 1, f"{mode}: the tree opens a moon")
+    page.get_by_role("button", name="Move moon", exact=True).click()
     page.get_by_role("button", name="Move to another planet").click()
     page.get_by_label("Move to", exact=True).select_option(label=f"{build['name']} → {target['name']}")
     page.get_by_role("button", name="Move moon").click()
@@ -313,6 +314,7 @@ def b09_workspace(page, url, mode):
     second = tech["links"][1]
     read = DATA["groups"][3]
     tree_item(page, "editor-tree-planet", second["name"]).click()
+    page.get_by_role("button", name="Move planet", exact=True).click()
     page.get_by_role("button", name="Move to another sun").click()
     page.get_by_label("Move to", exact=True).select_option(label=read["name"])
     page.get_by_role("button", name="Move planet").click()

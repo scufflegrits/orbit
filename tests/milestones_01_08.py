@@ -240,6 +240,7 @@ def run_milestone_4(page, url, mode):
     page.get_by_label("Moon name").fill("Second Moon")
     page.get_by_label("Destination URL").fill("https://example.com/moon-two")
     submit_editor_form(page)
+    page.get_by_role("button", name="Move moon", exact=True).click()
     page.get_by_role("button", name="Move up").click()
     check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons[0].name") == "Second Moon",
           f"{mode}: moon reorder saved")
@@ -357,6 +358,7 @@ def run_milestone_4(page, url, mode):
     page.get_by_label("Planet name").fill("Preview Planet")
     page.get_by_label("Destination URL").fill("https://example.com/preview")
     submit_editor_form(page)
+    page.get_by_role("button", name="Move planet", exact=True).click()
     page.get_by_role("button", name="Move up").click()
     check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'tech').links[4].name") == "Preview Planet",
           f"{mode}: planet reorder changes Galaxy preview")
