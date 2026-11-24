@@ -51,7 +51,7 @@ function editorIcon(glyph) {
  * @param {string} [className]
  * @param {string} [description]
  */
-function editorIconButton(label, glyph, action, className = 'editor-button', description = label) {
+export function editorIconButton(label, glyph, action, className = 'editor-button', description = label) {
   const button = editorButton('', action, `${className} editor-icon-button`);
   button.append(editorIcon(glyph));
   button.setAttribute('aria-label', label);
@@ -275,18 +275,20 @@ export function exportItem(kind, item) {
 }
 
 /**
- * @param {'planet' | 'moon'} kind
+ * @param {'sun' | 'planet' | 'moon'} kind
  * @param {{name: string}} item
  * @param {string} summary
  * @param {'Edit' | 'View'} actionLabel
  * @param {() => void} open
+ * @param {...HTMLButtonElement} extraActions
  */
-export function editorExportRow(kind, item, summary, actionLabel, open) {
+export function editorExportRow(kind, item, summary, actionLabel, open, ...extraActions) {
   const row = element('div', 'editor-list-row editor-export-row');
   const actions = element('div', 'editor-row-actions');
   actions.append(
     editorIconButton(actionLabel, actionLabel === 'Edit' ? '✎' : '👁︎', open, 'editor-button', `${actionLabel} ${item.name}`),
     editorIconButton(`Export ${item.name}`, '⤓', () => exportItem(kind, item)),
+    ...extraActions,
   );
   row.append(element('span', '', summary), actions);
   return row;

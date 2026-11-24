@@ -17,7 +17,7 @@ import { closeMenu, showMenuPanel } from '../menu/menu.js';
 import { backupDue, backupReminder, noteBackupMade } from '../notices/backup.js';
 import { team } from '../team-map.js';
 import { showQuickAdd } from './quick-add.js';
-import { applyEditorChange, attachItemToolbar, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader,
+import { applyEditorChange, attachItemToolbar, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader, editorIconButton,
   editorMoveControls, editorTree, exportItem, moveEntry, removeEditorItem, selectJsonFile } from './kit.js';
 import { leaveEditorPage, renderEditorTree, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
 import { reviewBookmarks } from './tools/bookmarks.js';
@@ -365,6 +365,46 @@ function editorGroup(label, ...controls) {
   menuContent.append(group);
 }
 
+/**
+ * @param {number} index
+ * @param {number} amount
+ * @param {(target: number) => void} after
+ */
+function moveSun(index, amount, after) {
+  const target = index + amount;
+  if (!groups[index] || !groups[target] || groups[index].team || groups[target].team) return;
+  const next = copyGroups();
+  if (moveEntry(next, index, amount)) {
+    applyEditorChange(next, () => after(target), { label: `Reordered sun ${groups[index].name}` });
+  }
+}
+
+/** @param {number} index */
+function sunRowActions(index) {
+  const sun = groups[index];
+  const arrows = /** @type {const} */ ([['up', '↑', -1], ['down', '↓', 1]]).map(([direction, glyph, amount]) => {
+    const className = `editor-sun-move-${direction}`;
+    const button = editorIconButton(`Move ${sun.name} ${direction}`, glyph, () => {
+      const scroll = menuContent.scrollTop;
+      moveSun(index, amount, target => {
+        showSunList();
+        menuContent.scrollTop = scroll;
+        const row = menuContent.querySelector('.editor-list')?.children[target];
+        const focus = /** @type {HTMLButtonElement | null | undefined} */ (
+          row?.querySelector(`.${className}:enabled`) ?? row?.querySelector('button'));
+        focus?.focus();
+      });
+    }, `editor-button ${className}`);
+    button.disabled = !groups[index + amount] || Boolean(groups[index + amount].team);
+    return button;
+  });
+  const remove = editorIconButton(`Remove ${sun.name}`, '🗑︎', () => removeEditorItem([index], () => {
+    showSunList();
+    /** @type {HTMLButtonElement | null} */ (menuContent.querySelector('.editor-undo button'))?.focus();
+  }), 'editor-danger editor-item-remove');
+  return [...arrows, remove];
+}
+
 export function showSunList() {
   editorHeader('Edit links', () => editorTree ? leaveEditorPage() : showMenuPanel('Settings'));
   menuContent.append(element('p', '', 'Choose a sun to edit its planets and moons, or add, import, and export below. Changes are saved in this browser. History keeps earlier versions.'));
@@ -378,11 +418,9 @@ export function showSunList() {
   menuContent.append(element('h4', 'editor-section-title', 'Suns'));
   const list = element('div', 'editor-list');
   groups.forEach((sun, index) => {
-    const row = element('div', 'editor-list-row');
-    row.append(element('span', '', `${sun.icon ? `${sun.icon} ` : ''}${sun.name} · ${counted(sun.links.length, 'planet')}${sun.team ? ' · team, read-only' : ''}`));
-    row.append(tip(editorButton(sun.team ? 'View' : 'Edit', () => showSunEditor(index)),
-      sun.team ? `View ${sun.name}: a read-only team sun.` : `Edit ${sun.name}: its name, color, planets, and moons.`));
-    list.append(row);
+    const summary = `${sun.icon ? `${sun.icon} ` : ''}${sun.name} · ${counted(sun.links.length, 'planet')}${sun.team ? ' · team, read-only' : ''}`;
+    list.append(editorExportRow('sun', sun, summary, sun.team ? 'View' : 'Edit', () => showSunEditor(index),
+      ...(sun.team ? [] : sunRowActions(index))));
   });
   menuContent.append(list);
   const hidden = team.groups.filter(sun => prefs.hiddenTeamSuns().has(sun.id));
@@ -485,10 +523,9 @@ export function showSunEditor(index) {
     const position = element('div', 'editor-row-actions');
     position.setAttribute('role', 'group');
     position.setAttribute('aria-label', 'Sun position');
-    editorMoveControls(position, index, groups.length, (/** @type {any} */ amount) => {
-      const next = copyGroups();
-      if (moveEntry(next, index, amount)) applyEditorChange(next, () => showSunEditor(index + amount));
-    });
+    const firstPersonal = groups.findIndex(sun => !sun.team);
+    editorMoveControls(position, index - firstPersonal, groups.length - firstPersonal,
+      (/** @type {number} */ amount) => moveSun(index, amount, showSunEditor));
     sunTools.append(editorButton('Export sun', () => exportItem('sun', sun)), position);
     menuContent.append(sunTools);
     menuContent.append(element('h4', 'editor-section-title', 'Planets'));

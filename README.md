@@ -141,6 +141,8 @@ To make this your morning start:
 
 **Add sun** and **Add a link** are above the sun list. The tools below the list are grouped by task.
 
+Each sun row has icons to edit, export, move up, move down, or remove the sun. The arrows save the Galaxy order as soon as you use them. Read-only team suns stay above personal suns and offer **View** and **Export**. Removing a sun follows **Confirm before deleting** and offers **Undo removal**.
+
 ### Import
 
 - **Import a file** accepts a whole map, a single sun, a planet to add as a new sun, or browser bookmarks.
@@ -217,7 +219,7 @@ Settings also includes **Always show moons**, **Show favorites and recent** (wit
 
 Sun descriptions can include links within their text. In a sun's Description field, write `[label](https://example.com)`; use an `http` or `https` URL. The link appears in the Galaxy and System and opens in a new tab. Unsupported link markup remains plain text. Descriptions are included in JSON exports.
 
-To share part of your map, choose **Export sun** below the sun form, or use the **Export** icon beside the pencil on a planet or moon row. On a read-only team row, Export sits beside **View**. A sun export includes its planets and moons. A planet export includes its moons. A moon export contains just that moon. To receive an `orbit-*.json` export, use **Import a file** for a sun, **Import planet** inside the destination sun, or **Import moon** inside the destination planet. Review the item and destination, then add it. Orbit appends the imported links and gives a duplicate sun ID a unique value.
+To share part of your map, use the **Export** icon on a sun, planet, or moon row. You can also choose **Export sun** below the sun form. On a read-only team row, Export sits beside **View**. A sun export includes its planets and moons. A planet export includes its moons. A moon export contains just that moon. To receive an `orbit-*.json` export, use **Import a file** for a sun, **Import planet** inside the destination sun, or **Import moon** inside the destination planet. Review the item and destination, then add it. Orbit appends the imported links and gives a duplicate sun ID a unique value.
 
 The planet and moon editors keep their actions at the top as you scroll. **Save** has a floppy disk icon and a label. The other icons let you export, move, and remove the saved item. The moon toolbar also has **Copy moon**, and group planets with links can share them as a pack. Focus or hover over an icon to see its tip when **Button tips** is on.
 

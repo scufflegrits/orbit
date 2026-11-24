@@ -11,6 +11,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 - Added **Export** beside Edit or View on planet and moon rows. Moved the sun editor’s export, position, and removal actions into separate rows from Save.
 - Added a trash button below the pencil, **Undo removal** on the map, and a **Confirm before deleting** setting shared by the map and editor. Confirmation is on by default.
 - Put Save, Export, Move, and Remove in a sticky toolbar in planet and moon editors. Save has a floppy disk icon and a label. The planet and moon rows use icons for their Edit and Export shortcuts.
+- Added Edit, Export, Move up, Move down, and Remove icons to personal sun rows. Team sun rows offer View and Export.
 
 ## 3.0.3 — 2026-11-22
 

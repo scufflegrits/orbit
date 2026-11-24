@@ -1845,11 +1845,67 @@ def f35_item_editor_toolbar(ctx):
     print(f"PASS F35 Item editor toolbar ({ctx.mode})")
 
 
+def f36_sun_row_actions(ctx):
+    page = ctx.page
+    fresh(ctx)
+    open_editor(page)
+    rows = page.locator(".editor-pane .editor-list-row")
+    ops = rows.filter(has_text="Ops")
+    alpha = rows.filter(has_text="Alpha")
+    beta = rows.filter(has_text="Beta")
+
+    check(ops.get_by_role("button").count() == 2 and
+          ops.get_by_role("button", name="View", exact=True).inner_text() == "👁︎",
+          "the team row offers just its View and Export icons")
+    check(alpha.get_by_role("button").count() == 5 and
+          alpha.get_by_role("button", name="Edit", exact=True).inner_text() == "✎",
+          "a personal sun row has all five icons")
+
+    for row, name in ((ops, "Ops"), (alpha, "Alpha")):
+        label = f"Export {name}"
+        button = row.get_by_role("button", name=label, exact=True)
+        data = (button.evaluate("node => OrbitTest.captureDownload(() => node.click())")
+                if ctx.mode.startswith("remote") else download_json(page, label))
+        check(data["kind"] == "sun" and data["item"]["name"] == name and len(data["item"]["links"]) > 0,
+              "row export downloads the selected sun with its planets")
+        check(page.get_by_role("heading", name="Edit links", exact=True).is_visible(),
+              "row export stays in the sun list")
+
+    up = alpha.get_by_role("button", name="Move Alpha up", exact=True)
+    down = alpha.get_by_role("button", name="Move Alpha down", exact=True)
+    check(up.is_disabled() and beta.get_by_role("button", name="Move Beta down", exact=True).is_disabled(),
+          "a personal sun can't move above the team sun or beyond the end")
+    down.click()
+    check([sun["name"] for sun in stored(page)] == ["Beta", "Alpha"] and
+          page.locator(".hub-name").all_inner_texts() == ["Ops", "Beta", "Alpha"],
+          "the arrow saves the new order and updates the Galaxy")
+    check(up.is_enabled() and down.is_disabled(), "the available directions update after moving")
+    close_menu(page)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator(".hub-name").all_inner_texts() == ["Ops", "Beta", "Alpha"], "the saved order survives reload")
+    open_editor(page)
+    up.click()
+    check([sun["name"] for sun in stored(page)] == ["Alpha", "Beta"], "the up arrow also saves")
+
+    remove = alpha.get_by_role("button", name="Remove Alpha", exact=True)
+    DISMISS_NEXT.add(page)
+    remove.click()
+    check(alpha.count() == 1, "cancelling removal leaves the sun in the list")
+    remove.click()
+    check(alpha.count() == 0 and [sun["name"] for sun in stored(page)] == ["Beta"],
+          "the trash icon removes the sun and its descendants")
+    page.get_by_role("button", name="Undo removal", exact=True).click()
+    check(alpha.count() == 1 and stored(page)[0]["links"][0]["moons"][0]["name"] == "Guide",
+          "Undo restores the sun in place with its planets and moons")
+    print(f"PASS F36 Sun row actions ({ctx.mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions)
 
 
 def run_checks(make_ctx, only):
