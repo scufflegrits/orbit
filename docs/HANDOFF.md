@@ -1,6 +1,6 @@
 # Orbit handoff
 
-Last updated 2026-11-24 for the unreleased Edit links and map editing changes, including sun row actions, row exports, the sun editor layout, map removal, and sticky item editor actions.
+Last updated 2026-11-24 for the unreleased Edit links and map changes, including row actions for suns, planets, and moons, map removal, and sticky editor toolbars.
 
 ## Status
 
