@@ -1901,11 +1901,86 @@ def f36_sun_row_actions(ctx):
     print(f"PASS F36 Sun row actions ({ctx.mode})")
 
 
+def f37_child_row_actions(ctx):
+    page = ctx.page
+    fresh(ctx)
+    data = ctx.data
+    data["groups"][0]["links"].append({"name": "Monitoring", "type": "group", "moons": [
+        {"name": "Dashboard", "url": "https://monitor.example.test/"}]})
+    page.evaluate("(map) => localStorage.setItem('orbit:map:v1', JSON.stringify(map))", data)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    open_editor(page)
+    editor = page.locator(".editor-pane")
+    rows = editor.locator(".editor-list-row")
+
+    def row_action(item, label):
+        return rows.filter(has_text=item).get_by_role("button", name=label, exact=True)
+
+    def export(label):
+        button = editor.get_by_role("button", name=label, exact=True)
+        return (button.evaluate("node => OrbitTest.captureDownload(() => node.click())")
+                if ctx.mode.startswith("remote") else download_json(page, label))
+
+    tree(page, "editor-tree-sun", "Alpha").click()
+    sun_name = editor.get_by_role("textbox", name="Sun name")
+    sun_name.fill("Unsaved sun name")
+    down = row_action("Docs Portal", "Move Docs Portal down")
+    down.wait_for(timeout=2000)
+    check(rows.filter(has_text="Docs Portal").get_by_role("button").count() == 5 and
+          row_action("Docs Portal", "Move Docs Portal up").is_disabled(), "planet rows share the five-icon layout")
+    down.click()
+    check(stored(page)[0]["links"][1]["name"] == "Docs Portal" and sun_name.input_value() == "Unsaved sun name",
+          "reordering planets saves the order and preserves the sun draft")
+    DISMISS_NEXT.add(page)
+    row_action("Docs Portal", "Remove Docs Portal").click()
+    check(rows.filter(has_text="Docs Portal").count() == 1, "cancelling keeps the planet")
+    row_action("Docs Portal", "Remove Docs Portal").click()
+    check(sun_name.input_value() == "Unsaved sun name" and
+          all(link["name"] != "Docs Portal" for link in export("Export sun")["item"]["links"]),
+          "the sun draft remains open and its export reflects the removal")
+    editor.get_by_role("button", name="Undo removal").click()
+    check(stored(page)[0]["links"][1]["moons"][0]["name"] == "Guide" and
+          sun_name.input_value() == "Unsaved sun name", "Undo restores the planet and its moons in the same editor")
+
+    row_action("Docs Portal", "Edit").click()
+    planet_name = editor.get_by_role("textbox", name="Planet name")
+    planet_name.fill("Unsaved planet name")
+    row_action("Guide", "Move Guide down").click()
+    check(stored(page)[0]["links"][1]["moons"][1]["name"] == "Guide" and
+          planet_name.input_value() == "Unsaved planet name", "moving a moon preserves the planet draft")
+    row_action("Guide", "Remove Guide").click()
+    check([moon["name"] for moon in export("Export planet")["item"]["moons"]] == ["Broken Page"],
+          "toolbar export uses the saved moons")
+    editor.get_by_role("button", name="Undo removal").click()
+    check(planet_name.input_value() == "Unsaved planet name" and
+          row_action("Guide", "Move Guide down").is_disabled(), "the last moon cannot move down after Undo")
+    editor.get_by_role("button", name="Save planet").click()
+    check(stored(page)[0]["links"][1]["name"] == "Unsaved planet name" and
+          stored(page)[0]["links"][1]["moons"][1]["name"] == "Guide",
+          "saving the parent keeps the updated child order without resurrecting stale data")
+
+    tree(page, "editor-tree-planet", "Monitoring").click()
+    check(row_action("Dashboard", "Move Dashboard up").is_disabled() and
+          row_action("Dashboard", "Move Dashboard down").is_disabled(), "a group's only link can't be reordered")
+    row_action("Dashboard", "Remove Dashboard").click()
+    check(editor.get_by_text("No links yet", exact=True).is_visible() and
+          not editor.get_by_role("button", name="Share links as a pack").is_visible(), "removing the last group link refreshes its actions")
+    editor.get_by_role("button", name="Undo removal").click()
+    check(editor.get_by_role("button", name="Share links as a pack").is_visible(), "Undo restores the group's share action")
+
+    tree(page, "editor-tree-sun", "Ops").click()
+    check(rows.filter(has_text="Runbook").get_by_role("button").count() == 2, "team planets show View and Export")
+    row_action("Runbook", "View").click()
+    check(rows.filter(has_text="Pager").get_by_role("button").count() == 2, "team moons show View and Export")
+    print(f"PASS F37 Child row actions ({ctx.mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions)
 
 
 def run_checks(make_ctx, only):

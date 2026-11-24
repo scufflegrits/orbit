@@ -143,6 +143,8 @@ To make this your morning start:
 
 Each sun row has icons to edit, export, move up, move down, or remove the sun. The arrows save the Galaxy order as soon as you use them. Read-only team suns stay above personal suns and offer **View** and **Export**. Removing a sun follows **Confirm before deleting** and offers **Undo removal**.
 
+Planet, moon, and group-link rows use the same icons. Their arrows save the order within the current sun or planet. Reordering, removing, and undoing from a child row keep the parent editor open and preserve its unsaved fields. To move an item to a different parent, use **Move** in that item’s toolbar. Team rows offer **View** and **Export**.
+
 ### Import
 
 - **Import a file** accepts a whole map, a single sun, a planet to add as a new sun, or browser bookmarks.

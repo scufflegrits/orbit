@@ -10,15 +10,15 @@ import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
 import * as prefs from '../../state/prefs.js';
 import { confirmed } from '../dialogs/confirm.js';
-import { counted, element, trashIcon } from '../dom.js';
+import { counted, element } from '../dom.js';
 import { hooks } from '../hooks.js';
 import { tip } from '../tooltip.js';
 import { closeMenu, showMenuPanel } from '../menu/menu.js';
 import { backupDue, backupReminder, noteBackupMade } from '../notices/backup.js';
 import { team } from '../team-map.js';
 import { showQuickAdd } from './quick-add.js';
-import { applyEditorChange, attachItemToolbar, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader, editorIconButton,
-  editorMoveControls, editorTree, exportItem, moveEntry, removeEditorItem, selectJsonFile } from './kit.js';
+import { applyEditorChange, attachItemToolbar, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader,
+  editorMoveControls, editorRowActions, editorTree, exportItem, focusMovedRow, moveEntry, refreshEditorUndo, removeEditorItem, selectJsonFile } from './kit.js';
 import { leaveEditorPage, renderEditorTree, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
 import { reviewBookmarks } from './tools/bookmarks.js';
 import { showBulkRdp } from './tools/bulk-rdp.js';
@@ -379,30 +379,15 @@ function moveSun(index, amount, after) {
   }
 }
 
-/** @param {number} index */
-function sunRowActions(index) {
-  const sun = groups[index];
-  const arrows = /** @type {const} */ ([['up', '↑', -1], ['down', '↓', 1]]).map(([direction, glyph, amount]) => {
-    const className = `editor-sun-move-${direction}`;
-    const button = editorIconButton(`Move ${sun.name} ${direction}`, glyph, () => {
-      const scroll = menuContent.scrollTop;
-      moveSun(index, amount, target => {
-        showSunList();
-        menuContent.scrollTop = scroll;
-        const row = menuContent.querySelector('.editor-list')?.children[target];
-        const focus = /** @type {HTMLButtonElement | null | undefined} */ (
-          row?.querySelector(`.${className}:enabled`) ?? row?.querySelector('button'));
-        focus?.focus();
-      });
-    }, `editor-button ${className}`);
-    button.disabled = !groups[index + amount] || Boolean(groups[index + amount].team);
-    return button;
-  });
-  const remove = editorIconButton(`Remove ${sun.name}`, trashIcon(), () => removeEditorItem([index], () => {
-    showSunList();
-    /** @type {HTMLButtonElement | null} */ (menuContent.querySelector('.editor-undo button'))?.focus();
-  }), 'editor-danger editor-item-remove');
-  return [...arrows, remove];
+/** @param {number} index @param {number} firstPersonal */
+function sunRowActions(index, firstPersonal) {
+  return editorRowActions(groups[index].name, index - firstPersonal, groups.length - firstPersonal, [index], amount => {
+    const scroll = menuContent.scrollTop;
+    moveSun(index, amount, target => {
+      showSunList();
+      focusMovedRow(menuContent.querySelector('.editor-list'), target, amount, scroll);
+    });
+  }, showSunList);
 }
 
 export function showSunList() {
@@ -417,10 +402,11 @@ export function showSunList() {
   );
   menuContent.append(element('h4', 'editor-section-title', 'Suns'));
   const list = element('div', 'editor-list');
+  const firstPersonal = groups.findIndex(sun => !sun.team);
   groups.forEach((sun, index) => {
     const summary = `${sun.icon ? `${sun.icon} ` : ''}${sun.name} · ${counted(sun.links.length, 'planet')}${sun.team ? ' · team, read-only' : ''}`;
     list.append(editorExportRow('sun', sun, summary, sun.team ? 'View' : 'Edit', () => showSunEditor(index),
-      ...(sun.team ? [] : sunRowActions(index))));
+      ...(sun.team ? [] : sunRowActions(index, firstPersonal))));
   });
   menuContent.append(list);
   const hidden = team.groups.filter(sun => prefs.hiddenTeamSuns().has(sun.id));
@@ -477,6 +463,53 @@ function tagCounts() {
   return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
+/** @param {typeof groups} map @param {number[]} parentPath */
+function childItems(map, parentPath) {
+  const [sun, planet] = parentPath;
+  const planets = map[sun].links;
+  return parentPath.length === 1 ? planets : planets[planet].moons;
+}
+
+/**
+ * Refresh the children and their related actions in place so every draft
+ * field and its listeners stay in the parent editor.
+ * @param {number[]} parentPath
+ * @param {(index: number) => void} open
+ * @param {() => void} [updateParent]
+ */
+function editorChildList(parentPath, open, updateParent) {
+  const kind = parentPath.length === 1 ? 'planet' : 'moon';
+  const list = element('div', 'editor-list');
+  function refresh() {
+    const items = childItems(groups, parentPath);
+    list.replaceChildren(...items.map((/** @type {any} */ item, /** @type {number} */ index) => {
+      const summary = kind === 'planet'
+        ? `${item.name} · ${counted(item.moons.length, isGroup(item) ? 'link' : 'moon')}`
+        : item.name;
+      const actions = editorRowActions(item.name, index, items.length, [...parentPath, index], amount => {
+        const scroll = menuContent.scrollTop;
+        const next = copyGroups();
+        if (moveEntry(childItems(next, parentPath), index, amount)) {
+          applyEditorChange(next, () => {
+            refresh();
+            focusMovedRow(list, index + amount, amount, scroll);
+          }, { label: `Reordered ${kind} ${item.name}` });
+        }
+      }, () => {
+        refresh();
+        refreshEditorUndo(() => {
+          refresh();
+          refreshEditorUndo();
+        });
+      });
+      return editorExportRow(kind, item, summary, 'Edit', () => open(index), ...actions);
+    }));
+    updateParent?.();
+  }
+  refresh();
+  return list;
+}
+
 /**
  * @param {any} index
  */
@@ -526,15 +559,10 @@ export function showSunEditor(index) {
     const firstPersonal = groups.findIndex(sun => !sun.team);
     editorMoveControls(position, index - firstPersonal, groups.length - firstPersonal,
       (/** @type {number} */ amount) => moveSun(index, amount, showSunEditor));
-    sunTools.append(editorButton('Export sun', () => exportItem('sun', sun)), position);
+    sunTools.append(editorButton('Export sun', () => exportItem('sun', groups[index])), position);
     menuContent.append(sunTools);
     menuContent.append(element('h4', 'editor-section-title', 'Planets'));
-    const list = element('div', 'editor-list');
-    sun.links.forEach((/** @type {any} */ planet, /** @type {any} */ planetIndex) => {
-      const summary = `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? 'link' : 'moon')}`;
-      list.append(editorExportRow('planet', planet, summary, 'Edit', () => showPlanetEditor(index, planetIndex)));
-    });
-    menuContent.append(list);
+    menuContent.append(editorChildList([index], planetIndex => showPlanetEditor(index, planetIndex)));
     const planetActions = editorActions();
     planetActions.append(editorButton('Add planet', () => showPlanetEditor(index, null), 'editor-primary'));
     planetActions.append(editorButton('Import planet', () => importItem('planet', index)));
@@ -568,8 +596,9 @@ export function showPlanetEditor(sunIndex, planetIndex) {
     if (isNew && !name.input.value.trim()) name.input.value = file.name.replace(/\.rdp$/i, '');
   }, true);
   const group = isGroup(planet);
-  attachItemToolbar(header, form, isNew ? 'Add planet' : 'Save planet', isNew ? undefined : {
-    kind: 'planet', item: planet, index: planetIndex, count: groups[sunIndex].links.length,
+  const getPlanet = () => groups[sunIndex].links[planetIndex];
+  const refreshToolbar = attachItemToolbar(header, form, isNew ? 'Add planet' : 'Save planet', isNew ? undefined : {
+    kind: 'planet', getItem: getPlanet, index: planetIndex, count: groups[sunIndex].links.length,
     reorder: amount => {
       const next = copyGroups();
       if (moveEntry(next[sunIndex].links, planetIndex, amount)) {
@@ -578,8 +607,9 @@ export function showPlanetEditor(sunIndex, planetIndex) {
     },
     move: () => showMovePlanet(sunIndex, planetIndex),
     remove: () => removeEditorItem([sunIndex, planetIndex], () => showSunEditor(sunIndex)),
-    ...(group && planet.moons.length ? { extra: {
-      label: 'Share links as a pack', glyph: '↗', action: () => shareGroup(planet),
+    ...(group ? { extra: {
+      label: 'Share links as a pack', glyph: '↗', action: () => shareGroup(getPlanet()),
+      available: () => getPlanet().moons.length > 0,
     } } : {}),
   });
   form.addEventListener('submit', event => {
@@ -597,19 +627,20 @@ export function showPlanetEditor(sunIndex, planetIndex) {
   menuContent.append(form);
   if (!isNew) {
     menuContent.append(element('h4', 'editor-section-title', group ? 'Links' : 'Moons'));
-    if (group && !planet.moons.length) menuContent.append(element('p', 'data-source', 'No links yet'));
-    const list = element('div', 'editor-list');
-    planet.moons.forEach((/** @type {any} */ moon, /** @type {any} */ moonIndex) => {
-      list.append(editorExportRow('moon', moon, moon.name, 'Edit', () => showMoonEditor(sunIndex, planetIndex, moonIndex)));
-    });
-    menuContent.append(list);
+    const empty = group ? element('p', 'data-source', 'No links yet') : null;
+    if (empty) menuContent.append(empty);
+    const bulk = editorButton('Apply RDP settings to moons', () => showBulkRdp(sunIndex, planetIndex));
+    menuContent.append(editorChildList([sunIndex, planetIndex], moonIndex => showMoonEditor(sunIndex, planetIndex, moonIndex), () => {
+      const moons = getPlanet().moons;
+      if (empty) empty.hidden = moons.length > 0;
+      bulk.hidden = !moons.some((/** @type {any} */ moon) => moon.type === 'rdp');
+      refreshToolbar();
+    }));
     const moonActions = editorActions();
     moonActions.append(editorButton(group ? 'Add link' : 'Add moon', () => showMoonEditor(sunIndex, planetIndex, null), 'editor-primary'));
     moonActions.append(editorButton('Import moon', () => importItem('moon', sunIndex, planetIndex)));
     moonActions.append(editorButton('Import .rdp files as moons', () => showRdpBatchImport('moon', sunIndex, planetIndex)));
-    if (planet.moons.some((/** @type {any} */ moon) => moon.type === 'rdp')) {
-      moonActions.append(editorButton('Apply RDP settings to moons', () => showBulkRdp(sunIndex, planetIndex)));
-    }
+    moonActions.append(bulk);
   }
 }
 
@@ -676,7 +707,7 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
     if (isNew && !name.input.value.trim()) name.input.value = file.name.replace(/\.rdp$/i, '');
   });
   attachItemToolbar(header, form, isNew ? addLabel : 'Save moon', isNew ? undefined : {
-    kind: 'moon', item: moon, index: moonIndex, count: planet.moons.length,
+    kind: 'moon', getItem: () => moon, index: moonIndex, count: planet.moons.length,
     reorder: amount => {
       const next = copyGroups();
       if (moveEntry(next[sunIndex].links[planetIndex].moons, moonIndex, amount)) {

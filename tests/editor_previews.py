@@ -37,7 +37,11 @@ def main():
                 path=ARTIFACTS / "orbit-sun-row-actions.png"
             )
 
+            tree(page, "editor-tree-sun", "Alpha").click()
+            page.locator(".editor-pane .editor-list").screenshot(path=ARTIFACTS / "orbit-planet-row-actions.png")
+
             tree(page, "editor-tree-planet", "Docs Portal").click()
+            page.locator(".editor-pane .editor-list").screenshot(path=ARTIFACTS / "orbit-moon-row-actions.png")
             page.locator(".editor-header").get_by_role("button", name="Move planet", exact=True).click()
             page.screenshot(path=ARTIFACTS / "orbit-item-toolbar.png")
         finally:

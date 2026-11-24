@@ -51,7 +51,7 @@ function editorIcon(glyph) {
  * @param {string} [className]
  * @param {string} [description]
  */
-export function editorIconButton(label, icon, action, className = 'editor-button', description = label) {
+function editorIconButton(label, icon, action, className = 'editor-button', description = label) {
   const button = editorButton('', action, `${className} editor-icon-button`);
   button.append(typeof icon === 'string' ? editorIcon(icon) : icon);
   button.setAttribute('aria-label', label);
@@ -61,13 +61,13 @@ export function editorIconButton(label, icon, action, className = 'editor-button
 /**
  * @typedef {object} ItemToolbarOptions
  * @property {'planet' | 'moon'} kind
- * @property {{name: string}} item
+ * @property {() => {name: string}} getItem
  * @property {number} index
  * @property {number} count
  * @property {(amount: number) => void} reorder
  * @property {() => void} move
  * @property {() => void} remove
- * @property {{label: string, glyph: string, action: () => void}} [extra]
+ * @property {{label: string, glyph: string, action: () => void, available?: () => boolean}} [extra]
  */
 
 /** @param {ItemToolbarOptions} options */
@@ -114,15 +114,25 @@ export function attachItemToolbar(header, form, label, options) {
   save.setAttribute('form', form.id);
   if (options) save.prepend(editorIcon('💾'));
   actions.append(save);
+  /** @type {HTMLButtonElement | undefined} */
+  let extraButton;
   if (options) {
-    const { kind, item, extra, remove } = options;
-    actions.append(editorIconButton(`Export ${kind}`, '⤓', () => exportItem(kind, item)), itemMoveMenu(options));
-    if (extra) actions.append(editorIconButton(extra.label, extra.glyph, extra.action));
+    const { kind, getItem, extra, remove } = options;
+    actions.append(editorIconButton(`Export ${kind}`, '⤓', () => exportItem(kind, getItem())), itemMoveMenu(options));
+    if (extra) {
+      extraButton = editorIconButton(extra.label, extra.glyph, extra.action);
+      actions.append(extraButton);
+    }
     actions.append(editorIconButton(`Remove ${kind}`, trashIcon(), remove, 'editor-danger editor-item-remove'));
   }
   header.classList.add('editor-header-sticky');
   header.append(actions);
   menuContent.scrollTop = 0;
+  const refresh = () => {
+    if (extraButton) extraButton.hidden = !(options?.extra?.available?.() ?? true);
+  };
+  refresh();
+  return refresh;
 }
 
 /**
@@ -187,14 +197,19 @@ export function editorHeader(title, back, path) {
   header.append(editorButton('← Back', direct ? () => modes.send('closeOverlay') : back, 'editor-back'));
   header.append(element('h3', '', title));
   menuContent.append(header);
-  const undo = store.loadUndoRecord();
-  if (undo) {
-    const notice = element('div', 'editor-undo');
-    notice.append(element('span', '', `Last removed: ${undo.label}`));
-    notice.append(editorButton('Undo removal', undoRemoval));
-    menuContent.append(notice);
-  }
+  refreshEditorUndo();
   return header;
+}
+
+/** @param {() => void} [after] Refresh the current editor after Undo. */
+export function refreshEditorUndo(after) {
+  menuContent.querySelector('.editor-undo')?.remove();
+  const undo = store.loadUndoRecord();
+  if (!undo) return;
+  const notice = element('div', 'editor-undo');
+  notice.append(element('span', '', `Last removed: ${undo.label}`));
+  notice.append(editorButton('Undo removal', () => undoRemoval(after)));
+  menuContent.querySelector('.editor-header')?.after(notice);
 }
 
 export function copyGroups() {
@@ -295,6 +310,36 @@ export function editorExportRow(kind, item, summary, actionLabel, open, ...extra
 }
 
 /**
+ * @param {string} name
+ * @param {number} index
+ * @param {number} count
+ * @param {number[]} path
+ * @param {(amount: number) => void} move
+ * @param {() => void} afterRemove
+ */
+export function editorRowActions(name, index, count, path, move, afterRemove) {
+  const up = editorIconButton(`Move ${name} up`, '↑', () => move(-1), 'editor-button editor-row-move-up');
+  const down = editorIconButton(`Move ${name} down`, '↓', () => move(1), 'editor-button editor-row-move-down');
+  up.disabled = index === 0;
+  down.disabled = index === count - 1;
+  const remove = editorIconButton(`Remove ${name}`, trashIcon(), () => removeEditorItem(path, () => {
+    afterRemove();
+    /** @type {HTMLButtonElement | null} */ (menuContent.querySelector('.editor-undo button'))?.focus();
+  }), 'editor-danger editor-item-remove');
+  return [up, down, remove];
+}
+
+/** @param {Element | null} list @param {number} index @param {number} amount @param {number} scroll */
+export function focusMovedRow(list, index, amount, scroll) {
+  menuContent.scrollTop = scroll;
+  const row = list?.children[index];
+  const direction = amount < 0 ? 'up' : 'down';
+  const button = /** @type {HTMLButtonElement | null | undefined} */ (
+    row?.querySelector(`.editor-row-move-${direction}:enabled`) ?? row?.querySelector('button'));
+  button?.focus();
+}
+
+/**
  * @param {any} path
  */
 export function pathLabel(path) {
@@ -390,10 +435,16 @@ export function removeEditorItem(path, after) {
 }
 
 /** Put back the last removed sun, planet, or moon (the header's Undo removal). */
-export function undoRemoval() {
+/** @param {() => void} [after] */
+function undoRemoval(after) {
   try {
     if (!store.undoRemoval()) return editorError('There is no removal to undo.');
-    nav.showSunList();
+    if (after) {
+      after();
+      nav.renderEditorTree();
+    } else {
+      nav.showSunList();
+    }
   } catch (error) {
     editorError(`Could not undo removal: ${/** @type {Error} */ (error).message}`);
   }

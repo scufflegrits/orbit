@@ -41,7 +41,7 @@ Orbit is a local webpage for frequently visited links; no hosting or accounts. T
 - The editor saves to the current browser's storage. **Export → Whole map (JSON)** backs up the map. **Import → Import a file** accepts a whole map, an exported sun or planet, or browser bookmarks. The browser never writes `links.json`.
 - In the sun and planet editors, planet and moon rows export individual items directly. The read-only team views offer the same row exports. The sun form holds Save, with export and position below it and removal after the planet list.
 - Planet and moon editors associate their sticky Save button with the form using the `form` attribute. Their Move disclosure reuses the existing reorder and cross-parent move actions.
-- Sun rows save personal sun order directly. Team suns stay above them and can be viewed or exported from their rows.
+- Sun rows save personal sun order directly. Team suns stay above them and can be viewed or exported from their rows. Planet and moon rows refresh their child list in place after reorder, removal, or its Undo, preserving the live parent form.
 - To change the bundled map, edit `links.json` and run `python3 sync.py` (regenerates `links-data.js` for file mode). `sync.py --team PATH` writes the gitignored `team-data.js`; `--no-team` removes it. A map saved in the browser takes precedence until **Reset to file data**.
 
 ## Code layout
@@ -105,7 +105,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS11 at 1920×1080 | 21 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F36, no F05 | F12, F31, and F36 passed for the sun row change |
+| `tests/features.py` | F01–F37, no F05 | F06, F12, F26, F30, and F34–F37 passed for the child row change |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 195 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
