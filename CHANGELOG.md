@@ -9,7 +9,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 - Added button tips that appear on hover or keyboard focus. Settings offers a shorter delay, a longer delay, or Off. In file mode, the **Check links** tip explains how to enable the check.
 - Open a sun, planet, or moon’s editor from its pencil on the map or by pressing **E** while the item has focus. Closing the editor returns focus to the map item.
 - Added **Export** beside Edit or View on planet and moon rows. Moved the sun editor’s export, position, and removal actions into separate rows from Save.
-- Added a trash button below the pencil, **Undo removal** on the map, and a **Confirm before deleting** setting shared by the map and editor. Confirmation is on by default.
+- Added a trash button below the pencil, **Undo removal** on the map, and a **Confirm before deleting** setting shared by the map and editor. Confirmation is on by default. Map and editor removal buttons use the same outlined bin icon.
 - Put Save, Export, Move, and Remove in a sticky toolbar in planet and moon editors. Save has a floppy disk icon and a label. The planet and moon rows use icons for their Edit and Export shortcuts.
 - Added Edit, Export, Move up, Move down, and Remove icons to personal sun rows. Team sun rows offer View and Export.
 

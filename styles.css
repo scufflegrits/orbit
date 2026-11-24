@@ -360,6 +360,30 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
 }
 .editor-icon-button { width: 36px; padding: 0; }
 .editor-icon { font: 16px/1 system-ui, sans-serif; }
+.trash-icon {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(currentColor, currentColor) center 4px / 14px 1.5px no-repeat;
+}
+.trash-icon::before, .trash-icon::after { position: absolute; content: ''; }
+.trash-icon::before {
+  inset: 5px 3px 1px;
+  border: 1.5px solid currentColor;
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(currentColor, currentColor) 2px center / 1px 5px no-repeat,
+    linear-gradient(currentColor, currentColor) 5px center / 1px 5px no-repeat;
+}
+.trash-icon::after {
+  inset: 1px 5px auto;
+  height: 3px;
+  border: 1.5px solid currentColor;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
 .editor-item-remove { margin-inline-start: 6px; }
 .editor-move-menu { position: relative; }
 .editor-move-menu summary { list-style: none; }
@@ -1548,7 +1572,6 @@ html[data-animations='off'] *::after {
 .map-remove-button {
   border-color: rgba(245, 167, 200, .5);
   color: #ffd5e4;
-  font-size: 13px;
 }
 .map-remove-button:hover { background: color-mix(in srgb, #f5a7c8 17%, var(--surface)); }
 

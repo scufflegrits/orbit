@@ -7,7 +7,7 @@ import { destinationKey, pathsForKey } from '../../core/destination.js';
 import * as mapOps from '../../core/map-ops.js';
 import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
-import { element } from '../dom.js';
+import { element, trashIcon } from '../dom.js';
 import { modes } from '../page-modes.js';
 import { hideTooltip, tip } from '../tooltip.js';
 import { removeMapItem } from '../remove-item.js';
@@ -46,14 +46,14 @@ function editorIcon(glyph) {
 
 /**
  * @param {string} label
- * @param {string} glyph
+ * @param {string | HTMLElement} icon
  * @param {() => void} action
  * @param {string} [className]
  * @param {string} [description]
  */
-export function editorIconButton(label, glyph, action, className = 'editor-button', description = label) {
+export function editorIconButton(label, icon, action, className = 'editor-button', description = label) {
   const button = editorButton('', action, `${className} editor-icon-button`);
-  button.append(editorIcon(glyph));
+  button.append(typeof icon === 'string' ? editorIcon(icon) : icon);
   button.setAttribute('aria-label', label);
   return tip(button, description);
 }
@@ -118,7 +118,7 @@ export function attachItemToolbar(header, form, label, options) {
     const { kind, item, extra, remove } = options;
     actions.append(editorIconButton(`Export ${kind}`, '⤓', () => exportItem(kind, item)), itemMoveMenu(options));
     if (extra) actions.append(editorIconButton(extra.label, extra.glyph, extra.action));
-    actions.append(editorIconButton(`Remove ${kind}`, '🗑︎', remove, 'editor-danger editor-item-remove'));
+    actions.append(editorIconButton(`Remove ${kind}`, trashIcon(), remove, 'editor-danger editor-item-remove'));
   }
   header.classList.add('editor-header-sticky');
   header.append(actions);

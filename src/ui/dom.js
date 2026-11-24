@@ -18,6 +18,13 @@ export function element(tag, className, text) {
   return node;
 }
 
+/** The decorative bin used in the map and editor removal buttons. */
+export function trashIcon() {
+  const icon = element('span', 'trash-icon');
+  icon.setAttribute('aria-hidden', 'true');
+  return icon;
+}
+
 /**
  * A sun's color if it is a six-digit hex color, else the default.
  * @param {unknown} value

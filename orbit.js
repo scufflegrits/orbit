@@ -893,6 +893,10 @@ prompt for credentials:i:1\r
     return className && (node.className = className), text !== void 0 && (node.textContent = /** @type {string} */
     text), node;
   }
+  function trashIcon() {
+    let icon = element("span", "trash-icon");
+    return icon.setAttribute("aria-hidden", "true"), icon;
+  }
   function safeColor(value) {
     return typeof value == "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : "#79d9f8";
   }
@@ -1378,9 +1382,9 @@ prompt for credentials:i:1\r
     let icon = element("span", "editor-icon", glyph);
     return icon.setAttribute("aria-hidden", "true"), icon;
   }
-  function editorIconButton(label, glyph, action, className = "editor-button", description = label) {
+  function editorIconButton(label, icon, action, className = "editor-button", description = label) {
     let button = editorButton("", action, `${className} editor-icon-button`);
-    return button.append(editorIcon(glyph)), button.setAttribute("aria-label", label), tip(button, description);
+    return button.append(typeof icon == "string" ? editorIcon(icon) : icon), button.setAttribute("aria-label", label), tip(button, description);
   }
   function itemMoveMenu({ kind, index, count, reorder, move }) {
     let choices = element("details", "editor-move-menu"), label = `Move ${kind}`, trigger = element("summary", "editor-button editor-icon-button");
@@ -1400,7 +1404,7 @@ prompt for credentials:i:1\r
     let save = element("button", "editor-primary editor-save-button", label);
     if (save.type = "submit", save.setAttribute("form", form.id), options && save.prepend(editorIcon("💾")), actions.append(save), options) {
       let { kind, item, extra, remove: remove2 } = options;
-      actions.append(editorIconButton(`Export ${kind}`, "⤓", () => exportItem(kind, item)), itemMoveMenu(options)), extra && actions.append(editorIconButton(extra.label, extra.glyph, extra.action)), actions.append(editorIconButton(`Remove ${kind}`, "🗑︎", remove2, "editor-danger editor-item-remove"));
+      actions.append(editorIconButton(`Export ${kind}`, "⤓", () => exportItem(kind, item)), itemMoveMenu(options)), extra && actions.append(editorIconButton(extra.label, extra.glyph, extra.action)), actions.append(editorIconButton(`Remove ${kind}`, trashIcon(), remove2, "editor-danger editor-item-remove"));
     }
     header.classList.add("editor-header-sticky"), header.append(actions), menuContent.scrollTop = 0;
   }
@@ -4353,7 +4357,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
         }, `editor-button ${className}`);
         return button.disabled = !groups[index + amount] || !!groups[index + amount].team, button;
       })
-    ), remove2 = editorIconButton(`Remove ${sun.name}`, "🗑︎", () => removeEditorItem([index], () => {
+    ), remove2 = editorIconButton(`Remove ${sun.name}`, trashIcon(), () => removeEditorItem([index], () => {
       showSunList(), menuContent.querySelector(".editor-undo button")?.focus();
     }), "editor-danger editor-item-remove");
     return [...arrows, remove2];
@@ -4617,8 +4621,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
     window.clearTimeout(timer2), hovered = null, hoverActions?.remove(), hoverActions = null;
   }
   function mapAction(className, icon, name, action) {
-    let button = tip(element("button", className, icon), name);
-    return button.type = "button", button.tabIndex = -1, button.setAttribute("aria-label", name), button.addEventListener("pointerdown", (event) => {
+    let button = element("button", className);
+    return button.append(icon), tip(button, name), button.type = "button", button.tabIndex = -1, button.setAttribute("aria-label", name), button.addEventListener("pointerdown", (event) => {
       event.preventDefault(), event.stopPropagation();
     }), button.addEventListener("click", (event) => {
       event.stopPropagation(), canEditFromMap() && action();
@@ -4632,7 +4636,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     let verb = sun.team ? "View" : "Edit", detail = path.length === 2 ? isGroup(target) ? " and its links" : " and its moons" : "", actions = element("div", "map-item-actions");
     actions.append(mapAction("map-edit-button", "✎", `${verb} ${target.name}${detail}`, () => {
       item.isConnected && editItem(item);
-    })), sun.team || actions.append(mapAction("map-remove-button", "🗑︎", `Remove ${target.name}`, () => {
+    })), sun.team || actions.append(mapAction("map-remove-button", trashIcon(), `Remove ${target.name}`, () => {
       if (item.isConnected)
         try {
           removeMapItem(path);

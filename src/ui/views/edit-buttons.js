@@ -1,5 +1,5 @@
 import { isGroup, itemAt } from '../../core/destination.js';
-import { element } from '../dom.js';
+import { element, trashIcon } from '../dom.js';
 import { showOpenAllNotice } from '../notices/area.js';
 import { openEditorAt } from '../editor/page.js';
 import { app, groups, showEditButtons } from '../page.js';
@@ -85,9 +85,11 @@ function hideActions() {
   hoverActions = null;
 }
 
-/** @param {string} className @param {string} icon @param {string} name @param {() => void} action */
+/** @param {string} className @param {string | HTMLElement} icon @param {string} name @param {() => void} action */
 function mapAction(className, icon, name, action) {
-  const button = tip(element('button', className, icon), name);
+  const button = element('button', className);
+  button.append(icon);
+  tip(button, name);
   button.type = 'button';
   button.tabIndex = -1;
   button.setAttribute('aria-label', name);
@@ -117,7 +119,7 @@ function showActions(item) {
     if (item.isConnected) editItem(item);
   }));
   if (!sun.team) {
-    actions.append(mapAction('map-remove-button', '🗑︎', `Remove ${target.name}`, () => {
+    actions.append(mapAction('map-remove-button', trashIcon(), `Remove ${target.name}`, () => {
       if (!item.isConnected) return;
       try {
         removeMapItem(path);

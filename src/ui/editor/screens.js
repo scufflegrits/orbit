@@ -10,7 +10,7 @@ import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
 import * as prefs from '../../state/prefs.js';
 import { confirmed } from '../dialogs/confirm.js';
-import { counted, element } from '../dom.js';
+import { counted, element, trashIcon } from '../dom.js';
 import { hooks } from '../hooks.js';
 import { tip } from '../tooltip.js';
 import { closeMenu, showMenuPanel } from '../menu/menu.js';
@@ -398,7 +398,7 @@ function sunRowActions(index) {
     button.disabled = !groups[index + amount] || Boolean(groups[index + amount].team);
     return button;
   });
-  const remove = editorIconButton(`Remove ${sun.name}`, '🗑︎', () => removeEditorItem([index], () => {
+  const remove = editorIconButton(`Remove ${sun.name}`, trashIcon(), () => removeEditorItem([index], () => {
     showSunList();
     /** @type {HTMLButtonElement | null} */ (menuContent.querySelector('.editor-undo button'))?.focus();
   }), 'editor-danger editor-item-remove');
