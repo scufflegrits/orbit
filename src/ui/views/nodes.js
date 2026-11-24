@@ -89,6 +89,8 @@ export function linkNode(link, className, path) {
     if (modes.inEditMode()) {
       node.title = `Drag ${link.name} to move it`;
       node.setAttribute('aria-label', `${link.name}. Links are paused in Edit mode.`);
+    } else {
+      node.setAttribute('aria-keyshortcuts', 'E');
     }
   }
   return node;
@@ -209,6 +211,7 @@ export function homeGroup(group, index) {
   const hub = element('button', 'home-hub');
   hub.type = 'button';
   tagPath(hub, 'sun', index);
+  if (!modes.inEditMode()) hub.setAttribute('aria-keyshortcuts', 'E');
   hub.setAttribute('aria-label', `Open ${group.team ? 'team ' : ''}${group.name} system with ${counted(group.links.length, 'planet')}`);
   if (group.icon) hub.append(element('span', 'hub-icon', group.icon));
   hub.append(element('span', 'hub-name', group.name));

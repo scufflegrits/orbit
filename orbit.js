@@ -1226,9 +1226,9 @@ prompt for credentials:i:1\r
   function dataSourceLabel() {
     return activeMapSource === "browser" ? "Browser edits" : "Bundled project data";
   }
-  var animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", activeTheme = "default", activeFontSize = "standard", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
+  var animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", showEditButtons = !0, activeTheme = "default", activeFontSize = "standard", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
   function readPreferences() {
-    animationsEnabled = readBoolean("orbit:animations", !0), alwaysShowMoons = readBoolean("orbit:always-show-moons", !1), activeTheme = readTheme(), buttonTips = readButtonTips(), activeFontSize = readFontSize(), rdpLaunchMode = readRdpLaunch(), showQuickBar = readBoolean("orbit:quick-bar", !0), showSiteIcons = readBoolean("orbit:site-icons", !1), galaxyView = readGalaxyView();
+    animationsEnabled = readBoolean("orbit:animations", !0), alwaysShowMoons = readBoolean("orbit:always-show-moons", !1), activeTheme = readTheme(), buttonTips = readButtonTips(), showEditButtons = readBoolean("orbit:edit-buttons", !0), activeFontSize = readFontSize(), rdpLaunchMode = readRdpLaunch(), showQuickBar = readBoolean("orbit:quick-bar", !0), showSiteIcons = readBoolean("orbit:site-icons", !1), galaxyView = readGalaxyView();
     let root = document.documentElement.dataset;
     root.animations = animationsEnabled ? "on" : "off", root.moons = alwaysShowMoons ? "always" : "hover", root.theme = activeTheme, root.fontSize = activeFontSize;
   }
@@ -1240,6 +1240,9 @@ prompt for credentials:i:1\r
   }
   function setButtonTips(value) {
     buttonTips = value === "slow" || value === "off" ? value : "normal", savePreference("orbit:button-tips", buttonTips);
+  }
+  function setShowEditButtons(on) {
+    showEditButtons = on, savePreference("orbit:edit-buttons", on);
   }
   function setActiveTheme(theme) {
     activeTheme = theme;
@@ -1291,10 +1294,19 @@ prompt for credentials:i:1\r
     let previous = menuContent.querySelector(".editor-error");
     previous && previous.remove(), menuContent.prepend(element("p", "editor-error", message));
   }
-  function editorHeader(title, back) {
-    menuContent.replaceChildren();
+  var directEditorPath = null, restoreFocus = null;
+  function rememberEditorOrigin(indices, restore) {
+    directEditorPath = indices.join(":"), restoreFocus = restore;
+  }
+  function restoreEditorOrigin() {
+    let restore = restoreFocus;
+    return restoreFocus = null, directEditorPath = null, restore?.() ?? !1;
+  }
+  function editorHeader(title, back, path) {
+    let direct = directEditorPath !== null && path?.join(":") === directEditorPath;
+    direct || (directEditorPath = null), menuContent.replaceChildren();
     let header = element("div", "editor-header");
-    header.append(editorButton("← Back", back, "editor-back")), header.append(element("h3", "", title)), menuContent.append(header);
+    header.append(editorButton("← Back", direct ? () => modes.send("closeOverlay") : back, "editor-back")), header.append(element("h3", "", title)), menuContent.append(header);
     let undo = store.loadUndoRecord();
     if (undo) {
       let notice = element("div", "editor-undo");
@@ -1416,8 +1428,8 @@ prompt for credentials:i:1\r
     let pane = element("section", "editor-pane");
     layout.append(tree, pane), menuRoot.replaceChildren(layout), setMenuContent(pane), renderEditorTree(), nav.showSunList(), tree.querySelector("button")?.focus();
   }
-  function openEditorAt(indices) {
-    hooks.openMenu(), openEditorPage(), indices.length === 3 ? nav.showMoonEditor(indices[0], indices[1], indices[2]) : nav.showPlanetEditor(indices[0], indices[1]);
+  function openEditorAt(indices, options = {}) {
+    hooks.openMenu(), openEditorPage(), options.restoreFocus && rememberEditorOrigin(indices, options.restoreFocus), indices.length === 1 ? nav.showSunEditor(indices[0]) : indices.length === 3 ? nav.showMoonEditor(indices[0], indices[1], indices[2]) : nav.showPlanetEditor(indices[0], indices[1]), options.restoreFocus && menuContent.querySelector("button")?.focus();
   }
   function leaveEditorPage() {
     modes.send("backToPanels"), menuOverlay.querySelector(".menu-sheet").classList.remove("editor-page-mode"), menuOverlay.querySelector(".menu-top h2").textContent = "Explore the menu", setEditorTree(null), setMenuContent(menuRoot), hooks.showMenuPanel("Settings"), menuRoot.querySelector(".editor-open")?.focus();
@@ -1955,7 +1967,7 @@ prompt for credentials:i:1\r
   function menuHidden() {
     menuOverlay.querySelector(".menu-sheet").classList.remove("editor-page-mode"), menuOverlay.querySelector(".menu-top h2").textContent = "Explore the menu", setMenuContent(menuRoot), setEditorTree(null);
     let target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
-    menuOpener = null, target.focus();
+    menuOpener = null, restoreEditorOrigin() || target.focus();
   }
   function openMenu() {
     if (modes.send("openMenu"), !!modes.menuOpen()) {
@@ -2056,6 +2068,11 @@ prompt for credentials:i:1\r
         option.value = value, tipsSelect.append(option);
       }
       tipsSelect.value = buttonTips, tipsSelect.addEventListener("change", () => setButtonTips(tipsSelect.value)), tipsRow.append(tipsCopy, tipsSelect), menuContent.append(tipsRow), menuContent.append(settingToggle(
+        "Edit buttons on hover",
+        "Show a pencil when you rest the pointer on a map item",
+        showEditButtons,
+        setShowEditButtons
+      )), menuContent.append(settingToggle(
         "Show favorites and recent",
         "A row of your favorite and recently opened links above the Galaxy",
         showQuickBar,
@@ -2090,7 +2107,7 @@ prompt for credentials:i:1\r
           savePreference("orbit:backup-reminders", checked), showBackupReminder();
         }
       )), menuContent.append(workspaceSettings()), menuContent.append(teamSettings());
-    } else name === "Help" ? (menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The ☰ button in the top bar switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Links that are not shown on the map, and keyboard-only editing, are covered by Edit links: Move up and Move down set the order, and Move to another sun or planet lets you choose the position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape closes the menu first, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
+    } else name === "Help" ? (menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The ☰ button in the top bar switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Links that are not shown on the map, and keyboard-only editing, are covered by Edit links: Move up and Move down set the order, and Move to another sun or planet lets you choose the position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
   }
   function settingToggle(title, hint, checked, onChange) {
     let row = element("label", "setting-row"), copy = element("span", "setting-copy");
@@ -2332,7 +2349,7 @@ prompt for credentials:i:1\r
   function endGesture(wasDragging) {
     let gesture = drag;
     clearTimeout(gesture.dwellTimer);
-    for (let timer2 of gesture.closing.values()) clearTimeout(timer2);
+    for (let timer3 of gesture.closing.values()) clearTimeout(timer3);
     if (wasDragging && hideChoices(), drag = null, !wasDragging) return gesture;
     try {
       gesture.node.releasePointerCapture(gesture.pointerId);
@@ -3110,7 +3127,7 @@ ${link.note}`), node;
   }
   function linkNode(link, className, path) {
     let node = isGroup(link) ? groupButton(link, className) : destinationNode(link, className, path);
-    return path && (tagPath(node, path.length === 3 ? "moon" : "planet", path[0], path[1], path[2]), modes.inEditMode() && (node.title = `Drag ${link.name} to move it`, node.setAttribute("aria-label", `${link.name}. Links are paused in Edit mode.`))), node;
+    return path && (tagPath(node, path.length === 3 ? "moon" : "planet", path[0], path[1], path[2]), modes.inEditMode() ? (node.title = `Drag ${link.name} to move it`, node.setAttribute("aria-label", `${link.name}. Links are paused in Edit mode.`)) : node.setAttribute("aria-keyshortcuts", "E")), node;
   }
   function groupButton(group, className) {
     let button = element("button", `${className} group-planet`, group.name);
@@ -3165,7 +3182,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     });
     orbit.append(orbitLines(points, center, 320));
     let hub = element("button", "home-hub");
-    return hub.type = "button", tagPath(hub, "sun", index), hub.setAttribute("aria-label", `Open ${group.team ? "team " : ""}${group.name} system with ${counted(group.links.length, "planet")}`), group.icon && hub.append(element("span", "hub-icon", group.icon)), hub.append(element("span", "hub-name", group.name)), hub.append(element("span", "hub-count", counted(group.links.length, "planet").toUpperCase())), group.team && (card.classList.add("team-card"), hub.append(element("span", "team-mark", "TEAM"))), hub.addEventListener("click", () => {
+    return hub.type = "button", tagPath(hub, "sun", index), modes.inEditMode() || hub.setAttribute("aria-keyshortcuts", "E"), hub.setAttribute("aria-label", `Open ${group.team ? "team " : ""}${group.name} system with ${counted(group.links.length, "planet")}`), group.icon && hub.append(element("span", "hub-icon", group.icon)), hub.append(element("span", "hub-name", group.name)), hub.append(element("span", "hub-count", counted(group.links.length, "planet").toUpperCase())), group.team && (card.classList.add("team-card"), hub.append(element("span", "team-mark", "TEAM"))), hub.addEventListener("click", () => {
       location.hash = `group/${encodeURIComponent(group.id)}`;
     }), orbit.append(hub), visible.forEach((link, i) => orbit.append(planetNode(link, "home", points[i], 320, i, index))), card.append(orbit, descriptionNode("group-description", group.description)), card;
   }
@@ -3304,7 +3321,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     let sunIndex = groups.indexOf(group);
     stage.dataset.sun = String(sunIndex);
     let hub = tagPath(element("div", "detail-hub"), "sun", sunIndex);
-    group.icon && hub.append(element("span", "hub-icon", group.icon)), hub.append(element("span", "detail-hub-name", group.name)), hub.append(element("span", "detail-hub-sub", counted(group.links.length, "planet"))), group.team && hub.append(element("span", "team-mark", "TEAM")), stage.append(hub), visible.forEach((link, i) => stage.append(planetNode(link, "detail", points[i], 640, i, sunIndex)));
+    hub.tabIndex = 0, hub.setAttribute("role", "group"), hub.setAttribute("aria-label", `${group.name} sun`), modes.inEditMode() || hub.setAttribute("aria-keyshortcuts", "E"), group.icon && hub.append(element("span", "hub-icon", group.icon)), hub.append(element("span", "detail-hub-name", group.name)), hub.append(element("span", "detail-hub-sub", counted(group.links.length, "planet"))), group.team && hub.append(element("span", "team-mark", "TEAM")), stage.append(hub), visible.forEach((link, i) => stage.append(planetNode(link, "detail", points[i], 640, i, sunIndex)));
     let note = element("p", "detail-note", modes.inEditMode() ? "Edit mode is on. Drag a planet or moon to move or reorder it; links stay closed until you turn Edit mode off." : group.links.some((link) => link.type === "rdp") ? rdpLaunchMode === "client" ? "Select a lab to open Remote Desktop Connection with its target loaded. Your browser may ask to open the helper." : "Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect." : "Select a planet to open its destination in a new tab.");
     !modes.inEditMode() && group.links.some(isGroup) && (note.textContent = "Select a group planet to show its links. Select a linked planet to open its destination."), app.append(top, heading, stage, note);
     let openAllRow = openAllActions(group, sunIndex);
@@ -3968,7 +3985,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
   function showTeamSun(index) {
     let sun = groups[index];
-    editorHeader(`${sun.icon ? `${sun.icon} ` : ""}${sun.name} (team)`, nav.showSunList), menuContent.append(element("p", "editor-note", "This sun comes from the team map, so it is read-only here. Copy it, or any of its planets and moons, into your own map to change it.")), sun.description && menuContent.append(descriptionNode("", sun.description));
+    editorHeader(`${sun.icon ? `${sun.icon} ` : ""}${sun.name} (team)`, nav.showSunList, [index]), menuContent.append(element("p", "editor-note", "This sun comes from the team map, so it is read-only here. Copy it, or any of its planets and moons, into your own map to change it.")), sun.description && menuContent.append(descriptionNode("", sun.description));
     let actions = editorActions();
     actions.append(editorButton("Copy sun to my map", () => {
       let next = copyGroups(), copy = plainCopy(sun);
@@ -3985,7 +4002,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   function showTeamItem(path) {
     let sun = groups[path[0]], planet = sun.links[path[1]], item = itemAt(groups, path), isMoon = path.length === 3;
     if (!item) return showTeamSun(path[0]);
-    editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0])), menuContent.append(element("p", "", `${sun.name} sun${isMoon ? ` → ${planet.name} planet` : ""} · read-only team ${isMoon ? "moon" : "planet"}`));
+    editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0]), path), menuContent.append(element("p", "", `${sun.name} sun${isMoon ? ` → ${planet.name} planet` : ""} · read-only team ${isMoon ? "moon" : "planet"}`));
     let group = isGroup(item), summary = group ? item.moons.length ? counted(item.moons.length, "link") : "No links yet" : item.type === "rdp" ? `Remote Desktop: ${item.host}` : item.url;
     menuContent.append(element("p", "data-source", summary)), item.tags?.length && menuContent.append(tagChips(item.tags));
     let favorite = isFavorite(item, sun);
@@ -4259,7 +4276,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   function showSunEditor(index) {
     if (index !== null && groups[index]?.team) return showTeamSun(index);
     let isNew = index === null, sun = isNew ? { name: "", description: "", color: "#79d9f8", links: [] } : groups[index];
-    editorHeader(isNew ? "Add sun" : `Edit ${sun.name}`, showSunList);
+    editorHeader(isNew ? "Add sun" : `Edit ${sun.name}`, showSunList, [index]);
     let form = element("form", "editor-form"), name = editorField("Sun name", sun.name), description = editorField("Description", sun.description, "textarea");
     description.wrapper.append(element("small", "editor-hint", "Use [label](https://example.com) to add a link within the description."));
     let color = editorField("Color", sun.color, "color"), icon = editorField("Icon", sun.icon || "");
@@ -4305,7 +4322,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   function showPlanetEditor(sunIndex, planetIndex) {
     if (groups[sunIndex]?.team) return showTeamItem([sunIndex, planetIndex]);
     let isNew = planetIndex === null, planet = isNew ? { name: "", url: "", moons: [] } : groups[sunIndex].links[planetIndex];
-    if (editorHeader(isNew ? "Add planet" : `Edit ${planet.name}`, () => showSunEditor(sunIndex)), menuContent.append(element("p", "", `Sun: ${groups[sunIndex].name}`)), !isNew) {
+    if (editorHeader(isNew ? "Add planet" : `Edit ${planet.name}`, () => showSunEditor(sunIndex), [sunIndex, planetIndex]), menuContent.append(element("p", "", `Sun: ${groups[sunIndex].name}`)), !isNew) {
       let note = duplicateNote(planet, [sunIndex, planetIndex]);
       note && menuContent.append(note);
     }
@@ -4376,7 +4393,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
     let isNew = moonIndex === null, planet = groups[sunIndex].links[planetIndex], moon = isNew ? { name: "", url: "" } : planet.moons[moonIndex], addLabel = isGroup(planet) ? "Add link" : "Add moon";
     if (editorHeader(
       isNew ? addLabel : `Edit ${moon.name}`,
-      () => showPlanetEditor(sunIndex, planetIndex)
+      () => showPlanetEditor(sunIndex, planetIndex),
+      [sunIndex, planetIndex, moonIndex]
     ), menuContent.append(element("p", "", `${groups[sunIndex].name} sun → ${planet.name} planet`)), !isNew) {
       let note = duplicateNote(moon, [sunIndex, planetIndex, moonIndex]);
       note && menuContent.append(note);
@@ -4420,6 +4438,74 @@ ${preset.settings}`, `the ${preset.name} preset`);
   // src/ui/editor/index.js
   function installEditor() {
     Object.assign(nav, { showSunList, showSunEditor, showPlanetEditor, showMoonEditor, showImportReview, renderEditorTree });
+  }
+
+  // src/ui/views/edit-buttons.js
+  var MAP_ITEM = ":is(.home-hub, .detail-hub, .home-satellite, .detail-satellite, .more-link, .moon-link, .overflow-moon-link)", hovered = null, pencil = null, timer2 = 0;
+  function mapItem(target) {
+    let item = target instanceof Element ? target.closest(MAP_ITEM) : null;
+    return item instanceof HTMLElement && app?.contains(item) ? item : null;
+  }
+  function mapPath(item) {
+    let { sun, planet, moon } = item.dataset;
+    return [sun, planet, moon].filter((index) => index !== void 0).map(Number);
+  }
+  function canEditFromMap() {
+    return modes.overlayIs("none") && !modes.inEditMode();
+  }
+  function mapFocus(origin, path) {
+    let route = location.hash, sunId = groups[path[0]]?.id;
+    return () => {
+      if (location.hash !== route) return !1;
+      let sun = groups.findIndex((group) => group.id === sunId);
+      if (sun === -1) return !1;
+      let [_, planet, moon] = path, base = `${MAP_ITEM}[data-sun="${sun}"]`, planetSelector = `${base}[data-kind="planet"][data-planet="${planet}"]`, moonSelector = `${base}[data-kind="moon"][data-planet="${planet}"][data-moon="${moon}"]`, node = origin.isConnected ? origin : app.querySelector(moonSelector) || app.querySelector(planetSelector) || app.querySelector(`${base}[data-kind="sun"]`);
+      if (!(node instanceof HTMLElement)) return !1;
+      let containers = [node.closest(".home-orbit"), node.closest(".planet-cluster, .overflow-planet")];
+      node.dataset.kind === "moon" && containers[1]?.classList.contains("group-cluster") && setGroupExpanded(containers[1]);
+      for (let container of containers) container?.classList.add("restoring-map-focus");
+      node.focus({ preventScroll: node === origin });
+      for (let container of containers) container?.classList.remove("restoring-map-focus");
+      return document.activeElement === node;
+    };
+  }
+  function editItem(item) {
+    let path = mapPath(item);
+    openEditorAt(path, { restoreFocus: mapFocus(item, path) });
+  }
+  function handleMapEditKey(event) {
+    if (event.key.toLowerCase() !== "e" || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing || !canEditFromMap()) return !1;
+    let item = mapItem(event.target);
+    return !item || item !== document.activeElement ? !1 : (event.preventDefault(), editItem(item), !0);
+  }
+  function hidePencil() {
+    window.clearTimeout(timer2), hovered = null, pencil?.remove(), pencil = null;
+  }
+  function showPencil(item) {
+    let parent = item.parentElement;
+    if (!parent || !item.isConnected || !item.matches(":hover") || !showEditButtons || !canEditFromMap()) return;
+    let path = mapPath(item), sun = groups[path[0]], target = path.length === 1 ? sun : itemAt(groups, path);
+    if (!target) return;
+    let verb = sun.team ? "View" : "Edit", detail = path.length === 2 ? isGroup(target) ? " and its links" : " and its moons" : "", name = `${verb} ${target.name}${detail}`, button = tip(element("button", "map-edit-button", "✎"), name);
+    button.type = "button", button.tabIndex = -1, button.setAttribute("aria-label", name), button.addEventListener("pointerdown", (event) => {
+      event.preventDefault(), event.stopPropagation();
+    }), button.addEventListener("click", (event) => {
+      event.stopPropagation(), canEditFromMap() && editItem(item);
+    }), parent.append(button);
+    let anchor2 = item.getBoundingClientRect(), base = button.getBoundingClientRect(), scale = base.width / button.offsetWidth;
+    button.style.left = `${(anchor2.left + anchor2.width * 0.82 - base.left) / scale - 12}px`, button.style.top = `${(anchor2.top + anchor2.height * 0.18 - base.top) / scale - 12}px`, pencil = button;
+  }
+  function installMapEditButtons() {
+    document.addEventListener("pointerover", (event) => {
+      let item = mapItem(event.target);
+      !item || item === hovered || event.pointerType === "touch" || !showEditButtons || !canEditFromMap() || (hidePencil(), hovered = item, timer2 = window.setTimeout(() => showPencil(item), buttonTipsDelay() ?? 800));
+    }), document.addEventListener("pointerout", (event) => {
+      if (!hovered || !(event.target instanceof Node) || !hovered.contains(event.target) && !pencil?.contains(event.target)) return;
+      let next = event.relatedTarget;
+      next instanceof Node && (hovered.contains(next) || pencil?.contains(next)) || hidePencil();
+    }), modes.subscribe(() => {
+      canEditFromMap() || hidePencil();
+    }), window.addEventListener("resize", hidePencil);
   }
 
   // src/ui/keys/keys.js
@@ -4514,7 +4600,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
   function installKeys() {
     window.addEventListener("keydown", (event) => {
-      event.defaultPrevented || handlePaletteKey(event) || modes.overlayIs("palette") || !modes.keyAllowed("other") || handlePaletteShortcut(event) || (event.key === "Tab" ? modes.menuOpen() && trapMenuFocus(event) : event.key === "Escape" ? handleEscape(event) : !handleSlash(event) && !handleFindArrows(event) && handleMapArrows(event));
+      event.defaultPrevented || handlePaletteKey(event) || modes.overlayIs("palette") || !modes.keyAllowed("other") || handlePaletteShortcut(event) || handleMapEditKey(event) || (event.key === "Tab" ? modes.menuOpen() && trapMenuFocus(event) : event.key === "Escape" ? handleEscape(event) : !handleSlash(event) && !handleFindArrows(event) && handleMapArrows(event));
     });
   }
 
@@ -4534,7 +4620,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
   function installClicks() {
     document.addEventListener("click", (event) => {
-      if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element)) return;
+      if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element) || event.composedPath().includes(menuOverlay)) return;
       let button = event.target.closest("button.group-planet");
       if (button && app.contains(button) && button.parentElement) {
         let cluster = button.parentElement, expanded = cluster.classList.contains("pinned");
@@ -4563,6 +4649,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   installRoutineOffers();
   installDrag();
   installKeys();
+  installMapEditButtons();
   function startPage() {
     installTooltip(), start();
   }

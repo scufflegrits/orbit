@@ -106,6 +106,8 @@ Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` r
 
 **List view:** the ☰ button in the top bar (or **Settings → Galaxy view**) shows the Galaxy as a compact list of every sun with its planets and moons. Links open the same way as on the map. Dragging works in the Orbits view; in List view, Edit mode opens links in Edit links instead.
 
+**Edit from the map** by resting the pointer on a sun, planet, or moon in the Galaxy’s Orbits view or a System, then clicking the pencil. A planet’s editor also lists its moons. Back from the first editor screen or Close returns to the map item. Team items open read-only.
+
 **Icons:** give a sun an icon (one or two characters, such as an emoji) in its editor; it appears above the sun's name. **Show site icons** in Settings adds each website's own icon to its planets and moons. It is off by default because it loads `/favicon.ico` from every site on your map; when off, Orbit contacts no site until you open it.
 
 ## Notes, placeholders, and quick add
@@ -194,9 +196,9 @@ A moved link keeps its name, destination, and any imported `.rdp` profile, and g
 
 Orbit works without a mouse. Press `/` anywhere to jump to **Quick find**, then use Down Arrow to move into the results, Up and Down Arrow to move between them, and Enter to open one. Press `Ctrl+K` (`Cmd+K` on a Mac) for the command palette.
 
-Tab moves through the page. Focusing a sun shows its planets and focusing a planet shows its moons, each with a visible focus ring. Arrow keys move between suns by position, between sibling planets or moons, down from a planet into its moons, and back up. Enter opens the focused item.
+Tab moves through the page. Focusing a sun shows its planets and focusing a planet shows its moons, each with a visible focus ring. Arrow keys move between suns by position, between sibling planets or moons, down from a planet into its moons, and back up. Enter opens the focused link or Galaxy sun. Press **E** on a focused sun, planet, or moon in Orbits view or a System to go straight to its editor.
 
-Escape closes the command palette first, then the menu; when neither is open it cancels a drag, then turns Edit mode off, then clears Quick find, and after that it returns from a System to the Galaxy. While the menu is open, Tab stays inside it, and closing it returns focus to the cog.
+Escape dismisses a visible button tip, then closes the command palette or menu. It can then cancel a drag, turn Edit mode off, clear Quick find, or return from a System to the Galaxy. Tab stays inside the open menu. Closing it returns focus to the map item or to the control that opened the menu.
 
 ## Settings and help
 
@@ -205,7 +207,10 @@ Click the cog on the Galaxy or any System to open Settings, Help, or About. Sett
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
 Circle labels use a shared size for each level across the Galaxy, and long names wrap inside their circles. Moons have larger circles and text; other interface text grows slightly on wide desktop screens.
 
-Settings also includes **Always show moons**, **Show favorites and recent** (with **Clear recent links**), **Galaxy view** (Orbits or List), **Show site icons**, **Button tips** (after 0.8 seconds by default, after 1.5 seconds, or off), the [team map](#team-map) status, and **Edit links**. Edit links opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Changes appear immediately and are stored in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
+Settings also includes **Always show moons**, **Show favorites and recent** (with **Clear recent links**), **Galaxy view** (Orbits or List), **Show site icons**, **Button tips** (after 0.8 seconds by default, after 1.5 seconds, or off), **Edit buttons on hover**, the [team map](#team-map) status, and **Edit links**. Edit links opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Changes appear immediately and are stored in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
+
+**Edit buttons on hover** is on by default. It shares the Button tips delay and uses 0.8 seconds when tips are off. You can turn off the pencil and still press **E** to open an editor.
+
 Sun descriptions can include links within their text. In a sun's Description field, write `[label](https://example.com)`; use an `http` or `https` URL. The link appears in the Galaxy and System and opens in a new tab. Unsupported link markup remains plain text. Descriptions are included in JSON exports.
 
 To share part of your map, open a sun, planet, or moon in **Edit links** and choose **Export sun**, **Export planet**, or **Export moon**. A sun export includes its planets and moons; a planet export includes its moons; a moon export includes only that moon. The downloaded `orbit-*.json` file contains just that item and its descendants. To receive one, use **Import a file** in the editor’s sun list for a sun, **Import planet** inside the destination sun, or **Import moon** inside the destination planet. Review the item and destination, then add it. This appends the imported links and keeps your existing map. If an imported sun ID already exists, Orbit gives the new sun a unique ID.

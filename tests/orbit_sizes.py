@@ -1,4 +1,4 @@
-"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06, OS08–OS10).
+"""Browser checks for planet and moon sizing and the six-moon fan (OS01–OS06, OS08–OS11).
 
 Run with: /home/sysadmin/.venv/bin/python tests/orbit_sizes.py
    or, in a remote browser such as Edge on the Windows VM:
@@ -235,6 +235,23 @@ def run_mode(page, url, mode):
         landed = page.evaluate("([x, y]) => document.elementFromPoint(x, y)?.closest('.moon-link')?.textContent", list(end))
         check(landed == name, f"{mode}: the pointer lands on moon {name} ({landed})")
     print(f"PASS OS10 the pointer reaches every moon ({mode})")
+
+
+    # OS11: the pencil leaves the open moon field reachable.
+    page.keyboard.press("Escape")
+    hover_galaxy_planet(page, 0, 3)
+    planet = node(page, ".home-satellite", 0, 3)
+    pencil = page.locator(".map-edit-button")
+    pencil.wait_for(timeout=2500)
+    moon = node(page, ".moon-link", 0, 3, 0)
+    start, end = center(planet), center(moon)
+    for step in range(1, 13):
+        page.mouse.move(start[0] + (end[0] - start[0]) * step / 12, start[1] + (end[1] - start[1]) * step / 12)
+        page.wait_for_timeout(40)
+        check(moon.is_visible(), f"{mode}: the moon stays open past the pencil (step {step} of 12)")
+    landed = page.evaluate("([x, y]) => document.elementFromPoint(x, y)?.closest('.moon-link')?.textContent", list(end))
+    check(landed == moon.inner_text(), f"{mode}: the pointer lands on the moon after the pencil")
+    print(f"PASS OS11 pencil leaves the moons reachable ({mode})")
 
 
 def main():

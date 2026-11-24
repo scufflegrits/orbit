@@ -1,12 +1,12 @@
 # Orbit handoff
 
-Last updated 2026-11-22 for Orbit 3.0.3.
+Last updated 2026-11-23 for the unreleased Edit links and map editing changes.
 
 ## Status
 
 **Orbit 3.0.3:** group planets, the sun picker for whole-map imports, two Galaxy hover fixes, and new Dev Toolbox links. See the changelog for the storage compatibility warning.
 
-All work is on `main`, with no failing or pending test. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](plans/REWRITE_PLAN.md).
+All work is on `main`. The unreleased changes passed the planned Chromium and headless Edge 158 checks in file and server mode. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](plans/REWRITE_PLAN.md).
 
 **3.0.0 checks:** every suite passes in Chromium and in Edge (headless, and a visible window in the user's Remote Desktop session) in both modes; the 2.2 storage fixture reads back exactly as 2.2.1 read it; speed is unchanged (first render −2%, keystroke +0%) and the scripts are +1.5%; the user confirmed Open all by hand in visible Edge.
 
@@ -85,11 +85,11 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 **Sizing.** `fitOrbitSizes` measures labels with a canvas and grows each level's circle until no word splits, up to a per-level max, then shrinks only that label (to 60% at most). Sizes are shared map-wide as CSS variables. Up to six moons orbit a planet (`VISIBLE_MOONS`); `layoutMoonField` fans them and clips the hover field.
 
-**Keyboard.** Escape order: a visible button tip, palette, then menu, then drag, then Edit mode, then Quick find, then leaving a System.
+**Keyboard.** Escape order: a visible button tip, palette, then menu, then drag, then Edit mode, then Quick find, then leaving a System. **E** opens the focused map item in the editor. `src/ui/views/edit-buttons.js` handles the hover pencil and focus restoration for both entry points.
 
 **Server security.** `POST /api/check-links` requires a same-origin Host/Origin, a JSON body, and an `X-Orbit-Check: 1` header.
 
-Display preferences are shared across workspaces. **Button tips** uses `orbit:button-tips` with values `normal`, `slow`, and `off`.
+Display preferences are shared across workspaces. **Button tips** uses `orbit:button-tips` with values `normal`, `slow`, and `off`. **Edit buttons on hover** uses `orbit:edit-buttons` and defaults to on.
 
 ## Tests
 
@@ -99,11 +99,11 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | --- | --- | --- |
 | `tests/browser_matrix.py` | Milestones 1–14, 18, 19 (`--milestone N`, `--only-new`, `--repeat N`) | 39 passed |
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
-| `tests/orbit_sizes.py` | OS01–OS06, OS08–OS10 at 1920×1080 | 19 passed |
+| `tests/orbit_sizes.py` | OS01–OS06, OS08–OS11 at 1920×1080 | 21 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F32, no F05 | all passed |
+| `tests/features.py` | F01–F33, no F05 | 64 feature cases passed |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
-| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 194 passed |
+| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 195 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
 | `tests/data_compat_check.py` | The 2.2 storage fixture reads back as recorded | passed |

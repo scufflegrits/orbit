@@ -1595,11 +1595,106 @@ def f32_button_tips(ctx):
     print(f"PASS F32 Button tips ({ctx.mode})")
 
 
+def f33_edit_from_map(ctx):
+    page = ctx.page
+    fresh(ctx)
+    # Make an ordinary and a group planet available together in the Galaxy.
+    data = ctx.data
+    data["groups"][0]["links"].append({"name": "Monitoring", "type": "group", "moons": [
+        {"name": "Dashboard", "url": "https://monitor.example.test/"}]})
+    page.evaluate("(map) => localStorage.setItem('orbit:map:v1', JSON.stringify(map))", data)
+    page.reload(wait_until="load")
+    alpha = page.locator(".home-hub").filter(has_text="Alpha")
+    alpha.wait_for()
+    pencil = page.locator(".map-edit-button")
+    title = page.locator(".editor-header h3")
+
+    def edit_from(item, name, heading, close="back"):
+        item.hover()
+        pencil.wait_for(timeout=2000)
+        check(pencil.get_attribute("aria-label") == name, f"the hover button is for {name}")
+        pencil.click()
+        title.get_by_text(heading, exact=True).wait_for()
+        if close:
+            page.locator(".editor-back" if close == "back" else "#menu-close").click()
+            page.locator("#menu-overlay").wait_for(state="hidden")
+            check(item.evaluate("el => el === document.activeElement"), f"focus returns to {name}")
+
+    alpha.hover()
+    page.wait_for_timeout(400)
+    check(not pencil.is_visible(), "the pencil waits for the hover delay")
+    edit_from(alpha, "Edit Alpha", "Edit Alpha")
+    planet = page.locator(".home-satellite").filter(has_text="Docs Portal")
+    edit_from(planet, "Edit Docs Portal and its moons", "Edit Docs Portal", close=None)
+    check(page.locator(".editor-pane .editor-list-row").filter(has_text="Guide").count() == 1, "the planet editor lists its moons")
+    page.locator(".editor-pane .editor-list-row").filter(has_text="Guide").get_by_role("button", name="Edit").click()
+    page.locator(".editor-back").click()
+    title.get_by_text("Edit Docs Portal", exact=True).wait_for()
+    page.locator("#menu-close").click()
+    check(planet.evaluate("el => el === document.activeElement"), "closing after deeper navigation restores focus")
+    moon = planet.locator("..").locator(".moon-link").filter(has_text="Guide")
+    planet.hover()
+    edit_from(moon, "Edit Guide", "Edit Guide", close="close")
+    group = page.locator(".home-satellite.group-planet").filter(has_text="Monitoring")
+    group.click()
+    check(group.get_attribute("aria-expanded") == "true", "the group is pinned")
+    edit_from(group, "Edit Monitoring and its links", "Edit Monitoring")
+    check(group.get_attribute("aria-expanded") == "true", "the pencil leaves the group pinned")
+    ops = page.locator(".home-hub").filter(has_text="Ops")
+    edit_from(ops, "View Ops", "Ops (team)", close=None)
+    check("read-only" in page.locator(".editor-pane").inner_text(), "a team sun opens read-only")
+    page.locator("#menu-close").click()
+
+    alpha.click()
+    hub = page.locator(".detail-hub")
+    edit_from(hub, "Edit Alpha", "Edit Alpha")
+    system_planet = page.locator(".detail-satellite").filter(has_text="Docs Portal")
+    system_planet.focus()
+    page.keyboard.press("ArrowDown")
+    page.keyboard.press("e")
+    title.get_by_text("Edit Guide", exact=True).wait_for()
+    page.get_by_role("textbox", name="Moon name").fill("Renamed Guide")
+    page.get_by_role("button", name="Save moon").click()
+    title.get_by_text("Edit Renamed Guide", exact=True).wait_for()
+    page.locator(".editor-back").click()
+    saved_moon = page.locator(".moon-link").filter(has_text="Renamed Guide")
+    check(saved_moon.evaluate("el => el === document.activeElement"), "Back restores focus after a save redraws the map")
+    page.locator("#edit-toggle").click()
+    system_planet.hover()
+    system_planet.focus()
+    page.keyboard.press("e")
+    page.wait_for_timeout(1000)
+    check(not pencil.is_visible() and page.locator("#menu-overlay").is_hidden(), "Edit mode suppresses the hover button and E")
+    page.locator("#edit-toggle").click()
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.get_by_role("combobox", name="Button tips").select_option("off")
+    page.locator("#menu-close").click()
+    hub.hover()
+    pencil.wait_for(timeout=1300)
+    page.locator("#settings-trigger").click()
+    page.locator('[data-menu-panel="Settings"]').click()
+    page.get_by_role("checkbox", name="Edit buttons on hover").uncheck()
+    page.locator("#menu-close").click()
+    hub.hover()
+    page.wait_for_timeout(1000)
+    check(not pencil.is_visible(), "the setting disables hover buttons")
+    system_planet.focus()
+    page.keyboard.press("e")
+    title.get_by_text("Edit Docs Portal", exact=True).wait_for()
+    page.locator(".editor-back").click()
+    check(system_planet.evaluate("el => el === document.activeElement"), "E still works and returns focus")
+    page.locator("#quick-find").focus()
+    page.keyboard.press("e")
+    check(page.locator("#quick-find").input_value() == "e" and page.locator("#menu-overlay").is_hidden(), "E types normally in Quick find")
+    print(f"PASS F33 Edit from the map ({ctx.mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map)
 
 
 def run_checks(make_ctx, only):

@@ -18,7 +18,7 @@ function personalSunOptions() {
  */
 export function showTeamSun(index) {
   const sun = groups[index];
-  editorHeader(`${sun.icon ? `${sun.icon} ` : ''}${sun.name} (team)`, nav.showSunList);
+  editorHeader(`${sun.icon ? `${sun.icon} ` : ''}${sun.name} (team)`, nav.showSunList, [index]);
   menuContent.append(element('p', 'editor-note', 'This sun comes from the team map, so it is read-only here. Copy it, or any of its planets and moons, into your own map to change it.'));
   if (sun.description) menuContent.append(descriptionNode('', sun.description));
   const actions = editorActions();
@@ -54,7 +54,7 @@ export function showTeamItem(path) {
   const item = itemAt(groups, path);
   const isMoon = path.length === 3;
   if (!item) return showTeamSun(path[0]);
-  editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0]));
+  editorHeader(`${item.name} (team)`, () => isMoon ? showTeamItem(path.slice(0, 2)) : showTeamSun(path[0]), path);
   menuContent.append(element('p', '', `${sun.name} sun${isMoon ? ` → ${planet.name} planet` : ''} · read-only team ${isMoon ? 'moon' : 'planet'}`));
   const group = isGroup(item);
   const summary = group ? (item.moons.length ? counted(item.moons.length, 'link') : 'No links yet')

@@ -9,7 +9,7 @@ import { counted, element, tagChips } from '../dom.js';
 import { hooks } from '../hooks.js';
 import { modes } from '../page-modes.js';
 import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorHeader, editorTree, linkCheckResults,
-  movePositionField, moveTargetField, setEditorTree } from './kit.js';
+  movePositionField, moveTargetField, rememberEditorOrigin, setEditorTree } from './kit.js';
 import { nav } from './nav.js';
 import { groups, menuContent, menuOverlay, menuRoot, setMenuContent } from '../page.js';
 
@@ -32,13 +32,17 @@ export function openEditorPage() {
 }
 
 /**
- * @param {any} indices
+ * @param {number[]} indices
+ * @param {{restoreFocus?: () => boolean}} [options]
  */
-export function openEditorAt(indices) {
+export function openEditorAt(indices, options = {}) {
   hooks.openMenu();
   openEditorPage();
-  if (indices.length === 3) nav.showMoonEditor(indices[0], indices[1], indices[2]);
+  if (options.restoreFocus) rememberEditorOrigin(indices, options.restoreFocus);
+  if (indices.length === 1) nav.showSunEditor(indices[0]);
+  else if (indices.length === 3) nav.showMoonEditor(indices[0], indices[1], indices[2]);
   else nav.showPlanetEditor(indices[0], indices[1]);
+  if (options.restoreFocus) menuContent.querySelector('button')?.focus();
 }
 
 export function leaveEditorPage() {

@@ -79,6 +79,7 @@ export let animationsEnabled = true;
 export let alwaysShowMoons = false;
 /** @type {'normal'|'slow'|'off'} */
 export let buttonTips = 'normal';
+export let showEditButtons = true;
 export let activeTheme = 'default';
 export let activeFontSize = 'standard';
 /** @type {'download'|'client'} */
@@ -94,6 +95,7 @@ export function readPreferences() {
   alwaysShowMoons = readBoolean('orbit:always-show-moons', false);
   activeTheme = readTheme();
   buttonTips = readButtonTips();
+  showEditButtons = readBoolean('orbit:edit-buttons', true);
   activeFontSize = readFontSize();
   rdpLaunchMode = readRdpLaunch();
   showQuickBar = readBoolean('orbit:quick-bar', true);
@@ -114,6 +116,12 @@ export function setAlwaysShowMoons(on) { alwaysShowMoons = on; }
 export function setButtonTips(value) {
   buttonTips = value === 'slow' || value === 'off' ? value : 'normal';
   savePreference('orbit:button-tips', buttonTips);
+}
+
+/** @param {boolean} on */
+export function setShowEditButtons(on) {
+  showEditButtons = on;
+  savePreference('orbit:edit-buttons', on);
 }
 
 /** @param {string} theme */

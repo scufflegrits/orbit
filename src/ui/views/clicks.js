@@ -6,7 +6,7 @@ import { modes } from '../page-modes.js';
 import { collapseGroup, setGroupExpanded } from './group-planets.js';
 import { noteOpened } from './favorites.js';
 import { openAll } from './open.js';
-import { app, groups } from '../page.js';
+import { app, groups, menuOverlay } from '../page.js';
 
 /** @param {MouseEvent} event */
 function trackDestinationClicks(event) {
@@ -26,7 +26,8 @@ function trackDestinationClicks(event) {
  */
 export function installClicks() {
   document.addEventListener('click', event => {
-    if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element)) return;
+    if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element) ||
+        event.composedPath().includes(menuOverlay)) return;
     const button = event.target.closest('button.group-planet');
     if (button && app.contains(button) && button.parentElement) {
       const cluster = button.parentElement;

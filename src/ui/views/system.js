@@ -72,6 +72,10 @@ export function renderDetail(group) {
   const sunIndex = groups.indexOf(group);
   stage.dataset.sun = String(sunIndex);
   const hub = tagPath(element('div', 'detail-hub'), 'sun', sunIndex);
+  hub.tabIndex = 0;
+  hub.setAttribute('role', 'group');
+  hub.setAttribute('aria-label', `${group.name} sun`);
+  if (!modes.inEditMode()) hub.setAttribute('aria-keyshortcuts', 'E');
   if (group.icon) hub.append(element('span', 'hub-icon', group.icon));
   hub.append(element('span', 'detail-hub-name', group.name));
   hub.append(element('span', 'detail-hub-sub', counted(group.links.length, 'planet')));

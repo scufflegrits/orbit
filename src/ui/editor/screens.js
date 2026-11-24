@@ -446,7 +446,7 @@ export function showSunEditor(index) {
   if (index !== null && groups[index]?.team) return showTeamSun(index);
   const isNew = index === null;
   const sun = isNew ? { name: '', description: '', color: '#79d9f8', links: [] } : groups[index];
-  editorHeader(isNew ? 'Add sun' : `Edit ${sun.name}`, showSunList);
+  editorHeader(isNew ? 'Add sun' : `Edit ${sun.name}`, showSunList, [index]);
   const form = element('form', 'editor-form');
   const name = editorField('Sun name', sun.name);
   const description = editorField('Description', sun.description, 'textarea');
@@ -520,7 +520,7 @@ export function showPlanetEditor(sunIndex, planetIndex) {
   if (groups[sunIndex]?.team) return showTeamItem([sunIndex, planetIndex]);
   const isNew = planetIndex === null;
   const planet = isNew ? { name: '', url: '', moons: [] } : groups[sunIndex].links[planetIndex];
-  editorHeader(isNew ? 'Add planet' : `Edit ${planet.name}`, () => showSunEditor(sunIndex));
+  editorHeader(isNew ? 'Add planet' : `Edit ${planet.name}`, () => showSunEditor(sunIndex), [sunIndex, planetIndex]);
   menuContent.append(element('p', '', `Sun: ${groups[sunIndex].name}`));
   if (!isNew) {
     const note = duplicateNote(planet, [sunIndex, planetIndex]);
@@ -643,7 +643,7 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
   const moon = isNew ? { name: '', url: '' } : planet.moons[moonIndex];
   const addLabel = isGroup(planet) ? 'Add link' : 'Add moon';
   editorHeader(isNew ? addLabel : `Edit ${moon.name}`,
-    () => showPlanetEditor(sunIndex, planetIndex));
+    () => showPlanetEditor(sunIndex, planetIndex), [sunIndex, planetIndex, moonIndex]);
   menuContent.append(element('p', '', `${groups[sunIndex].name} sun → ${planet.name} planet`));
   if (!isNew) {
     const note = duplicateNote(moon, [sunIndex, planetIndex, moonIndex]);

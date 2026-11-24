@@ -76,6 +76,7 @@ def run_milestone_19(page, url, mode):
     check_menu_keys(page, url, mode)
     check_find_keys(page, url, mode)
     check_map_arrows(page, url, mode)
+    check_map_edit_keys(page, url, mode)
     check_help_and_journey(page, url, mode)
     print(f"PASS milestone 19 ({mode})")
 
@@ -234,6 +235,21 @@ def check_map_arrows(page, url, mode):
     check(active_is(page, ".detail-satellite", 1), f"{mode}: Up Arrow returns to the System planet")
 
 
+def check_map_edit_keys(page, url, mode):
+    reset_map(page, url)
+    sun = page.locator(".home-hub").first
+    planet = page.locator(".home-satellite").first
+    moon = planet.locator("..").locator(".moon-link").first
+    sun.focus()
+    for name, node in (("sun", sun), ("planet", planet), ("moon", moon)):
+        node.focus()
+        page.keyboard.press("e")
+        page.locator(".editor-header h3").filter(has_text="Edit ").wait_for(timeout=2000)
+        page.keyboard.press("Escape")
+        check(page.locator("#menu-overlay").is_hidden() and node.evaluate("el => el === document.activeElement"),
+              f"{mode}: E opens the focused {name} and Escape returns to it")
+
+
 def tab_until_id(page, element_id, key="Tab", limit=60):
     for _ in range(limit):
         page.keyboard.press(key)
@@ -252,7 +268,7 @@ def check_help_and_journey(page, url, mode):
     page.keyboard.press("Tab")
     page.keyboard.press("Enter")  # Help is the second option
     text = page.locator("#menu-content").inner_text()
-    check(all(word in text for word in ("Press /", "Arrow", "Escape", "Tab")),
+    check(all(word in text for word in ("Press /", "Arrow", "Escape", "Tab", "Press E")),
           f"{mode}: Help describes the keyboard shortcuts")
     page.keyboard.press("Escape")
 

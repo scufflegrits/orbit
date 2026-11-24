@@ -6,13 +6,13 @@ import * as prefs from '../../state/prefs.js';
 import { counted, element } from '../dom.js';
 import { hooks } from '../hooks.js';
 import { showBackupReminder } from '../notices/backup.js';
-import { editorButton, setEditorTree } from '../editor/kit.js';
+import { editorButton, restoreEditorOrigin, setEditorTree } from '../editor/kit.js';
 import { openEditorPage } from '../editor/page.js';
 import { modes } from '../page-modes.js';
 import { store } from '../../state/page-store.js';
 import { team } from '../team-map.js';
 import { workspaceSettings } from './workspaces.js';
-import { activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowQuickBar, setShowSiteIcons, settingsTrigger, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
+import { activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowEditButtons, setShowQuickBar, setShowSiteIcons, settingsTrigger, showEditButtons, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
 
 /** The element that opened the menu, to refocus when it closes. @type {HTMLElement | null} */
 let menuOpener = null;
@@ -34,7 +34,7 @@ export function menuHidden() {
   // Return focus to whatever opened the menu so keyboard users keep their place.
   const target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
   menuOpener = null;
-  target.focus();
+  if (!restoreEditorOrigin()) target.focus();
 }
 
 export function openMenu() {
@@ -182,6 +182,8 @@ export function showMenuPanel(name) {
     tipsSelect.addEventListener('change', () => setButtonTips(tipsSelect.value));
     tipsRow.append(tipsCopy, tipsSelect);
     menuContent.append(tipsRow);
+    menuContent.append(settingToggle('Edit buttons on hover', 'Show a pencil when you rest the pointer on a map item',
+      showEditButtons, setShowEditButtons));
     menuContent.append(settingToggle('Show favorites and recent', 'A row of your favorite and recently opened links above the Galaxy',
       showQuickBar, checked => {
         setShowQuickBar(checked);
@@ -249,9 +251,10 @@ export function showMenuPanel(name) {
     menuContent.append(element('p', '', 'Links that are not shown on the map, and keyboard-only editing, are covered by Edit links: Move up and Move down set the order, and Move to another sun or planet lets you choose the position. In Edit mode, a Quick find result opens that planet or moon in Edit links.'));
     menuContent.append(element('h4', 'editor-section-title', 'Keyboard'));
     menuContent.append(element('p', '', 'Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.'));
+    menuContent.append(element('p', '', 'Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil.'));
     menuContent.append(element('p', '', 'Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.'));
     menuContent.append(element('p', '', 'Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.'));
-    menuContent.append(element('p', '', 'Escape closes the menu first, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.'));
+    menuContent.append(element('p', '', 'Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.'));
     menuContent.append(element('p', '', 'Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));

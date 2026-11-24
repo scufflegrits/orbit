@@ -999,7 +999,8 @@ html[data-moons='always'] .planet-cluster .moon-field {
 html[data-moons='always'] .planet-cluster .moon-field { pointer-events: none; }
 html[data-moons='always'] .planet-cluster:hover .moon-field,
 html[data-moons='always'] .planet-cluster:focus-within .moon-field { pointer-events: auto; }
-.home-orbit:not(:hover):not(:focus-within) .planet-cluster:not(.pinned) .moon-field {
+/* Keep the drag-open rules ahead of this rule in specificity. */
+.home-orbit:not(:hover):not(:focus-within):where(:not(.restoring-map-focus)) .planet-cluster:not(.pinned) .moon-field {
   visibility: hidden !important;
   pointer-events: none !important;
 }
@@ -1460,3 +1461,29 @@ html[data-animations='off'] *::after {
 .empty-galaxy h1 { margin: 0; color: var(--text); font: 600 calc(28px * var(--font-scale)) 'Space Grotesk', sans-serif; }
 .empty-galaxy .editor-primary { padding: 8px 16px; border-radius: 10px; font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif; cursor: pointer; }
 .preset-settings { min-height: 120px; font-family: ui-monospace, monospace; }
+
+.map-edit-button {
+  position: absolute;
+  z-index: 12;
+  inset: 0 auto auto 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--accent, var(--theme-accent));
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  font: 16px/1 system-ui, sans-serif;
+  cursor: pointer;
+  animation: fade-in .12s ease-out;
+}
+.map-edit-button:hover { background: var(--hover-base); }
+.moon-overflow-links { position: relative; }
+.home-orbit.restoring-map-focus .home-planet-cluster,
+.planet-cluster.restoring-map-focus .moon-field { visibility: visible !important; transition: none; }
+.overflow-planet:is(:focus-within, .restoring-map-focus) .overflow-moons { display: flex; }
+@media (prefers-reduced-motion: reduce) {
+  .map-edit-button { animation: none; }
+}

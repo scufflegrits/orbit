@@ -5,6 +5,7 @@ import { cancelDrag, editBar, editToggle, setEditMode } from '../drag/drag.js';
 import { handlePaletteKey, handlePaletteShortcut } from '../find/palette.js';
 import { hideTooltip } from '../tooltip.js';
 import { closeMenu } from '../menu/menu.js';
+import { handleMapEditKey } from '../views/edit-buttons.js';
 import { collapseGroup, setGroupExpanded } from '../views/group-planets.js';
 import { modes } from '../page-modes.js';
 import { app, menuOverlay, quickFind, setFindQuery, topbarSearch } from '../page.js';
@@ -216,7 +217,7 @@ export function installKeys() {
     if (event.defaultPrevented) return;
     // The command palette takes every key while it is open, and the placeholder form handles its own.
     if (handlePaletteKey(event) || modes.overlayIs('palette') || !modes.keyAllowed('other')) return;
-    if (handlePaletteShortcut(event)) return;
+    if (handlePaletteShortcut(event) || handleMapEditKey(event)) return;
     if (event.key === 'Tab') {
       if (modes.menuOpen()) trapMenuFocus(event);
     } else if (event.key === 'Escape') {

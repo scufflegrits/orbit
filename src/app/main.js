@@ -18,6 +18,7 @@ import { installRoutineOffers } from '../ui/notices/routine-offer.js';
 import { installTooltip } from '../ui/tooltip.js';
 import { setVersion } from '../ui/page.js';
 import { modes } from '../ui/page-modes.js';
+import { installMapEditButtons } from '../ui/views/edit-buttons.js';
 import { installClicks } from '../ui/views/clicks.js';
 import { refreshQuickBar } from '../ui/views/galaxy.js';
 import { render } from '../ui/views/render.js';
@@ -39,6 +40,7 @@ installClicks();
 installRoutineOffers();
 installDrag();
 installKeys();
+installMapEditButtons();
 
 if (ORBIT_TEST) installTestHook(store, { schedule, modes });
 

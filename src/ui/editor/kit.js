@@ -8,6 +8,7 @@ import * as mapOps from '../../core/map-ops.js';
 import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
 import { element } from '../dom.js';
+import { modes } from '../page-modes.js';
 import { nav } from './nav.js';
 import { groups, menuContent, setStorageWarning, storageWarning } from '../page.js';
 
@@ -58,14 +59,35 @@ export function editorError(message) {
   menuContent.prepend(element('p', 'editor-error', message));
 }
 
+/** @type {string | null} */
+let directEditorPath = null;
+/** @type {(() => boolean) | null} */
+let restoreFocus = null;
+
+/** @param {number[]} indices @param {() => boolean} restore */
+export function rememberEditorOrigin(indices, restore) {
+  directEditorPath = indices.join(':');
+  restoreFocus = restore;
+}
+
+export function restoreEditorOrigin() {
+  const restore = restoreFocus;
+  restoreFocus = null;
+  directEditorPath = null;
+  return restore?.() ?? false;
+}
+
 /**
  * @param {any} title
  * @param {any} back
+ * @param {(number | null)[]} [path]
  */
-export function editorHeader(title, back) {
+export function editorHeader(title, back, path) {
+  const direct = directEditorPath !== null && path?.join(':') === directEditorPath;
+  if (!direct) directEditorPath = null;
   menuContent.replaceChildren();
   const header = element('div', 'editor-header');
-  header.append(editorButton('← Back', back, 'editor-back'));
+  header.append(editorButton('← Back', direct ? () => modes.send('closeOverlay') : back, 'editor-back'));
   header.append(element('h3', '', title));
   menuContent.append(header);
   const undo = store.loadUndoRecord();
