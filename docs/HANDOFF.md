@@ -1,6 +1,6 @@
 # Orbit handoff
 
-Last updated 2026-11-23 for the unreleased Edit links and map editing changes.
+Last updated 2026-11-23 for the unreleased Edit links and map editing changes, including row exports and the sun editor layout.
 
 ## Status
 
@@ -38,6 +38,7 @@ Orbit is a local webpage for frequently visited links; no hosting or accounts. T
 
 - Open `index.html` directly (file mode), or run `python3 serve.py` and open `http://localhost:8000` (server mode). `serve.py` binds to `127.0.0.1:8000`; `--port` changes the port and `--team PATH` serves a team map at `/team.json`.
 - The editor saves to the current browser's storage. **Export → Whole map (JSON)** backs up the map. **Import → Import a file** accepts a whole map, an exported sun or planet, or browser bookmarks. The browser never writes `links.json`.
+- In the sun and planet editors, planet and moon rows export individual items directly. The read-only team views offer the same row exports. The sun form holds Save, with export and position below it and removal after the planet list.
 - To change the bundled map, edit `links.json` and run `python3 sync.py` (regenerates `links-data.js` for file mode). `sync.py --team PATH` writes the gitignored `team-data.js`; `--no-team` removes it. A map saved in the browser takes precedence until **Reset to file data**.
 
 ## Code layout

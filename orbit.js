@@ -1362,6 +1362,10 @@ prompt for credentials:i:1\r
     let slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || kind;
     downloadJson(itemExport(kind, item), `orbit-${kind}-${slug}.json`);
   }
+  function editorExportRow(kind, item, summary, actionLabel, open) {
+    let row = element("div", "editor-list-row editor-export-row"), actions = element("div", "editor-row-actions"), download = editorButton("Export", () => exportItem(kind, item));
+    return download.setAttribute("aria-label", `Export ${item.name}`), actions.append(editorButton(actionLabel, open), download), row.append(element("span", "", summary), actions), row;
+  }
   function pathLabel(path) {
     let sun = groups[path[0]], planet = sun?.links[path[1]];
     return planet ? path.length === 3 ? `${sun.name} → ${planet.name} → ${planet.moons[path[2]]?.name}` : `${sun.name} → ${planet.name}` : "";
@@ -3995,8 +3999,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
     })), actions.append(editorButton("Export sun", () => exportItem("sun", sun))), menuContent.append(element("h4", "editor-section-title", "Planets"));
     let list = element("div", "editor-list");
     sun.links.forEach((planet, planetIndex) => {
-      let row = element("div", "editor-list-row");
-      row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? "link" : "moon")}`)), row.append(editorButton("View", () => showTeamItem([index, planetIndex]))), list.append(row);
+      let summary = `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? "link" : "moon")}`;
+      list.append(editorExportRow("planet", planet, summary, "View", () => showTeamItem([index, planetIndex])));
     }), menuContent.append(list);
   }
   function showTeamItem(path) {
@@ -4026,8 +4030,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       menuContent.append(element("h4", "editor-section-title", group ? "Links" : "Moons"));
       let list = element("div", "editor-list");
       planet.moons.forEach((moon, moonIndex) => {
-        let row = element("div", "editor-list-row");
-        row.append(element("span", "", moon.name)), row.append(editorButton("View", () => showTeamItem([path[0], path[1], moonIndex]))), list.append(row);
+        list.append(editorExportRow("moon", moon, moon.name, "View", () => showTeamItem([path[0], path[1], moonIndex])));
       }), menuContent.append(list);
     }
   }
@@ -4282,19 +4285,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     let color = editorField("Color", sun.color, "color"), icon = editorField("Icon", sun.icon || "");
     icon.input.maxLength = 16, icon.input.placeholder = "Optional, for example 🧪", icon.input.setAttribute("aria-label", "Icon"), icon.wrapper.append(element("small", "editor-hint", "One or two characters, such as an emoji, shown above the sun’s name.")), form.append(name.wrapper, description.wrapper, color.wrapper, icon.wrapper);
     let actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add sun" : "Save sun");
-    if (save.type = "submit", actions.append(save), isNew || (editorMoveControls(actions, index, groups.length, (amount) => {
-      let next = copyGroups();
-      moveEntry(next, index, amount) && applyEditorChange(next, () => showSunEditor(index + amount));
-    }), actions.append(editorButton("Remove sun", () => {
-      if (!confirmed(`Remove ${sun.name} and all its planets and moons?`)) return;
-      let next = copyGroups();
-      next.splice(index, 1), applyEditorChange(next, showSunList, { label: `Removed sun ${sun.name}`, undoRecord: {
-        kind: "sun",
-        index,
-        item: sun,
-        label: `${sun.name} sun`
-      } });
-    }, "editor-danger"))), form.append(actions), form.addEventListener("submit", (event) => {
+    if (save.type = "submit", actions.append(save), form.append(actions), form.addEventListener("submit", (event) => {
       event.preventDefault();
       let next = copyGroups(), value = {
         name: name.input.value.trim(),
@@ -4309,14 +4300,29 @@ ${preset.settings}`, `the ${preset.name} preset`);
         { label: `${isNew ? "Added" : "Saved"} sun ${value.name}` }
       );
     }), menuContent.append(form), !isNew) {
-      editorActions().append(editorButton("Export sun", () => exportItem("sun", sun))), menuContent.append(element("h4", "editor-section-title", "Planets"));
+      let sunTools = element("div", "editor-sun-tools"), position = element("div", "editor-row-actions");
+      position.setAttribute("role", "group"), position.setAttribute("aria-label", "Sun position"), editorMoveControls(position, index, groups.length, (amount) => {
+        let next = copyGroups();
+        moveEntry(next, index, amount) && applyEditorChange(next, () => showSunEditor(index + amount));
+      }), sunTools.append(editorButton("Export sun", () => exportItem("sun", sun)), position), menuContent.append(sunTools), menuContent.append(element("h4", "editor-section-title", "Planets"));
       let list = element("div", "editor-list");
       sun.links.forEach((planet, planetIndex) => {
-        let row = element("div", "editor-list-row");
-        row.append(element("span", "", `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? "link" : "moon")}`)), row.append(editorButton("Edit", () => showPlanetEditor(index, planetIndex))), list.append(row);
+        let summary = `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? "link" : "moon")}`;
+        list.append(editorExportRow("planet", planet, summary, "Edit", () => showPlanetEditor(index, planetIndex)));
       }), menuContent.append(list);
       let planetActions = editorActions();
       planetActions.append(editorButton("Add planet", () => showPlanetEditor(index, null), "editor-primary")), planetActions.append(editorButton("Import planet", () => importItem("planet", index))), planetActions.append(editorButton("Import .rdp files as planets", () => showRdpBatchImport("planet", index)));
+      let removal = element("div", "editor-sun-removal");
+      removal.append(editorButton("Remove sun", () => {
+        if (!confirmed(`Remove ${sun.name} and all its planets and moons?`)) return;
+        let next = copyGroups();
+        next.splice(index, 1), applyEditorChange(next, showSunList, { label: `Removed sun ${sun.name}`, undoRecord: {
+          kind: "sun",
+          index,
+          item: sun,
+          label: `${sun.name} sun`
+        } });
+      }, "editor-danger"), element("p", "editor-hint", "Removes this sun and all its planets and moons.")), menuContent.append(removal);
     }
   }
   function showPlanetEditor(sunIndex, planetIndex) {
@@ -4362,8 +4368,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       group && planet.moons.length && sharing.append(editorButton("Share links as a pack", () => shareGroup(planet))), menuContent.append(element("h4", "editor-section-title", group ? "Links" : "Moons")), group && !planet.moons.length && menuContent.append(element("p", "data-source", "No links yet"));
       let list = element("div", "editor-list");
       planet.moons.forEach((moon, moonIndex) => {
-        let row = element("div", "editor-list-row");
-        row.append(element("span", "", moon.name)), row.append(editorButton("Edit", () => showMoonEditor(sunIndex, planetIndex, moonIndex))), list.append(row);
+        list.append(editorExportRow("moon", moon, moon.name, "Edit", () => showMoonEditor(sunIndex, planetIndex, moonIndex)));
       }), menuContent.append(list);
       let moonActions = editorActions();
       moonActions.append(editorButton(group ? "Add link" : "Add moon", () => showMoonEditor(sunIndex, planetIndex, null), "editor-primary")), moonActions.append(editorButton("Import moon", () => importItem("moon", sunIndex, planetIndex))), moonActions.append(editorButton("Import .rdp files as moons", () => showRdpBatchImport("moon", sunIndex, planetIndex))), planet.moons.some((moon) => moon.type === "rdp") && moonActions.append(editorButton("Apply RDP settings to moons", () => showBulkRdp(sunIndex, planetIndex)));

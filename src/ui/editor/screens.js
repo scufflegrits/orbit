@@ -17,7 +17,7 @@ import { closeMenu, showMenuPanel } from '../menu/menu.js';
 import { backupDue, backupReminder, noteBackupMade } from '../notices/backup.js';
 import { team } from '../team-map.js';
 import { showQuickAdd } from './quick-add.js';
-import { applyEditorChange, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorField, editorHeader,
+import { applyEditorChange, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader,
   editorMoveControls, editorTree, exportItem, moveEntry, selectJsonFile } from './kit.js';
 import { leaveEditorPage, renderEditorTree, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
 import { reviewBookmarks } from './tools/bookmarks.js';
@@ -462,20 +462,6 @@ export function showSunEditor(index) {
   const save = element('button', 'editor-primary', isNew ? 'Add sun' : 'Save sun');
   save.type = 'submit';
   actions.append(save);
-  if (!isNew) {
-    editorMoveControls(actions, index, groups.length, (/** @type {any} */ amount) => {
-      const next = copyGroups();
-      if (moveEntry(next, index, amount)) applyEditorChange(next, () => showSunEditor(index + amount));
-    });
-    actions.append(editorButton('Remove sun', () => {
-      if (!confirmed(`Remove ${sun.name} and all its planets and moons?`)) return;
-      const next = copyGroups();
-      next.splice(index, 1);
-      applyEditorChange(next, showSunList, { label: `Removed sun ${sun.name}`, undoRecord: {
-        kind: 'sun', index, item: sun, label: `${sun.name} sun`,
-      } });
-    }, 'editor-danger'));
-  }
   form.append(actions);
   form.addEventListener('submit', event => {
     event.preventDefault();
@@ -495,20 +481,38 @@ export function showSunEditor(index) {
   });
   menuContent.append(form);
   if (!isNew) {
-    editorActions().append(editorButton('Export sun', () => exportItem('sun', sun)));
+    const sunTools = element('div', 'editor-sun-tools');
+    const position = element('div', 'editor-row-actions');
+    position.setAttribute('role', 'group');
+    position.setAttribute('aria-label', 'Sun position');
+    editorMoveControls(position, index, groups.length, (/** @type {any} */ amount) => {
+      const next = copyGroups();
+      if (moveEntry(next, index, amount)) applyEditorChange(next, () => showSunEditor(index + amount));
+    });
+    sunTools.append(editorButton('Export sun', () => exportItem('sun', sun)), position);
+    menuContent.append(sunTools);
     menuContent.append(element('h4', 'editor-section-title', 'Planets'));
     const list = element('div', 'editor-list');
     sun.links.forEach((/** @type {any} */ planet, /** @type {any} */ planetIndex) => {
-      const row = element('div', 'editor-list-row');
-      row.append(element('span', '', `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? 'link' : 'moon')}`));
-      row.append(editorButton('Edit', () => showPlanetEditor(index, planetIndex)));
-      list.append(row);
+      const summary = `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? 'link' : 'moon')}`;
+      list.append(editorExportRow('planet', planet, summary, 'Edit', () => showPlanetEditor(index, planetIndex)));
     });
     menuContent.append(list);
     const planetActions = editorActions();
     planetActions.append(editorButton('Add planet', () => showPlanetEditor(index, null), 'editor-primary'));
     planetActions.append(editorButton('Import planet', () => importItem('planet', index)));
     planetActions.append(editorButton('Import .rdp files as planets', () => showRdpBatchImport('planet', index)));
+
+    const removal = element('div', 'editor-sun-removal');
+    removal.append(editorButton('Remove sun', () => {
+      if (!confirmed(`Remove ${sun.name} and all its planets and moons?`)) return;
+      const next = copyGroups();
+      next.splice(index, 1);
+      applyEditorChange(next, showSunList, { label: `Removed sun ${sun.name}`, undoRecord: {
+        kind: 'sun', index, item: sun, label: `${sun.name} sun`,
+      } });
+    }, 'editor-danger'), element('p', 'editor-hint', 'Removes this sun and all its planets and moons.'));
+    menuContent.append(removal);
   }
 }
 
@@ -577,10 +581,7 @@ export function showPlanetEditor(sunIndex, planetIndex) {
     if (group && !planet.moons.length) menuContent.append(element('p', 'data-source', 'No links yet'));
     const list = element('div', 'editor-list');
     planet.moons.forEach((/** @type {any} */ moon, /** @type {any} */ moonIndex) => {
-      const row = element('div', 'editor-list-row');
-      row.append(element('span', '', moon.name));
-      row.append(editorButton('Edit', () => showMoonEditor(sunIndex, planetIndex, moonIndex)));
-      list.append(row);
+      list.append(editorExportRow('moon', moon, moon.name, 'Edit', () => showMoonEditor(sunIndex, planetIndex, moonIndex)));
     });
     menuContent.append(list);
     const moonActions = editorActions();

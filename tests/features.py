@@ -557,7 +557,7 @@ def f12_team(ctx):
     check(page.locator(".quick-chip").all_inner_texts() == ["Runbook"], f"{mode}: a team link can be a favorite")
     check(page.evaluate("localStorage.getItem('orbit:team-favorites')") == '["https://runbook.example.test"]',
           f"{mode}: a team favorite is a preference")
-    # Read-only: no drag, and the editor only views and copies.
+    # Team links can be viewed and exported without changing the team map.
     page.locator("#edit-toggle").click()
     hub = page.locator(".home-hub").first
     hub.hover()
@@ -573,7 +573,16 @@ def f12_team(ctx):
           f"{mode}: team items cannot be dragged")
     page.locator("#edit-toggle").click()
     open_editor(page)
-    tree(page, "editor-tree-planet", "Runbook").click()
+    tree(page, "editor-tree-sun", "Ops").click()
+    for name, kind in (("Runbook", "planet"), ("Pager", "moon")):
+        label = f"Export {name}"
+        button = page.get_by_role("button", name=label, exact=True)
+        exported_item = (button.evaluate("node => OrbitTest.captureDownload(() => node.click())")
+                         if mode.startswith("remote") else download_json(page, label))
+        check(exported_item["kind"] == kind and exported_item["item"]["name"] == name and stored(page) is None,
+              f"{mode}: the team {kind} row exports without modifying the map")
+        if kind == "planet":
+            page.locator(".editor-list-row").filter(has_text=name).get_by_role("button", name="View").click()
     pane = page.locator(".editor-pane").inner_text()
     check("read-only team planet" in pane and page.get_by_role("button", name="Save planet").count() == 0,
           f"{mode}: a team planet is read-only")
@@ -587,7 +596,7 @@ def f12_team(ctx):
     page.locator(".editor-header .editor-back").click()
     if mode.startswith("remote"):
         # A remote browser's download cannot be read here; take the data
-        # Export JSON hands to the download instead.
+        # Whole map (JSON) hands to the download instead.
         exported = page.evaluate("OrbitTest.captureDownload(() => OrbitTest.actions.exportMap())")
     else:
         with page.expect_download() as download:
@@ -1406,9 +1415,14 @@ def f30_group_planets(ctx):
 
     exported_item = export("Export planet")
     check(exported_item["item"]["type"] == "group", f"{mode}: planet export keeps the group")
+    exported_link = export("Export Dashboard")
+    check(exported_link["kind"] == "moon" and exported_link["item"]["name"] == "Dashboard",
+          f"{mode}: the group exports individual links from their rows")
     pack = export("Share links as a pack")
     check([link["name"] for link in pack["links"]] == ["Dashboard", "Metrics"],
           f"{mode}: a shared group becomes a pack of its links")
+    tree(page, "editor-tree-sun", "Alpha").click()
+    check(export("Export Monitoring") == exported_item, f"{mode}: the sun list exports the group and its links")
     close_menu(page)
 
     galaxy_sun = page.get_by_role("button", name="Open Alpha system", exact=False)
@@ -1437,9 +1451,10 @@ def f30_group_planets(ctx):
     check(group.get_attribute("aria-expanded") == "true", f"{mode}: Quick find pins the group in its System")
     urls = popups(page, lambda: group.click(modifiers=["Shift"]), expect=1)
     notice = page.locator("#open-all-notice").inner_text()
-    check(urls and urls[0].rstrip("/").endswith("/ok") and
-          ((len(urls) == 2 and notice == "Opened 2 tabs for Monitoring.") or
-           (len(urls) == 1 and "blocked 1 tab" in notice)),
+    expected_urls = {ctx.target + "/ok", ctx.target + "/ok/guide.html"}
+    opened_urls = {url.rstrip("/") for url in urls}
+    check((len(urls) == 2 and opened_urls == expected_urls and notice == "Opened 2 tabs for Monitoring.") or
+          (len(urls) == 1 and opened_urls == {ctx.target + "/ok"} and "blocked 1 tab" in notice),
           f"{mode}: Shift-click tries both moons ({urls}, {notice})")
     page.keyboard.press("Escape")
     group.focus()

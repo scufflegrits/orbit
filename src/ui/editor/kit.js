@@ -177,6 +177,23 @@ export function exportItem(kind, item) {
 }
 
 /**
+ * @param {'planet' | 'moon'} kind
+ * @param {{name: string}} item
+ * @param {string} summary
+ * @param {'Edit' | 'View'} actionLabel
+ * @param {() => void} open
+ */
+export function editorExportRow(kind, item, summary, actionLabel, open) {
+  const row = element('div', 'editor-list-row editor-export-row');
+  const actions = element('div', 'editor-row-actions');
+  const download = editorButton('Export', () => exportItem(kind, item));
+  download.setAttribute('aria-label', `Export ${item.name}`);
+  actions.append(editorButton(actionLabel, open), download);
+  row.append(element('span', '', summary), actions);
+  return row;
+}
+
+/**
  * @param {any} path
  */
 export function pathLabel(path) {

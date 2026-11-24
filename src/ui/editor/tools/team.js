@@ -5,7 +5,7 @@ import * as mapOps from '../../../core/map-ops.js';
 import { store } from '../../../state/page-store.js';
 import { counted, descriptionNode, element, tagChips } from '../../dom.js';
 import { isFavorite, setFavorite } from '../../views/favorites.js';
-import { applyEditorChange, copyGroups, editorActions, editorButton, editorHeader, exportItem, moveTargetField } from '../kit.js';
+import { applyEditorChange, copyGroups, editorActions, editorButton, editorExportRow, editorHeader, exportItem, moveTargetField } from '../kit.js';
 import { nav } from '../nav.js';
 import { groups, menuContent } from '../../page.js';
 
@@ -37,10 +37,8 @@ export function showTeamSun(index) {
   menuContent.append(element('h4', 'editor-section-title', 'Planets'));
   const list = element('div', 'editor-list');
   sun.links.forEach((/** @type {any} */ planet, /** @type {any} */ planetIndex) => {
-    const row = element('div', 'editor-list-row');
-    row.append(element('span', '', `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? 'link' : 'moon')}`));
-    row.append(editorButton('View', () => showTeamItem([index, planetIndex])));
-    list.append(row);
+    const summary = `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? 'link' : 'moon')}`;
+    list.append(editorExportRow('planet', planet, summary, 'View', () => showTeamItem([index, planetIndex])));
   });
   menuContent.append(list);
 }
@@ -92,10 +90,7 @@ export function showTeamItem(path) {
     menuContent.append(element('h4', 'editor-section-title', group ? 'Links' : 'Moons'));
     const list = element('div', 'editor-list');
     planet.moons.forEach((/** @type {any} */ moon, /** @type {any} */ moonIndex) => {
-      const row = element('div', 'editor-list-row');
-      row.append(element('span', '', moon.name));
-      row.append(editorButton('View', () => showTeamItem([path[0], path[1], moonIndex])));
-      list.append(row);
+      list.append(editorExportRow('moon', moon, moon.name, 'View', () => showTeamItem([path[0], path[1], moonIndex])));
     });
     menuContent.append(list);
   }

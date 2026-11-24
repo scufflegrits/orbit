@@ -8,6 +8,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 - **Import a file** reviews whole maps, suns, planets as new suns, and browser bookmarks from one picker.
 - Added button tips that appear on hover or keyboard focus. Settings offers a shorter delay, a longer delay, or Off. In file mode, the **Check links** tip explains how to enable the check.
 - Open a sun, planet, or moon’s editor from its pencil on the map or by pressing **E** while the item has focus. Closing the editor returns focus to the map item.
+- Added **Export** beside Edit or View on planet and moon rows. Moved the sun editor’s export, position, and removal actions into separate rows from Save.
 
 ## 3.0.3 — 2026-11-22
 

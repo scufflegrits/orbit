@@ -354,19 +354,34 @@ def run_milestone_13(page, url, mode):
     page.screenshot(path=str(ARTIFACTS / f"milestone13-editor-{mode}-900.png"))
     page.set_viewport_size({"width": 1280, "height": 900})
     page.locator(".editor-list-row").filter(has_text="Labs").get_by_role("button", name="Edit").click()
+    pane = page.locator(".editor-pane")
+    check(pane.locator(".editor-form button").all_text_contents() == ["Save sun"] and
+          pane.locator(".editor-sun-tools").get_by_role("button", name="Export sun").count() == 1 and
+          pane.locator(".editor-sun-removal").get_by_role("button", name="Remove sun").count() == 1,
+          f"{mode}: Save, Export, and Remove sit in distinct areas")
+    page.set_viewport_size({"width": 900, "height": 900})
+    page.screenshot(path=str(ARTIFACTS / f"milestone13-sun-editor-{mode}-900.png"))
+    page.set_viewport_size({"width": 1280, "height": 900})
     sun_file = download_json(page, "Export sun")
     check(sun_file["format"] == "orbit-item-v1" and sun_file["kind"] == "sun" and
           sun_file["item"]["id"] == "labs" and len(sun_file["item"]["links"]) == 5 and
           "groups" not in sun_file, f"{mode}: sun export contains only Labs and descendants")
-    page.locator(".editor-list-row").filter(has_text="lab1").get_by_role("button", name="Edit").click()
-    planet_file = download_json(page, "Export planet")
+    planet_row = page.locator(".editor-list-row").filter(has_text="lab1")
+    page.get_by_role("button", name="Export lab1", exact=True).wait_for(timeout=2000)
+    planet_file = download_json(page, "Export lab1")
     check(planet_file["kind"] == "planet" and planet_file["item"]["name"] == "lab1" and
-          len(planet_file["item"]["moons"]) == 5 and "links" not in planet_file,
-          f"{mode}: planet export includes its five moons only")
-    page.locator(".editor-list-row").filter(has_text="lab1-server1").get_by_role("button", name="Edit").click()
-    moon_file = download_json(page, "Export moon")
+          len(planet_file["item"]["moons"]) == 5 and "links" not in planet_file and
+          page.get_by_role("heading", name="Edit Labs", exact=True).is_visible(),
+          f"{mode}: the planet row exports its five moons without opening the editor")
+    planet_row.get_by_role("button", name="Edit", exact=True).click()
+    check(download_json(page, "Export planet") == planet_file, f"{mode}: both export buttons produce the same planet file")
+    moon_row = page.locator(".editor-list-row").filter(has_text="lab1-server1")
+    moon_file = download_json(page, "Export lab1-server1")
     check(moon_file["kind"] == "moon" and moon_file["item"]["host"] == "lab1-server1" and
-          "moons" not in moon_file["item"], f"{mode}: moon export contains only its RDP target")
+          "moons" not in moon_file and page.get_by_role("heading", name="Edit lab1", exact=True).is_visible(),
+          f"{mode}: the moon row exports just its RDP target without opening the editor")
+    moon_row.get_by_role("button", name="Edit", exact=True).click()
+    check(download_json(page, "Export moon") == moon_file, f"{mode}: both export buttons produce the same moon file")
     page.locator(".editor-back").click()
     page.locator(".editor-back").click()
     page.locator(".editor-back").click()

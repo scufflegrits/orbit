@@ -411,6 +411,15 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
   background: color-mix(in srgb, var(--theme-accent) 4%, transparent);
   color: var(--muted-strong);
 }
+.editor-export-row { flex-wrap: wrap; }
+.editor-export-row > span { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
+.editor-row-actions, .editor-sun-tools, .editor-sun-removal { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.editor-export-row .editor-row-actions { margin-inline-start: auto; }
+.editor-sun-tools, .editor-sun-removal { padding-top: 13px; border-top: 1px solid var(--line); }
+.editor-sun-tools { justify-content: space-between; }
+.editor-sun-removal { margin-top: 24px; }
+.menu-content .editor-sun-removal .editor-hint { margin: 0; }
+
 .editor-error { padding: 10px 12px; border-radius: 9px; background: rgba(245, 167, 200, .12); color: #ffd5e4; }
 
 /* Edit mode: toggle, instruction bar, and drag feedback. Dashed outlines echo
