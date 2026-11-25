@@ -218,7 +218,15 @@ Escape dismisses a visible button tip, then closes the command palette or menu. 
 
 ## Settings and help
 
-Click the cog (**Settings**) in the Galaxy or any System to open Settings. Use the **Help** or **About** tab to switch panels. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
+Click the cog (**Settings**) in the Galaxy or any System to open Settings. Use the **Help** or **About** tab to switch panels. **Edit links** and the active link map appear first, followed by five groups.
+
+1. **Look** has theme, fonts, background, particles, and animations.
+2. **Galaxy** has **Galaxy view** (Orbits or List), **Always show moons**, **Show favorites and recent**, **Clear recent links**, and **Show site icons**.
+3. **Editing** has **Edit buttons on hover**, **Button tips** (0.8 seconds by default, 1.5 seconds, or off), **Confirm before deleting**, and **Backup reminders**.
+4. **Workspaces and team** has workspace controls and [team map](#team-map) status.
+5. **Remote Desktop**, at the bottom, has the launch method and Windows helper setup.
+
+The **Animations** switch removes movement and reveal delays when off, while all links remain usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
 
 The **Background** setting offers **None** and **Constellations**. Constellations animates particles that drift and connect around the pointer. **Particles** adjusts their strength. Both choices are saved in this browser. Turning off **Animations** or enabling your operating system's reduced-motion setting freezes the background. The **Aurora** theme adds a dark violet palette.
 
@@ -227,7 +235,7 @@ The **Font** setting offers **Inter**, the default, and **Orbit classic**: DM Sa
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
 Circle labels use a shared size for each level across the Galaxy, and long names wrap inside their circles. Moons have larger circles and text; other interface text grows slightly on wide desktop screens.
 
-Settings also includes **Always show moons**, **Show favorites and recent** (with **Clear recent links**), **Galaxy view** (Orbits or List), **Show site icons**, **Button tips** (after 0.8 seconds by default, after 1.5 seconds, or off), **Edit buttons on hover**, **Confirm before deleting**, the [team map](#team-map) status, and **Edit links**. Edit links opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Use **Save** to apply field edits. Row arrows and confirmed removals take effect immediately. Orbit stores these changes in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
+**Edit links** opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Use **Save** to apply field edits. Row arrows and confirmed removals take effect immediately. Orbit stores these changes in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
 
 **Edit buttons on hover** is on by default. It shares the Button tips delay and uses 0.8 seconds when tips are off. It controls the pencil and trash buttons. **E** still opens the focused item’s editor when hover buttons are off.
 

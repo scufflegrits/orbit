@@ -2482,12 +2482,78 @@ def f41_backdrop(ctx):
     print(f"PASS F41 backdrop ({mode})")
 
 
+def f43_settings_layout(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    page.locator("#settings-trigger").click()
+    content = page.locator("#menu-content")
+    expected = {
+        "Look": ["Theme", "Font", "Font size", "Background", "Particles", "Animations"],
+        "Galaxy": ["Galaxy view", "Always show moons", "Show favorites and recent", "Show site icons"],
+        "Editing": ["Edit buttons on hover", "Button tips", "Confirm before deleting", "Backup reminders"],
+        "Workspaces and team": ["Workspaces", "Team map"],
+        "Remote Desktop": ["Remote Desktop", "Windows setup required"],
+    }
+    headings = content.locator(":scope > section.settings-group > h4").all_text_contents()
+    problems = []
+    if headings != list(expected):
+        problems.append(f"section headings are {headings}")
+    for title, rows in expected.items():
+        section = content.get_by_role("region", name=title, exact=True)
+        if section.count() != 1 or not section.evaluate("""el =>
+            el.firstElementChild.matches('h4') && el.firstElementChild.id === el.getAttribute('aria-labelledby')
+        """):
+            problems.append(f"{title} needs a region named by its heading")
+            continue
+        titles = section.locator(".setting-copy > strong, .team-settings > strong, .rdp-setup > strong").all_text_contents()
+        if titles != rows:
+            problems.append(f"{title} contains {titles}")
+    if not content.evaluate("""el => {
+        const follows = (a, b) => Boolean(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING));
+        const team = el.querySelector('.team-settings:not(.workspace-settings)');
+        return follows(team, el.querySelector('[aria-label="Remote Desktop launch"]')) &&
+               follows(team, el.querySelector('.rdp-setup'));
+    }"""):
+        problems.append("the Remote Desktop control and setup box must follow Team map")
+    check(not problems, f"{mode}: Settings layout: {', '.join(problems)}")
+    check(content.evaluate("""el => {
+        const [title, edit, source, firstGroup] = el.children;
+        return title.textContent === 'Settings' && edit.textContent === 'Edit links' &&
+               source.textContent.startsWith('Active link map:') && firstGroup.matches('.settings-group');
+    }"""), f"{mode}: Edit links and the active map precede the groups")
+
+    look = content.get_by_role("region", name="Look")
+    particles = look.get_by_label("Particles", exact=True)
+    check(particles.is_hidden(), f"{mode}: Particles starts hidden")
+    look.get_by_label("Background", exact=True).select_option("constellations")
+    check(particles.is_visible(), f"{mode}: Constellations reveals Particles")
+    look.get_by_label("Background", exact=True).select_option("none")
+    check(particles.is_hidden(), f"{mode}: None hides Particles again")
+    look.get_by_label("Theme", exact=True).select_option("aurora")
+    check(page.locator("html").get_attribute("data-theme") == "aurora", f"{mode}: Theme still applies")
+    galaxy = content.get_by_role("region", name="Galaxy", exact=True)
+    check(galaxy.locator(".setting-row").filter(has_text="Show favorites and recent").evaluate(
+        "el => el.nextElementSibling.querySelector('button')?.textContent === 'Clear recent links'"
+    ), f"{mode}: Clear recent links follows Show favorites and recent")
+    rdp = content.get_by_role("region", name="Remote Desktop", exact=True)
+    rdp.get_by_label("Remote Desktop launch").select_option("client")
+    check(rdp.locator(".rdp-setup").is_visible(), f"{mode}: the setup box appears for the client")
+    rdp.scroll_into_view_if_needed()
+    page.keyboard.press("Escape")
+    page.keyboard.press("Control+k")
+    page.keyboard.type("Open Settings")
+    page.keyboard.press("Enter")
+    check(look.is_visible() and page.locator(".menu-sheet").evaluate("el => el.scrollTop") == 0,
+          f"{mode}: the palette reopens Settings at the top")
+    print(f"PASS F43 Settings layout ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
           f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
-          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop)
+          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout)
 
 
 def run_checks(make_ctx, only):

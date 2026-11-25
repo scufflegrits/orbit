@@ -340,6 +340,10 @@ button:focus-visible, a:focus-visible {
 .menu-content h3 { margin: 0 0 12px; color: var(--text); font: 600 calc(20px * var(--font-scale)) var(--font-display); }
 .menu-content p { margin-bottom: 11px; }
 .menu-content .data-source { color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
+.settings-group { margin-top: 18px; }
+.settings-group + .settings-group { margin-top: 26px; }
+.settings-group > .editor-section-title { margin: 0 0 10px; }
+.settings-group > .workspace-settings { margin-top: 0; padding-top: 0; border-top: 0; }
 /* The workspace fills the window exactly: the tree and pane scroll, not the sheet or the page. */
 .menu-sheet.editor-page-mode { display: flex; flex-direction: column; width: 100%; padding: 24px max(24px, calc((100vw - 1200px) / 2)); border: 0; border-radius: 0; }
 html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
