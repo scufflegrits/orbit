@@ -4,6 +4,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ## Unreleased
 
+- Buttons and markers use [Lucide](https://lucide.dev) icons instead of text symbols (✎ ⤓ ↑ ↓ ☰ ⚙ × ★ and others), so they look the same in every browser and follow the theme color. A favorite's star is filled.
 - Grouped the Edit links tools and moved **Add sun** and **Add a link** above the sun list.
 - **Import a file** reviews whole maps, suns, planets as new suns, and browser bookmarks from one picker.
 - Added button tips that appear on hover or keyboard focus. Settings offers a shorter delay, a longer delay, or Off. In file mode, the **Check links** tip explains how to enable the check.

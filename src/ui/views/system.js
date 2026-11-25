@@ -3,6 +3,7 @@
 // Moved in rewrite phase 5.
 import { isGroup } from '../../core/destination.js';
 import { counted, descriptionNode, element, safeColor, tagPath } from '../dom.js';
+import { icon } from '../icons.js';
 import { SYSTEM_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
 import { modes } from '../page-modes.js';
 import { openAll } from './open.js';
@@ -50,7 +51,8 @@ export function renderDetail(group) {
     location.hash = '';
   };
   const top = element('div', 'detail-top');
-  const back = element('a', 'back-link', '←  Return to Galaxy');
+  const back = element('a', 'back-link', 'Return to Galaxy');
+  back.prepend(icon('arrow-left'));
   back.href = '#';
   top.append(back, element('span', 'detail-index', `${String(groups.indexOf(group) + 1).padStart(2, '0')} / ${String(groups.length).padStart(2, '0')}`));
 

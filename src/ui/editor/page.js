@@ -6,6 +6,7 @@ import * as mapOps from '../../core/map-ops.js';
 import * as rdp from '../../core/rdp.js';
 import * as fileIo from '../../services/file-io.js';
 import { counted, element, tagChips } from '../dom.js';
+import { icon } from '../icons.js';
 import { hooks } from '../hooks.js';
 import { modes } from '../page-modes.js';
 import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorHeader, editorTree, linkCheckResults,
@@ -85,7 +86,8 @@ export function renderEditorTree() {
 export function decorateTreeItem(button, item) {
   const group = isGroup(item);
   if (group) {
-    const marker = element('span', 'editor-tree-group', '📁 ');
+    const marker = element('span', 'editor-tree-group');
+    marker.append(icon('folder'));
     marker.setAttribute('role', 'img');
     marker.setAttribute('aria-label', 'Group');
     button.prepend(marker);
@@ -93,7 +95,11 @@ export function decorateTreeItem(button, item) {
   const result = group ? undefined : linkCheckResults.get(destinationKey(item));
   if (result && !result.ok) {
     button.classList.add('editor-tree-broken');
-    button.prepend(element('span', 'broken-mark', '⚠ '));
+    const broken = element('span', 'broken-mark');
+    broken.setAttribute('role', 'img');
+    broken.setAttribute('aria-label', 'Link problem');
+    broken.append(icon('triangle-alert'));
+    button.prepend(broken);
     button.title = `Last check: ${result.status ? `HTTP ${result.status}` : result.error}`;
   }
   if (item.tags?.length) button.append(tagChips(item.tags));

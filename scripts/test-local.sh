@@ -27,6 +27,7 @@ step() {
 step types npm run -s check
 step layers npm run -s check:layers
 step bundle npm run -s check:bundle
+step icons npm run -s check:icons
 step unit npm run -s test:unit
 step matrix "$PY" tests/browser_matrix.py --milestone 19
 step drag1 "$PY" tests/drag_drop.py --phase 1

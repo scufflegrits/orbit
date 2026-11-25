@@ -4,6 +4,7 @@
 import { isGroup } from '../../core/destination.js';
 import { findMatches } from '../../core/search.js';
 import { counted, descriptionNode, element, safeColor, tagChips } from '../dom.js';
+import { icon } from '../icons.js';
 import { findRow } from '../find/results.js';
 import { quickAddResult, typedAddress } from '../editor/quick-add.js';
 import { openEditorPage } from '../editor/page.js';
@@ -37,6 +38,7 @@ function quickChip(entry) {
 function routineChip(routine, index) {
   const { items } = routineItems(routine);
   const chip = element('button', 'quick-chip routine-chip', routine.name);
+  chip.prepend(icon('play', { className: 'routine-chip-icon' }));
   chip.type = 'button';
   chip.title = `Open the ${routine.name} routine (${counted(items.length, 'link')})`;
   chip.addEventListener('click', () => {
@@ -95,7 +97,13 @@ function listLink(item, path, sun) {
       node.append(edit);
     } else node.textContent = item.name;
   }
-  if (isFavorite(item, sun)) node.append(element('span', 'list-favorite', ' ★'));
+  if (isFavorite(item, sun)) {
+    const star = element('span', 'list-favorite');
+    star.setAttribute('role', 'img');
+    star.setAttribute('aria-label', 'Favorite');
+    star.append(icon('star', { filled: true }));
+    node.append(star);
+  }
   if (item.note) node.append(element('span', 'list-note-text', ` — ${item.note}`));
   if (item.tags?.length) node.append(tagChips(item.tags));
   return node;

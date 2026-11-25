@@ -4,6 +4,7 @@ import { destinationKey, isGroup } from '../../../core/destination.js';
 import { templateNames } from '../../../core/templates.js';
 import { checkLinks } from '../../../services/link-check.js';
 import { counted, element } from '../../dom.js';
+import { icon } from '../../icons.js';
 import { editorActions, editorButton, editorHeader, editPath, linkCheckResults, pathLabel } from '../kit.js';
 import { nav } from '../nav.js';
 import { groups, menuContent } from '../../page.js';
@@ -73,7 +74,9 @@ async function runLinkCheck(byUrl, status, results, start) {
   failures.forEach(({ answer, entries }) => entries.forEach((/** @type {any} */ { item, path }) => {
     const row = element('div', 'editor-list-row link-check-failure');
     const copy = element('span', 'history-copy');
-    copy.append(element('strong', '', `⚠ ${item.name}`));
+    const title = element('strong', 'link-check-name', item.name);
+    title.prepend(icon('triangle-alert'));
+    copy.append(title);
     copy.append(element('small', '', `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`));
     row.append(copy, editorButton(groups[path[0]].team ? 'View' : 'Edit', () => editPath(path)));
     results.append(row);

@@ -7,7 +7,8 @@ import { destinationKey, pathsForKey } from '../../core/destination.js';
 import * as mapOps from '../../core/map-ops.js';
 import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
-import { element, trashIcon } from '../dom.js';
+import { element } from '../dom.js';
+import { icon } from '../icons.js';
 import { modes } from '../page-modes.js';
 import { hideTooltip, tip } from '../tooltip.js';
 import { removeMapItem } from '../remove-item.js';
@@ -37,23 +38,21 @@ export function editorButton(label, action, className = 'editor-button') {
   return button;
 }
 
-/** @param {string} glyph */
-function editorIcon(glyph) {
-  const icon = element('span', 'editor-icon', glyph);
-  icon.setAttribute('aria-hidden', 'true');
-  return icon;
+/** @param {string} name A Lucide icon name (src/ui/icons.js). */
+function editorIcon(name) {
+  return icon(name, { className: 'editor-icon' });
 }
 
 /**
  * @param {string} label
- * @param {string | HTMLElement} icon
+ * @param {string} iconName A Lucide icon name.
  * @param {() => void} action
  * @param {string} [className]
  * @param {string} [description]
  */
-function editorIconButton(label, icon, action, className = 'editor-button', description = label) {
+function editorIconButton(label, iconName, action, className = 'editor-button', description = label) {
   const button = editorButton('', action, `${className} editor-icon-button`);
-  button.append(typeof icon === 'string' ? editorIcon(icon) : icon);
+  button.append(editorIcon(iconName));
   button.setAttribute('aria-label', label);
   return tip(button, description);
 }
@@ -67,7 +66,7 @@ function editorIconButton(label, icon, action, className = 'editor-button', desc
  * @property {(amount: number) => void} reorder
  * @property {() => void} move
  * @property {() => void} remove
- * @property {{label: string, glyph: string, action: () => void, available?: () => boolean}} [extra]
+ * @property {{label: string, icon: string, action: () => void, available?: () => boolean}} [extra]
  */
 
 /** @param {ItemToolbarOptions} options */
@@ -77,7 +76,7 @@ function itemMoveMenu({ kind, index, count, reorder, move }) {
   const trigger = element('summary', 'editor-button editor-icon-button');
   trigger.setAttribute('role', 'button');
   trigger.setAttribute('aria-label', label);
-  trigger.append(editorIcon('↕'));
+  trigger.append(editorIcon('arrow-up-down'));
   tip(trigger, label);
   const panel = element('div', 'editor-move-choices');
   editorMoveControls(panel, index, count, reorder);
@@ -112,18 +111,18 @@ export function attachItemToolbar(header, form, label, options) {
   const save = element('button', 'editor-primary editor-save-button', label);
   save.type = 'submit';
   save.setAttribute('form', form.id);
-  if (options) save.prepend(editorIcon('💾'));
+  if (options) save.prepend(editorIcon('save'));
   actions.append(save);
   /** @type {HTMLButtonElement | undefined} */
   let extraButton;
   if (options) {
     const { kind, getItem, extra, remove } = options;
-    actions.append(editorIconButton(`Export ${kind}`, '⤓', () => exportItem(kind, getItem())), itemMoveMenu(options));
+    actions.append(editorIconButton(`Export ${kind}`, 'download', () => exportItem(kind, getItem())), itemMoveMenu(options));
     if (extra) {
-      extraButton = editorIconButton(extra.label, extra.glyph, extra.action);
+      extraButton = editorIconButton(extra.label, extra.icon, extra.action);
       actions.append(extraButton);
     }
-    actions.append(editorIconButton(`Remove ${kind}`, trashIcon(), remove, 'editor-danger editor-item-remove'));
+    actions.append(editorIconButton(`Remove ${kind}`, 'trash-2', remove, 'editor-danger editor-item-remove'));
   }
   header.classList.add('editor-header-sticky');
   header.append(actions);
@@ -194,7 +193,9 @@ export function editorHeader(title, back, path) {
   if (!direct) directEditorPath = null;
   menuContent.replaceChildren();
   const header = element('div', 'editor-header');
-  header.append(editorButton('← Back', direct ? () => modes.send('closeOverlay') : back, 'editor-back'));
+  const backButton = editorButton('Back', direct ? () => modes.send('closeOverlay') : back, 'editor-back');
+  backButton.prepend(editorIcon('arrow-left'));
+  header.append(backButton);
   header.append(element('h3', '', title));
   menuContent.append(header);
   refreshEditorUndo();
@@ -301,8 +302,8 @@ export function editorExportRow(kind, item, summary, actionLabel, open, ...extra
   const row = element('div', 'editor-list-row editor-export-row');
   const actions = element('div', 'editor-row-actions');
   actions.append(
-    editorIconButton(actionLabel, actionLabel === 'Edit' ? '✎' : '👁︎', open, 'editor-button', `${actionLabel} ${item.name}`),
-    editorIconButton(`Export ${item.name}`, '⤓', () => exportItem(kind, item)),
+    editorIconButton(actionLabel, actionLabel === 'Edit' ? 'pencil' : 'eye', open, 'editor-button', `${actionLabel} ${item.name}`),
+    editorIconButton(`Export ${item.name}`, 'download', () => exportItem(kind, item)),
     ...extraActions,
   );
   row.append(element('span', '', summary), actions);
@@ -318,11 +319,11 @@ export function editorExportRow(kind, item, summary, actionLabel, open, ...extra
  * @param {() => void} afterRemove
  */
 export function editorRowActions(name, index, count, path, move, afterRemove) {
-  const up = editorIconButton(`Move ${name} up`, '↑', () => move(-1), 'editor-button editor-row-move-up');
-  const down = editorIconButton(`Move ${name} down`, '↓', () => move(1), 'editor-button editor-row-move-down');
+  const up = editorIconButton(`Move ${name} up`, 'arrow-up', () => move(-1), 'editor-button editor-row-move-up');
+  const down = editorIconButton(`Move ${name} down`, 'arrow-down', () => move(1), 'editor-button editor-row-move-down');
   up.disabled = index === 0;
   down.disabled = index === count - 1;
-  const remove = editorIconButton(`Remove ${name}`, trashIcon(), () => removeEditorItem(path, () => {
+  const remove = editorIconButton(`Remove ${name}`, 'trash-2', () => removeEditorItem(path, () => {
     afterRemove();
     /** @type {HTMLButtonElement | null} */ (menuContent.querySelector('.editor-undo button'))?.focus();
   }), 'editor-danger editor-item-remove');

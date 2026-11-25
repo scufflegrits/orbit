@@ -411,8 +411,9 @@ def f08_link_check(ctx):
     button.click()
     page.get_by_role("button", name="Start check").click()
     page.wait_for_function("document.querySelector('.link-check-status').textContent.startsWith('Checked ') && !document.querySelector('.link-check-status').textContent.includes('…')", timeout=60000)
-    failures = page.locator(".link-check-failure strong").all_inner_texts()
-    check("⚠ Broken Page" in failures, f"{mode}: the missing page is reported ({failures})")
+    failures = [name.strip() for name in page.locator(".link-check-failure strong").all_inner_texts()]
+    check("Broken Page" in failures and page.locator(".link-check-failure strong").filter(has_text="Broken Page")
+          .locator("svg.icon-triangle-alert").count() == 1, f"{mode}: the missing page is reported with a warning icon ({failures})")
     check(not any(name.endswith(("Docs Portal", "Guide", "Docs Mirror")) for name in failures),
           f"{mode}: working pages pass ({failures})")
     check("HTTP 404" in page.locator(".link-check-failure").filter(has_text="Broken Page").inner_text(),
@@ -1798,7 +1799,7 @@ def f35_item_editor_toolbar(ctx):
     tree(page, "editor-tree-sun", "Alpha").click()
     row = page.locator(".editor-list-row").filter(has_text="Docs Portal")
     edit = row.get_by_role("button", name="Edit", exact=True)
-    check(edit.inner_text() == "✎", "the planet row uses an icon with its Edit name")
+    check(edit.inner_text().strip() == "" and edit.locator("svg.icon-pencil").count() == 1, "the planet row uses an icon with its Edit name")
     edit.click()
     header = page.locator(".editor-header")
     save = header.get_by_role("button", name="Save planet", exact=True)
@@ -1807,7 +1808,7 @@ def f35_item_editor_toolbar(ctx):
     remove = header.get_by_role("button", name="Remove planet", exact=True)
     for action in (save, export, move, remove):
         check(action.is_visible(), "the planet action is available at the top")
-    check("💾" in save.inner_text() and "Save planet" in save.inner_text(), "Save has an icon and a label")
+    check(save.locator("svg.icon-save").count() == 1 and "Save planet" in save.inner_text(), "Save has an icon and a label")
     export.hover()
     page.get_by_role("tooltip").filter(has_text="Export planet").wait_for(timeout=2000)
 
@@ -1855,10 +1856,10 @@ def f36_sun_row_actions(ctx):
     beta = rows.filter(has_text="Beta")
 
     check(ops.get_by_role("button").count() == 2 and
-          ops.get_by_role("button", name="View", exact=True).inner_text() == "👁︎",
+          ops.get_by_role("button", name="View", exact=True).locator("svg.icon-eye").count() == 1,
           "the team row offers just its View and Export icons")
     check(alpha.get_by_role("button").count() == 5 and
-          alpha.get_by_role("button", name="Edit", exact=True).inner_text() == "✎",
+          alpha.get_by_role("button", name="Edit", exact=True).locator("svg.icon-pencil").count() == 1,
           "a personal sun row has all five icons")
 
     for row, name in ((ops, "Ops"), (alpha, "Alpha")):
@@ -1976,11 +1977,115 @@ def f37_child_row_actions(ctx):
     print(f"PASS F37 Child row actions ({ctx.mode})")
 
 
+# ---- F38 Lucide icons --------------------------------------------------------------
+
+# Icon-like symbols that buttons and markers used before Lucide icons (prose arrows in
+# sentences, sizes such as 1920 x 1080, and a sun's own emoji are not buttons' own text).
+ICON_SCAN = r"""() => {
+  const glyphs = /[✎⤓↑↓↕💾👁⧉↗☰◎⚙×★☆📁⚠▶→←]/u;
+  const markers = '.editor-icon, .find-arrow, .broken-mark, .editor-tree-group, .list-favorite';
+  const glyphText = [], noIcon = [], unnamed = [];
+  for (const el of document.querySelectorAll(`button, a, [role=button], ${markers}`)) {
+    // The menu's backdrop is a full-screen, unseen close target, not an icon button.
+    if (!el.getClientRects().length || getComputedStyle(el).visibility === 'hidden' || el.matches('.menu-scrim')) continue;
+    const own = el.matches(markers) ? el.textContent
+      : [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.data).join('');
+    const label = `${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} "${(el.getAttribute('aria-label') || own).trim().slice(0, 30)}"`;
+    if (glyphs.test(own)) glyphText.push(label);
+    if (el.matches('button, [role=button]') && !/[\p{L}\p{N}]/u.test(el.textContent || '')) {
+      if (!el.querySelector('svg.icon')) noIcon.push(label);
+      if (!el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby')) unnamed.push(label);
+    }
+  }
+  const chips = [...document.querySelectorAll('.routine-chip')].filter(chip => getComputedStyle(chip, '::before').content.includes('▶'));
+  return { glyphText, noIcon, unnamed, cssTrash: document.querySelectorAll('.trash-icon').length, cssPlay: chips.length };
+}"""
+
+
+def f38_lucide_icons(ctx):
+    """Buttons and markers draw Lucide icons, never text symbols; icon-only buttons have an icon and a name."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    data = ctx.data
+    data["groups"][0]["links"].append({"name": "Monitoring", "type": "group", "moons": [
+        {"name": "Dashboard", "url": "https://monitor.example.test/"}]})
+    page.evaluate("(map) => localStorage.setItem('orbit:map:v1', JSON.stringify(map))", data)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+
+    def scan(where):
+        found = page.evaluate(ICON_SCAN)
+        check(not found["glyphText"], f"{mode}: {where}: no text symbols on buttons or markers ({found['glyphText']})")
+        check(not found["noIcon"], f"{mode}: {where}: every icon-only button draws an icon ({found['noIcon']})")
+        check(not found["unnamed"], f"{mode}: {where}: every icon-only button has a name ({found['unnamed']})")
+        check(found["cssTrash"] == 0 and found["cssPlay"] == 0, f"{mode}: {where}: no CSS-drawn icons ({found})")
+
+    toggle = page.locator("#view-toggle")
+    check(toggle.locator("svg.icon-list").count() == 1, f"{mode}: the view toggle shows the list icon in orbits view")
+    scan("Galaxy")
+    toggle.click()
+    page.locator(".galaxy-list, .list-sun").first.wait_for()
+    check(toggle.locator("svg.icon-orbit").count() == 1, f"{mode}: the view toggle shows the orbit icon in list view")
+    scan("list view")
+    toggle.click()
+    page.locator(".home-hub").first.wait_for()
+    # The hover edit and remove buttons on a planet.
+    # A team sun is read-only: its hover button is View (an eye) and there's no remove button.
+    team_hub = page.locator(".team-card .home-hub").first
+    if team_hub.count():
+        team_hub.hover()
+        page.locator(".map-edit-button").first.wait_for(state="visible", timeout=4000)
+        check(page.locator(".map-edit-button svg.icon-eye").count() == 1 and page.locator(".map-remove-button").count() == 0,
+              f"{mode}: a team sun's hover button is View, with an eye")
+        page.mouse.move(5, 5)
+    hub = page.locator(".home-hub").filter(has_text="Alpha")
+    hub.hover()
+    planet = page.locator(".home-orbit:hover .home-satellite").first
+    planet.wait_for(state="visible")
+    planet.hover()
+    page.locator(".map-edit-button").first.wait_for(state="visible", timeout=4000)
+    check(page.locator(".map-edit-button svg.icon-pencil").count() == 1 and
+          page.locator(".map-remove-button svg.icon-trash-2").count() == 1, f"{mode}: map buttons draw pencil and trash")
+    scan("map hover buttons")
+    # Quick find: result arrows and the favorite star, filled once it's a favorite.
+    page.mouse.move(5, 5)
+    page.locator("#quick-find").fill("Guide")
+    row = page.locator(".find-row").filter(has_text="Guide").first
+    row.wait_for()
+    star = row.locator(".favorite-toggle")
+    fill = lambda: star.locator("svg.icon-star").evaluate("svg => getComputedStyle(svg).fill")
+    check(star.locator("svg.icon-star").count() == 1 and fill() == "none", f"{mode}: an unfavorited star is an outline")
+    star.click()
+    star = page.locator(".find-row").filter(has_text="Guide").first.locator(".favorite-toggle")
+    check(fill() not in ("none", ""), f"{mode}: a favorite's star is filled ({fill()})")
+    scan("Quick find")
+    page.locator("#quick-find").fill("")
+    # The editor: sun list, a sun, a planet, a moon, and the tree's group marker.
+    open_editor(page)
+    scan("Edit links")
+    check(page.locator(".editor-tree-group svg.icon-folder").count() >= 1, f"{mode}: the tree marks a group with a folder icon")
+    page.locator(".editor-list-row").filter(has_text="Alpha").get_by_role("button", name="Edit", exact=True).click()
+    page.locator(".editor-list-row").first.wait_for()
+    scan("sun editor")
+    page.locator(".editor-list-row").filter(has_text="Docs Portal").get_by_role("button", name="Edit", exact=True).click()
+    page.locator(".editor-header h3").wait_for()
+    scan("planet editor")
+    moon_rows = page.locator(".editor-list-row")
+    if moon_rows.count():
+        moon_rows.first.get_by_role("button", name="Edit", exact=True).click()
+        page.locator(".editor-header h3").wait_for()
+        scan("moon editor")
+    check(page.locator(".editor-back svg.icon-arrow-left").count() == 1, f"{mode}: Back has an arrow icon")
+    close_menu(page)
+    print(f"PASS F38 Lucide icons ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions)
+          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
+          f38_lucide_icons)
 
 
 def run_checks(make_ctx, only):

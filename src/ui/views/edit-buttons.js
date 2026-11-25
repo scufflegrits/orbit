@@ -1,5 +1,6 @@
 import { isGroup, itemAt } from '../../core/destination.js';
-import { element, trashIcon } from '../dom.js';
+import { element } from '../dom.js';
+import { icon } from '../icons.js';
 import { showOpenAllNotice } from '../notices/area.js';
 import { openEditorAt } from '../editor/page.js';
 import { app, groups, showEditButtons } from '../page.js';
@@ -85,10 +86,10 @@ function hideActions() {
   hoverActions = null;
 }
 
-/** @param {string} className @param {string | HTMLElement} icon @param {string} name @param {() => void} action */
-function mapAction(className, icon, name, action) {
+/** @param {string} className @param {Element} iconNode @param {string} name @param {() => void} action */
+function mapAction(className, iconNode, name, action) {
   const button = element('button', className);
-  button.append(icon);
+  button.append(iconNode);
   tip(button, name);
   button.type = 'button';
   button.tabIndex = -1;
@@ -115,11 +116,11 @@ function showActions(item) {
   const verb = sun.team ? 'View' : 'Edit';
   const detail = path.length === 2 ? (isGroup(target) ? ' and its links' : ' and its moons') : '';
   const actions = element('div', 'map-item-actions');
-  actions.append(mapAction('map-edit-button', '✎', `${verb} ${target.name}${detail}`, () => {
+  actions.append(mapAction('map-edit-button', icon(sun.team ? 'eye' : 'pencil'), `${verb} ${target.name}${detail}`, () => {
     if (item.isConnected) editItem(item);
   }));
   if (!sun.team) {
-    actions.append(mapAction('map-remove-button', trashIcon(), `Remove ${target.name}`, () => {
+    actions.append(mapAction('map-remove-button', icon('trash-2'), `Remove ${target.name}`, () => {
       if (!item.isConnected) return;
       try {
         removeMapItem(path);

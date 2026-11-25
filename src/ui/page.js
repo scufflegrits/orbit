@@ -5,6 +5,7 @@
 // only the setters here change them. Moved in rewrite phase 8.
 import { readBoolean, readButtonTips, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
 import { hooks } from './hooks.js';
+import { icon } from './icons.js';
 import { modes } from './page-modes.js';
 
 /** Set by main.js from app/version.js (ui/ can't import app/). */
@@ -140,7 +141,7 @@ export function updateViewToggle() {
   viewToggle.setAttribute('aria-pressed', String(list));
   viewToggle.title = list ? 'Show the Galaxy as orbits' : 'Show the Galaxy as a list';
   viewToggle.setAttribute('aria-label', viewToggle.title);
-  viewToggle.textContent = list ? '◎' : '☰';
+  viewToggle.replaceChildren(icon(list ? 'orbit' : 'list'));
 }
 
 /**

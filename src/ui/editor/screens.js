@@ -608,7 +608,7 @@ export function showPlanetEditor(sunIndex, planetIndex) {
     move: () => showMovePlanet(sunIndex, planetIndex),
     remove: () => removeEditorItem([sunIndex, planetIndex], () => showSunEditor(sunIndex)),
     ...(group ? { extra: {
-      label: 'Share links as a pack', glyph: '↗', action: () => shareGroup(getPlanet()),
+      label: 'Share links as a pack', icon: 'share-2', action: () => shareGroup(getPlanet()),
       available: () => getPlanet().moons.length > 0,
     } } : {}),
   });
@@ -716,7 +716,7 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
     },
     move: () => showMoveMoon(sunIndex, planetIndex, moonIndex),
     remove: () => removeEditorItem([sunIndex, planetIndex, moonIndex], () => showPlanetEditor(sunIndex, planetIndex)),
-    extra: { label: 'Copy moon', glyph: '⧉', action: () => showCopyMoon(sunIndex, planetIndex, moonIndex) },
+    extra: { label: 'Copy moon', icon: 'copy', action: () => showCopyMoon(sunIndex, planetIndex, moonIndex) },
   });
   form.addEventListener('submit', event => {
     event.preventDefault();

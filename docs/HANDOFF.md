@@ -57,9 +57,9 @@ Since 3.0.0 the app is ES modules in `src/`, bundled by `scripts/build.mjs` into
 | `src/core/` | Pure rules: schema and validation, destination keys, placeholders, search, Remote Desktop parsing, map moves and merges, bookmarks |
 | `src/state/` | Saved data: storage, workspaces, preferences, history, backup; `page-store.js` is the only writer of the map |
 | `src/services/` | Map and team sources, opening links (`opener.js`), Remote Desktop launch, link check, file import and export, the clock |
-| `src/ui/` | The screens: `views/`, `find/`, `menu/`, `dialogs/`, `notices/`, `editor/`, `drag/`, `keys/`, `layout/`; `page-modes.js` owns the interaction modes; `page.js` holds the page's shared state |
+| `src/ui/` | The screens: `views/`, `find/`, `menu/`, `dialogs/`, `notices/`, `editor/`, `drag/`, `keys/`, `layout/`; `page-modes.js` owns the interaction modes; `page.js` holds the page's shared state ; `icons.js` draws Lucide icons from the generated `icon-data.js` |
 | `src/app/` | Start-up (`main.js`, `start.js`), `version.js` (`APP_VERSION`), and the test hook (test bundle only) |
-| `scripts/` | `build.mjs` (release and test bundles, `--check`, `--watch`) and `check-layers.mjs` |
+| `scripts/` | `build.mjs` (release and test bundles, `--check`, `--watch`), `check-layers.mjs`, and `icons.mjs` (generates `src/ui/icon-data.js` from the pinned `lucide-static`: `npm run icons`; `npm run check:icons` fails if it's out of date) |
 | `tests/` | Browser runners (`*.py`), node helpers (`unit/`), the frozen 2.2.1 code (`oracle/`), fixtures |
 | `windows/*.ps1` | Per-user `orbit-rdp://` protocol install, launcher, uninstall |
 | `docs/` | This handoff, the test matrix, release steps, the Remote Desktop signing guide; finished plans in `docs/plans/` |
@@ -105,8 +105,8 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS11 at 1920×1080 | 21 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F37, no F05 | F06, F12, F26, F30, and F34–F37 passed for the child row change |
-| `npm run check` | Types (`tsc`), import layers, bundle up to date | passed |
+| `tests/features.py` | F01–F38, no F05 | 75 passed (both modes), with F38 for the Lucide icons |
+| `npm run check` | Types (`tsc`), import layers, bundle up to date, icon data matches Lucide (`check:icons`) | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 195 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |

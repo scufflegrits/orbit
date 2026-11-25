@@ -10,11 +10,14 @@
     "check": "tsc --noEmit -p jsconfig.json",
     "check:bundle": "node scripts/build.mjs --check",
     "check:layers": "node scripts/check-layers.mjs",
-    "test:unit": "node --test \"src/**/*.test.js\""
+    "test:unit": "node --test \"src/**/*.test.js\"",
+    "icons": "node scripts/icons.mjs",
+    "check:icons": "node scripts/icons.mjs --check"
   },
   "devDependencies": {
     "esbuild": "0.28.2",
     "fast-check": "4.10.2",
+    "lucide-static": "1.79.0",
     "typescript": "6.0.3"
   }
 }

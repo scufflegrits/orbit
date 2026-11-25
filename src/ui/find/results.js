@@ -5,6 +5,7 @@ import { rdpLaunchUrl } from '../../core/rdp.js';
 import { templateNames } from '../../core/templates.js';
 import { downloadRdp } from '../../services/rdp-launch.js';
 import { element, tagChips } from '../dom.js';
+import { icon } from '../icons.js';
 import { askForVariables } from '../dialogs/placeholder.js';
 import { openEditorAt } from '../editor/page.js';
 import { modes } from '../page-modes.js';
@@ -69,7 +70,10 @@ function findResult(match) {
   }
   if (match.indices && !group) node.dataset.destination = match.indices.join(':');
   node.append(element('span', 'find-kind', match.kind), findCopy(match));
-  node.append(element('span', 'find-arrow', match.id || group ? '→' : download ? '↓' : '↗'));
+  // Where the result goes: a sun or group, a Remote Desktop download, or a new tab.
+  const arrow = element('span', 'find-arrow');
+  arrow.append(icon(match.id || group ? 'arrow-right' : download ? 'download' : 'external-link'));
+  node.append(arrow);
   return node;
 }
 
@@ -87,7 +91,8 @@ export function findRow(match) {
   }
   const sun = groups[match.indices[0]];
   const on = isFavorite(match.destination, sun);
-  const star = element('button', `favorite-toggle${on ? ' is-favorite' : ''}`, on ? '★' : '☆');
+  const star = element('button', `favorite-toggle${on ? ' is-favorite' : ''}`);
+  star.append(icon('star', { filled: on }));
   star.type = 'button';
   star.setAttribute('aria-pressed', String(on));
   star.setAttribute('aria-label', `${on ? 'Remove' : 'Add'} ${match.name} ${on ? 'from' : 'to'} favorites`);

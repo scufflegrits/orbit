@@ -179,10 +179,10 @@ prompt for credentials:i:1\r
     return { name, url, ...extras };
   }
   function validSunIcon(value, name) {
-    let icon = String(value ?? "").trim();
-    if (!icon) return "";
-    if ([...new Intl.Segmenter(void 0, { granularity: "grapheme" }).segment(icon)].length > 2 || /[<>&"']/.test(icon)) throw new Error(`${name} needs an icon of one or two characters.`);
-    return icon;
+    let icon2 = String(value ?? "").trim();
+    if (!icon2) return "";
+    if ([...new Intl.Segmenter(void 0, { granularity: "grapheme" }).segment(icon2)].length > 2 || /[<>&"']/.test(icon2)) throw new Error(`${name} needs an icon of one or two characters.`);
+    return icon2;
   }
   function uniqueSunId(name, used) {
     let base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sun", id = base, suffix = 2;
@@ -217,8 +217,8 @@ prompt for credentials:i:1\r
       let id = group.id === void 0 || group.id === null || group.id === "" ? uniqueSunId(name, used) : String(group.id);
       if (used.has(id)) throw new Error(`Duplicate sun ID: ${id}`);
       used.add(id);
-      let links = group.links.map((link, linkIndex) => validPlanet(link, `Planet ${linkIndex + 1} in ${name}`)), icon = validSunIcon(group.icon, name);
-      return { id, name, description: String(group.description || ""), color, ...icon ? { icon } : {}, links };
+      let links = group.links.map((link, linkIndex) => validPlanet(link, `Planet ${linkIndex + 1} in ${name}`)), icon2 = validSunIcon(group.icon, name);
+      return { id, name, description: String(group.description || ""), color, ...icon2 ? { icon: icon2 } : {}, links };
     }), routines2 = validRoutines(data.routines), rdpPresets2 = validRdpPresets(data.rdpPresets), presetIds = new Set(rdpPresets2.map((preset) => preset.id));
     for (let sun of normalized)
       for (let item of sun.links.flatMap((planet) => [planet, ...planet.moons]))
@@ -893,10 +893,6 @@ prompt for credentials:i:1\r
     return className && (node.className = className), text !== void 0 && (node.textContent = /** @type {string} */
     text), node;
   }
-  function trashIcon() {
-    let icon = element("span", "trash-icon");
-    return icon.setAttribute("aria-hidden", "true"), icon;
-  }
   function safeColor(value) {
     return typeof value == "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : "#79d9f8";
   }
@@ -929,6 +925,65 @@ prompt for credentials:i:1\r
       cursor = index + match[0].length;
     }
     return node.append(document.createTextNode(description.slice(cursor))), node;
+  }
+
+  // src/ui/icon-data.js
+  var ICON_DATA = Object.freeze({
+    "arrow-down": [["path", { d: "M12 5v14" }], ["path", { d: "m19 12-7 7-7-7" }]],
+    "arrow-left": [["path", { d: "m12 19-7-7 7-7" }], ["path", { d: "M19 12H5" }]],
+    "arrow-right": [["path", { d: "M5 12h14" }], ["path", { d: "m12 5 7 7-7 7" }]],
+    "arrow-up": [["path", { d: "m5 12 7-7 7 7" }], ["path", { d: "M12 19V5" }]],
+    "arrow-up-down": [["path", { d: "m21 16-4 4-4-4" }], ["path", { d: "M17 20V4" }], ["path", { d: "m3 8 4-4 4 4" }], ["path", { d: "M7 4v16" }]],
+    copy: [["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2" }], ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" }]],
+    download: [["path", { d: "M12 15V3" }], ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }], ["path", { d: "m7 10 5 5 5-5" }]],
+    "external-link": [["path", { d: "M15 3h6v6" }], ["path", { d: "M10 14 21 3" }], ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" }]],
+    eye: [["path", { d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" }], ["circle", { cx: "12", cy: "12", r: "3" }]],
+    folder: [["path", { d: "M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" }]],
+    list: [["path", { d: "M3 5h.01" }], ["path", { d: "M3 12h.01" }], ["path", { d: "M3 19h.01" }], ["path", { d: "M8 5h13" }], ["path", { d: "M8 12h13" }], ["path", { d: "M8 19h13" }]],
+    orbit: [["path", { d: "M20.341 6.484A10 10 0 0 1 10.266 21.85" }], ["path", { d: "M3.659 17.516A10 10 0 0 1 13.74 2.152" }], ["circle", { cx: "12", cy: "12", r: "3" }], ["circle", { cx: "19", cy: "5", r: "2" }], ["circle", { cx: "5", cy: "19", r: "2" }]],
+    pencil: [["path", { d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" }], ["path", { d: "m15 5 4 4" }]],
+    play: [["path", { d: "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" }]],
+    save: [["path", { d: "M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" }], ["path", { d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" }], ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7" }]],
+    settings: [["path", { d: "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" }], ["circle", { cx: "12", cy: "12", r: "3" }]],
+    "share-2": [["circle", { cx: "18", cy: "5", r: "3" }], ["circle", { cx: "6", cy: "12", r: "3" }], ["circle", { cx: "18", cy: "19", r: "3" }], ["line", {}], ["line", {}]],
+    star: [["path", { d: "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" }]],
+    "trash-2": [["path", { d: "M10 11v6" }], ["path", { d: "M14 11v6" }], ["path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }], ["path", { d: "M3 6h18" }], ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }]],
+    "triangle-alert": [["path", { d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" }], ["path", { d: "M12 9v4" }], ["path", { d: "M12 17h.01" }]],
+    x: [["path", { d: "M18 6 6 18" }], ["path", { d: "m6 6 12 12" }]]
+  });
+
+  // src/ui/icons.js
+  var SVG = "http://www.w3.org/2000/svg";
+  function iconSpec(name, { filled = !1, className = "" } = {}) {
+    let children = ICON_DATA[name];
+    if (!children) throw new Error(`Unknown icon "${name}". Add it to scripts/icons.mjs and run npm run icons.`);
+    return {
+      attrs: {
+        viewBox: "0 0 24 24",
+        fill: filled ? "currentColor" : "none",
+        stroke: "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        "aria-hidden": "true",
+        focusable: "false",
+        class: `icon icon-${name}${className ? ` ${className}` : ""}`
+      },
+      children
+    };
+  }
+  function icon(name, options) {
+    let { attrs, children } = iconSpec(name, options), svg = (
+      /** @type {SVGSVGElement} */
+      document.createElementNS(SVG, "svg")
+    );
+    for (let [key, value] of Object.entries(attrs)) svg.setAttribute(key, value);
+    for (let [tag, shapeAttrs] of children) {
+      let shape = document.createElementNS(SVG, tag);
+      for (let [key, value] of Object.entries(shapeAttrs)) shape.setAttribute(key, value);
+      svg.append(shape);
+    }
+    return svg;
   }
 
   // src/services/file-io.js
@@ -1243,7 +1298,7 @@ prompt for credentials:i:1\r
   }
   function updateViewToggle() {
     let list = galaxyView === "list";
-    viewToggle.setAttribute("aria-pressed", String(list)), viewToggle.title = list ? "Show the Galaxy as orbits" : "Show the Galaxy as a list", viewToggle.setAttribute("aria-label", viewToggle.title), viewToggle.textContent = list ? "◎" : "☰";
+    viewToggle.setAttribute("aria-pressed", String(list)), viewToggle.title = list ? "Show the Galaxy as orbits" : "Show the Galaxy as a list", viewToggle.setAttribute("aria-label", viewToggle.title), viewToggle.replaceChildren(icon(list ? "orbit" : "list"));
   }
   function setGalaxyView(view) {
     galaxyView = view === "list" ? "list" : "orbits", savePreference("orbit:galaxy-view", galaxyView), updateViewToggle(), location.hash && location.hash !== "#" ? location.hash = "" : hooks.render();
@@ -1378,17 +1433,16 @@ prompt for credentials:i:1\r
     let button = element("button", className, label);
     return button.type = "button", button.addEventListener("click", action), button;
   }
-  function editorIcon(glyph) {
-    let icon = element("span", "editor-icon", glyph);
-    return icon.setAttribute("aria-hidden", "true"), icon;
+  function editorIcon(name) {
+    return icon(name, { className: "editor-icon" });
   }
-  function editorIconButton(label, icon, action, className = "editor-button", description = label) {
+  function editorIconButton(label, iconName, action, className = "editor-button", description = label) {
     let button = editorButton("", action, `${className} editor-icon-button`);
-    return button.append(typeof icon == "string" ? editorIcon(icon) : icon), button.setAttribute("aria-label", label), tip(button, description);
+    return button.append(editorIcon(iconName)), button.setAttribute("aria-label", label), tip(button, description);
   }
   function itemMoveMenu({ kind, index, count, reorder, move }) {
     let choices = element("details", "editor-move-menu"), label = `Move ${kind}`, trigger = element("summary", "editor-button editor-icon-button");
-    trigger.setAttribute("role", "button"), trigger.setAttribute("aria-label", label), trigger.append(editorIcon("↕")), tip(trigger, label);
+    trigger.setAttribute("role", "button"), trigger.setAttribute("aria-label", label), trigger.append(editorIcon("arrow-up-down")), tip(trigger, label);
     let panel = element("div", "editor-move-choices");
     return editorMoveControls(panel, index, count, reorder), panel.append(editorButton(kind === "planet" ? "Move to another sun" : "Move to another planet", move)), choices.append(trigger, panel), choices.addEventListener("focusout", (event) => {
       let next = event.relatedTarget;
@@ -1402,11 +1456,11 @@ prompt for credentials:i:1\r
     let actions = element("div", "editor-item-actions");
     actions.setAttribute("role", "group"), actions.setAttribute("aria-label", "Item actions");
     let save = element("button", "editor-primary editor-save-button", label);
-    save.type = "submit", save.setAttribute("form", form.id), options && save.prepend(editorIcon("💾")), actions.append(save);
+    save.type = "submit", save.setAttribute("form", form.id), options && save.prepend(editorIcon("save")), actions.append(save);
     let extraButton;
     if (options) {
       let { kind, getItem, extra, remove: remove2 } = options;
-      actions.append(editorIconButton(`Export ${kind}`, "⤓", () => exportItem(kind, getItem())), itemMoveMenu(options)), extra && (extraButton = editorIconButton(extra.label, extra.glyph, extra.action), actions.append(extraButton)), actions.append(editorIconButton(`Remove ${kind}`, trashIcon(), remove2, "editor-danger editor-item-remove"));
+      actions.append(editorIconButton(`Export ${kind}`, "download", () => exportItem(kind, getItem())), itemMoveMenu(options)), extra && (extraButton = editorIconButton(extra.label, extra.icon, extra.action), actions.append(extraButton)), actions.append(editorIconButton(`Remove ${kind}`, "trash-2", remove2, "editor-danger editor-item-remove"));
     }
     header.classList.add("editor-header-sticky"), header.append(actions), menuContent.scrollTop = 0;
     let refresh = () => {
@@ -1440,8 +1494,8 @@ prompt for credentials:i:1\r
   function editorHeader(title, back, path) {
     let direct = directEditorPath !== null && path?.join(":") === directEditorPath;
     direct || (directEditorPath = null), menuContent.replaceChildren();
-    let header = element("div", "editor-header");
-    return header.append(editorButton("← Back", direct ? () => modes.send("closeOverlay") : back, "editor-back")), header.append(element("h3", "", title)), menuContent.append(header), refreshEditorUndo(), header;
+    let header = element("div", "editor-header"), backButton = editorButton("Back", direct ? () => modes.send("closeOverlay") : back, "editor-back");
+    return backButton.prepend(editorIcon("arrow-left")), header.append(backButton), header.append(element("h3", "", title)), menuContent.append(header), refreshEditorUndo(), header;
   }
   function refreshEditorUndo(after) {
     menuContent.querySelector(".editor-undo")?.remove();
@@ -1502,15 +1556,15 @@ prompt for credentials:i:1\r
   function editorExportRow(kind, item, summary, actionLabel, open, ...extraActions) {
     let row = element("div", "editor-list-row editor-export-row"), actions = element("div", "editor-row-actions");
     return actions.append(
-      editorIconButton(actionLabel, actionLabel === "Edit" ? "✎" : "👁︎", open, "editor-button", `${actionLabel} ${item.name}`),
-      editorIconButton(`Export ${item.name}`, "⤓", () => exportItem(kind, item)),
+      editorIconButton(actionLabel, actionLabel === "Edit" ? "pencil" : "eye", open, "editor-button", `${actionLabel} ${item.name}`),
+      editorIconButton(`Export ${item.name}`, "download", () => exportItem(kind, item)),
       ...extraActions
     ), row.append(element("span", "", summary), actions), row;
   }
   function editorRowActions(name, index, count, path, move, afterRemove) {
-    let up = editorIconButton(`Move ${name} up`, "↑", () => move(-1), "editor-button editor-row-move-up"), down = editorIconButton(`Move ${name} down`, "↓", () => move(1), "editor-button editor-row-move-down");
+    let up = editorIconButton(`Move ${name} up`, "arrow-up", () => move(-1), "editor-button editor-row-move-up"), down = editorIconButton(`Move ${name} down`, "arrow-down", () => move(1), "editor-button editor-row-move-down");
     up.disabled = index === 0, down.disabled = index === count - 1;
-    let remove2 = editorIconButton(`Remove ${name}`, trashIcon(), () => removeEditorItem(path, () => {
+    let remove2 = editorIconButton(`Remove ${name}`, "trash-2", () => removeEditorItem(path, () => {
       afterRemove(), menuContent.querySelector(".editor-undo button")?.focus();
     }), "editor-danger editor-item-remove");
     return [up, down, remove2];
@@ -1632,11 +1686,16 @@ prompt for credentials:i:1\r
   function decorateTreeItem(button, item) {
     let group = isGroup(item);
     if (group) {
-      let marker = element("span", "editor-tree-group", "📁 ");
-      marker.setAttribute("role", "img"), marker.setAttribute("aria-label", "Group"), button.prepend(marker);
+      let marker = element("span", "editor-tree-group");
+      marker.append(icon("folder")), marker.setAttribute("role", "img"), marker.setAttribute("aria-label", "Group"), button.prepend(marker);
     }
     let result = group ? void 0 : linkCheckResults.get(destinationKey(item));
-    result && !result.ok && (button.classList.add("editor-tree-broken"), button.prepend(element("span", "broken-mark", "⚠ ")), button.title = `Last check: ${result.status ? `HTTP ${result.status}` : result.error}`), item.tags?.length && button.append(tagChips(item.tags));
+    if (result && !result.ok) {
+      button.classList.add("editor-tree-broken");
+      let broken = element("span", "broken-mark");
+      broken.setAttribute("role", "img"), broken.setAttribute("aria-label", "Link problem"), broken.append(icon("triangle-alert")), button.prepend(broken), button.title = `Last check: ${result.status ? `HTTP ${result.status}` : result.error}`;
+    }
+    item.tags?.length && button.append(tagChips(item.tags));
   }
   function showMovePlanet(sunIndex, planetIndex) {
     let sun = groups[sunIndex], planet = sun.links[planetIndex];
@@ -2274,7 +2333,7 @@ prompt for credentials:i:1\r
           savePreference("orbit:backup-reminders", checked), showBackupReminder();
         }
       )), menuContent.append(workspaceSettings()), menuContent.append(teamSettings());
-    } else name === "Help" ? (menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The ☰ button in the top bar switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "In Edit links, the icons on sun, planet, and moon rows let you edit, export, reorder, or remove the item. The arrows save the order within the current list right away. Team rows have View and Export icons.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Use Edit links to reach any item, including links outside the visible orbits. In a planet or moon editor, the top toolbar has Save, Export, Move, and Remove. Open Move to change the order or pick another sun or planet and a position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
+    } else name === "Help" ? (menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The list button in the top bar, next to Edit mode, switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "In Edit links, the icons on sun, planet, and moon rows let you edit, export, reorder, or remove the item. The arrows save the order within the current list right away. Team rows have View and Export icons.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Use Edit links to reach any item, including links outside the visible orbits. In a planet or moon editor, the top toolbar has Save, Export, Move, and Remove. Open Move to change the order or pick another sun or planet and a position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
   }
   function settingToggle(title, hint, checked, onChange) {
     let row = element("label", "setting-row"), copy = element("span", "setting-copy");
@@ -3245,9 +3304,11 @@ prompt for credentials:i:1\r
       /** @type {HTMLAnchorElement & HTMLButtonElement} */
       element(match.id || group || download || template ? "button" : "a", "find-item")
     );
-    return match.id ? (node.type = "button", node.addEventListener("click", () => {
+    match.id ? (node.type = "button", node.addEventListener("click", () => {
       location.hash = `group/${encodeURIComponent(match.id)}`;
-    })) : group ? (node.type = "button", node.addEventListener("click", () => openGroup(match.indices[0], match.indices[1]))) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, rdpPresets)), node.title = `Download Remote Desktop connection for ${match.name}`) : isRdp ? (node.href = rdpLaunchUrl(match.destination, rdpPresets), node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && !group && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match)), node.append(element("span", "find-arrow", match.id || group ? "→" : download ? "↓" : "↗")), node;
+    })) : group ? (node.type = "button", node.addEventListener("click", () => openGroup(match.indices[0], match.indices[1]))) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, rdpPresets)), node.title = `Download Remote Desktop connection for ${match.name}`) : isRdp ? (node.href = rdpLaunchUrl(match.destination, rdpPresets), node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && !group && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match));
+    let arrow = element("span", "find-arrow");
+    return arrow.append(icon(match.id || group ? "arrow-right" : download ? "download" : "external-link")), node.append(arrow), node;
   }
   function findRow(match) {
     let result = findResult(match);
@@ -3255,8 +3316,8 @@ prompt for credentials:i:1\r
     let row = element("div", "find-row");
     if (match.kind === "Group")
       return row.append(result), row;
-    let sun = groups[match.indices[0]], on = isFavorite(match.destination, sun), star = element("button", `favorite-toggle${on ? " is-favorite" : ""}`, on ? "★" : "☆");
-    return star.type = "button", star.setAttribute("aria-pressed", String(on)), star.setAttribute("aria-label", `${on ? "Remove" : "Add"} ${match.name} ${on ? "from" : "to"} favorites`), star.title = /** @type {string} */
+    let sun = groups[match.indices[0]], on = isFavorite(match.destination, sun), star = element("button", `favorite-toggle${on ? " is-favorite" : ""}`);
+    return star.append(icon("star", { filled: on })), star.type = "button", star.setAttribute("aria-pressed", String(on)), star.setAttribute("aria-label", `${on ? "Remove" : "Add"} ${match.name} ${on ? "from" : "to"} favorites`), star.title = /** @type {string} */
     star.getAttribute("aria-label"), star.addEventListener("click", () => {
       setFavorite(match.indices, !on), app.querySelector(`.find-row [data-star="${match.indices.join(":")}"]`)?.focus();
     }), star.dataset.star = match.indices.join(":"), row.append(result, star), row;
@@ -3280,8 +3341,8 @@ prompt for credentials:i:1\r
       element(download || template ? "button" : "a", className, link.name)
     );
     path && (node.dataset.destination = path.join(":"));
-    let icon = siteIcon(link);
-    icon && node.prepend(icon);
+    let icon2 = siteIcon(link);
+    icon2 && node.prepend(icon2);
     let button = (
       /** @type {HTMLButtonElement} */
       node
@@ -3361,7 +3422,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   }
   function routineChip(routine, index) {
     let { items } = routineItems(routine), chip = element("button", "quick-chip routine-chip", routine.name);
-    return chip.type = "button", chip.title = `Open the ${routine.name} routine (${counted(items.length, "link")})`, chip.addEventListener("click", () => {
+    return chip.prepend(icon("play", { className: "routine-chip-icon" })), chip.type = "button", chip.title = `Open the ${routine.name} routine (${counted(items.length, "link")})`, chip.addEventListener("click", () => {
       modes.inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine);
     }), chip;
   }
@@ -3395,7 +3456,11 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
         let edit = element("button", "list-link", item.name);
         edit.type = "button", node.append(edit);
       } else node.textContent = item.name;
-    return isFavorite(item, sun) && node.append(element("span", "list-favorite", " ★")), item.note && node.append(element("span", "list-note-text", ` — ${item.note}`)), item.tags?.length && node.append(tagChips(item.tags)), node;
+    if (isFavorite(item, sun)) {
+      let star = element("span", "list-favorite");
+      star.setAttribute("role", "img"), star.setAttribute("aria-label", "Favorite"), star.append(icon("star", { filled: !0 })), node.append(star);
+    }
+    return item.note && node.append(element("span", "list-note-text", ` — ${item.note}`)), item.tags?.length && node.append(tagChips(item.tags)), node;
   }
   function galaxyList() {
     let list = element("div", "galaxy-list");
@@ -3474,8 +3539,8 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     app.replaceChildren(), app.className = "detail-view", settingsTrigger.hidden = !1, topbarSearch.hidden = !1, quickFind.value = findQuery, quickFind.oninput = () => {
       setFindQuery(quickFind.value), location.hash = "";
     };
-    let top = element("div", "detail-top"), back = element("a", "back-link", "←  Return to Galaxy");
-    back.href = "#", top.append(back, element("span", "detail-index", `${String(groups.indexOf(group) + 1).padStart(2, "0")} / ${String(groups.length).padStart(2, "0")}`));
+    let top = element("div", "detail-top"), back = element("a", "back-link", "Return to Galaxy");
+    back.prepend(icon("arrow-left")), back.href = "#", top.append(back, element("span", "detail-index", `${String(groups.indexOf(group) + 1).padStart(2, "0")} / ${String(groups.length).padStart(2, "0")}`));
     let heading = element("div", "detail-heading");
     heading.append(element("p", "eyebrow", "EXPLORE THIS SYSTEM")), heading.append(element("h1", "", group.name)), heading.append(descriptionNode("intro-copy", group.description));
     let stage = element("div", "detail-stage");
@@ -3742,7 +3807,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     }
   }
   function start() {
-    findPageElements(), readPreferences(), store.subscribe((state, kind) => {
+    findPageElements(), readPreferences(), settingsTrigger.replaceChildren(icon("settings")), document.querySelector("#menu-close")?.replaceChildren(icon("x")), store.subscribe((state, kind) => {
       showStoreState(state), countDestinations(), kind !== "switch" && render(), updateRemovalNotice();
     }), modes.subscribe((next, previous, event) => {
       let held = (state) => state.mode === "pressed" || state.mode === "dragging";
@@ -4020,8 +4085,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
       answer.ok || failures.push({ url, answer, entries });
     }
     status.textContent = failures.length ? `Checked ${counted(urls.length, "address", "addresses")}: ${failures.length} did not answer correctly.` : `Checked ${counted(urls.length, "address", "addresses")}: all answered.`, failures.forEach(({ answer, entries }) => entries.forEach(({ item, path }) => {
-      let row = element("div", "editor-list-row link-check-failure"), copy = element("span", "history-copy");
-      copy.append(element("strong", "", `⚠ ${item.name}`)), copy.append(element("small", "", `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`)), row.append(copy, editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), results.append(row);
+      let row = element("div", "editor-list-row link-check-failure"), copy = element("span", "history-copy"), title = element("strong", "link-check-name", item.name);
+      title.prepend(icon("triangle-alert")), copy.append(title), copy.append(element("small", "", `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`)), row.append(copy, editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), results.append(row);
     })), start2.disabled = !1, nav.renderEditorTree();
   }
 
@@ -4459,8 +4524,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
     editorHeader(isNew ? "Add sun" : `Edit ${sun.name}`, showSunList, [index]);
     let form = element("form", "editor-form"), name = editorField("Sun name", sun.name), description = editorField("Description", sun.description, "textarea");
     description.wrapper.append(element("small", "editor-hint", "Use [label](https://example.com) to add a link within the description."));
-    let color = editorField("Color", sun.color, "color"), icon = editorField("Icon", sun.icon || "");
-    icon.input.maxLength = 16, icon.input.placeholder = "Optional, for example 🧪", icon.input.setAttribute("aria-label", "Icon"), icon.wrapper.append(element("small", "editor-hint", "One or two characters, such as an emoji, shown above the sun’s name.")), form.append(name.wrapper, description.wrapper, color.wrapper, icon.wrapper);
+    let color = editorField("Color", sun.color, "color"), icon2 = editorField("Icon", sun.icon || "");
+    icon2.input.maxLength = 16, icon2.input.placeholder = "Optional, for example 🧪", icon2.input.setAttribute("aria-label", "Icon"), icon2.wrapper.append(element("small", "editor-hint", "One or two characters, such as an emoji, shown above the sun’s name.")), form.append(name.wrapper, description.wrapper, color.wrapper, icon2.wrapper);
     let actions = element("div", "editor-actions"), save = element("button", "editor-primary", isNew ? "Add sun" : "Save sun");
     if (save.type = "submit", actions.append(save), form.append(actions), form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -4468,7 +4533,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
         name: name.input.value.trim(),
         description: description.input.value.trim(),
         color: color.input.value,
-        icon: icon.input.value,
+        icon: icon2.input.value,
         links: isNew ? [] : next[index].links
       };
       isNew ? (value.id = uniqueSunId(value.name, new Set(next.map((item) => item.id))), next.push(value)) : (value.id = next[index].id, next[index] = value), applyEditorChange(
@@ -4519,7 +4584,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       remove: () => removeEditorItem([sunIndex, planetIndex], () => showSunEditor(sunIndex)),
       ...group ? { extra: {
         label: "Share links as a pack",
-        glyph: "↗",
+        icon: "share-2",
         action: () => shareGroup(getPlanet()),
         available: () => getPlanet().moons.length > 0
       } } : {}
@@ -4594,7 +4659,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       },
       move: () => showMoveMoon(sunIndex, planetIndex, moonIndex),
       remove: () => removeEditorItem([sunIndex, planetIndex, moonIndex], () => showPlanetEditor(sunIndex, planetIndex)),
-      extra: { label: "Copy moon", glyph: "⧉", action: () => showCopyMoon(sunIndex, planetIndex, moonIndex) }
+      extra: { label: "Copy moon", icon: "copy", action: () => showCopyMoon(sunIndex, planetIndex, moonIndex) }
     }), form.addEventListener("submit", (event) => {
       event.preventDefault();
       let next = copyGroups(), value = { name: name.input.value.trim(), ...readDestination() };
@@ -4652,9 +4717,9 @@ ${preset.settings}`, `the ${preset.name} preset`);
   function hideActions() {
     window.clearTimeout(timer2), hovered = null, hoverActions?.remove(), hoverActions = null;
   }
-  function mapAction(className, icon, name, action) {
+  function mapAction(className, iconNode, name, action) {
     let button = element("button", className);
-    return button.append(icon), tip(button, name), button.type = "button", button.tabIndex = -1, button.setAttribute("aria-label", name), button.addEventListener("pointerdown", (event) => {
+    return button.append(iconNode), tip(button, name), button.type = "button", button.tabIndex = -1, button.setAttribute("aria-label", name), button.addEventListener("pointerdown", (event) => {
       event.preventDefault(), event.stopPropagation();
     }), button.addEventListener("click", (event) => {
       event.stopPropagation(), canEditFromMap() && action();
@@ -4666,9 +4731,9 @@ ${preset.settings}`, `the ${preset.name} preset`);
     let path = mapPath(item), sun = groups[path[0]], target = path.length === 1 ? sun : itemAt(groups, path);
     if (!target) return;
     let verb = sun.team ? "View" : "Edit", detail = path.length === 2 ? isGroup(target) ? " and its links" : " and its moons" : "", actions = element("div", "map-item-actions");
-    actions.append(mapAction("map-edit-button", "✎", `${verb} ${target.name}${detail}`, () => {
+    actions.append(mapAction("map-edit-button", icon(sun.team ? "eye" : "pencil"), `${verb} ${target.name}${detail}`, () => {
       item.isConnected && editItem(item);
-    })), sun.team || actions.append(mapAction("map-remove-button", trashIcon(), `Remove ${target.name}`, () => {
+    })), sun.team || actions.append(mapAction("map-remove-button", icon("trash-2"), `Remove ${target.name}`, () => {
       if (item.isConnected)
         try {
           removeMapItem(path);
