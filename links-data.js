@@ -193,11 +193,79 @@ window.ORBIT_DATA = {
       "links": [
         {
           "name": "Learn Git Branching",
-          "url": "https://learngitbranching.js.org/"
+          "url": "https://learngitbranching.js.org/",
+          "moons": [
+            {
+              "name": "Visualizing Git",
+              "url": "https://git-school.github.io/visualizing-git/"
+            },
+            {
+              "name": "Oh My Git!",
+              "url": "https://ohmygit.org/"
+            },
+            {
+              "name": "GitHub Skills",
+              "url": "https://learn.github.com/skills"
+            }
+          ]
         },
         {
-          "name": "Devhints",
-          "url": "https://devhints.io/"
+          "name": "Git guides",
+          "type": "group",
+          "moons": [
+            {
+              "name": "Pro Git book",
+              "url": "https://git-scm.com/book/en/v2"
+            },
+            {
+              "name": "Atlassian Git tutorials",
+              "url": "https://www.atlassian.com/git/tutorials"
+            },
+            {
+              "name": "Oh Shit, Git!?!",
+              "url": "https://ohshitgit.com/"
+            }
+          ]
+        },
+        {
+          "name": "DevDocs",
+          "url": "https://devdocs.io/",
+          "moons": [
+            {
+              "name": "Devhints",
+              "url": "https://devhints.io/"
+            },
+            {
+              "name": "explainshell",
+              "url": "https://explainshell.com/"
+            }
+          ]
+        },
+        {
+          "name": "Web platform",
+          "type": "group",
+          "moons": [
+            {
+              "name": "Can I use",
+              "url": "https://caniuse.com/"
+            },
+            {
+              "name": "web.dev",
+              "url": "https://web.dev/"
+            },
+            {
+              "name": "Can I email",
+              "url": "https://www.caniemail.com/"
+            },
+            {
+              "name": "Bundlephobia",
+              "url": "https://bundlephobia.com/"
+            },
+            {
+              "name": "Squoosh",
+              "url": "https://squoosh.app/"
+            }
+          ]
         },
         {
           "name": "JSON Crack",
@@ -240,14 +308,6 @@ window.ORBIT_DATA = {
           ]
         },
         {
-          "name": "Refactoring Guru",
-          "url": "https://refactoring.guru/"
-        },
-        {
-          "name": "DevDocs",
-          "url": "https://devdocs.io/"
-        },
-        {
           "name": "Diagramming",
           "type": "group",
           "moons": [
@@ -266,8 +326,18 @@ window.ORBIT_DATA = {
           ]
         },
         {
-          "name": "roadmap.sh",
-          "url": "https://roadmap.sh/"
+          "name": "Learning paths",
+          "type": "group",
+          "moons": [
+            {
+              "name": "roadmap.sh",
+              "url": "https://roadmap.sh/"
+            },
+            {
+              "name": "Refactoring Guru",
+              "url": "https://refactoring.guru/"
+            }
+          ]
         }
       ]
     },
