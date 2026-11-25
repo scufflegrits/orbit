@@ -8,7 +8,7 @@ import { oracle } from '../../tests/oracle/oracle.mjs';
 import { combinedMap, runs, validMap } from '../../tests/unit/arbitraries.mjs';
 import { destinationKey } from './destination.js';
 import {
-  duplicateGroups, itemExport, mapItemAt, mergeMaps, sunAdditions, mergeRoutines, moveMapItem, packLink, personalGroups, plainCopy, samePath,
+  changeItemLevel, duplicateGroups, itemExport, mapItemAt, mergeMaps, sunAdditions, mergeRoutines, moveMapItem, packLink, personalGroups, plainCopy, samePath,
 } from './map-ops.js';
 
 const old = oracle();
@@ -291,4 +291,119 @@ test('group merges match by name within a sun, and duplicates include only desti
   const movedMoon = moveMapItem(moved.groups, { kind: 'moon', sun: 1, planet: 0, moon: 0 }, moved.path);
   assert.equal(movedMoon.status, 'moved');
   if (movedMoon.status === 'moved') assert.equal(movedMoon.groups[2].links[2].moons.length, 3);
+});
+
+// ---- Changing an item's level (moon <-> planet) ------------------------------
+// changeItemLevel is separate from moveMapItem, whose 2.2.1 rules stay exactly
+// as they were (a moon onto a sun and a planet onto a planet are still invalid
+// there; DD01 and the differential test above check that).
+
+const levelMap = () => [
+  { id: 'team:ops', name: 'Ops', description: '', color: '#79d9f8', team: true, links: [
+    { name: 'Runbook', url: 'https://runbook.test/', moons: [] }] },
+  { id: 'alpha', name: 'Alpha', description: '', color: '#79d9f8', links: [
+    { name: 'One', url: 'https://one.test/', moons: [
+      { name: 'M1', url: 'https://m1.test/', tags: ['docs'], note: 'first', favorite: true },
+      { name: 'Box', type: 'rdp', host: 'box.lab', rdpPreset: 'big' }] },
+    { name: 'Two', url: 'https://two.test/', moons: [] },
+    { name: 'Three', url: 'https://three.test/', tags: ['x'], moons: [] },
+    { name: 'Grp', type: 'group', moons: [{ name: 'G1', url: 'https://g1.test/' }] }] },
+  { id: 'beta', name: 'Beta', description: '', color: '#79d9f8', links: [
+    { name: 'B1', url: 'https://b1.test/', moons: [] }] },
+];
+
+test('changeItemLevel: a moon becomes the last planet of another sun, keeping its fields', () => {
+  const map = levelMap();
+  const before = JSON.stringify(map);
+  const result = changeItemLevel(map, { kind: 'moon', sun: 1, planet: 0, moon: 0 }, { kind: 'sun', sun: 2 });
+  assert.equal(result.status, 'moved');
+  if (result.status !== 'moved') return;
+  assert.deepEqual(result.path, { kind: 'planet', sun: 2, planet: 1 });
+  assert.equal(result.total, 2);
+  assert.deepEqual(result.groups[2].links[1],
+    { name: 'M1', url: 'https://m1.test/', tags: ['docs'], note: 'first', favorite: true, moons: [] });
+  assert.deepEqual(result.groups[1].links[0].moons.map(m => m.name), ['Box']);
+  assert.equal(JSON.stringify(map), before, 'input unchanged');
+});
+
+test('changeItemLevel: a moon can become a planet of its own sun; Remote Desktop fields carry over', () => {
+  const result = changeItemLevel(levelMap(), { kind: 'moon', sun: 1, planet: 0, moon: 1 }, { kind: 'sun', sun: 1 });
+  assert.equal(result.status, 'moved');
+  if (result.status !== 'moved') return;
+  assert.deepEqual(result.path, { kind: 'planet', sun: 1, planet: 4 });
+  assert.deepEqual(result.groups[1].links[4], { name: 'Box', type: 'rdp', host: 'box.lab', rdpPreset: 'big', moons: [] });
+});
+
+test('changeItemLevel: a moonless planet becomes the last moon of a planet, without a moons field', () => {
+  const result = changeItemLevel(levelMap(), { kind: 'planet', sun: 1, planet: 2 }, { kind: 'planet', sun: 2, planet: 0 });
+  assert.equal(result.status, 'moved');
+  if (result.status !== 'moved') return;
+  assert.deepEqual(result.path, { kind: 'moon', sun: 2, planet: 0, moon: 0 });
+  assert.deepEqual(result.groups[2].links[0].moons, [{ name: 'Three', url: 'https://three.test/', tags: ['x'] }]);
+  assert.deepEqual(result.groups[1].links.map(p => p.name), ['One', 'Two', 'Grp']);
+});
+
+test('changeItemLevel: in the same sun, a later target planet shifts down by one; an earlier one does not', () => {
+  const later = changeItemLevel(levelMap(), { kind: 'planet', sun: 1, planet: 1 }, { kind: 'planet', sun: 1, planet: 2 });
+  assert.equal(later.status, 'moved');
+  if (later.status === 'moved') {
+    assert.deepEqual(later.path, { kind: 'moon', sun: 1, planet: 1, moon: 0 });
+    assert.equal(later.groups[1].links[1].name, 'Three');
+    assert.deepEqual(later.groups[1].links[1].moons.map(m => m.name), ['Two']);
+  }
+  const earlier = changeItemLevel(levelMap(), { kind: 'planet', sun: 1, planet: 2 }, { kind: 'planet', sun: 1, planet: 1 });
+  assert.equal(earlier.status, 'moved');
+  if (earlier.status === 'moved') assert.deepEqual(earlier.path, { kind: 'moon', sun: 1, planet: 1, moon: 0 });
+});
+
+test('changeItemLevel: a group planet can receive a moon', () => {
+  const result = changeItemLevel(levelMap(), { kind: 'planet', sun: 1, planet: 1 }, { kind: 'planet', sun: 1, planet: 3 });
+  assert.equal(result.status, 'moved');
+  if (result.status === 'moved') assert.deepEqual(result.groups[1].links[2].moons.map(m => m.name), ['G1', 'Two']);
+});
+
+test('changeItemLevel: refusals say why, and never change the input', () => {
+  const map = levelMap();
+  const before = JSON.stringify(map);
+  const reason = (source, target) => {
+    const result = changeItemLevel(map, source, target);
+    return result.status === 'invalid' ? result.reason : result.status;
+  };
+  assert.equal(reason({ kind: 'planet', sun: 1, planet: 0 }, { kind: 'planet', sun: 2, planet: 0 }), 'has-moons');
+  assert.equal(reason({ kind: 'planet', sun: 1, planet: 3 }, { kind: 'planet', sun: 2, planet: 0 }), 'group');
+  assert.equal(reason({ kind: 'moon', sun: 1, planet: 0, moon: 0 }, { kind: 'sun', sun: 0 }), 'team');
+  assert.equal(reason({ kind: 'planet', sun: 0, planet: 0 }, { kind: 'planet', sun: 2, planet: 0 }), 'team');
+  assert.equal(reason({ kind: 'planet', sun: 1, planet: 1 }, { kind: 'planet', sun: 0, planet: 0 }), 'team');
+  assert.equal(reason({ kind: 'planet', sun: 1, planet: 1 }, { kind: 'planet', sun: 1, planet: 1 }), 'self');
+  assert.equal(reason({ kind: 'sun', sun: 1 }, { kind: 'planet', sun: 2, planet: 0 }), 'kind');
+  assert.equal(reason({ kind: 'moon', sun: 1, planet: 0, moon: 0 }, { kind: 'planet', sun: 2, planet: 0 }), 'kind');
+  assert.equal(reason({ kind: 'planet', sun: 1, planet: 1 }, { kind: 'sun', sun: 2 }), 'kind');
+  assert.equal(reason({ kind: 'moon', sun: 1, planet: 0, moon: 9 }, { kind: 'sun', sun: 2 }), 'missing');
+  assert.equal(reason({ kind: 'moon', sun: 1, planet: 0, moon: 0 }, { kind: 'sun', sun: 9 }), 'missing');
+  assert.equal(JSON.stringify(map), before);
+});
+
+test('changeItemLevel: moon to planet and back returns the moon to the end of its planet', () => {
+  fc.assert(fc.property(validMap, fc.nat(99), fc.nat(99), fc.nat(99), fc.nat(99), (map, s, p, m, t) => {
+    const personal = map.map((sun, index) => index).filter(index => !map[index].team);
+    const withMoons = personal.flatMap(sunIndex => map[sunIndex].links
+      .map((planet, planetIndex) => ({ sunIndex, planetIndex, planet }))
+      .filter(({ planet }) => planet.moons.length));
+    fc.pre(withMoons.length > 0);
+    const { sunIndex, planetIndex, planet } = withMoons[s % withMoons.length];
+    const moonIndex = m % planet.moons.length;
+    const target = personal[t % personal.length];
+    const before = JSON.stringify(map);
+    const out = changeItemLevel(map, { kind: 'moon', sun: sunIndex, planet: planetIndex, moon: moonIndex }, { kind: 'sun', sun: target });
+    assert.equal(out.status, 'moved');
+    if (out.status !== 'moved') return;
+    const back = changeItemLevel(out.groups, out.path, { kind: 'planet', sun: sunIndex, planet: planetIndex });
+    assert.equal(back.status, 'moved');
+    if (back.status !== 'moved') return;
+    const expected = JSON.parse(before);
+    const [moon] = expected[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
+    expected[sunIndex].links[planetIndex].moons.push(moon);
+    assert.deepEqual(back.groups, expected);
+    assert.equal(JSON.stringify(map), before, 'input unchanged');
+  }), { numRuns: 300 });
 });

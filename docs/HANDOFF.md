@@ -102,12 +102,12 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | Runner | Covers | Last local result |
 | --- | --- | --- |
 | `tests/browser_matrix.py` | Milestones 1–14, 18, 19 (`--milestone N`, `--only-new`, `--repeat N`) | 39 passed |
-| `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 29 passed |
+| `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 31 passed (phase 2, with DD18) |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS11 at 1920×1080 | 21 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F38, no F05 | 75 passed (both modes), with F38 for the Lucide icons |
+| `tests/features.py` | F01–F39, no F05 | 77 passed (both modes), with F39 for level changes |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date, icon data matches Lucide (`check:icons`) | passed |
-| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 195 passed |
+| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 206 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
 | `tests/data_compat_check.py` | The 2.2 storage fixture reads back as recorded | passed |

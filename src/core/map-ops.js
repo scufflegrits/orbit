@@ -89,6 +89,55 @@ export function moveMapItem(list, source, target) {
 }
 
 /**
+ * @typedef {'team' | 'group' | 'has-moons' | 'self' | 'kind' | 'missing'} LevelRefusal
+ * @typedef {{status: 'moved', groups: Sun[], path: MapPath, total: number} | {status: 'invalid', reason: LevelRefusal}} LevelResult
+ */
+
+/**
+ * Change an item's level: a moon becomes the last planet of a sun, or a
+ * planet without moons (not a group) becomes the last moon of a planet.
+ * Separate from moveMapItem, whose 2.2.1 rules (a moon onto a sun, a planet
+ * onto a planet: invalid) stay exactly as they were. Never changes `list`.
+ * @param {Sun[]} list
+ * @param {MapPath} source
+ * @param {MapPath} target A sun for a moon, or a planet for a planet.
+ * @returns {LevelResult}
+ */
+export function changeItemLevel(list, source, target) {
+  /** @param {LevelRefusal} reason @returns {LevelResult} */
+  const refuse = reason => ({ status: 'invalid', reason });
+  const toPlanet = source.kind === 'moon' && target.kind === 'sun';
+  const toMoon = source.kind === 'planet' && target.kind === 'planet';
+  if (!toPlanet && !toMoon) return refuse('kind');
+  const item = mapItemAt(list, source);
+  if (!item || !mapItemAt(list, target)) return refuse('missing');
+  if (list[source.sun]?.team || list[target.sun]?.team) return refuse('team');
+  if (toMoon) {
+    if (samePath(source, target)) return refuse('self');
+    if (isGroup(item)) return refuse('group');
+    if (item.moons?.length) return refuse('has-moons');
+  }
+  /** @type {Sun[]} */
+  const next = clone(list);
+  if (toPlanet) {
+    const s = /** @type {{sun: number, planet: number, moon: number}} */ (source);
+    const [moon] = next[s.sun].links[s.planet].moons.splice(s.moon, 1);
+    const links = next[target.sun].links;
+    links.push({ ...moon, moons: [] });
+    return { status: 'moved', groups: next, path: { kind: 'planet', sun: target.sun, planet: links.length - 1 }, total: links.length };
+  }
+  const s = /** @type {{sun: number, planet: number}} */ (source);
+  const t = /** @type {{sun: number, planet: number}} */ (target);
+  const [planet] = next[s.sun].links.splice(s.planet, 1);
+  // Removing the source first shifts a later planet in the same sun down by one.
+  const targetIndex = s.sun === t.sun && s.planet < t.planet ? t.planet - 1 : t.planet;
+  const { moons: _moons, ...moon } = /** @type {any} */ (planet);
+  const moons = next[t.sun].links[targetIndex].moons;
+  moons.push(moon);
+  return { status: 'moved', groups: next, path: { kind: 'moon', sun: t.sun, planet: targetIndex, moon: moons.length - 1 }, total: moons.length };
+}
+
+/**
  * A team item copied into the personal map, as an independent item: no `team`
  * flag, and a sun id without its `team:` prefix.
  * @template T

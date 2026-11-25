@@ -170,6 +170,76 @@ export function showMoveMoon(sunIndex, planetIndex, moonIndex) {
 }
 
 /**
+ * A labelled choice of where a moon or planet goes when it changes level.
+ * @param {string} label
+ * @param {[string, string][]} options
+ */
+function levelTargetField(label, options) {
+  const field = element('label', 'editor-field');
+  field.append(element('span', '', label));
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', label);
+  for (const [value, text] of options) {
+    const option = element('option', '', text);
+    option.value = value;
+    select.append(option);
+  }
+  field.append(select);
+  menuContent.append(field);
+  return select;
+}
+
+/**
+ * Make a moon the last planet of a sun (Edit mode does the same by holding a
+ * moon on Make it a planet beside a sun's circle).
+ * @param {number} sunIndex
+ * @param {number} planetIndex
+ * @param {number} moonIndex
+ */
+export function showMakePlanet(sunIndex, planetIndex, moonIndex) {
+  const moon = groups[sunIndex].links[planetIndex].moons[moonIndex];
+  editorHeader(`Make ${moon.name} a planet`, () => nav.showMoonEditor(sunIndex, planetIndex, moonIndex));
+  menuContent.append(element('p', '', `From ${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet. It becomes the last planet of the sun you choose; its link, note, and tags go with it.`));
+  const options = /** @type {[string, string][]} */ (groups.flatMap((sun, index) => sun.team ? [] : [[String(index), sun.name]]));
+  const select = levelTargetField('Make it a planet of', options);
+  select.value = String(sunIndex);
+  editorActions().append(editorButton('Make it a planet', () => {
+    const sun = Number(select.value);
+    const result = mapOps.changeItemLevel(groups, { kind: 'moon', sun: sunIndex, planet: planetIndex, moon: moonIndex }, { kind: 'sun', sun });
+    if (result.status !== 'moved') return editorError('That moon could not become a planet.');
+    applyEditorChange(result.groups, () => nav.showPlanetEditor(result.path.sun, /** @type {any} */ (result.path).planet),
+      { label: `Moved moon ${moon.name} to ${groups[sun].name} as a planet` });
+  }, 'editor-primary'));
+}
+
+/**
+ * Make a planet without moons (not a group) the last moon of another planet.
+ * @param {number} sunIndex
+ * @param {number} planetIndex
+ */
+export function showMakeMoon(sunIndex, planetIndex) {
+  const planet = groups[sunIndex].links[planetIndex];
+  editorHeader(`Make ${planet.name} a moon`, () => nav.showPlanetEditor(sunIndex, planetIndex));
+  menuContent.append(element('p', '', `From ${groups[sunIndex].name} sun. It becomes the last moon of the planet you choose; its link, note, and tags go with it.`));
+  const options = /** @type {[string, string][]} */ (groups.flatMap((sun, s) => sun.team ? [] : sun.links.flatMap(
+    (/** @type {any} */ target, /** @type {number} */ p) => s === sunIndex && p === planetIndex ? [] : [[`${s}:${p}`, `${sun.name} → ${target.name}`]])));
+  if (!options.length) {
+    menuContent.append(element('p', '', 'Add another planet first: there is no planet for it to orbit.'));
+    return;
+  }
+  const select = levelTargetField('Make it a moon of', options);
+  editorActions().append(editorButton('Make it a moon', () => {
+    const [sun, target] = select.value.split(':').map(Number);
+    const targetName = groups[sun].links[target].name;
+    const result = mapOps.changeItemLevel(groups, { kind: 'planet', sun: sunIndex, planet: planetIndex }, { kind: 'planet', sun, planet: target });
+    if (result.status !== 'moved') return editorError('That planet could not become a moon.');
+    const path = /** @type {any} */ (result.path);
+    applyEditorChange(result.groups, () => nav.showMoonEditor(path.sun, path.planet, path.moon),
+      { label: `Moved planet ${planet.name} to ${targetName} as a moon` });
+  }, 'editor-primary'));
+}
+
+/**
  * @param {any} dataTransfer
  */
 export async function droppedFiles(dataTransfer) {

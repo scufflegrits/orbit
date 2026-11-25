@@ -564,6 +564,8 @@ def f12_team(ctx):
     hub.hover()
     planet = page.locator('.home-satellite[data-sun="0"]').first
     planet.wait_for(state="visible")
+    # Planets glide out from their sun (0.35 s); press where the planet settles.
+    page.wait_for_timeout(450)
     box = planet.bounding_box()
     target = page.locator('.home-hub[data-sun="1"]').bounding_box()
     page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
@@ -2080,12 +2082,117 @@ def f38_lucide_icons(ctx):
     print(f"PASS F38 Lucide icons ({mode})")
 
 
+# ---- F39 Change level: moon to planet, planet to moon ----------------------------
+
+def f39_level_change(ctx):
+    """The editor turns a moon into a planet and a moonless planet into a moon; drags show why not."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    # A favorite moon keeps its star when it becomes a planet.
+    page.locator("#quick-find").fill("Broken")
+    page.locator(".find-row").filter(has_text="Broken Page").first.locator(".favorite-toggle").click()
+    page.locator("#quick-find").fill("")
+    open_editor(page)
+
+    # Moon editor: Make it a planet of... Beta.
+    tree(page, "editor-tree-moon", "Broken Page").click()
+    page.get_by_role("button", name="Move moon", exact=True).click()
+    page.get_by_role("button", name="Make it a planet of…", exact=True).click()
+    page.get_by_label("Make it a planet of", exact=True).select_option(label="Beta")
+    page.get_by_role("button", name="Make it a planet", exact=True).click()
+    page.locator(".editor-header h3").filter(has_text="Broken Page").wait_for()
+    beta = stored(page)[1]
+    check([planet["name"] for planet in beta["links"]] == ["Docs Mirror", "Wiki", "Broken Page"] and
+          beta["links"][2]["moons"] == [] and beta["links"][2].get("favorite") is True,
+          f"{mode}: Broken Page is Beta's last planet and still a favorite ({beta['links'][-1]})")
+    check(page.get_by_label("Planet name", exact=True).input_value() == "Broken Page",
+          f"{mode}: the planet editor opens at the new planet")
+    check([moon["name"] for moon in stored(page)[0]["links"][0]["moons"]] == ["Guide"], f"{mode}: Docs Portal lost the moon")
+
+    # Planet editor: Make it a moon of... is offered only for a planet without moons that isn't a group.
+    tree(page, "editor-tree-planet", "Docs Portal").click()
+    page.get_by_role("button", name="Move planet", exact=True).click()
+    check(page.get_by_role("button", name="Make it a moon of…", exact=True).count() == 0,
+          f"{mode}: a planet with moons isn't offered Make it a moon")
+    tree(page, "editor-tree-planet", "Wiki").click()
+    page.get_by_role("button", name="Move planet", exact=True).click()
+    page.get_by_role("button", name="Make it a moon of…", exact=True).click()
+    page.get_by_label("Make it a moon of", exact=True).select_option(label="Alpha → Status")
+    page.get_by_role("button", name="Make it a moon", exact=True).click()
+    page.locator(".editor-header h3").filter(has_text="Wiki").wait_for()
+    after = stored(page)
+    check([moon["name"] for moon in after[0]["links"][1]["moons"]] == ["Status History", "Wiki"] and
+          "moons" not in after[0]["links"][1]["moons"][1] and [p["name"] for p in after[1]["links"]] == ["Docs Mirror", "Broken Page"],
+          f"{mode}: Wiki is Status's last moon ({after[0]['links'][1]['moons']})")
+    check(page.get_by_label("Moon name", exact=True).input_value() == "Wiki", f"{mode}: the moon editor opens at the new moon")
+    close_menu(page)
+    check(page.locator(".quick-chip").filter(has_text="Broken Page").count() >= 1, f"{mode}: the favorite is still in Favorites")
+
+    # A group isn't offered Make it a moon either; in a drag its pill is disabled with the reason.
+    data = ctx.data
+    data["groups"][0]["links"].append({"name": "Monitoring", "type": "group", "moons": [
+        {"name": "Dashboard", "url": "https://monitor.example.test/"}]})
+    page.evaluate("(map) => localStorage.setItem('orbit:map:v1', JSON.stringify(map))", data)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    open_editor(page)
+    tree(page, "editor-tree-planet", "Monitoring").click()
+    page.get_by_role("button", name="Move planet", exact=True).click()
+    check(page.get_by_role("button", name="Make it a moon of…", exact=True).count() == 0, f"{mode}: a group isn't offered Make it a moon")
+    close_menu(page)
+    page.locator("#edit-toggle").click()
+    page.locator("#edit-bar").wait_for(state="visible")
+
+    def press_drag(item):
+        box = item.bounding_box()
+        x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        page.mouse.move(x, y)
+        page.mouse.down()
+        page.mouse.move(x + 6, y + 10, steps=2)
+
+    alpha = page.locator(".home-hub").filter(has_text="Alpha")
+    alpha.hover()
+    group = page.locator(".home-orbit:hover .home-satellite").filter(has_text="Monitoring")
+    group.wait_for(state="visible")
+    press_drag(group)
+    wiki_free = page.locator(".home-hub").filter(has_text="Beta")
+    page.mouse.move(*(lambda b: (b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(wiki_free.bounding_box()), steps=6)
+    beta_planet = page.locator('.home-satellite[data-sun="2"][data-planet="0"]')
+    beta_planet.wait_for(state="visible")
+    page.mouse.move(*(lambda b: (b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(beta_planet.bounding_box()), steps=6)
+    pill = page.locator('.drop-choices [data-action="moon"]')
+    pill.wait_for(timeout=3000)
+    check(pill.get_attribute("aria-disabled") == "true" and "a group's links stay in the group" in pill.inner_text(),
+          f"{mode}: a dragged group sees why it can't be a moon ({pill.inner_text()!r})")
+    page.keyboard.press("Escape")
+    page.mouse.up()
+
+    # A moon on a team sun's circle: the choice is disabled, with the reason.
+    alpha.hover()
+    docs = page.locator('.home-satellite[data-sun="1"][data-planet="0"]')
+    docs.wait_for(state="visible")
+    docs.hover()
+    guide = page.locator('.moon-link[data-sun="1"][data-planet="0"][data-moon="0"]')
+    guide.wait_for(state="visible")
+    press_drag(guide)
+    ops = page.locator(".team-card .home-hub").first
+    page.mouse.move(*(lambda b: (b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(ops.bounding_box()), steps=6)
+    choice = page.locator('.drop-choices [data-action="planet"]')
+    choice.wait_for(timeout=3000)
+    check(choice.get_attribute("aria-disabled") == "true" and "Team suns are read-only" in choice.inner_text(),
+          f"{mode}: a team sun's circle shows it's read-only ({choice.inner_text()!r})")
+    page.keyboard.press("Escape")
+    page.mouse.up()
+    page.locator("#edit-done").click()
+    print(f"PASS F39 change level ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
           f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
-          f38_lucide_icons)
+          f38_lucide_icons, f39_level_change)
 
 
 def run_checks(make_ctx, only):

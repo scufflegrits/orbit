@@ -702,6 +702,20 @@ html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-link 
 .drop-choice.drop-target { outline-offset: 1px; box-shadow: none; background: color-mix(in srgb, var(--theme-accent) 24%, var(--page-bg)); }
 .drop-choice.drop-same { outline-offset: 1px; color: var(--subtle); }
 .insert-before, .insert-after { outline: 2px dashed var(--theme-accent); outline-offset: 5px; }
+/* A level change (moon to planet, planet to moon): a separate, dashed pill that
+   fills while the pointer rests on it and only then can be released on. */
+.drop-level-divider { height: 1px; margin: 6px 4px; background: var(--line); }
+.drop-level { display: flex; align-items: center; justify-content: center; gap: 8px; border-style: dashed; border-color: var(--theme-accent); }
+.drop-level .icon { width: 15px; height: 15px; }
+.drop-level.arming {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 28%, var(--page-bg)) 50%, var(--page-bg) 50%) right / 200% 100%;
+  animation: arm-level 350ms linear forwards;
+}
+.drop-level.armed { background: color-mix(in srgb, var(--theme-accent) 28%, var(--page-bg)); border-style: solid; }
+.drop-level.is-disabled { border-style: dotted; border-color: var(--line); color: var(--subtle); white-space: normal; }
+@keyframes arm-level { to { background-position: left; } }
+@media (prefers-reduced-motion: reduce) { .drop-level.arming { animation: none; background: var(--page-bg); } }
+.tray-new-planet .tray-name { color: var(--theme-accent); }
 .tray-row.insert-before { outline: none; box-shadow: 0 -4px 0 var(--theme-accent); }
 .tray-row.insert-after { outline: none; box-shadow: 0 4px 0 var(--theme-accent); }
 .tray-empty, .tray-hint { margin: 8px 12px 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); }

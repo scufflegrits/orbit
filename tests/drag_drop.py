@@ -1079,10 +1079,134 @@ def run_export_after_moves(page, url, mode):
     print(f"PASS DD16 export after mixed drags, import round trip ({mode})")
 
 
+def moon_to_planet(data, sun_index, planet, moon, to_sun):
+    """A moon removed from its planet and appended as the last planet of a sun."""
+    result = copy.deepcopy(data)
+    item = result["groups"][sun_index]["links"][planet]["moons"].pop(moon)
+    result["groups"][to_sun]["links"].append({**item, "moons": []})
+    return result
+
+
+def planet_to_moon(data, sun_index, planet, to_sun, to_planet):
+    """A moonless planet removed from its sun and appended as the last moon of a planet."""
+    result = copy.deepcopy(data)
+    item = result["groups"][sun_index]["links"].pop(planet)
+    item.pop("moons", None)
+    if sun_index == to_sun and planet < to_planet:
+        to_planet -= 1
+    result["groups"][to_sun]["links"][to_planet]["moons"].append(item)
+    return result
+
+
+def level_choice(page, action):
+    return page.locator(f'.drop-choices [data-action="{action}"]')
+
+
+def hold_and_drop(page, locator, hold=550):
+    """Rest on a conversion choice until it arms, then release on it."""
+    page.mouse.move(*pt(locator), steps=3)
+    page.wait_for_timeout(hold)
+    page.mouse.up()
+
+
+def run_level_change(page, url, mode):
+    """DD18: a held, labelled choice turns a moon into a planet, or a moonless planet into a moon."""
+    # 1. Passing over the choice and releasing at once converts nothing.
+    fresh(page, url)
+    edit_on(page)
+    press_and_start(page, galaxy_moon(page, 0, 0, 1))
+    page.mouse.move(*pt(node(page, ".home-hub", 2)), steps=6)
+    choice = level_choice(page, "planet")
+    choice.wait_for(timeout=3000)
+    check(page.locator(".drop-choices .drop-choice").count() == 1 and choice.inner_text().strip() == "Make it a planet of Gamma",
+          f"{mode}: a moon on a sun's circle offers one choice ({page.locator('.drop-choices').all_inner_texts()!r})")
+    hold_and_drop(page, choice, hold=60)
+    check(stored(page) is None, f"{mode}: passing over the choice converts nothing")
+
+    # 2. Holding on it makes the moon Gamma's last planet; Undo restores; a reload keeps a redo.
+    expected = moon_to_planet(FIXTURE, 0, 0, 1, 2)
+    press_and_start(page, galaxy_moon(page, 0, 0, 1))
+    page.mouse.move(*pt(node(page, ".home-hub", 2)), steps=6)
+    level_choice(page, "planet").wait_for(timeout=3000)
+    hold_and_drop(page, level_choice(page, "planet"))
+    check(stored(page) == expected, f"{mode}: M2 is Gamma's last planet")
+    check("Moved moon M2 to Gamma as a planet." in status(page), f"{mode}: the status names the change ({status(page)!r})")
+    page.locator("#edit-undo").click()
+    check(stored(page) == FIXTURE, f"{mode}: Undo turns it back into a moon in its place")
+    check("Undid the move of moon M2 to Gamma as a planet." in status(page), f"{mode}: Undo names the change ({status(page)!r})")
+    press_and_start(page, galaxy_moon(page, 0, 0, 1))
+    page.mouse.move(*pt(node(page, ".home-hub", 2)), steps=6)
+    level_choice(page, "planet").wait_for(timeout=3000)
+    hold_and_drop(page, level_choice(page, "planet"))
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(stored(page) == expected, f"{mode}: the change survives a reload")
+
+    # 3. Releasing on the bare circle, or on empty System stage space, changes nothing.
+    fresh(page, url)
+    edit_on(page)
+    drag_to(page, galaxy_moon(page, 0, 0, 1), pt(node(page, ".home-hub", 2)))
+    check(stored(page) is None, f"{mode}: a moon released on a bare sun circle changes nothing")
+    open_system(page, 0)
+    stage = page.locator(".detail-stage").bounding_box()
+    drag_to(page, system_moon(page, 0, 0, 1), (stage["x"] + 24, stage["y"] + 24))
+    check(stored(page) is None, f"{mode}: a moon released on empty stage space changes nothing")
+
+    # 4. Its own sun: it becomes Alpha's last planet, beyond what the Galaxy shows.
+    fresh(page, url)
+    edit_on(page)
+    press_and_start(page, galaxy_moon(page, 0, 0, 1))
+    page.mouse.move(*pt(node(page, ".home-hub", 0)), steps=6)
+    level_choice(page, "planet").wait_for(timeout=3000)
+    hold_and_drop(page, level_choice(page, "planet"))
+    check(stored(page) == moon_to_planet(FIXTURE, 0, 0, 1, 0), f"{mode}: M2 is Alpha's last planet")
+    check("shown in its System" in status(page), f"{mode}: the status says where to find it ({status(page)!r})")
+
+    # 5. A moonless planet held on the pill becomes another planet's last moon; Undo restores.
+    fresh(page, url)
+    edit_on(page)
+    press_and_start(page, galaxy_planet(page, 0, 3))
+    pause_on(page, node(page, ".home-hub", 1), node(page, ".home-satellite", 1, 1))
+    page.mouse.move(*pt(node(page, ".home-satellite", 1, 1)), steps=6)
+    pill = level_choice(page, "moon")
+    pill.wait_for(timeout=3000)
+    check(page.locator(".drop-choices [data-place]").count() == 2 and "Make it a moon of B2" in pill.inner_text(),
+          f"{mode}: the box offers Before, After, and the moon pill ({page.locator('.drop-choices').all_inner_texts()!r})")
+    hold_and_drop(page, pill)
+    expected = planet_to_moon(FIXTURE, 0, 3, 1, 1)
+    check(stored(page) == expected, f"{mode}: Four is B2's last moon")
+    check("Moved planet Four to B2 as a moon." in status(page), f"{mode}: the status names the change ({status(page)!r})")
+    page.locator("#edit-undo").click()
+    check(stored(page) == FIXTURE, f"{mode}: Undo makes it a planet again")
+
+    # 6. In the same sun a later target shifts down by one.
+    fresh(page, url)
+    edit_on(page)
+    press_and_start(page, galaxy_planet(page, 0, 3))
+    page.mouse.move(*pt(node(page, ".home-satellite", 0, 4)), steps=6)
+    level_choice(page, "moon").wait_for(timeout=3000)
+    hold_and_drop(page, level_choice(page, "moon"))
+    check(stored(page) == planet_to_moon(FIXTURE, 0, 3, 0, 4), f"{mode}: Four is the last moon of Five, now planet 4")
+
+    # 7. A planet with moons sees the pill disabled, with the reason; holding does nothing.
+    fresh(page, url)
+    edit_on(page)
+    press_and_start(page, galaxy_planet(page, 0, 1))
+    pause_on(page, node(page, ".home-hub", 1), node(page, ".home-satellite", 1, 1))
+    page.mouse.move(*pt(node(page, ".home-satellite", 1, 1)), steps=6)
+    pill = level_choice(page, "moon")
+    pill.wait_for(timeout=3000)
+    check(pill.get_attribute("aria-disabled") == "true" and "Can't be a moon: Dup has 2 moons" in pill.inner_text(),
+          f"{mode}: a planet with moons sees the reason ({pill.inner_text()!r})")
+    hold_and_drop(page, pill)
+    check(stored(page) is None, f"{mode}: holding a disabled choice changes nothing")
+    print(f"PASS DD18 moon to planet and planet to moon ({mode})")
+
+
 PHASE_1 = (run_pure_operation, run_edit_mode, run_galaxy_moves, run_system_moves,
            run_rejections, run_undo, run_layout)
 PHASE_2 = (run_pure_insertion, run_sun_reorder, run_planet_reorder, run_moon_reorder,
-           run_reorder_rejections, run_editor_positions, run_export_after_moves)
+           run_reorder_rejections, run_editor_positions, run_export_after_moves, run_level_change)
 
 
 def run_mode(page, url, mode, phase, only=None):

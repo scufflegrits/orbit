@@ -19,7 +19,7 @@ import { team } from '../team-map.js';
 import { showQuickAdd } from './quick-add.js';
 import { applyEditorChange, attachItemToolbar, copyGroups, duplicateNote, editorActions, editorButton, editorError, editorExportRow, editorField, editorHeader,
   editorMoveControls, editorRowActions, editorTree, exportItem, focusMovedRow, moveEntry, refreshEditorUndo, removeEditorItem, selectJsonFile } from './kit.js';
-import { leaveEditorPage, renderEditorTree, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
+import { leaveEditorPage, renderEditorTree, showMakeMoon, showMakePlanet, showMoveMoon, showMovePlanet, showRdpBatchImport } from './page.js';
 import { reviewBookmarks } from './tools/bookmarks.js';
 import { showBulkRdp } from './tools/bulk-rdp.js';
 import { showDuplicates } from './tools/duplicates.js';
@@ -606,6 +606,8 @@ export function showPlanetEditor(sunIndex, planetIndex) {
       }
     },
     move: () => showMovePlanet(sunIndex, planetIndex),
+    // Only a planet without moons that isn't a group can become a moon.
+    ...(!group && !planet.moons.length ? { changeLevel: { label: 'Make it a moon of…', action: () => showMakeMoon(sunIndex, planetIndex) } } : {}),
     remove: () => removeEditorItem([sunIndex, planetIndex], () => showSunEditor(sunIndex)),
     ...(group ? { extra: {
       label: 'Share links as a pack', icon: 'share-2', action: () => shareGroup(getPlanet()),
@@ -715,6 +717,7 @@ export function showMoonEditor(sunIndex, planetIndex, moonIndex) {
       }
     },
     move: () => showMoveMoon(sunIndex, planetIndex, moonIndex),
+    changeLevel: { label: 'Make it a planet of…', action: () => showMakePlanet(sunIndex, planetIndex, moonIndex) },
     remove: () => removeEditorItem([sunIndex, planetIndex, moonIndex], () => showPlanetEditor(sunIndex, planetIndex)),
     extra: { label: 'Copy moon', icon: 'copy', action: () => showCopyMoon(sunIndex, planetIndex, moonIndex) },
   });

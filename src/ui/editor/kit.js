@@ -67,10 +67,11 @@ function editorIconButton(label, iconName, action, className = 'editor-button', 
  * @property {() => void} move
  * @property {() => void} remove
  * @property {{label: string, icon: string, action: () => void, available?: () => boolean}} [extra]
+ * @property {{label: string, action: () => void}} [changeLevel] Make a moon a planet, or a moonless planet a moon.
  */
 
 /** @param {ItemToolbarOptions} options */
-function itemMoveMenu({ kind, index, count, reorder, move }) {
+function itemMoveMenu({ kind, index, count, reorder, move, changeLevel }) {
   const choices = element('details', 'editor-move-menu');
   const label = `Move ${kind}`;
   const trigger = element('summary', 'editor-button editor-icon-button');
@@ -81,6 +82,7 @@ function itemMoveMenu({ kind, index, count, reorder, move }) {
   const panel = element('div', 'editor-move-choices');
   editorMoveControls(panel, index, count, reorder);
   panel.append(editorButton(kind === 'planet' ? 'Move to another sun' : 'Move to another planet', move));
+  if (changeLevel) panel.append(editorButton(changeLevel.label, changeLevel.action));
   choices.append(trigger, panel);
   choices.addEventListener('focusout', event => {
     const next = event.relatedTarget;

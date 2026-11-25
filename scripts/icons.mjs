@@ -16,7 +16,8 @@ const OUT = join(ROOT, 'src', 'ui', 'icon-data.js');
 
 /** Every Lucide icon Orbit draws, by Lucide name. */
 export const NAMES = [
-  'arrow-down', 'arrow-left', 'arrow-right', 'arrow-up', 'arrow-up-down', 'copy', 'download',
+  'arrow-down', 'arrow-down-to-line', 'arrow-left', 'arrow-right', 'arrow-up', 'arrow-up-down', 'arrow-up-from-line',
+  'copy', 'download',
   'external-link', 'eye', 'folder', 'list', 'orbit', 'pencil', 'play', 'save', 'settings', 'share-2',
   'star', 'trash-2', 'triangle-alert', 'x',
 ];

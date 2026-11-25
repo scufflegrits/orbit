@@ -10,6 +10,8 @@ import { workspaceKey } from '../../state/workspaces.js';
 import { counted, element, tagPath } from '../dom.js';
 import { openEditorAt, openEditorPage } from '../editor/page.js';
 import { hooks } from '../hooks.js';
+import { icon } from '../icons.js';
+import { GALAXY_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
 import { openMenu } from '../menu/menu.js';
 import { offerDueRoutines } from '../notices/routine-offer.js';
 import { modes } from '../page-modes.js';
@@ -41,8 +43,8 @@ export const currentGesture = () => drag;
 /** @type {Record<string, string>} */
 const DRAG_HELP = {
   sun: 'Drop beside another sun',
-  planet: 'Drop on a sun, or beside a planet',
-  moon: 'Drop on a planet, or beside a moon',
+  planet: 'Drop on a sun, or beside a planet. Hold on Make it a moon to change it into a moon',
+  moon: 'Drop on a planet, or beside a moon. Hold on a sun to make it a planet',
 };
 
 function storageToken() {
@@ -194,12 +196,13 @@ function buildTray(pointerX) {
       list.append(item);
     });
     if (!sun.links.length) list.append(element('p', 'tray-empty', 'No planets yet.'));
+    if (!forPlanet) list.append(trayRow('tray-row tray-new-planet', `+ New planet in ${sun.name}`, '', 'sun', sunIndex));
     group.append(list);
     tray.append(group);
   });
   tray.append(element('p', 'tray-hint', forPlanet
     ? 'Pause on a sun to place the planet beside one of its planets.'
-    : 'Pause on a sun to show its planets, and on a planet to show its moons.'));
+    : 'Pause on a sun to show its planets, and on a planet to show its moons. Hold on + New planet to make the moon a planet.'));
   document.body.append(tray);
   return tray;
 }
@@ -232,14 +235,40 @@ function startDrag(event) {
 function showChoices(sibling, path) {
   if (drag.choices?.sibling === sibling) return;
   hideChoices();
+  // A moon on a sun's circle is offered only the change into a planet.
+  const convertOnly = path.kind !== drag.path.kind;
   const box = element('div', 'drop-choices');
-  for (const [place, word] of [['before', 'Before'], ['after', 'After']]) {
-    const choice = element('div', 'drop-choice', `${word} ${nameAt(path)}`);
-    choice.dataset.place = place;
+  if (!convertOnly) {
+    for (const [place, word] of [['before', 'Before'], ['after', 'After']]) {
+      const choice = element('div', 'drop-choice', `${word} ${nameAt(path)}`);
+      choice.dataset.place = place;
+      box.append(choice);
+    }
+  }
+  const option = convertOnly || (drag.path.kind === 'planet' && path.kind === 'planet') ? levelOption(path) : null;
+  if (option) {
+    const choice = element('div', `drop-choice drop-level${option.enabled ? '' : ' is-disabled'}`);
+    choice.dataset.action = option.levelChange;
+    if (!option.enabled) choice.setAttribute('aria-disabled', 'true');
+    choice.append(icon(option.levelChange === 'planet' ? 'arrow-up-from-line' : 'arrow-down-to-line'),
+      element('span', '', option.text));
+    // Below Before and After, set apart by a divider: the box opens centered on
+    // the planet, so the pointer arrives on Before or After, never on this.
+    // (It stays in the same box: a gap between boxes would close them.)
+    if (!convertOnly) box.append(element('div', 'drop-level-divider'));
     box.append(choice);
   }
   document.body.append(box);
   const rect = sibling.getBoundingClientRect();
+  if (convertOnly) {
+    // Beside the sun's circle, never over its center, where the pointer is.
+    const right = rect.right + 14;
+    const left = right + box.offsetWidth > window.innerWidth - 8 ? rect.left - 14 - box.offsetWidth : right;
+    box.style.left = `${Math.max(8, left)}px`;
+    box.style.top = `${Math.max(8, Math.min(rect.top + rect.height / 2 - box.offsetHeight / 2, window.innerHeight - box.offsetHeight - 8))}px`;
+    drag.choices = { box, sibling, path, convertOnly, option };
+    return;
+  }
   let x = rect.left + rect.width / 2;
   let y = rect.top + rect.height / 2;
   // Moons in an orbit sit close together, so a box centered on one would cover
@@ -260,12 +289,79 @@ function showChoices(sibling, path) {
   const clamp = (/** @type {any} */ value, /** @type {any} */ size, /** @type {any} */ limit) => Math.max(8, Math.min(value, limit - size - 8));
   box.style.left = `${clamp(x - box.offsetWidth / 2, box.offsetWidth, window.innerWidth)}px`;
   box.style.top = `${clamp(y - box.offsetHeight / 2, box.offsetHeight, window.innerHeight)}px`;
-  drag.choices = { box, sibling, path };
+  drag.choices = { box, sibling, path, convertOnly, option };
 }
 
 function hideChoices() {
+  disarm();
   drag.choices?.box.remove();
   drag.choices = null;
+}
+
+/**
+ * Whether the dragged item can change level onto `path`, and the choice's words.
+ * @param {any} path A sun for a moon, a planet for a planet.
+ */
+function levelOption(path) {
+  const levelChange = drag.path.kind === 'moon' ? 'planet' : 'moon';
+  const result = mapOps.changeItemLevel(groups, drag.path, path);
+  if (result.status === 'moved') return { levelChange, enabled: true, text: `Make it a ${levelChange} of ${nameAt(path)}` };
+  /** @type {Record<string, string>} */
+  const reasons = {
+    team: groups[path.sun]?.team ? 'Team suns are read-only' : 'Team planets are read-only',
+    'has-moons': `Can't be a moon: ${drag.item.name} has ${counted(drag.item.moons?.length || 0, 'moon')}`,
+    group: "Can't be a moon: a group's links stay in the group",
+  };
+  return { levelChange, enabled: false, text: reasons[result.reason] || 'It can\'t change level here' };
+}
+
+/** Stop arming a level-change choice. */
+function disarm() {
+  // endGesture clears the timer itself once the mode has moved on.
+  if (!modes.holding() || !drag.arm) return;
+  clearTimeout(drag.arm.timer);
+  drag.arm.choice.classList.remove('arming', 'armed');
+  drag.arm = null;
+}
+
+/**
+ * A level change takes effect only after the pointer rests on its choice for
+ * DWELL_MS, so passing over it on the way somewhere never converts.
+ * @param {any} choice
+ */
+function levelTarget(choice) {
+  const { sibling, path } = drag.choices;
+  const waiting = { status: 'choose', node: sibling, path };
+  if (choice.getAttribute('aria-disabled') === 'true') {
+    disarm();
+    return waiting;
+  }
+  if (drag.arm?.choice !== choice) {
+    disarm();
+    choice.classList.add('arming');
+    drag.arm = { choice, ready: false, timer: setTimeout(() => {
+      if (!modes.dragging() || drag.arm?.choice !== choice) return;
+      drag.arm.ready = true;
+      choice.classList.add('armed');
+      refreshDrag();
+    }, DWELL_MS) };
+    return waiting;
+  }
+  if (!drag.arm.ready) return waiting;
+  return { status: 'valid', node: choice, path, sibling, levelChange: choice.dataset.action };
+}
+
+/**
+ * Where a level change puts the item, and a note when the Galaxy or the moon
+ * fan won't show it there.
+ * @param {any} result A moved result from changeItemLevel.
+ * @param {'planet' | 'moon'} levelChange
+ */
+function levelPlace(result, levelChange) {
+  const number = (levelChange === 'planet' ? result.path.planet : result.path.moon) + 1;
+  const note = levelChange === 'planet' && number > GALAXY_PLANETS ? 'shown in its System'
+    : levelChange === 'moon' && number > VISIBLE_MOONS ? 'shown under More moons' : '';
+  return { number, note };
 }
 
 /**
@@ -289,10 +385,18 @@ function resolveTarget(under) {
   const kind = drag.path.kind;
   if (drag.choices && under.closest('.drop-choices')) {
     const choice = under.closest('.drop-choice');
+    if (choice?.dataset.action) return levelTarget(choice);
+    disarm();
     return choice ? siblingTarget(choice)
       : { status: 'choose', node: drag.choices.sibling, path: drag.choices.path };
   }
+  disarm();
   const tagged = under.closest('[data-kind]');
+  // Only a sun's own circle (or the tray's New planet row) offers a moon the change
+  // into a planet; the orbit and stage around it never do. Team suns show why not.
+  if (kind === 'moon' && tagged?.dataset.kind === 'sun' && tagged.matches('.home-hub, .detail-hub, .tray-new-planet')) {
+    return { status: 'choose', node: tagged, path: pathOf(tagged) };
+  }
   if (tagged && groups[Number(tagged.dataset.sun)]?.team) return { status: 'none' };
   let node = tagged;
   // A whole Galaxy card stands in for its sun when suns are being reordered.
@@ -306,6 +410,8 @@ function resolveTarget(under) {
   // The whole orbit stands in for its sun, so a planet does not need a precise drop.
   if (!node && want === 'sun') {
     node = under.closest('.home-orbit, .detail-stage')?.querySelector('.home-hub, .detail-hub') || null;
+    // The empty space of a team sun's orbit is read-only too.
+    if (node && groups[Number(node.dataset.sun)]?.team) return { status: 'none' };
   }
   if (!node) return { status: 'none' };
   const path = pathOf(node);
@@ -406,7 +512,14 @@ function updateDrag(x, y) {
   drag.target = target;
   const hint = drag.preview.querySelector('.drag-hint');
   drag.preview.classList.toggle('drag-preview-valid', target.status === 'valid');
-  if (target.status === 'valid' && target.sibling) {
+  if (target.status === 'valid' && target.levelChange) {
+    target.node.classList.add('drop-target');
+    const result = mapOps.changeItemLevel(groups, drag.path, target.path);
+    const { number, note } = result.status === 'moved' ? levelPlace(result, target.levelChange) : { number: 0, note: '' };
+    hint.textContent = note ? `Make ${drag.item.name} ${target.levelChange} ${number} of ${nameAt(target.path)} (${note})`
+      : `Make ${drag.item.name} a ${target.levelChange} of ${nameAt(target.path)}`;
+    announce(`${hint.textContent}. Release to change it.`);
+  } else if (target.status === 'valid' && target.sibling) {
     target.node.classList.add('drop-target');
     target.sibling.classList.add(`insert-${target.path.place}`);
     hint.textContent = `Insert ${target.path.place} ${nameAt(target.path)}, ${target.position}`;
@@ -419,8 +532,19 @@ function updateDrag(x, y) {
     target.node.classList.add('drop-same');
     hint.textContent = target.sibling ? 'Already in this position' : `Already in ${nameAt(target.path)}`;
   } else if (target.status === 'choose') {
-    hint.textContent = `Choose Before or After ${nameAt(target.path)}`;
-    announce(`Beside ${target.path.kind} ${nameAt(target.path)}. Choose Before or After.`);
+    const name = nameAt(target.path);
+    const option = drag.choices?.option;
+    if (drag.choices?.convertOnly) {
+      hint.textContent = option.enabled ? `Hold on Make it a planet of ${name}` : option.text;
+      announce(`On sun ${name}. ${option.enabled ? `Hold on Make it a planet of ${name}, or move away.` : `${option.text}.`}`);
+    } else if (option) {
+      hint.textContent = option.enabled ? `Choose Before or After ${name}, or hold on Make it a moon` : `Choose Before or After ${name}`;
+      announce(option.enabled ? `Beside planet ${name}. Choose Before, After, or Make it a moon of ${name}.`
+        : `Beside planet ${name}. Choose Before or After. ${option.text}.`);
+    } else {
+      hint.textContent = `Choose Before or After ${name}`;
+      announce(`Beside ${target.path.kind} ${name}. Choose Before or After.`);
+    }
   } else {
     hint.textContent = DRAG_HELP[drag.path.kind];
   }
@@ -437,6 +561,7 @@ function refreshDrag() {
 function endGesture(wasDragging) {
   const gesture = drag;
   clearTimeout(gesture.dwellTimer);
+  clearTimeout(gesture.arm?.timer);
   for (const timer of gesture.closing.values()) clearTimeout(timer);
   if (wasDragging) hideChoices();
   drag = null;
@@ -486,10 +611,13 @@ function commitMove(gesture, target) {
   if (gesture.revision !== store.state().revision || mapOps.mapItemAt(groups, gesture.path) !== gesture.item) {
     return announce('The link map changed during the drag, so nothing was moved.', true);
   }
-  const result = mapOps.moveMapItem(groups, gesture.path, target.path);
+  const result = target.levelChange ? mapOps.changeItemLevel(groups, gesture.path, target.path)
+    : mapOps.moveMapItem(groups, gesture.path, target.path);
   if (result.status !== 'moved') return announce('That is not a place this item can go. Nothing changed.');
   const previous = groups;
-  const where = target.path.place ? `${target.path.place} ${nameAt(target.path)}` : `to ${nameAt(target.path)}`;
+  const where = target.levelChange ? `to ${nameAt(target.path)} as a ${target.levelChange}`
+    : target.path.place ? `${target.path.place} ${nameAt(target.path)}` : `to ${nameAt(target.path)}`;
+  const place = target.levelChange ? levelPlace(result, target.levelChange) : null;
   const label = `${gesture.path.kind} ${gesture.item.name} ${where}`;
   try {
     keepingScroll(() => store.saveMap({ groups: result.groups }, `Moved ${label}`));
@@ -498,7 +626,7 @@ function commitMove(gesture, target) {
   }
   dragUndo = { groups: previous, revision: store.state().revision, token: storageToken(), label };
   updateEditBar();
-  announce(`Moved ${label}.`);
+  announce(`Moved ${label}.${place?.note ? ` It's ${target.levelChange} ${place.number} (${place.note}).` : ''}`);
   focusPath(result.path);
 }
 
@@ -594,7 +722,9 @@ export function installDrag() {
       announce(target.sibling ? `${gesture.item.name} is already in that position. Nothing changed.`
         : `${gesture.item.name} is already in ${nameAt(target.path)}. Nothing changed.`);
     } else if (target?.status === 'choose') {
-      announce(`Choose Before or After to place ${gesture.item.name} beside ${nameAt(target.path)}. Nothing changed.`);
+      announce(target.path.kind !== gesture.path.kind
+        ? `Hold on Make it a planet of ${nameAt(target.path)} to change ${gesture.item.name} into a planet. Nothing changed.`
+        : `Choose Before or After to place ${gesture.item.name} beside ${nameAt(target.path)}. Nothing changed.`);
     }
     else announce('That was not a drop target. Nothing changed.');
   });
