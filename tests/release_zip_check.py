@@ -4,7 +4,7 @@
     python tests/release_zip_check.py --version 3.0.1 --url http://127.0.0.1:8000/index.html --cdp http://127.0.0.1:9333
 
 The page loads with the bundled sample map (as many suns and links as its links-data.js holds), Edit mode switches on,
-About shows the version, there are no page errors, and the release defines no test hook.
+About shows the version, Inter loads from the zip's own fonts folder, there are no page errors, and the release defines no test hook.
 scripts/edge/zip-check.sh runs it in Chromium here and in Edge on the test VM.
 """
 import argparse
@@ -34,6 +34,11 @@ def main():
           ORBIT_DATA.groups.reduce((n, sun) => n + sun.links.reduce((m, planet) => m + Number(planet.type !== "group") + (planet.moons || []).length, 0), 0)]""")
         count = page.locator("#link-count").inner_text()
         assert page.locator(".home-hub").count() == suns and f"{suns} SUNS" in count and f"{links} LINKS" in count, count
+        # The zip's own fonts/ folder supplies Inter (a zip without it falls back silently).
+        page.wait_for_function("document.fonts.status === 'loaded'")
+        inter = page.evaluate("""() => ({ loaded: [...document.fonts].some(face => face.family.replace(/["']/g, '') === 'Inter' && face.status === 'loaded'),
+          family: getComputedStyle(document.querySelector('.hub-name')).fontFamily })""")
+        assert inter["loaded"] and inter["family"].startswith("Inter"), f"Inter loads from the zip's fonts folder: {inter}"
         page.locator("#edit-toggle").click()
         assert page.locator("#edit-toggle").get_attribute("aria-pressed") == "true", "Edit mode switches on"
         page.locator("#edit-done").click()
@@ -43,7 +48,7 @@ def main():
         assert args.version in about, f"About shows {args.version}: {about}"
         assert page.evaluate("typeof window.OrbitTest") == "undefined", "the release has no test hook"
         assert not errors, errors
-        print(f"PASS release zip: {suns} suns, {links} links, Edit mode, About shows {args.version}, no test hook ({args.url})")
+        print(f"PASS release zip: {suns} suns, {links} links, Inter, Edit mode, About shows {args.version}, no test hook ({args.url})")
         page.close()
         if not args.cdp:
             browser.close()

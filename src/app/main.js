@@ -17,6 +17,7 @@ import * as menu from '../ui/menu/menu.js';
 import { installRoutineOffers } from '../ui/notices/routine-offer.js';
 import { installTooltip } from '../ui/tooltip.js';
 import { setVersion } from '../ui/page.js';
+import { readFontFamily } from '../state/prefs.js';
 import { modes } from '../ui/page-modes.js';
 import { installMapEditButtons } from '../ui/views/edit-buttons.js';
 import { installClicks } from '../ui/views/clicks.js';
@@ -25,6 +26,10 @@ import { render } from '../ui/views/render.js';
 import * as schedule from '../services/schedule.js';
 
 setVersion(APP_VERSION);
+
+// The font choice goes on the page's root at once, while the <head> loads, so the
+// browser never lays text out (or downloads) in the other font first.
+document.documentElement.dataset.fontFamily = readFontFamily();
 
 // Calls lower screen modules make into higher ones.
 hooks.render = render;

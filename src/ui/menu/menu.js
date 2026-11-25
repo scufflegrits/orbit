@@ -13,7 +13,7 @@ import { modes } from '../page-modes.js';
 import { store } from '../../state/page-store.js';
 import { team } from '../team-map.js';
 import { workspaceSettings } from './workspaces.js';
-import { activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowEditButtons, setShowQuickBar, setShowSiteIcons, settingsTrigger, showEditButtons, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
+import { activeFontFamily, activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontFamily, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowEditButtons, setShowQuickBar, setShowSiteIcons, settingsTrigger, showEditButtons, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
 
 /** The element that opened the menu, to refocus when it closes. @type {HTMLElement | null} */
 let menuOpener = null;
@@ -47,6 +47,21 @@ export function openMenu() {
   menuContent.replaceChildren();
   for (const option of document.querySelectorAll('[data-menu-panel]')) option.classList.remove('active');
   /** @type {HTMLElement} */ (document.querySelector('[data-menu-panel]')).focus();
+}
+
+/**
+ * Switch the font. Planet and moon circles are sized by measuring labels in
+ * the current font, so wait for the new faces to load, then draw again (render
+ * lays the orbits out anew).
+ * @param {'inter' | 'classic'} family
+ */
+async function applyFontFamily(family) {
+  setActiveFontFamily(family);
+  document.documentElement.dataset.fontFamily = family;
+  prefs.savePreference('orbit:font-family', family);
+  const faces = family === 'classic' ? ['600 16px "Space Grotesk"', '16px "DM Sans"'] : ['600 16px Inter', '16px Inter'];
+  try { await Promise.all(faces.map(face => document.fonts.load(face))); } catch { /* Draw with what loaded. */ }
+  hooks.render();
 }
 
 /** @param {string} name Settings, Help, or About. */
@@ -85,6 +100,21 @@ export function showMenuPanel(name) {
     });
     themeRow.append(themeCopy, themeSelect);
     menuContent.append(themeRow);
+    const familyRow = element('label', 'setting-row');
+    const familyCopy = element('span', 'setting-copy');
+    familyCopy.append(element('strong', '', 'Font'));
+    familyCopy.append(element('small', '', 'Inter, or Orbit classic: DM Sans with Space Grotesk labels'));
+    const familySelect = document.createElement('select');
+    familySelect.setAttribute('aria-label', 'Font');
+    for (const [value, label] of [['inter', 'Inter (default)'], ['classic', 'Orbit classic (DM Sans and Space Grotesk)']]) {
+      const option = element('option', '', label);
+      option.value = value;
+      familySelect.append(option);
+    }
+    familySelect.value = activeFontFamily;
+    familySelect.addEventListener('change', () => applyFontFamily(/** @type {'inter' | 'classic'} */ (familySelect.value)));
+    familyRow.append(familyCopy, familySelect);
+    menuContent.append(familyRow);
     const fontRow = element('label', 'setting-row');
     const fontCopy = element('span', 'setting-copy');
     fontCopy.append(element('strong', '', 'Font size'));

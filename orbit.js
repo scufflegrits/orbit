@@ -574,7 +574,7 @@ prompt for credentials:i:1\r
     );
     return allowed.includes(value) ? value : fallback;
   }
-  var readButtonTips = () => readChoice("orbit:button-tips", ["normal", "slow", "off"], "normal"), readTheme = () => readChoice("orbit:theme", ["default", "alabama", "auburn"], "default"), readFontSize = () => readChoice("orbit:font-size", ["small", "standard", "large", "extra"], "standard"), readGalaxyView = () => readSafely("orbit:galaxy-view") === "list" ? "list" : "orbits", readRdpLaunch = () => readSafely("orbit:rdp-launch") === "client" ? "client" : "download";
+  var readButtonTips = () => readChoice("orbit:button-tips", ["normal", "slow", "off"], "normal"), readTheme = () => readChoice("orbit:theme", ["default", "alabama", "auburn"], "default"), readFontFamily = () => readChoice("orbit:font-family", ["inter", "classic"], "inter"), readFontSize = () => readChoice("orbit:font-size", ["small", "standard", "large", "extra"], "standard"), readGalaxyView = () => readSafely("orbit:galaxy-view") === "list" ? "list" : "orbits", readRdpLaunch = () => readSafely("orbit:rdp-launch") === "client" ? "client" : "download";
   function readStoredSet(key) {
     let list = readJson(key, []);
     return new Set(Array.isArray(list) ? list.map(String) : []);
@@ -1296,11 +1296,12 @@ prompt for credentials:i:1\r
   function dataSourceLabel() {
     return activeMapSource === "browser" ? "Browser edits" : "Bundled project data";
   }
-  var animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", showEditButtons = !0, activeTheme = "default", activeFontSize = "standard", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
+  var animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", showEditButtons = !0, activeTheme = "default", activeFontSize = "standard", activeFontFamily = "inter", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
   function readPreferences() {
-    animationsEnabled = readBoolean("orbit:animations", !0), alwaysShowMoons = readBoolean("orbit:always-show-moons", !1), activeTheme = readTheme(), buttonTips = readButtonTips(), showEditButtons = readBoolean("orbit:edit-buttons", !0), activeFontSize = readFontSize(), rdpLaunchMode = readRdpLaunch(), showQuickBar = readBoolean("orbit:quick-bar", !0), showSiteIcons = readBoolean("orbit:site-icons", !1), galaxyView = readGalaxyView();
+    animationsEnabled = readBoolean("orbit:animations", !0), alwaysShowMoons = readBoolean("orbit:always-show-moons", !1), activeTheme = readTheme(), buttonTips = readButtonTips(), showEditButtons = readBoolean("orbit:edit-buttons", !0), activeFontSize = readFontSize(), activeFontFamily = /** @type {'inter' | 'classic'} */
+    readFontFamily(), rdpLaunchMode = readRdpLaunch(), showQuickBar = readBoolean("orbit:quick-bar", !0), showSiteIcons = readBoolean("orbit:site-icons", !1), galaxyView = readGalaxyView();
     let root = document.documentElement.dataset;
-    root.animations = animationsEnabled ? "on" : "off", root.moons = alwaysShowMoons ? "always" : "hover", root.theme = activeTheme, root.fontSize = activeFontSize;
+    root.animations = animationsEnabled ? "on" : "off", root.moons = alwaysShowMoons ? "always" : "hover", root.theme = activeTheme, root.fontSize = activeFontSize, root.fontFamily = activeFontFamily;
   }
   function setAnimationsEnabled(on) {
     animationsEnabled = on;
@@ -1319,6 +1320,9 @@ prompt for credentials:i:1\r
   }
   function setActiveFontSize(size) {
     activeFontSize = size;
+  }
+  function setActiveFontFamily(family) {
+    activeFontFamily = family;
   }
   function setRdpLaunchMode(mode) {
     rdpLaunchMode = mode;
@@ -2512,6 +2516,15 @@ prompt for credentials:i:1\r
       document.querySelector("[data-menu-panel]").focus();
     }
   }
+  async function applyFontFamily(family) {
+    setActiveFontFamily(family), document.documentElement.dataset.fontFamily = family, savePreference("orbit:font-family", family);
+    let faces = family === "classic" ? ['600 16px "Space Grotesk"', '16px "DM Sans"'] : ["600 16px Inter", "16px Inter"];
+    try {
+      await Promise.all(faces.map((face) => document.fonts.load(face)));
+    } catch {
+    }
+    hooks.render();
+  }
   function showMenuPanel(name) {
     modes.send("choosePanel"), menuContent.replaceChildren();
     for (
@@ -2541,6 +2554,18 @@ prompt for credentials:i:1\r
           themeSelect.value
         ), document.documentElement.dataset.theme = activeTheme, savePreference("orbit:theme", activeTheme);
       }), themeRow.append(themeCopy, themeSelect), menuContent.append(themeRow);
+      let familyRow = element("label", "setting-row"), familyCopy = element("span", "setting-copy");
+      familyCopy.append(element("strong", "", "Font")), familyCopy.append(element("small", "", "Inter, or Orbit classic: DM Sans with Space Grotesk labels"));
+      let familySelect = document.createElement("select");
+      familySelect.setAttribute("aria-label", "Font");
+      for (let [value, label] of [["inter", "Inter (default)"], ["classic", "Orbit classic (DM Sans and Space Grotesk)"]]) {
+        let option = element("option", "", label);
+        option.value = value, familySelect.append(option);
+      }
+      familySelect.value = activeFontFamily, familySelect.addEventListener("change", () => applyFontFamily(
+        /** @type {'inter' | 'classic'} */
+        familySelect.value
+      )), familyRow.append(familyCopy, familySelect), menuContent.append(familyRow);
       let fontRow = element("label", "setting-row"), fontCopy = element("span", "setting-copy");
       fontCopy.append(element("strong", "", "Font size")), fontCopy.append(element("small", "", "Text size throughout Orbit"));
       let fontSelect = document.createElement("select");
@@ -5042,6 +5067,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
 
   // src/app/main.js
   setVersion(APP_VERSION);
+  document.documentElement.dataset.fontFamily = readFontFamily();
   hooks.render = render;
   hooks.refreshQuickBar = refreshQuickBar;
   hooks.openMenu = openMenu;

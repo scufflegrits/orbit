@@ -51,3 +51,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Fonts
+
+Orbit ships three fonts in `fonts/`, all under the **SIL Open Font License, Version 1.1**. Each font's copyright notice and the full licence text are in the `-LICENSE.txt` file beside it, copied verbatim from its source; they ship together in the release zip.
+
+| File | Font | Source and version | SHA-256 | Licence file |
+| --- | --- | --- | --- | --- |
+| `fonts/Inter.woff2` | Inter (variable, weights 100–900), Orbit's default | `rsms/inter` tag `v4.1`, `docs/font-files/InterVariable.woff2` | `693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3` | `fonts/Inter-LICENSE.txt` |
+| `fonts/DMSans.woff2` | DM Sans (variable, Latin), Orbit classic body text | npm `@fontsource-variable/dm-sans` 5.3.0, `files/dm-sans-latin-wght-normal.woff2` (Google Fonts build of `googlefonts/dm-fonts`) | `9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543` | `fonts/DMSans-LICENSE.txt` |
+| `fonts/SpaceGrotesk.woff2` | Space Grotesk (variable, Latin), Orbit classic labels and headings | npm `@fontsource-variable/space-grotesk` 5.3.0, `files/space-grotesk-latin-wght-normal.woff2` (Google Fonts build of `floriankarsten/space-grotesk`) | `0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d` | `fonts/SpaceGrotesk-LICENSE.txt` |
+
+Copyright lines: Inter, Copyright (c) 2016 The Inter Project Authors; DM Sans, Copyright 2014 The DM Sans Project Authors; Space Grotesk, Copyright 2020 The Space Grotesk Project Authors.
+

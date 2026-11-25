@@ -214,6 +214,8 @@ Escape dismisses a visible button tip, then closes the command palette or menu. 
 
 Click the cog on the Galaxy or any System to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
 
+The **Font** setting offers **Inter**, the default, and **Orbit classic**: DM Sans for text with Space Grotesk for labels and headings. Both ship with Orbit in `fonts/`, so Orbit looks the same on every computer and works offline. Your choice is saved in this browser.
+
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
 Circle labels use a shared size for each level across the Galaxy, and long names wrap inside their circles. Moons have larger circles and text; other interface text grows slightly on wide desktop screens.
 
@@ -258,4 +260,4 @@ Using Orbit needs no build or install: open `index.html`. Changing its code need
 
 ## Credits
 
-Icons: [Lucide](https://lucide.dev) (ISC), including icons derived from Feather (MIT). Their licence notices are in [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+Icons: [Lucide](https://lucide.dev) (ISC), including icons derived from Feather (MIT). Fonts: [Inter](https://rsms.me/inter/) (the default), and DM Sans and Space Grotesk (Orbit classic), all under the SIL Open Font License 1.1; each font's licence is beside it in `fonts/`. All notices are in [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).

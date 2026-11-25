@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { oracle } from '../../tests/oracle/oracle.mjs';
 import { KEYS, MIGRATIONS, memoryStorage, migrate, onExternalChange, readJson, useBackend, write, writeSafely } from './storage.js';
 import { loadWorkspaces, newWorkspace, readActiveWorkspace, renameWorkspace, workspaceKey, workspaceName } from './workspaces.js';
-import { hiddenTeamSuns, markOffered, offeredIn, readBoolean, readButtonTips, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
+import { hiddenTeamSuns, markOffered, offeredIn, readBoolean, readFontFamily, readButtonTips, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
 import { HISTORY_LIMIT, loadHistory, recordHistory } from './history.js';
 import { countChange, forgetWorkspace, noteBackupMade, readBackupState } from './backup.js';
 
@@ -226,4 +226,14 @@ test('backup: counts changes per workspace, resets on export, and forgets a remo
   assert.deepEqual(Object.keys(readBackupState()), ['main']);
   storage.setItem('orbit:backup:v1', 'null');
   assert.deepEqual(readBackupState(), {});
+});
+
+test('prefs: the font is Inter unless Orbit classic was chosen; anything else falls back to Inter', () => {
+  assert.equal(readFontFamily(), 'inter', 'missing: Inter, so existing users get it after the update');
+  storage.setItem('orbit:font-family', 'classic');
+  assert.equal(readFontFamily(), 'classic');
+  for (const junk of ['comic', '', 'Inter', 'CLASSIC']) {
+    storage.setItem('orbit:font-family', junk);
+    assert.equal(readFontFamily(), 'inter', junk);
+  }
 });

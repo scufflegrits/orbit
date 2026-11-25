@@ -2187,12 +2187,78 @@ def f39_level_change(ctx):
     print(f"PASS F39 change level ({mode})")
 
 
+# ---- F40 Fonts: Inter by default, Orbit classic as the alternative -------------------
+
+LOADED_FONTS = "() => [...document.fonts].filter(face => face.status === 'loaded').map(face => face.family.replace(/[\"']/g, '')).sort()"
+SPLIT_LABELS = r"""() => [...document.querySelectorAll('.home-satellite, .moon-link')].flatMap(node => {
+  const text = [...node.childNodes].find(child => child.nodeType === Node.TEXT_NODE);
+  if (!text) return [];
+  return [...text.data.matchAll(/\S+/g)].filter(match => {
+    const range = document.createRange();
+    range.setStart(text, match.index);
+    range.setEnd(text, match.index + match[0].length);
+    return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size > 1;
+  }).map(match => match[0]);
+})"""
+
+
+def f40_fonts(ctx):
+    """Inter is the default, loaded from Orbit's own fonts/ folder; Settings > Font offers Orbit classic."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    page.wait_for_function("document.fonts.status === 'loaded'")
+    family = lambda selector: page.locator(selector).first.evaluate("node => getComputedStyle(node).fontFamily")
+    size = lambda: page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--home-planet-size').trim()")
+    check(family(".hub-name").startswith("Inter") and family("body").startswith("Inter"),
+          f"{mode}: Inter is the default ({family('.hub-name')!r}, {family('body')!r})")
+    check(page.evaluate(LOADED_FONTS) == ["Inter"], f"{mode}: only Inter is loaded ({page.evaluate(LOADED_FONTS)})")
+    check(page.evaluate("document.fonts.check('600 16px Inter')"), f"{mode}: Inter is ready to draw")
+    if mode == "server":
+        # Over http the browser records each file it fetched (a file:// page may not).
+        fonts = page.evaluate("performance.getEntriesByType('resource').map(entry => entry.name).filter(name => /\\.woff2?$/.test(name))")
+        check(len(fonts) == 1 and fonts[0].endswith("/fonts/Inter.woff2"), f"{mode}: Inter comes from Orbit's own fonts folder ({fonts})")
+    inter_size = size()
+
+    # Settings > Font > Orbit classic: DM Sans and Space Grotesk, and the circles are measured again.
+    open_settings(page)
+    font = page.get_by_label("Font", exact=True)
+    check(font.input_value() == "inter" and font.locator("option").all_inner_texts() == ["Inter (default)", "Orbit classic (DM Sans and Space Grotesk)"],
+          f"{mode}: the Font setting offers Inter and Orbit classic ({font.locator('option').all_inner_texts()})")
+    font.select_option("classic")
+    page.wait_for_function("document.documentElement.dataset.fontFamily === 'classic'")
+    page.wait_for_function("[...document.fonts].some(face => face.family.includes('Space Grotesk') && face.status === 'loaded')")
+    page.wait_for_timeout(300)
+    close_menu(page)
+    check(family(".hub-name").startswith('"Space Grotesk"') and family("body").startswith('"DM Sans"'),
+          f"{mode}: classic uses Space Grotesk and DM Sans ({family('.hub-name')!r}, {family('body')!r})")
+    switched_size = size()
+    check(page.evaluate(SPLIT_LABELS) == [], f"{mode}: after switching, no label splits a word ({page.evaluate(SPLIT_LABELS)})")
+    check(page.evaluate("localStorage.getItem('orbit:font-family')") == "classic", f"{mode}: the choice is saved")
+
+    # A reload keeps classic and measures the circles exactly as the switch did.
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    page.wait_for_function("document.fonts.status === 'loaded'")
+    page.wait_for_timeout(300)
+    check(page.evaluate("document.documentElement.dataset.fontFamily") == "classic" and size() == switched_size,
+          f"{mode}: a reload keeps classic with the same circle size ({size()} vs {switched_size}; Inter was {inter_size})")
+    check(page.evaluate(LOADED_FONTS) == ["DM Sans", "Space Grotesk"], f"{mode}: classic doesn't load Inter ({page.evaluate(LOADED_FONTS)})")
+
+    # An unknown saved value falls back to Inter.
+    page.evaluate("localStorage.setItem('orbit:font-family', 'comic')")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.evaluate("document.documentElement.dataset.fontFamily") == "inter" and family(".hub-name").startswith("Inter"),
+          f"{mode}: an unknown value falls back to Inter")
+    print(f"PASS F40 fonts ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
           f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
-          f38_lucide_icons, f39_level_change)
+          f38_lucide_icons, f39_level_change, f40_fonts)
 
 
 def run_checks(make_ctx, only):

@@ -1,6 +1,21 @@
+/* Fonts ship in fonts/ (see docs/THIRD_PARTY_NOTICES.md): Inter by default, and
+   Orbit classic (DM Sans for body text, Space Grotesk for labels and headings) from
+   Settings > Font. A browser downloads a face only when text uses it. */
+@font-face { font-family: 'Inter'; src: url('fonts/Inter.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('fonts/DMSans.woff2') format('woff2'); font-weight: 100 1000; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Space Grotesk'; src: url('fonts/SpaceGrotesk.woff2') format('woff2'); font-weight: 300 700; font-style: normal; font-display: swap; }
+:root {
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+}
+html[data-font-family='classic'] {
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+}
+
 :root {
   color-scheme: dark;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--font-body);
   --page-bg: #0b1020;
   --surface: #141d32;
   --surface-input: #0e1628;
@@ -151,7 +166,7 @@ button:focus-visible, a:focus-visible {
   align-items: center;
   flex: none;
   gap: 11px;
-  font: 700 calc(26px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 700 calc(26px * var(--font-scale)) var(--font-display);
   letter-spacing: -.08em;
   text-decoration: none;
 }
@@ -245,12 +260,12 @@ button:focus-visible, a:focus-visible {
   border-radius: 12px;
   background: color-mix(in srgb, var(--theme-accent) 5%, transparent);
   color: var(--muted-strong);
-  font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(13px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .menu-option:hover, .menu-option.active { border-color: var(--theme-accent); background: color-mix(in srgb, var(--theme-accent) 14%, transparent); color: var(--text); }
 .menu-content { min-height: 26px; padding-top: 22px; color: var(--muted); font-size: calc(13px * var(--font-scale)); line-height: 1.65; }
-.menu-content h3 { margin: 0 0 12px; color: var(--text); font: 600 calc(20px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.menu-content h3 { margin: 0 0 12px; color: var(--text); font: 600 calc(20px * var(--font-scale)) var(--font-display); }
 .menu-content p { margin-bottom: 11px; }
 .menu-content .data-source { color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
 /* The workspace fills the window exactly: the tree and pane scroll, not the sheet or the page. */
@@ -260,7 +275,7 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
 .editor-page-mode .menu-content { flex: 1; min-height: 0; padding-top: 0; }
 .editor-page-layout { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); gap: 20px; height: 100%; }
 .editor-tree, .editor-pane { min-height: 0; overflow-y: auto; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--page-bg); }
-.editor-tree-item { display: block; width: 100%; margin: 0 0 5px; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-strong); text-align: left; font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif; cursor: pointer; overflow-wrap: anywhere; }
+.editor-tree-item { display: block; width: 100%; margin: 0 0 5px; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-strong); text-align: left; font: 600 calc(12px * var(--font-scale)) var(--font-display); cursor: pointer; overflow-wrap: anywhere; }
 .editor-tree-item:hover, .editor-tree-item:focus-visible { border-color: var(--theme-accent); color: var(--text); background: var(--hover-base); }
 .editor-tree-sun { color: var(--text); font-size: calc(14px * var(--font-scale)); }
 .editor-tree-planet { padding-left: 26px; }
@@ -302,7 +317,7 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
   border-radius: 9px;
   background: var(--surface-input);
   color: var(--text);
-  font: calc(12px * var(--font-scale)) 'DM Sans', system-ui, sans-serif;
+  font: calc(12px * var(--font-scale)) var(--font-body);
   cursor: pointer;
 }
 .rdp-setup {
@@ -324,7 +339,7 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
   border-radius: 10px;
   background: color-mix(in srgb, var(--theme-accent) 6%, transparent);
   color: var(--muted-strong);
-  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .editor-open:hover, .editor-button:hover, .editor-back:hover { border-color: var(--theme-accent); color: var(--text); }
@@ -400,7 +415,7 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
   border-radius: 9px;
   background: var(--surface-input);
   color: var(--text);
-  font: calc(13px * var(--font-scale)) 'DM Sans', system-ui, sans-serif;
+  font: calc(13px * var(--font-scale)) var(--font-body);
 }
 .editor-field textarea { min-height: 72px; resize: vertical; }
 .editor-hint { color: var(--subtle); font-size: calc(11px * var(--font-scale)); }
@@ -455,7 +470,7 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
 .rdp-dropzone { padding: 24px; border: 1px dashed var(--theme-accent); border-radius: 12px; background: color-mix(in srgb, var(--theme-accent) 5%, transparent); color: var(--muted-strong); text-align: center; }
 .rdp-batch-preview { margin-top: 12px; }
 .rdp-batch-list { max-height: 240px; overflow-y: auto; padding-left: 22px; color: var(--muted-strong); }
-.editor-section-title { margin: 22px 0 10px; color: var(--text); font: 600 calc(16px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.editor-section-title { margin: 22px 0 10px; color: var(--text); font: 600 calc(16px * var(--font-scale)) var(--font-display); }
 .editor-list { display: grid; gap: 8px; }
 .editor-list-row {
   display: flex;
@@ -492,7 +507,7 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
   border-radius: 17px;
   background: color-mix(in srgb, var(--theme-accent) 8%, transparent);
   color: var(--muted-strong);
-  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -542,7 +557,7 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
   border-radius: 9px;
   background: color-mix(in srgb, var(--theme-accent) 6%, transparent);
   color: var(--muted-strong);
-  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .edit-bar-button:hover { border-color: var(--theme-accent); color: var(--text); }
@@ -560,7 +575,7 @@ html.dragging, html.dragging * { cursor: grabbing !important; user-select: none;
   border: 1px dashed var(--theme-accent);
   border-radius: 9px;
   color: var(--theme-accent);
-  font: 600 calc(11px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(11px * var(--font-scale)) var(--font-display);
 }
 
 /* Room above the first row, so moons of a top planet clear the top bar and
@@ -590,7 +605,7 @@ html[data-edit='on'] .group-grid { margin-top: calc(104px + var(--galaxy-fan-roo
   background: var(--surface);
   box-shadow: 0 10px 34px rgba(0, 0, 0, .45);
   color: var(--text);
-  font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(13px * var(--font-scale)) var(--font-display);
   pointer-events: none;
 }
 .drag-hint { color: var(--muted); font-weight: 500; font-size: calc(12px * var(--font-scale)); }
@@ -694,7 +709,7 @@ html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-link 
   border-radius: 9px;
   background: var(--page-bg);
   color: var(--text);
-  font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(13px * var(--font-scale)) var(--font-display);
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -721,7 +736,7 @@ html[data-edit='on'] .home-orbit.drag-open .planet-cluster.drag-open .moon-link 
 .tray-empty, .tray-hint { margin: 8px 12px 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
 
 .local-badge, .link-count, .eyebrow, .hub-count, .detail-index {
-  font: 700 calc(10px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 700 calc(10px * var(--font-scale)) var(--font-display);
   letter-spacing: .17em;
 }
 
@@ -749,7 +764,7 @@ main { flex: 1; }
 
 h1, h2, p { margin-top: 0; }
 
-h1, h2 { font-family: 'Space Grotesk', sans-serif; }
+h1, h2 { font-family: var(--font-display); }
 
 .intro-copy {
   max-width: 510px;
@@ -903,7 +918,7 @@ html[data-theme='auburn'] .detail-stage {
     0 14px 70px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-.hub-name { max-width: 100%; font: 600 calc(20px * var(--user-font-scale) * var(--sun-label-fit, 1))/1.08 'Space Grotesk', sans-serif; letter-spacing: -.05em; overflow-wrap: anywhere; }
+.hub-name { max-width: 100%; font: 600 calc(20px * var(--user-font-scale) * var(--sun-label-fit, 1))/1.08 var(--font-display); letter-spacing: -.05em; overflow-wrap: anywhere; }
 .hub-count { margin-top: 5px; color: var(--accent); font-size: calc(9px * var(--font-scale)); }
 
 .home-satellite, .detail-satellite, .more-link, .moon-link, .overflow-moon-link {
@@ -918,7 +933,7 @@ html[data-theme='auburn'] .detail-stage {
   color: var(--text);
   text-align: center;
   text-decoration: none;
-  font: 600 max(calc(11px * var(--font-scale)), calc(clamp(11px, .65vw, 13px) * var(--font-scale) * var(--planet-label-fit, 1)))/1.2 'Space Grotesk', sans-serif;
+  font: 600 max(calc(11px * var(--font-scale)), calc(clamp(11px, .65vw, 13px) * var(--font-scale) * var(--planet-label-fit, 1)))/1.2 var(--font-display);
   overflow-wrap: anywhere;
   cursor: pointer;
 }
@@ -1024,7 +1039,7 @@ html[data-moons='always'] .group-card:has(.home-orbit:is(:hover, :focus-within) 
   padding: 12px;
 }
 
-.detail-hub-name { max-width: 100%; font: 600 calc(clamp(22px, 1.6vw, 30px) * var(--font-scale) * var(--sun-label-fit, 1))/1.08 'Space Grotesk', sans-serif; letter-spacing: -.055em; overflow-wrap: anywhere; text-align: center; }
+.detail-hub-name { max-width: 100%; font: 600 calc(clamp(22px, 1.6vw, 30px) * var(--font-scale) * var(--sun-label-fit, 1))/1.08 var(--font-display); letter-spacing: -.055em; overflow-wrap: anywhere; text-align: center; }
 .detail-hub-sub { margin-top: 4px; font-size: calc(10px * var(--font-scale)); color: var(--accent); }
 
 .detail-planet-cluster {
@@ -1139,7 +1154,7 @@ html[data-moons='always'] .planet-cluster.pinned > .moon-field {
   min-width: 50px;
   transform: translateX(-50%);
   color: var(--accent);
-  font: 700 calc(8px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 700 calc(8px * var(--font-scale)) var(--font-display);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -1278,7 +1293,7 @@ html[data-animations='off'] *::after {
   border: 1px solid color-mix(in srgb, var(--accent, var(--theme-accent)) 60%, transparent);
   border-radius: 8px;
   color: var(--accent, var(--theme-accent));
-  font: 700 calc(8px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 700 calc(8px * var(--font-scale)) var(--font-display);
   letter-spacing: .12em;
 }
 .team-card .home-hub { border-style: dashed; }
@@ -1286,7 +1301,7 @@ html[data-animations='off'] *::after {
 /* Favorites and recent links above the Galaxy. */
 .quick-bar { display: grid; gap: 10px; width: min(1100px, 100%); margin: 26px auto 0; }
 .quick-row { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.quick-label { flex: none; width: 76px; margin: 0; color: var(--subtle); font: 600 calc(11px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.quick-label { flex: none; width: 76px; margin: 0; color: var(--subtle); font: 600 calc(11px * var(--font-scale)) var(--font-display); }
 .quick-chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .quick-chip {
   max-width: 240px;
@@ -1296,7 +1311,7 @@ html[data-animations='off'] *::after {
   border-radius: 16px;
   background: var(--surface);
   color: var(--text);
-  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
   text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1327,7 +1342,7 @@ html[data-animations='off'] *::after {
   border: 1px solid var(--line);
   border-radius: 7px;
   color: var(--muted);
-  font: 600 calc(10px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(10px * var(--font-scale)) var(--font-display);
 }
 
 /* Open a planet with its moons, in a System. */
@@ -1339,7 +1354,7 @@ html[data-animations='off'] *::after {
   border-radius: 14px;
   background: transparent;
   color: var(--muted-strong);
-  font: 600 calc(11px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(11px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .open-all-button:hover, .open-all-button:focus-visible { border-color: var(--theme-accent); color: var(--text); }
@@ -1365,7 +1380,7 @@ html[data-animations='off'] *::after {
 .list-note { color: var(--muted); }
 .list-sun { padding: 14px 18px; border: 1px solid var(--line); border-left: 3px solid var(--sun-accent); border-radius: 14px; background: var(--surface); }
 .list-sun-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; cursor: pointer; }
-.list-sun-name { color: var(--text); font: 600 calc(18px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.list-sun-name { color: var(--text); font: 600 calc(18px * var(--font-scale)) var(--font-display); }
 .list-count { color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
 .list-sun-head .team-mark { --accent: var(--sun-accent); margin-top: 0; }
 .list-open { margin-left: auto; color: var(--theme-accent); font-size: calc(12px * var(--font-scale)); }
@@ -1378,7 +1393,7 @@ html[data-animations='off'] *::after {
   border: 0;
   background: none;
   color: var(--text);
-  font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(13px * var(--font-scale)) var(--font-display);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -1415,7 +1430,7 @@ html[data-animations='off'] *::after {
   border-radius: 12px;
   background: var(--page-bg);
   color: var(--text);
-  font: 500 calc(16px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 500 calc(16px * var(--font-scale)) var(--font-display);
 }
 .palette-input:focus { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
 .palette-list { min-height: 0; margin: 10px 0 0; padding: 0; overflow-y: auto; list-style: none; }
@@ -1443,7 +1458,7 @@ html[data-animations='off'] *::after {
   border-radius: 12px;
   background: transparent;
   color: var(--muted-strong);
-  font: 600 calc(11px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(11px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .tag-button:hover, .tag-button:focus-visible { border-color: var(--theme-accent); color: var(--text); }
@@ -1464,7 +1479,7 @@ html[data-animations='off'] *::after {
   border-radius: 16px;
   background: transparent;
   color: var(--theme-accent);
-  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .quick-open-all:hover, .quick-open-all:focus-visible { background: color-mix(in srgb, var(--theme-accent) 14%, transparent); color: var(--text); }
@@ -1480,14 +1495,14 @@ html[data-animations='off'] *::after {
   border-radius: 14px;
   background: color-mix(in srgb, var(--theme-accent) 10%, var(--surface));
 }
-.routine-offer-copy { flex: 1; margin: 0; color: var(--text); font: 600 calc(14px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.routine-offer-copy { flex: 1; margin: 0; color: var(--text); font: 600 calc(14px * var(--font-scale)) var(--font-display); }
 .routine-offer-open, .routine-offer-dismiss {
   padding: 7px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: transparent;
   color: var(--muted-strong);
-  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .routine-offer-open { border-color: var(--theme-accent); background: color-mix(in srgb, var(--theme-accent) 22%, transparent); color: var(--text); }
@@ -1500,7 +1515,7 @@ html[data-animations='off'] *::after {
 .routine-day { margin: 0; }
 .routine-choices { display: grid; gap: 10px; max-height: 46vh; overflow-y: auto; padding-right: 6px; }
 .routine-sun { margin: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; }
-.routine-sun legend { padding: 0 6px; color: var(--text); font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.routine-sun legend { padding: 0 6px; color: var(--text); font: 600 calc(12px * var(--font-scale)) var(--font-display); }
 .routine-choice { margin: 3px 0; }
 .routine-choice[hidden] { display: none; }
 .routine-row .editor-button { flex: none; }
@@ -1522,7 +1537,7 @@ html[data-animations='off'] *::after {
   border-radius: 17px;
   background: color-mix(in srgb, var(--theme-accent) 8%, var(--surface));
   color: var(--text);
-  font: 600 calc(12px * var(--font-scale)) 'Space Grotesk', sans-serif;
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
   cursor: pointer;
 }
 .workspace-add { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 6px; }
@@ -1531,7 +1546,7 @@ html[data-animations='off'] *::after {
 .workspace-hint { color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
 
 .variable-form { gap: 10px; }
-.variable-title { margin: 0; color: var(--text); font: 600 calc(18px * var(--font-scale)) 'Space Grotesk', sans-serif; }
+.variable-title { margin: 0; color: var(--text); font: 600 calc(18px * var(--font-scale)) var(--font-display); }
 .variable-address, .variable-preview { margin: 0; color: var(--muted); font: 500 calc(12px * var(--font-scale)) ui-monospace, monospace; overflow-wrap: anywhere; }
 .variable-preview { color: var(--theme-accent); }
 
@@ -1540,8 +1555,8 @@ html[data-animations='off'] *::after {
 .list-note-text { color: var(--subtle); font-weight: 500; font-size: calc(11px * var(--font-scale)); }
 
 .empty-galaxy { display: grid; justify-items: center; gap: 10px; margin: 80px auto; text-align: center; color: var(--muted); }
-.empty-galaxy h1 { margin: 0; color: var(--text); font: 600 calc(28px * var(--font-scale)) 'Space Grotesk', sans-serif; }
-.empty-galaxy .editor-primary { padding: 8px 16px; border-radius: 10px; font: 600 calc(13px * var(--font-scale)) 'Space Grotesk', sans-serif; cursor: pointer; }
+.empty-galaxy h1 { margin: 0; color: var(--text); font: 600 calc(28px * var(--font-scale)) var(--font-display); }
+.empty-galaxy .editor-primary { padding: 8px 16px; border-radius: 10px; font: 600 calc(13px * var(--font-scale)) var(--font-display); cursor: pointer; }
 .preset-settings { min-height: 120px; font-family: ui-monospace, monospace; }
 
 .map-item-actions {

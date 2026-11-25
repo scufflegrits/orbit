@@ -3,7 +3,7 @@
 // by app/start.js's subscriber, exactly once per change), the display
 // preferences, and Quick find's text. Screens import these as live bindings;
 // only the setters here change them. Moved in rewrite phase 8.
-import { readBoolean, readButtonTips, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
+import { readBoolean, readButtonTips, readFontFamily, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
 import { hooks } from './hooks.js';
 import { icon } from './icons.js';
 import { modes } from './page-modes.js';
@@ -83,6 +83,8 @@ export let buttonTips = 'normal';
 export let showEditButtons = true;
 export let activeTheme = 'default';
 export let activeFontSize = 'standard';
+/** @type {'inter' | 'classic'} */
+export let activeFontFamily = 'inter';
 /** @type {'download'|'client'} */
 export let rdpLaunchMode = 'download';
 export let showQuickBar = true;
@@ -98,6 +100,7 @@ export function readPreferences() {
   buttonTips = readButtonTips();
   showEditButtons = readBoolean('orbit:edit-buttons', true);
   activeFontSize = readFontSize();
+  activeFontFamily = /** @type {'inter' | 'classic'} */ (readFontFamily());
   rdpLaunchMode = readRdpLaunch();
   showQuickBar = readBoolean('orbit:quick-bar', true);
   showSiteIcons = readBoolean('orbit:site-icons', false);
@@ -107,6 +110,7 @@ export function readPreferences() {
   root.moons = alwaysShowMoons ? 'always' : 'hover';
   root.theme = activeTheme;
   root.fontSize = activeFontSize;
+  root.fontFamily = activeFontFamily;
 }
 
 /** @param {boolean} on */
@@ -129,6 +133,8 @@ export function setShowEditButtons(on) {
 export function setActiveTheme(theme) { activeTheme = theme; }
 /** @param {string} size */
 export function setActiveFontSize(size) { activeFontSize = size; }
+/** @param {'inter' | 'classic'} family */
+export function setActiveFontFamily(family) { activeFontFamily = family; }
 /** @param {'download'|'client'} mode */
 export function setRdpLaunchMode(mode) { rdpLaunchMode = mode; }
 /** @param {boolean} on */

@@ -36,6 +36,8 @@ function readChoice(key, allowed, fallback) {
 
 export const readButtonTips = () => readChoice('orbit:button-tips', ['normal', 'slow', 'off'], 'normal');
 export const readTheme = () => readChoice('orbit:theme', ['default', 'alabama', 'auburn'], 'default');
+/** The font: Inter (the default) or Orbit classic (DM Sans and Space Grotesk). */
+export const readFontFamily = () => readChoice('orbit:font-family', ['inter', 'classic'], 'inter');
 export const readFontSize = () => readChoice('orbit:font-size', ['small', 'standard', 'large', 'extra'], 'standard');
 export const readGalaxyView = () => readSafely('orbit:galaxy-view') === 'list' ? 'list' : 'orbits';
 export const readRdpLaunch = () => readSafely('orbit:rdp-launch') === 'client' ? 'client' : 'download';

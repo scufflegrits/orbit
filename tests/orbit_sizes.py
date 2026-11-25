@@ -253,6 +253,24 @@ def run_mode(page, url, mode):
     check(landed == moon.inner_text(), f"{mode}: the pointer lands on the moon after the pencil")
     print(f"PASS OS11 pencil leaves the moons reachable ({mode})")
 
+    # OS12: with Orbit classic (DM Sans and Space Grotesk) chosen before the page loads,
+    # Galaxy planet labels still keep their words whole and share one size.
+    page.evaluate("localStorage.setItem('orbit:font-family', 'classic')")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    page.wait_for_function("document.fonts.status === 'loaded'")
+    page.wait_for_timeout(300)
+    check(page.evaluate("document.documentElement.dataset.fontFamily") == "classic", f"{mode}: Orbit classic is in use")
+    page.mouse.move(*center(page.locator(".home-hub").first))
+    node(page, ".home-satellite", 0, 0).wait_for(state="visible")
+    page.wait_for_timeout(450)
+    split = page.evaluate(WORD_SPLITS, ".home-satellite")
+    check(split == [], f"{mode}: classic planet words stay whole (split: {split})")
+    sizes = set(page.evaluate("[...document.querySelectorAll('.home-satellite')].map(n => n.offsetWidth)"))
+    check(len(sizes) == 1, f"{mode}: classic planets share one size ({sizes})")
+    page.evaluate("localStorage.removeItem('orbit:font-family')")
+    print(f"PASS OS12 Orbit classic labels ({mode})")
+
 
 def main():
     parser = argparse.ArgumentParser()

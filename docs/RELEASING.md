@@ -26,7 +26,8 @@ These steps release a new version of Orbit: they set the version, test it, tag i
 | `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates `links-data.js` (and `team-data.js` with `--team`) |
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
 | `README.md`, `CHANGELOG.md`, `docs/RDP_SIGNING.md` | Instructions for the person using Orbit, and what changed in each version |
-| `docs/THIRD_PARTY_NOTICES.md` | The licence notices for the Lucide icons inside `orbit.js` (their licences require shipping them) |
+| `docs/THIRD_PARTY_NOTICES.md` | The licence notices for the Lucide icons inside `orbit.js` and the bundled fonts (their licences require shipping them) |
+| `fonts/` | The fonts (Inter, and DM Sans and Space Grotesk for Orbit classic), each with its licence file. Without it Orbit falls back to system fonts |
 
 Left out: `src/`, `scripts/`, `tests/`, `package.json`, `package-lock.json`, `jsconfig.json`, the rest of `docs/` (the handoff, test matrix, these release steps, and `docs/plans/`), `.gitignore`, `.gitattributes`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped. A few links in `README.md` and `CHANGELOG.md` point to planning docs that stay in the repository; they don't work inside the zip, which is expected.
 
@@ -75,7 +76,7 @@ VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" "v$VERSION" -- \
   index.html styles.css links.json links-data.js orbit.js \
-  serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md
+  serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md fonts
 ```
 
 **Windows (PowerShell):**
@@ -85,7 +86,7 @@ $Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" "v$Version" -- `
   index.html styles.css links.json links-data.js orbit.js `
-  serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md
+  serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md fonts
 ```
 
 The zip is written to an `orbit-dist` folder beside the project, so it never ends up inside the repository. If the command says the tag doesn't exist, step 3 wasn't done. An existing zip of the same version is overwritten without asking, so don't reuse a version number for a different build.

@@ -50,7 +50,8 @@ Since 3.0.0 the app is ES modules in `src/`, bundled by `scripts/build.mjs` into
 
 | Path | Purpose |
 | --- | --- |
-| `index.html`, `styles.css` | Page shell; layout, animations, responsive rules, themes (Default, Red, Blue) |
+| `index.html`, `styles.css` | Page shell; layout, animations, responsive rules, themes (Default, Red, Blue); fonts through `--font-body` / `--font-display` (Inter, or `html[data-font-family='classic']`) |
+| `fonts/` | Bundled fonts (Inter, DM Sans, Space Grotesk), each with its OFL licence file; loaded by relative `@font-face` URLs, which work from `file://` (tested in Edge and Chromium) |
 | `orbit.js` | The built app (`npm run build`); never edit by hand |
 | `links.json` / `links-data.js` | Bundled map, and its generated copy for file mode |
 | `serve.py` / `sync.py` | Local server (with `POST /api/check-links`) / data generator |
@@ -103,11 +104,11 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | --- | --- | --- |
 | `tests/browser_matrix.py` | Milestones 1–14, 18, 19 (`--milestone N`, `--only-new`, `--repeat N`) | 39 passed |
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 31 passed (phase 2, with DD18) |
-| `tests/orbit_sizes.py` | OS01–OS06, OS08–OS11 at 1920×1080 | 21 passed |
+| `tests/orbit_sizes.py` | OS01–OS06, OS08–OS12 at 1920×1080 | 23 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F39, no F05 | 77 passed (both modes), with F39 for level changes |
+| `tests/features.py` | F01–F40, no F05 | 79 passed (both modes), with F40 for the fonts |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date, icon data matches Lucide (`check:icons`) | passed |
-| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 206 passed |
+| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 207 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
 | `tests/data_compat_check.py` | The 2.2 storage fixture reads back as recorded | passed |

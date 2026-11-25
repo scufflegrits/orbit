@@ -113,6 +113,8 @@ def write_fixture(directory, data):
     fixture = Path(directory)
     for name in ("index.html", "styles.css", *APP_SCRIPTS):
         shutil.copy2(ROOT / name, fixture / name)
+    # The bundled fonts (Inter, and Orbit classic) load from fonts/ beside index.html.
+    shutil.copytree(ROOT / "fonts", fixture / "fonts", dirs_exist_ok=True)
     shutil.copy2(test_bundle(), fixture / BUNDLE)
     (fixture / "links.json").write_text(json.dumps(data))
     (fixture / "links-data.js").write_text("window.ORBIT_DATA = " + json.dumps(data) + ";\n")

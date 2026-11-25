@@ -4,6 +4,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ## Unreleased
 
+- **Changed:** Orbit now ships its fonts and uses **Inter** by default, so it looks the same on every computer (before, Windows showed Segoe UI and Arial in place of fonts that weren't installed). Settings → **Font** offers **Orbit classic** (DM Sans and Space Grotesk).
 - **Added:** change a moon into a planet, or a planet without moons into a moon, by drag and drop in Edit mode: pause a moon on a sun's circle and hold on **Make it a planet**, or drag a planet onto another planet and hold on **Make it a moon**. Just passing over these choices never changes anything. Edit links has **Make it a planet of…** and **Make it a moon of…** under Move too.
 - Buttons and markers use [Lucide](https://lucide.dev) icons instead of text symbols (✎ ⤓ ↑ ↓ ☰ ⚙ × ★ and others), so they look the same in every browser and follow the theme color. A favorite's star is filled.
 - Grouped the Edit links tools and moved **Add sun** and **Add a link** above the sun list.
