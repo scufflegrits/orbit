@@ -27,7 +27,7 @@ Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and t
 ## Private material — never commit, copy, print, or quote
 
 - `tests/rdptest01.rdp` — the user's connection data. Keep it untracked and off the VM.
-- `private/` — gitignored private notes (including `request-observations.md`).
+- `private/` — gitignored private notes (including `request-notes-observations.md`).
 - The VM's password. Use the SSH key only.
 - Never expose Edge's remote-debugging port on a public VM interface; tunnel it over SSH.
 
