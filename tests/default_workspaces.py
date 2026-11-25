@@ -58,7 +58,7 @@ def run_mode(page, mode, url, legacy):
         page.locator(".home-hub").first.wait_for()
         check(page.locator(".home-hub").count() == 6, f"{mode}: edits survive reload")
         page.locator("#settings-trigger").click()
-        page.get_by_role("button", name="Settings", exact=True).click()
+        page.locator("#menu-overlay").get_by_role("button", name="Settings", exact=True).click()
         if not mode.startswith("Edge"):
             page.screenshot(path=str(ARTIFACTS / f"f42-{mode}-workspace-settings.png"), full_page=True)
         page.get_by_role("button", name="Edit links", exact=True).click()
@@ -68,7 +68,7 @@ def run_mode(page, mode, url, legacy):
               f"{mode}: default reset deletes the saved copy")
         page.locator("#menu-close").click()
         page.locator("#settings-trigger").click()
-        page.get_by_role("button", name="Settings", exact=True).click()
+        page.locator("#menu-overlay").get_by_role("button", name="Settings", exact=True).click()
         page.locator(".workspace-row").filter(has_text="Dev Toolbox").get_by_role("button", name="Remove").click()
         check(page.evaluate("JSON.parse(localStorage.getItem('orbit:workspaces:removed:v1')).includes('dev-toolbox')"),
               f"{mode}: removed default stays removed")

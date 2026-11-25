@@ -6,6 +6,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ### Changed
 
+- The cog opens Settings directly. Help and About are tabs beside it.
 - Group planets show their links on hover, like a planet’s moons. Clicking one keeps them open, and an accent ring marks the pinned group.
 
 ### Added

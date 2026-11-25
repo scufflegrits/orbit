@@ -13,7 +13,7 @@ import { refreshBackdrop } from '../ui/backdrop/backdrop.js';
 import { gestureEnded, showEditMode } from '../ui/drag/drag.js';
 import { paletteClosed, paletteOpened } from '../ui/find/palette.js';
 import { variableFormClosed, variableFormOpened } from '../ui/dialogs/placeholder.js';
-import { closeMenu, menuHidden, openMenu, showMenuPanel } from '../ui/menu/menu.js';
+import { closeMenu, menuHidden, openSettings, showMenuPanel } from '../ui/menu/menu.js';
 import { updateWorkspaceSwitch } from '../ui/menu/workspaces.js';
 import { showDevToolboxMovedNotice } from '../ui/notices/dev-toolbox-moved.js';
 import { showBackupReminder } from '../ui/notices/backup.js';
@@ -103,7 +103,7 @@ export function start() {
     if (location.hash && location.hash !== '#') location.hash = '';
     else render();
   });
-  page.settingsTrigger.addEventListener('click', openMenu);
+  page.settingsTrigger.addEventListener('click', openSettings);
   page.viewToggle.addEventListener('click', () => page.setGalaxyView(page.galaxyView === 'list' ? 'orbits' : 'list'));
   /** @type {HTMLElement} */ (document.querySelector('#menu-close')).addEventListener('click', closeMenu);
   /** @type {HTMLElement} */ (document.querySelector('#menu-scrim')).addEventListener('click', closeMenu);

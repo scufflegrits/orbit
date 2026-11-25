@@ -218,7 +218,7 @@ Escape dismisses a visible button tip, then closes the command palette or menu. 
 
 ## Settings and help
 
-Click the cog on the Galaxy or any System to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
+Click the cog (**Settings**) in the Galaxy or any System to open Settings. Use the **Help** or **About** tab to switch panels. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
 
 The **Background** setting offers **None** and **Constellations**. Constellations animates particles that drift and connect around the pointer. **Particles** adjusts their strength. Both choices are saved in this browser. Turning off **Animations** or enabling your operating system's reduced-motion setting freezes the background. The **Aurora** theme adds a dark violet palette.
 

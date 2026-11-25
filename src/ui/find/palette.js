@@ -8,7 +8,7 @@ import { counted, element, tagChips } from '../dom.js';
 import { showQuickAdd, typedAddress } from '../editor/quick-add.js';
 import { openEditorAt, openEditorPage } from '../editor/page.js';
 import { showRoutineEditor, showRoutines } from '../editor/tools/routines.js';
-import { openMenu, showMenuPanel } from '../menu/menu.js';
+import { openMenu, openSettings, showMenuPanel } from '../menu/menu.js';
 import { switchWorkspace } from '../menu/workspaces.js';
 import { activeWorkspace, store } from '../../state/page-store.js';
 import * as workspaces from '../../state/workspaces.js';
@@ -40,7 +40,7 @@ let paletteOpener = null;
 function paletteCommands() {
   return [
     { label: modes.inEditMode() ? 'Turn off Edit mode' : 'Turn on Edit mode', run: () => setEditMode(!modes.inEditMode()) },
-    { label: 'Open Settings', run: () => { openMenu(); showMenuPanel('Settings'); } },
+    { label: 'Open Settings', run: openSettings },
     { label: 'Edit links', run: () => { openMenu(); openEditorPage(); } },
     { label: 'Help', run: () => { openMenu(); showMenuPanel('Help'); } },
     { label: galaxyView === 'list' ? 'Show the Galaxy as orbits' : 'Show the Galaxy as a list',

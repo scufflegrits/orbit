@@ -91,7 +91,7 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 **Sizing.** `fitOrbitSizes` measures labels with a canvas and grows each level's circle until no word splits, up to a per-level max, then shrinks only that label (to 60% at most). Sizes are shared map-wide as CSS variables. Up to six moons orbit a planet (`VISIBLE_MOONS`); `layoutMoonField` fans them and clips the hover field.
 
-**Keyboard.** Escape order: a visible button tip, palette, then menu, then drag, then Edit mode, then Quick find, then leaving a System. **E** opens the focused map item in the editor. `src/ui/views/edit-buttons.js` handles the hover pencil and focus restoration for both entry points.
+**Keyboard.** The cog opens Settings and focuses its tab. Escape order: a visible button tip, palette, then menu, then drag, then Edit mode, then Quick find, then leaving a System. **E** opens the focused map item in the editor. `src/ui/views/edit-buttons.js` handles the hover pencil and focus restoration for both entry points.
 
 **Server security.** `POST /api/check-links` requires a same-origin Host/Origin, a JSON body, and an `X-Orbit-Check: 1` header.
 

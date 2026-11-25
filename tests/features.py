@@ -1347,12 +1347,13 @@ def f26_presets(ctx):
     page.get_by_label("Preset name", exact=True).fill("Big screen")
     page.get_by_label("Display", exact=True).select_option(label="Full screen")
     page.get_by_label("Use all monitors", exact=True).check()
-    check(page.get_by_label("Settings", exact=True).input_value() == "screen mode id:i:2\nuse multimon:i:1",
+    settings = page.get_by_role("textbox", name="Settings", exact=True)
+    check(settings.input_value() == "screen mode id:i:2\nuse multimon:i:1",
           f"{mode}: choices write the settings")
-    page.get_by_label("Settings", exact=True).fill("screen mode id:i:2\nuse multimon:i:1\npassword 51:b:SECRET")
+    settings.fill("screen mode id:i:2\nuse multimon:i:1\npassword 51:b:SECRET")
     page.get_by_role("button", name="Add preset").click()
     check("never stores credentials" in page.locator(".editor-error").inner_text(), f"{mode}: passwords are refused")
-    page.get_by_label("Settings", exact=True).fill("screen mode id:i:2\nuse multimon:i:1\nfull address:s:ignored")
+    settings.fill("screen mode id:i:2\nuse multimon:i:1\nfull address:s:ignored")
     page.get_by_role("button", name="Add preset").click()
     presets = json.loads(saved_map(page))["rdpPresets"]
     check(presets == [{"id": "big-screen", "name": "Big screen", "settings": "screen mode id:i:2\r\nuse multimon:i:1"}],

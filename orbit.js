@@ -2705,6 +2705,9 @@ prompt for credentials:i:1\r
       document.querySelector("[data-menu-panel]").focus();
     }
   }
+  function openSettings() {
+    openMenu(), modes.menuOpen() && showMenuPanel("Settings");
+  }
   async function applyFontFamily(family) {
     setActiveFontFamily(family), document.documentElement.dataset.fontFamily = family, savePreference("orbit:font-family", family);
     let faces = family === "classic" ? ['600 16px "Space Grotesk"', '16px "DM Sans"'] : ["600 16px Inter", "16px Inter"];
@@ -3988,9 +3991,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   function paletteCommands() {
     return [
       { label: modes.inEditMode() ? "Turn off Edit mode" : "Turn on Edit mode", run: () => setEditMode(!modes.inEditMode()) },
-      { label: "Open Settings", run: () => {
-        openMenu(), showMenuPanel("Settings");
-      } },
+      { label: "Open Settings", run: openSettings },
       { label: "Edit links", run: () => {
         openMenu(), openEditorPage();
       } },
@@ -4246,7 +4247,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
       modes.send("pageChange"), render2();
     }), document.querySelector(".brand").addEventListener("click", (event) => {
       event.preventDefault(), quickFind.value = "", setFindQuery(""), location.hash && location.hash !== "#" ? location.hash = "" : render2();
-    }), settingsTrigger.addEventListener("click", openMenu), viewToggle.addEventListener("click", () => setGalaxyView(galaxyView === "list" ? "orbits" : "list")), document.querySelector("#menu-close").addEventListener("click", closeMenu), document.querySelector("#menu-scrim").addEventListener("click", closeMenu);
+    }), settingsTrigger.addEventListener("click", openSettings), viewToggle.addEventListener("click", () => setGalaxyView(galaxyView === "list" ? "orbits" : "list")), document.querySelector("#menu-close").addEventListener("click", closeMenu), document.querySelector("#menu-scrim").addEventListener("click", closeMenu);
     for (
       let option of
       /** @type {NodeListOf<HTMLElement>} */

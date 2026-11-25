@@ -125,23 +125,53 @@ def run(page, url, mode):
     rule("MR02", "In a System, Escape turns Edit mode off, then returns to the Galaxy",
          step1 == (False, True) and not in_system(page), f"after 1st Escape edit={step1[0]} system={step1[1]}")
 
-    # MR03: the menu opens with no panel; it blocks Ctrl+K and /; Escape closes it.
+    # MR03: the cog opens Settings, which blocks Ctrl+K and / and closes on Escape.
     fresh(page, url)
-    page.locator("#settings-trigger").click()
-    no_panel = page.locator("[data-menu-panel].active").count() == 0
+    cog = page.locator("#settings-trigger")
+    settings_tab = page.locator('[data-menu-panel="Settings"]')
+    heading = page.locator("#menu-content h3")
+    named = cog.get_attribute("title") == "Settings" and page.get_by_role(
+        "button", name="Settings", exact=True).and_(cog).count() == 1
+
+    def settings_shown():
+        return (menu_open(page) and settings_tab.evaluate("el => el.matches('.active:focus')") and
+                heading.all_text_contents() == ["Settings"])
+
+    cog.click()
+    first_open = settings_shown()
     page.keyboard.press("Control+k")
     page.keyboard.press("/")
     blocked = not palette_open(page) and page.evaluate("document.activeElement.id") != "quick-find"
     page.keyboard.press("Escape")
-    rule("MR03", "The menu opens with no panel, refuses Ctrl+K and /, and closes on Escape",
-         no_panel and blocked and not menu_open(page), f"no_panel={no_panel} blocked={blocked} open={menu_open(page)}")
+    closed = not menu_open(page) and cog.evaluate("el => el === document.activeElement")
+    cog.click()
+    page.locator('[data-menu-panel="Help"]').click()
+    help_shown = heading.all_text_contents() == ["Help"]
+    page.keyboard.press("Escape")
+    cog.press("Enter")
+    reopened = settings_shown()
+    page.keyboard.press("Escape")
+    page.keyboard.press("Control+k")
+    page.keyboard.type("Open Settings")
+    page.keyboard.press("Enter")
+    from_palette = settings_shown()
+    page.keyboard.press("Escape")
+    rule("MR03", "The cog opens Settings, refuses Ctrl+K and /, and closes on Escape",
+         named and first_open and blocked and closed and help_shown and reopened and from_palette,
+         f"named={named} settings={first_open} blocked={blocked} closed={closed} "
+         f"help={help_shown} reopened={reopened} palette={from_palette}")
 
     # MR04: Edit mode stays on when the menu opens.
     set_edit(page, True)
     page.locator("#settings-trigger").click()
     stays = edit_on(page)
     page.keyboard.press("Escape")
-    rule("MR04", "Edit mode stays on when the menu opens", stays and edit_on(page))
+    page.locator("#edit-open-editor").click()
+    direct_editor = (menu_open(page) and page.locator(".editor-tree").is_visible() and
+                     page.locator(".menu-top h2").inner_text() == "Edit your Galaxy")
+    page.keyboard.press("Escape")
+    rule("MR04", "Edit mode stays on and its Edit links button opens the editor directly",
+         stays and direct_editor and edit_on(page))
     set_edit(page, False)
 
     # MR05: the palette opens with Ctrl+K and Escape closes only the palette.

@@ -50,6 +50,11 @@ export function openMenu() {
   /** @type {HTMLElement} */ (document.querySelector('[data-menu-panel]')).focus();
 }
 
+export function openSettings() {
+  openMenu();
+  if (modes.menuOpen()) showMenuPanel('Settings');
+}
+
 /**
  * Switch the font. Planet and moon circles are sized by measuring labels in
  * the current font, so wait for the new faces to load, then draw again (render
