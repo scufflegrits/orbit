@@ -2272,6 +2272,20 @@ CANVAS_STATS = """([x, y, radius]) => {
 }"""
 
 
+def backdrop_ignores_pointer(page, stats, label):
+    """With motion off, moving the pointer changes neither the canvas nor the glow."""
+    glow = lambda: page.evaluate("(() => { const b = document.querySelector('.backdrop'); return [b.hasAttribute('data-pointer'), b.style.getPropertyValue('--cx'), b.style.getPropertyValue('--cy')]; })()")
+    before_canvas, before_glow = stats(), glow()
+    box = page.viewport_size
+    page.mouse.move(box["width"] * 0.3, box["height"] * 0.6, steps=6)
+    page.mouse.move(box["width"] * 0.7, box["height"] * 0.4, steps=6)
+    page.wait_for_timeout(300)
+    after_canvas, after_glow = stats(), glow()
+    check(before_canvas["sum"] == after_canvas["sum"], f"{label}: moving the pointer leaves the still frame unchanged")
+    check(not after_glow[0] and after_glow[1:] == before_glow[1:],
+          f"{label}: the pointer glow stays off and doesn't follow the pointer ({before_glow} → {after_glow})")
+
+
 def f41_backdrop(ctx):
     """Background None by default; Constellations draws behind Orbit, follows the pointer, freezes on request."""
     page, mode = ctx.page, ctx.mode
@@ -2323,6 +2337,7 @@ def f41_backdrop(ctx):
     page.wait_for_timeout(200)
     a, b = stats(), (page.wait_for_timeout(350), stats())[1]
     check(a["lit"] > 50 and a["sum"] == b["sum"], f"{mode}: Animations off leaves a still frame")
+    backdrop_ignores_pointer(page, stats, f"{mode}: Animations off")
     open_settings(page)
     page.get_by_label("Animations", exact=True).check()
     close_menu(page)
@@ -2335,7 +2350,25 @@ def f41_backdrop(ctx):
     page.wait_for_timeout(200)
     a, b = stats(), (page.wait_for_timeout(350), stats())[1]
     check(a["lit"] > 50 and a["sum"] == b["sum"], f"{mode}: reduced motion leaves a still frame")
+    backdrop_ignores_pointer(page, stats, f"{mode}: reduced motion")
     page.emulate_media(reduced_motion="no-preference")
+
+    # An open menu holds the background still: the blobs pause where they are, then resume.
+    blobs = """() => [...document.querySelectorAll('.backdrop .blob')].map(b => {
+      const s = getComputedStyle(b); return [s.animationPlayState, s.transform]; })"""
+    open_settings(page)
+    page.wait_for_timeout(200)
+    first = page.evaluate(blobs)
+    page.wait_for_timeout(400)
+    second = page.evaluate(blobs)
+    check(len(first) == 4 and all(state == "paused" for state, _ in first) and first == second,
+          f"{mode}: the blobs stop drifting behind an open menu ({first[0]})")
+    close_menu(page)
+    page.wait_for_timeout(200)
+    first = page.evaluate(blobs)
+    page.wait_for_timeout(400)
+    second = page.evaluate(blobs)
+    check(all(state == "running" for state, _ in first) and first != second, f"{mode}: the blobs drift again once the menu closes")
 
     # Particles: Subtle is fainter than Bold.
     peaks = {}

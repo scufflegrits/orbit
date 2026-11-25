@@ -34,6 +34,17 @@ let menuWasOpen = false;
 
 const still = () => !animationsEnabled || reducedMotion();
 const paused = () => still() || document.hidden || modes.menuOpen();
+/** The pointer only shapes the background while it moves: with motion off or a menu open it's ignored. */
+const activePointer = () => (paused() ? null : pointer);
+
+/** Show the pointer's glow only while the background moves, and pause the blobs under a menu. */
+function syncLayerState() {
+  if (!layer) return;
+  if (paused()) delete layer.dataset.pointer;
+  else if (pointer) layer.dataset.pointer = '';
+  if (modes.menuOpen()) layer.dataset.menu = '';
+  else delete layer.dataset.menu;
+}
 
 function build() {
   layer = element('div', 'backdrop');
@@ -83,9 +94,9 @@ function line(x1, y1, x2, y2, alpha) {
 function render() {
   if (!canvas || !g) return;
   const k = strength(particleStrength);
-  const activePointer = paused() ? null : pointer;
-  const px = activePointer?.x ?? -1e4;
-  const py = activePointer?.y ?? -1e4;
+  const reach = activePointer();
+  const px = reach?.x ?? -1e4;
+  const py = reach?.y ?? -1e4;
   g.clearRect(0, 0, width, height);
   g.strokeStyle = g.fillStyle = getComputedStyle(canvas).color;
   for (let i = 0; i < parts.length; i++) {
@@ -96,10 +107,10 @@ function render() {
       const alpha = linkAlpha(Math.hypot(a.x - b.x, a.y - b.y));
       if (alpha) line(a.x, a.y, b.x, b.y, alpha * k);
     }
-    const reach = pointerAlpha(Math.hypot(a.x - px, a.y - py));
-    if (reach) {
+    const toPointer = pointerAlpha(Math.hypot(a.x - px, a.y - py));
+    if (toPointer) {
       g.lineWidth = 1.25;
-      line(a.x, a.y, px, py, reach * k);
+      line(a.x, a.y, px, py, toPointer * k);
     }
   }
   for (const p of parts) {
@@ -118,7 +129,7 @@ function loop(now) {
   if (!layer) return;
   const dt = last ? frameDt(now - last) : 0;
   last = now;
-  if (!paused()) step(parts, dt, pointer, width, height);
+  if (!paused()) step(parts, dt, activePointer(), width, height);
   render();
   if (paused()) last = 0;
   else frame = requestAnimationFrame(loop);
@@ -131,6 +142,7 @@ export function refreshBackdrop() {
     return;
   }
   if (!layer) build();
+  syncLayerState();
   cancelAnimationFrame(frame);
   last = 0;
   frame = requestAnimationFrame(loop);
@@ -145,12 +157,12 @@ export function installBackdrop() {
   });
   addEventListener('pointermove', event => {
     pointer = { x: event.clientX, y: event.clientY };
-    if (!layer) return;
+    // While paused (Animations off, reduced motion, a menu, a hidden tab) the
+    // pointer changes nothing: no glow, no lines, no redraw.
+    if (!layer || paused()) return;
     layer.style.setProperty('--cx', `${event.clientX}px`);
     layer.style.setProperty('--cy', `${event.clientY}px`);
     layer.dataset.pointer = '';
-    // A still frame redraws so the pointer's constellation still shows.
-    if (paused() && !frame) frame = requestAnimationFrame(loop);
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => {
     pointer = null;

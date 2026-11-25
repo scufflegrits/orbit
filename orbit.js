@@ -1331,7 +1331,10 @@ prompt for credentials:i:1\r
   ] ?? 1;
 
   // src/ui/backdrop/backdrop.js
-  var reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches, layer = null, canvas = null, g = null, parts = [], width = 0, height = 0, pointer = null, last = 0, frame = 0, menuWasOpen = !1, still = () => !animationsEnabled || reducedMotion(), paused = () => still() || document.hidden || modes.menuOpen();
+  var reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches, layer = null, canvas = null, g = null, parts = [], width = 0, height = 0, pointer = null, last = 0, frame = 0, menuWasOpen = !1, still = () => !animationsEnabled || reducedMotion(), paused = () => still() || document.hidden || modes.menuOpen(), activePointer = () => paused() ? null : pointer;
+  function syncLayerState() {
+    layer && (paused() ? delete layer.dataset.pointer : pointer && (layer.dataset.pointer = ""), modes.menuOpen() ? layer.dataset.menu = "" : delete layer.dataset.menu);
+  }
   function build() {
     layer = element("div", "backdrop"), layer.setAttribute("aria-hidden", "true");
     for (let index of [1, 2, 3, 4]) layer.append(element("div", `blob blob-${index}`));
@@ -1358,7 +1361,7 @@ prompt for credentials:i:1\r
   }
   function render() {
     if (!canvas || !g) return;
-    let k = strength(particleStrength), activePointer = paused() ? null : pointer, px = activePointer?.x ?? -1e4, py = activePointer?.y ?? -1e4;
+    let k = strength(particleStrength), reach = activePointer(), px = reach?.x ?? -1e4, py = reach?.y ?? -1e4;
     g.clearRect(0, 0, width, height), g.strokeStyle = g.fillStyle = getComputedStyle(canvas).color;
     for (let i = 0; i < parts.length; i++) {
       let a = parts[i];
@@ -1367,8 +1370,8 @@ prompt for credentials:i:1\r
         let b = parts[j], alpha = linkAlpha(Math.hypot(a.x - b.x, a.y - b.y));
         alpha && line(a.x, a.y, b.x, b.y, alpha * k);
       }
-      let reach = pointerAlpha(Math.hypot(a.x - px, a.y - py));
-      reach && (g.lineWidth = 1.25, line(a.x, a.y, px, py, reach * k));
+      let toPointer = pointerAlpha(Math.hypot(a.x - px, a.y - py));
+      toPointer && (g.lineWidth = 1.25, line(a.x, a.y, px, py, toPointer * k));
     }
     for (let p of parts) {
       let { alpha, radius } = dotStyle(Math.hypot(p.x - px, p.y - py), p.r);
@@ -1379,20 +1382,20 @@ prompt for credentials:i:1\r
   function loop(now2) {
     if (frame = 0, !layer) return;
     let dt = last ? frameDt(now2 - last) : 0;
-    last = now2, paused() || step(parts, dt, pointer, width, height), render(), paused() ? last = 0 : frame = requestAnimationFrame(loop);
+    last = now2, paused() || step(parts, dt, activePointer(), width, height), render(), paused() ? last = 0 : frame = requestAnimationFrame(loop);
   }
   function refreshBackdrop() {
     if (backgroundMode !== "constellations") {
       layer && remove2();
       return;
     }
-    layer || build(), cancelAnimationFrame(frame), last = 0, frame = requestAnimationFrame(loop);
+    layer || build(), syncLayerState(), cancelAnimationFrame(frame), last = 0, frame = requestAnimationFrame(loop);
   }
   function installBackdrop() {
     addEventListener("resize", () => {
       layer && (resize(), refreshBackdrop());
     }), addEventListener("pointermove", (event) => {
-      pointer = { x: event.clientX, y: event.clientY }, layer && (layer.style.setProperty("--cx", `${event.clientX}px`), layer.style.setProperty("--cy", `${event.clientY}px`), layer.dataset.pointer = "", paused() && !frame && (frame = requestAnimationFrame(loop)));
+      pointer = { x: event.clientX, y: event.clientY }, !(!layer || paused()) && (layer.style.setProperty("--cx", `${event.clientX}px`), layer.style.setProperty("--cy", `${event.clientY}px`), layer.dataset.pointer = "");
     }, { passive: !0 }), document.documentElement.addEventListener("pointerleave", () => {
       pointer = null, layer && delete layer.dataset.pointer;
     }), document.addEventListener("visibilitychange", () => {
