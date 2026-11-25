@@ -22,7 +22,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from drag_drop import drag_to, press_and_start, pt, system_moon, tray_row
 from helpers import ARTIFACTS, ROOT, QuietHandler, check, download_json, saved_map, upload_json, write_fixture
@@ -1428,17 +1428,77 @@ def f30_group_planets(ctx):
     check(export("Export Monitoring") == exported_item, f"{mode}: the sun list exports the group and its links")
     close_menu(page)
 
+    def check_group_preview(group, links, view, sun=None):
+        def hover():
+            if sun is not None:
+                sun.hover()
+            group.hover()
+
+        def show_links(message):
+            expect(links).to_have_count(2)
+            for link in links.all():
+                expect(link, f"{mode}: {view} {message}").to_be_visible(timeout=2000)
+
+        def ring():
+            return group.evaluate("el => getComputedStyle(el).boxShadow.includes('0px 0px 0px 2px')")
+
+        page.mouse.move(20, 200)
+        expect(links.first).to_be_hidden()
+        hover()
+        show_links("hover shows group links")
+        check(group.get_attribute("aria-expanded") == "false" and not ring(),
+              f"{mode}: {view} hover leaves the group unpinned and has no pin ring")
+        page.mouse.move(20, 200)
+        expect(links.first).to_be_hidden()
+
+        if sun is not None:
+            sun.focus()
+        group.focus()
+        show_links("keyboard focus shows group links")
+        check(group.get_attribute("aria-expanded") == "false", f"{mode}: {view} focus leaves the group unpinned")
+        group.blur()
+        expect(links.first).to_be_hidden()
+
+        def always_show(enabled):
+            open_settings(page)
+            page.get_by_role("checkbox", name="Always show moons").set_checked(enabled)
+            close_menu(page)
+
+        always_show(True)
+        if sun is not None:
+            sun.hover()
+        show_links("Always show moons shows group links without hovering the group")
+        check(not group.evaluate("el => el.matches(':hover, :focus')"), f"{mode}: {view} group is idle")
+        always_show(False)
+
+        hover()
+        dashboard = links.filter(has_text="Dashboard")
+        urls = popups(page, dashboard.click, expect=1)
+        check(urls == [ctx.target + "/ok/"], f"{mode}: {view} a hovered link opens one tab ({urls})")
+        page.mouse.click(20, 200)
+
+        hover()
+        check(popups(page, group.click) == [], f"{mode}: {view} ordinary clicks open no tabs")
+        group.blur()
+        page.mouse.move(20, 200)
+        show_links("pinning keeps group links visible after moving away")
+        check(group.get_attribute("aria-expanded") == "true" and ring(), f"{mode}: {view} a pinned group has a ring")
+        hover()
+        group.click()
+        check(group.get_attribute("aria-expanded") == "false" and not ring(),
+              f"{mode}: {view} a second click unpins the group and removes the ring")
+        group.click()
+        page.mouse.click(20, 200)
+        check(group.get_attribute("aria-expanded") == "false", f"{mode}: {view} clicking elsewhere unpins the group")
+
     galaxy_sun = page.get_by_role("button", name="Open Alpha system", exact=False)
     galaxy_sun.hover()
     group = page.locator(".group-planet").filter(has_text="Monitoring")
     group.wait_for()
     check(group.evaluate("el => el.tagName") == "BUTTON" and group.locator(".site-icon").count() == 0,
           f"{mode}: Galaxy draws a group button")
-    check(popups(page, group.click) == [], f"{mode}: ordinary clicks open no tabs")
-    page.mouse.move(20, 200)
-    check(group.get_attribute("aria-expanded") == "true", f"{mode}: moons stay shown after moving away")
-    page.mouse.click(20, 200)
-    check(group.get_attribute("aria-expanded") == "false", f"{mode}: clicking elsewhere closes the group")
+    links = group.locator("..").locator(".moon-link")
+    check_group_preview(group, links, "Galaxy", galaxy_sun)
     galaxy_sun.hover()
     group.click()
     page.keyboard.press("Escape")
@@ -1460,6 +1520,8 @@ def f30_group_planets(ctx):
           (len(urls) == 1 and opened_urls == {ctx.target + "/ok"} and "blocked 1 tab" in notice),
           f"{mode}: Shift-click tries both moons ({urls}, {notice})")
     page.keyboard.press("Escape")
+    group.blur()
+    check_group_preview(group, group.locator("..").locator(".moon-link"), "System")
     group.focus()
     page.keyboard.press("Enter")
     check(group.get_attribute("aria-expanded") == "true", f"{mode}: Enter pins a focused group")
@@ -1519,6 +1581,18 @@ def f30_group_planets(ctx):
     check(all(p.get("type") != "group" for p in suns[0]["links"]) and
           [moon["name"] for moon in suns[1]["links"][-1]["moons"]] == ["Dashboard", "Metrics", "Status Board", "Guide"],
           f"{mode}: drag the group to another sun with its links")
+    page.locator("#edit-toggle").click()
+    overflow_map = make_map(ctx.target)
+    alpha_links = overflow_map["groups"][0]["links"]
+    alpha_links.extend({"name": f"Extra planet {i}", "url": f"https://example.test/{i}"} for i in range(5))
+    alpha_links.append(exported_item["item"])
+    open_editor(page)
+    upload_json(page, "Import a file", overflow_map)
+    page.get_by_role("button", name="Replace my map").click()
+    close_menu(page)
+    page.goto(ctx.url.split("#")[0] + "#group/alpha", wait_until="load")
+    overflow = page.locator(".more-links .overflow-planet").filter(has_text="Monitoring")
+    check_group_preview(overflow.locator(".group-planet"), overflow.locator(".overflow-moon-link"), "More planets")
     print(f"PASS F30 group planets ({mode})")
 
 

@@ -4,6 +4,10 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ## Unreleased
 
+### Changed
+
+- Group planets show their links on hover, like a planet’s moons. Clicking one keeps them open, and an accent ring marks the pinned group.
+
 ### Added
 
 - **Default workspaces:** Dev Toolbox now ships as its own workspace alongside Main. Existing browsers gain it automatically; removing it is remembered, and Settings can restore it. Defaults are not written into the saved workspace list merely by being shown. A browser that still has the old Dev Toolbox sun in Main gets a one-time Remove or Keep notice. An existing saved workspace with the `dev-toolbox` id becomes that default and keeps its saved map until Reset. Main now has nine suns, 45 planets, and 106 destinations; Dev Toolbox has five suns and 29 destinations.

@@ -206,12 +206,10 @@ def run_mode(page, url, mode):
     }"""
     hover_galaxy_planet(page, 0, 2)
     group = node(page, ".group-planet", 0, 2)
-    group.click()
-    page.wait_for_timeout(400)
+    check(group.get_attribute("aria-expanded") == "false", f"{mode}: the lower group is open on hover alone")
     lower = page.evaluate(caption_state, 0)
     check(not lower["covered"] or lower["opacity"] < .05,
           f"{mode}: a lower planet's moons don't cover a visible caption ({lower})")
-    page.keyboard.press("Escape")
     hover_galaxy_planet(page, 0, 0)
     page.wait_for_timeout(400)
     top = page.evaluate(caption_state, 0)
@@ -221,7 +219,6 @@ def run_mode(page, url, mode):
     # OS10: moving slowly from a lower planet to each of its moons keeps them open,
     # and the moon is what the pointer lands on (a faded caption once caught it).
     hover_galaxy_planet(page, 0, 2)
-    group.click()
     for index in range(2):
         start = center(group)
         page.mouse.move(*start)
@@ -238,7 +235,6 @@ def run_mode(page, url, mode):
 
 
     # OS11: the pencil leaves the open moon field reachable.
-    page.keyboard.press("Escape")
     hover_galaxy_planet(page, 0, 3)
     planet = node(page, ".home-satellite", 0, 3)
     pencil = page.locator(".map-edit-button")

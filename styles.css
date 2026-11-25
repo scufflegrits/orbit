@@ -1063,10 +1063,8 @@ html[data-theme='auburn'] .detail-stage {
 .group-description { margin: -7px 0 0; color: var(--subtle); font-size: calc(12px * var(--font-scale)); transition: opacity .18s ease; }
 /* A lower planet's moons would cover the caption: fade it while they show
    (src/ui/layout/orbits.js marks those planets). */
-.group-card:has(.planet-cluster[data-covers-caption].pinned) .group-description,
-.group-card:has(.planet-cluster[data-covers-caption]:not(.group-cluster):is(:hover, :focus-within)) .group-description,
-html[data-edit='on'] .group-card:has(.planet-cluster[data-covers-caption]:is(:hover, :focus-within)) .group-description,
-html[data-moons='always'] .group-card:has(.home-orbit:is(:hover, :focus-within) .planet-cluster[data-covers-caption]:not(.group-cluster)) .group-description {
+.group-card:has(.planet-cluster[data-covers-caption]:is(:hover, :focus-within, .pinned)) .group-description,
+html[data-moons='always'] .group-card:has(.home-orbit:is(:hover, :focus-within) .planet-cluster[data-covers-caption]) .group-description {
   opacity: 0;
   /* A fading caption becomes its own layer above the orbit; without this it
      would catch the pointer on its way to the moons and close them. */
@@ -1176,13 +1174,7 @@ html[data-moons='always'] .planet-cluster:focus-within .moon-field { pointer-eve
 .home-orbit:not(:hover):not(:focus-within) .planet-cluster:not(.pinned) .moon-link { pointer-events: none; }
 
 .group-planet { border-style: dashed; }
-html:not([data-edit='on']) .planet-cluster.group-cluster:not(.pinned) > .moon-field {
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition-property: opacity, visibility;
-}
-html:not([data-edit='on']) .planet-cluster.group-cluster:not(.pinned) .moon-link { pointer-events: none; }
+.pinned > .group-planet { box-shadow: 0 0 0 2px var(--accent, var(--theme-accent)); }
 .planet-cluster.pinned { z-index: 10; }
 .planet-cluster.pinned > .moon-field,
 html[data-moons='always'] .planet-cluster.pinned > .moon-field {
@@ -1258,7 +1250,6 @@ html[data-moons='always'] .planet-cluster.pinned > .moon-field {
 .overflow-planet:hover .overflow-moons,
 html[data-moons='always'] .overflow-planet .overflow-moons,
 .overflow-planet.pinned .overflow-moons { display: flex; }
-html:not([data-edit='on']) .overflow-planet.group-cluster:not(.pinned) .overflow-moons { display: none; }
 .overflow-group-count { display: block; margin-top: 4px; color: var(--muted); font-size: .75rem; }
 .overflow-moon-link { --accent: var(--theme-accent); width: var(--overflow-moon-size, 76px); height: var(--overflow-moon-size, 76px); font-size: max(calc(10px * var(--font-scale)), calc(clamp(10px, .62vw, 12px) * var(--font-scale) * var(--moon-label-fit, 1))); }
 .moon-overflow { max-width: 720px; margin: 0 auto 75px; text-align: center; }

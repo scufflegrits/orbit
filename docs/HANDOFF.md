@@ -33,7 +33,7 @@ Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and t
 
 ## Project intent
 
-Orbit is a local webpage for frequently visited links; no hosting or accounts. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets. Clicking a sun opens its System. Linked planets and moons open websites or download or launch Remote Desktop connections. Clicking a group planet shows its moons until dismissed. The smallest supported screen is 1920×1080. Main has nine suns and 106 destinations; the default Dev Toolbox workspace has five suns and 29 destinations.
+Orbit is a local webpage for frequently visited links; no hosting or accounts. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets. Clicking a sun opens its System. Linked planets and moons open websites or download or launch Remote Desktop connections. Hovering or focusing a group planet previews its links. Clicking pins the group open and adds an accent ring. The smallest supported screen is 1920×1080. Main has nine suns and 106 destinations; the default Dev Toolbox workspace has five suns and 29 destinations.
 
 ## Run and edit
 

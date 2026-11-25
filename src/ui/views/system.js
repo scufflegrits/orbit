@@ -93,7 +93,7 @@ export function renderDetail(group) {
       : 'Select a lab to download its Remote Desktop connection file. Open the file on Windows to connect.'
     : 'Select a planet to open its destination in a new tab.');
   if (!modes.inEditMode() && group.links.some(isGroup)) {
-    note.textContent = 'Select a group planet to show its links. Select a linked planet to open its destination.';
+    note.textContent = 'Hover over a group planet to see its links. Click it to keep them open. Select a linked planet to open its destination.';
   }
   app.append(top, heading, stage, note);
   const openAllRow = openAllActions(group, sunIndex);

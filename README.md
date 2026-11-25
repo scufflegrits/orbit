@@ -1,6 +1,6 @@
 # Orbit
 
-A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, click a linked planet to open its destination, or select a group planet to show its links. Your routines, favorites, and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list. Set Orbit as your startup page and a [routine](#start-your-day-with-orbit) opens your morning sites in one click.
+A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, click a linked planet to open its destination, or hover over a group planet to see its links. Your routines, favorites, and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list. Set Orbit as your startup page and a [routine](#start-your-day-with-orbit) opens your morning sites in one click.
 
 To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planets, and moons; see [Rearrange by dragging](#rearrange-by-dragging).
 
@@ -56,7 +56,7 @@ Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` d
 
 A group planet holds related links inside a sun. In **Settings → Edit links**, open a sun, choose **Add planet**, then set **Kind** to **Group (no link)**. Save the group and use **Add link** for each website or Remote Desktop link. Groups can start empty and can have notes and tags.
 
-Click or press **Enter** on a group planet to show its links. Click elsewhere or press **Escape** to close it. **Shift+click** uses Open all for the group's links. Quick find takes you to the group in its System. The compact Galaxy list shows groups as headings above their links.
+Hover over a group planet to see its links, as with a planet’s moons. Click it or press **Enter** to keep them open. Click elsewhere or press **Escape** to unpin it. **Shift+click** uses Open all for the group's links. Quick find takes you to the group in its System. The compact Galaxy list shows groups as headings above their links.
 
 Change **Kind** to switch between a group and a linked planet. Both keep their moons. Switching to a group asks you to confirm removal of the planet's address. Switching to a linked planet requires a website address or Remote Desktop host. **Export planet** keeps the group intact. **Share links as a pack** exports the links for someone to import individually.
 
