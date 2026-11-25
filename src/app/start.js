@@ -8,6 +8,7 @@ import { loadBundledMap } from '../services/sources.js';
 import { store } from '../state/page-store.js';
 import { element } from '../ui/dom.js';
 import { icon } from '../ui/icons.js';
+import { refreshBackdrop } from '../ui/backdrop/backdrop.js';
 import { gestureEnded, showEditMode } from '../ui/drag/drag.js';
 import { paletteClosed, paletteOpened } from '../ui/find/palette.js';
 import { variableFormClosed, variableFormOpened } from '../ui/dialogs/placeholder.js';
@@ -49,6 +50,7 @@ async function init() {
 export function start() {
   page.findPageElements();
   page.readPreferences();
+  refreshBackdrop();
   // The top bar's icon buttons (index.html has only their names).
   page.settingsTrigger.replaceChildren(icon('settings'));
   document.querySelector('#menu-close')?.replaceChildren(icon('x'));

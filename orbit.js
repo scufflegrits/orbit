@@ -67,9 +67,9 @@
   function parseRdpProfile(text, targetHost = null) {
     if (typeof text != "string" || text.includes("\0")) throw new Error("The .rdp file is not valid text.");
     let rows = [], sourceHost = null, removed = 0;
-    for (let line of text.replace(/^﻿/, "").split(/\r\n|\n|\r/)) {
-      if (!line) continue;
-      let match = SETTING.exec(line);
+    for (let line2 of text.replace(/^﻿/, "").split(/\r\n|\n|\r/)) {
+      if (!line2) continue;
+      let match = SETTING.exec(line2);
       if (!match || !SETTING_NAME.test(match[1])) throw new Error("The .rdp file has an invalid setting line.");
       let key = match[1].toLowerCase();
       if (SECRET.test(key)) {
@@ -80,7 +80,7 @@
         if (sourceHost || match[2].toLowerCase() !== "s") throw new Error("The .rdp file has more than one computer address.");
         sourceHost = validRdpHost(match[3].trim(), "The .rdp file"), rows.push(`full address:s:${targetHost || sourceHost}`);
       } else
-        rows.push(line);
+        rows.push(line2);
     }
     if (!sourceHost) throw new Error("The .rdp file needs a full address setting.");
     let content = rows.join(`\r
@@ -92,13 +92,13 @@
   }
   function presetSettings(text, name) {
     let rows = [];
-    for (let line of String(text || "").replace(/^﻿/, "").split(/\r\n|\n|\r/)) {
-      if (!line.trim()) continue;
-      let match = SETTING.exec(line.trim());
-      if (!match || !SETTING_NAME.test(match[1])) throw new Error(`${name} has an invalid setting line: ${line.trim()}`);
+    for (let line2 of String(text || "").replace(/^﻿/, "").split(/\r\n|\n|\r/)) {
+      if (!line2.trim()) continue;
+      let match = SETTING.exec(line2.trim());
+      if (!match || !SETTING_NAME.test(match[1])) throw new Error(`${name} has an invalid setting line: ${line2.trim()}`);
       let key = match[1].toLowerCase();
       if (SECRET.test(key)) throw new Error(`${name} cannot keep ${match[1]}; Orbit never stores credentials.`);
-      key !== "full address" && rows.push(line.trim());
+      key !== "full address" && rows.push(line2.trim());
     }
     if (rows.length > 100) throw new Error(`${name} has too many settings.`);
     return rows.join(`\r
@@ -574,7 +574,7 @@ prompt for credentials:i:1\r
     );
     return allowed.includes(value) ? value : fallback;
   }
-  var readButtonTips = () => readChoice("orbit:button-tips", ["normal", "slow", "off"], "normal"), readTheme = () => readChoice("orbit:theme", ["default", "alabama", "auburn"], "default"), readFontFamily = () => readChoice("orbit:font-family", ["inter", "classic"], "inter"), readFontSize = () => readChoice("orbit:font-size", ["small", "standard", "large", "extra"], "standard"), readGalaxyView = () => readSafely("orbit:galaxy-view") === "list" ? "list" : "orbits", readRdpLaunch = () => readSafely("orbit:rdp-launch") === "client" ? "client" : "download";
+  var readButtonTips = () => readChoice("orbit:button-tips", ["normal", "slow", "off"], "normal"), readTheme = () => readChoice("orbit:theme", ["default", "alabama", "auburn", "aurora"], "default"), readBackground = () => readChoice("orbit:background", ["none", "constellations"], "none"), readParticles = () => readChoice("orbit:particles", ["subtle", "normal", "bold"], "normal"), readFontFamily = () => readChoice("orbit:font-family", ["inter", "classic"], "inter"), readFontSize = () => readChoice("orbit:font-size", ["small", "standard", "large", "extra"], "standard"), readGalaxyView = () => readSafely("orbit:galaxy-view") === "list" ? "list" : "orbits", readRdpLaunch = () => readSafely("orbit:rdp-launch") === "client" ? "client" : "download";
   function readStoredSet(key) {
     let list = readJson(key, []);
     return new Set(Array.isArray(list) ? list.map(String) : []);
@@ -1019,63 +1019,6 @@ prompt for credentials:i:1\r
     return svg;
   }
 
-  // src/services/file-io.js
-  function downloadText(text, filename, type) {
-    let page = (
-      /** @type {any} */
-      globalThis
-    ), blob = new Blob([text], { type }), url = page.URL.createObjectURL(blob), anchor2 = page.document.createElement("a");
-    anchor2.href = url, anchor2.download = filename, page.document.body.append(anchor2), anchor2.click(), anchor2.remove(), setTimeout(() => page.URL.revokeObjectURL(url), 1e3);
-  }
-  var jsonSink = null;
-  function downloadJson(data, filename) {
-    if (jsonSink) return jsonSink(data);
-    downloadText(JSON.stringify(data, null, 2) + `
-`, filename, "application/json");
-  }
-  function pickFile(accept, onFile) {
-    let input = (
-      /** @type {HTMLInputElement} */
-      /** @type {any} */
-      globalThis.document.createElement("input")
-    );
-    input.type = "file", input.accept = accept, input.addEventListener("change", () => {
-      input.files?.length && onFile(input.files[0]);
-    }), input.click();
-  }
-  async function readJsonFile(file) {
-    return JSON.parse(await file.text());
-  }
-  async function readImportFile(file) {
-    let text = await file.text();
-    try {
-      return { text, data: JSON.parse(text) };
-    } catch {
-      return { text, data: void 0 };
-    }
-  }
-  async function readRdpText(file) {
-    if (file.size > 64e3) throw new Error("The .rdp file is too large to import.");
-    return decodeRdpBytes(new Uint8Array(await file.arrayBuffer()));
-  }
-  function readBookmarkFolder(list, name) {
-    let folder = { name, links: [], folders: [] };
-    for (let entry of list.querySelectorAll(":scope > dt, :scope > p > dt")) {
-      let heading = entry.querySelector(":scope > h3"), anchor2 = entry.querySelector(":scope > a");
-      if (heading) {
-        let sub = entry.querySelector(":scope > dl") || (entry.nextElementSibling?.tagName === "DL" ? entry.nextElementSibling : null);
-        sub && folder.folders.push(readBookmarkFolder(sub, heading.textContent?.trim() || "Folder"));
-      } else anchor2 && folder.links.push({ name: anchor2.textContent?.trim() ?? "", url: anchor2.getAttribute("href") || "" });
-    }
-    return folder;
-  }
-  function readBookmarksHtml(text) {
-    let list = new /** @type {any} */
-    globalThis.DOMParser().parseFromString(text, "text/html").querySelector("dl");
-    if (!list) throw new Error("This is not a bookmarks file. Export bookmarks from your browser as HTML.");
-    return readBookmarkFolder(list, "Bookmarks");
-  }
-
   // src/ui/hooks.js
   var hooks = {
     /** Redraw the page (ui/views/render.js). */
@@ -1296,12 +1239,14 @@ prompt for credentials:i:1\r
   function dataSourceLabel() {
     return activeMapSource === "browser" ? "Browser edits" : "Bundled project data";
   }
-  var animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", showEditButtons = !0, activeTheme = "default", activeFontSize = "standard", activeFontFamily = "inter", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
+  var animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", showEditButtons = !0, activeTheme = "default", activeFontSize = "standard", activeFontFamily = "inter", backgroundMode = "none", particleStrength = "normal", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
   function readPreferences() {
     animationsEnabled = readBoolean("orbit:animations", !0), alwaysShowMoons = readBoolean("orbit:always-show-moons", !1), activeTheme = readTheme(), buttonTips = readButtonTips(), showEditButtons = readBoolean("orbit:edit-buttons", !0), activeFontSize = readFontSize(), activeFontFamily = /** @type {'inter' | 'classic'} */
-    readFontFamily(), rdpLaunchMode = readRdpLaunch(), showQuickBar = readBoolean("orbit:quick-bar", !0), showSiteIcons = readBoolean("orbit:site-icons", !1), galaxyView = readGalaxyView();
+    readFontFamily(), backgroundMode = /** @type {'none' | 'constellations'} */
+    readBackground(), particleStrength = /** @type {'subtle' | 'normal' | 'bold'} */
+    readParticles(), rdpLaunchMode = readRdpLaunch(), showQuickBar = readBoolean("orbit:quick-bar", !0), showSiteIcons = readBoolean("orbit:site-icons", !1), galaxyView = readGalaxyView();
     let root = document.documentElement.dataset;
-    root.animations = animationsEnabled ? "on" : "off", root.moons = alwaysShowMoons ? "always" : "hover", root.theme = activeTheme, root.fontSize = activeFontSize, root.fontFamily = activeFontFamily;
+    root.animations = animationsEnabled ? "on" : "off", root.moons = alwaysShowMoons ? "always" : "hover", root.theme = activeTheme, root.fontSize = activeFontSize, root.fontFamily = activeFontFamily, root.background = backgroundMode, root.particles = particleStrength;
   }
   function setAnimationsEnabled(on) {
     animationsEnabled = on;
@@ -1324,6 +1269,12 @@ prompt for credentials:i:1\r
   function setActiveFontFamily(family) {
     activeFontFamily = family;
   }
+  function setBackgroundMode(mode) {
+    backgroundMode = mode;
+  }
+  function setParticleStrength(level) {
+    particleStrength = level;
+  }
   function setRdpLaunchMode(mode) {
     rdpLaunchMode = mode;
   }
@@ -1343,6 +1294,172 @@ prompt for credentials:i:1\r
   var findQuery = "";
   function setFindQuery(text) {
     findQuery = text, modes.send(text ? "type" : "clearFind");
+  }
+
+  // src/ui/backdrop/particles.js
+  var targetCount = (width2, height2) => Math.round(Math.min(110, width2 * height2 / 14e3));
+  function spawn(width2, height2, random = Math.random) {
+    let x = random() * width2, y = random() * height2, angle = random() * Math.PI * 2, speed = 0.12 + random() * 0.22;
+    return { x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r: 0.8 + random() * 1.6 };
+  }
+  var frameDt = (ms) => Math.min(ms, 100) / 16.667;
+  function step(parts2, dt, pointer2, width2, height2) {
+    let px = pointer2?.x ?? -1e4, py = pointer2?.y ?? -1e4;
+    for (let p of parts2) {
+      p.x += p.vx * dt, p.y += p.vy * dt;
+      let dx = p.x - px, dy = p.y - py, d = Math.hypot(dx, dy);
+      if (d < 140 && d > 0.5) {
+        let push = (1 - d / 140) * 1.8 * dt;
+        p.x += dx / d * push, p.y += dy / d * push;
+      }
+      p.x < -10 ? p.x = width2 + 10 : p.x > width2 + 10 && (p.x = -10), p.y < -10 ? p.y = height2 + 10 : p.y > height2 + 10 && (p.y = -10);
+    }
+  }
+  function rescale(parts2, oldWidth, oldHeight, width2, height2) {
+    if (!(!oldWidth || !oldHeight))
+      for (let p of parts2)
+        p.x *= width2 / oldWidth, p.y *= height2 / oldHeight;
+  }
+  var linkAlpha = (d) => d < 130 ? (1 - d / 130) * 0.2 : 0, pointerAlpha = (d) => d < 240 ? (1 - d / 240) * 0.6 : 0;
+  function dotStyle(d, r) {
+    let near = Math.max(0, 1 - d / 240);
+    return { alpha: 0.5 + near * 0.45, radius: r * (1 + near * 0.8) };
+  }
+  var strength = (name) => ({ subtle: 0.5, normal: 1, bold: 1.6 })[
+    /** @type {'subtle'} */
+    name
+  ] ?? 1;
+
+  // src/ui/backdrop/backdrop.js
+  var reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches, layer = null, canvas = null, g = null, parts = [], width = 0, height = 0, pointer = null, last = 0, frame = 0, menuWasOpen = !1, still = () => !animationsEnabled || reducedMotion(), paused = () => still() || document.hidden || modes.menuOpen();
+  function build() {
+    layer = element("div", "backdrop"), layer.setAttribute("aria-hidden", "true");
+    for (let index of [1, 2, 3, 4]) layer.append(element("div", `blob blob-${index}`));
+    canvas = /** @type {HTMLCanvasElement} */
+    element("canvas"), g = canvas.getContext("2d"), layer.append(canvas, element("div", "cursor-glow"), element("div", "grain")), document.body.prepend(layer), parts = [], width = 0, height = 0, resize();
+  }
+  function remove2() {
+    cancelAnimationFrame(frame), layer?.remove(), layer = canvas = g = null, parts = [];
+  }
+  function resize() {
+    if (!canvas || !g) return;
+    let ratio = Math.min(2, devicePixelRatio || 1);
+    rescale(parts, width, height, innerWidth, innerHeight), width = innerWidth, height = innerHeight, canvas.width = Math.round(width * ratio), canvas.height = Math.round(height * ratio), g.setTransform(ratio, 0, 0, ratio, 0, 0);
+    let target = targetCount(width, height);
+    for (; parts.length < target; ) parts.push(spawn(width, height));
+    parts = parts.slice(0, target);
+  }
+  function line(x1, y1, x2, y2, alpha) {
+    let ctx = (
+      /** @type {CanvasRenderingContext2D} */
+      g
+    );
+    ctx.globalAlpha = Math.min(1, alpha), ctx.beginPath(), ctx.moveTo(x1, y1), ctx.lineTo(x2, y2), ctx.stroke();
+  }
+  function render() {
+    if (!canvas || !g) return;
+    let k = strength(particleStrength), activePointer = paused() ? null : pointer, px = activePointer?.x ?? -1e4, py = activePointer?.y ?? -1e4;
+    g.clearRect(0, 0, width, height), g.strokeStyle = g.fillStyle = getComputedStyle(canvas).color;
+    for (let i = 0; i < parts.length; i++) {
+      let a = parts[i];
+      g.lineWidth = 1;
+      for (let j = i + 1; j < parts.length; j++) {
+        let b = parts[j], alpha = linkAlpha(Math.hypot(a.x - b.x, a.y - b.y));
+        alpha && line(a.x, a.y, b.x, b.y, alpha * k);
+      }
+      let reach = pointerAlpha(Math.hypot(a.x - px, a.y - py));
+      reach && (g.lineWidth = 1.25, line(a.x, a.y, px, py, reach * k));
+    }
+    for (let p of parts) {
+      let { alpha, radius } = dotStyle(Math.hypot(p.x - px, p.y - py), p.r);
+      g.globalAlpha = Math.min(1, alpha * k), g.beginPath(), g.arc(p.x, p.y, radius, 0, Math.PI * 2), g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+  function loop(now2) {
+    if (frame = 0, !layer) return;
+    let dt = last ? frameDt(now2 - last) : 0;
+    last = now2, paused() || step(parts, dt, pointer, width, height), render(), paused() ? last = 0 : frame = requestAnimationFrame(loop);
+  }
+  function refreshBackdrop() {
+    if (backgroundMode !== "constellations") {
+      layer && remove2();
+      return;
+    }
+    layer || build(), cancelAnimationFrame(frame), last = 0, frame = requestAnimationFrame(loop);
+  }
+  function installBackdrop() {
+    addEventListener("resize", () => {
+      layer && (resize(), refreshBackdrop());
+    }), addEventListener("pointermove", (event) => {
+      pointer = { x: event.clientX, y: event.clientY }, layer && (layer.style.setProperty("--cx", `${event.clientX}px`), layer.style.setProperty("--cy", `${event.clientY}px`), layer.dataset.pointer = "", paused() && !frame && (frame = requestAnimationFrame(loop)));
+    }, { passive: !0 }), document.documentElement.addEventListener("pointerleave", () => {
+      pointer = null, layer && delete layer.dataset.pointer;
+    }), document.addEventListener("visibilitychange", () => {
+      layer && refreshBackdrop();
+    }), matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", () => {
+      layer && refreshBackdrop();
+    }), modes.subscribe(() => {
+      let open = modes.menuOpen();
+      open !== menuWasOpen && (menuWasOpen = open, layer && refreshBackdrop());
+    });
+  }
+
+  // src/services/file-io.js
+  function downloadText(text, filename, type) {
+    let page = (
+      /** @type {any} */
+      globalThis
+    ), blob = new Blob([text], { type }), url = page.URL.createObjectURL(blob), anchor2 = page.document.createElement("a");
+    anchor2.href = url, anchor2.download = filename, page.document.body.append(anchor2), anchor2.click(), anchor2.remove(), setTimeout(() => page.URL.revokeObjectURL(url), 1e3);
+  }
+  var jsonSink = null;
+  function downloadJson(data, filename) {
+    if (jsonSink) return jsonSink(data);
+    downloadText(JSON.stringify(data, null, 2) + `
+`, filename, "application/json");
+  }
+  function pickFile(accept, onFile) {
+    let input = (
+      /** @type {HTMLInputElement} */
+      /** @type {any} */
+      globalThis.document.createElement("input")
+    );
+    input.type = "file", input.accept = accept, input.addEventListener("change", () => {
+      input.files?.length && onFile(input.files[0]);
+    }), input.click();
+  }
+  async function readJsonFile(file) {
+    return JSON.parse(await file.text());
+  }
+  async function readImportFile(file) {
+    let text = await file.text();
+    try {
+      return { text, data: JSON.parse(text) };
+    } catch {
+      return { text, data: void 0 };
+    }
+  }
+  async function readRdpText(file) {
+    if (file.size > 64e3) throw new Error("The .rdp file is too large to import.");
+    return decodeRdpBytes(new Uint8Array(await file.arrayBuffer()));
+  }
+  function readBookmarkFolder(list, name) {
+    let folder = { name, links: [], folders: [] };
+    for (let entry of list.querySelectorAll(":scope > dt, :scope > p > dt")) {
+      let heading = entry.querySelector(":scope > h3"), anchor2 = entry.querySelector(":scope > a");
+      if (heading) {
+        let sub = entry.querySelector(":scope > dl") || (entry.nextElementSibling?.tagName === "DL" ? entry.nextElementSibling : null);
+        sub && folder.folders.push(readBookmarkFolder(sub, heading.textContent?.trim() || "Folder"));
+      } else anchor2 && folder.links.push({ name: anchor2.textContent?.trim() ?? "", url: anchor2.getAttribute("href") || "" });
+    }
+    return folder;
+  }
+  function readBookmarksHtml(text) {
+    let list = new /** @type {any} */
+    globalThis.DOMParser().parseFromString(text, "text/html").querySelector("dl");
+    if (!list) throw new Error("This is not a bookmarks file. Export bookmarks from your browser as HTML.");
+    return readBookmarkFolder(list, "Bookmarks");
   }
 
   // src/ui/tooltip.js
@@ -1373,8 +1490,8 @@ prompt for credentials:i:1\r
     delay === null || !canShow(node) || (anchor = node, timer = window.setTimeout(() => {
       if (!canShow(node) || !node.getClientRects().length) return void hideTooltip();
       tooltip.textContent = document.getElementById(node.dataset.tip || "")?.textContent || "", tooltip.hidden = !1;
-      let box = node.getBoundingClientRect(), { offsetWidth: width, offsetHeight: height } = tooltip, { clientWidth, clientHeight } = document.documentElement, left = box.left + (box.width - width) / 2, above = box.top - height - 8;
-      tooltip.style.left = `${Math.max(8, Math.min(left, clientWidth - width - 8))}px`, tooltip.style.top = `${Math.max(8, Math.min(above >= 8 ? above : box.bottom + 8, clientHeight - height - 8))}px`, node.setAttribute("aria-describedby", tooltip.id);
+      let box = node.getBoundingClientRect(), { offsetWidth: width2, offsetHeight: height2 } = tooltip, { clientWidth, clientHeight } = document.documentElement, left = box.left + (box.width - width2) / 2, above = box.top - height2 - 8;
+      tooltip.style.left = `${Math.max(8, Math.min(left, clientWidth - width2 - 8))}px`, tooltip.style.top = `${Math.max(8, Math.min(above >= 8 ? above : box.bottom + 8, clientHeight - height2 - 8))}px`, node.setAttribute("aria-describedby", tooltip.id);
     }, delay));
   }
   function tippedElement(target) {
@@ -1496,8 +1613,8 @@ prompt for credentials:i:1\r
     save.type = "submit", save.setAttribute("form", form.id), options && save.prepend(editorIcon("save")), actions.append(save);
     let extraButton;
     if (options) {
-      let { kind, getItem, extra, remove: remove2 } = options;
-      actions.append(editorIconButton(`Export ${kind}`, "download", () => exportItem(kind, getItem())), itemMoveMenu(options)), extra && (extraButton = editorIconButton(extra.label, extra.icon, extra.action), actions.append(extraButton)), actions.append(editorIconButton(`Remove ${kind}`, "trash-2", remove2, "editor-danger editor-item-remove"));
+      let { kind, getItem, extra, remove: remove3 } = options;
+      actions.append(editorIconButton(`Export ${kind}`, "download", () => exportItem(kind, getItem())), itemMoveMenu(options)), extra && (extraButton = editorIconButton(extra.label, extra.icon, extra.action), actions.append(extraButton)), actions.append(editorIconButton(`Remove ${kind}`, "trash-2", remove3, "editor-danger editor-item-remove"));
     }
     header.classList.add("editor-header-sticky"), header.append(actions), menuContent.scrollTop = 0;
     let refresh = () => {
@@ -1601,10 +1718,10 @@ prompt for credentials:i:1\r
   function editorRowActions(name, index, count, path, move, afterRemove) {
     let up = editorIconButton(`Move ${name} up`, "arrow-up", () => move(-1), "editor-button editor-row-move-up"), down = editorIconButton(`Move ${name} down`, "arrow-down", () => move(1), "editor-button editor-row-move-down");
     up.disabled = index === 0, down.disabled = index === count - 1;
-    let remove2 = editorIconButton(`Remove ${name}`, "trash-2", () => removeEditorItem(path, () => {
+    let remove3 = editorIconButton(`Remove ${name}`, "trash-2", () => removeEditorItem(path, () => {
       afterRemove(), menuContent.querySelector(".editor-undo button")?.focus();
     }), "editor-danger editor-item-remove");
-    return [up, down, remove2];
+    return [up, down, remove3];
   }
   function focusMovedRow(list, index, amount, scroll) {
     menuContent.scrollTop = scroll;
@@ -1973,21 +2090,21 @@ prompt for credentials:i:1\r
       max: 110,
       names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons))
     }
-  }, orbitSizes = {}, canvas = null, measureContext = () => (
+  }, orbitSizes = {}, canvas2 = null, measureContext = () => (
     /** @type {CanvasRenderingContext2D} */
-    canvas ?? (canvas = document.createElement("canvas").getContext("2d"))
+    canvas2 ?? (canvas2 = document.createElement("canvas").getContext("2d"))
   );
   function labelFits(name, diameter, padding, lineHeight, measure, extra = 0) {
-    let width = diameter - padding * 2, space = measure(" "), lines = [];
+    let width2 = diameter - padding * 2, space = measure(" "), lines = [];
     for (let word of name.split(/\s+/).filter(Boolean)) {
       let wordWidth = measure(word);
-      if (wordWidth > width) return !1;
-      let last = lines.length - 1;
-      last >= 0 && lines[last] + space + wordWidth <= width ? lines[last] += space + wordWidth : lines.push(wordWidth);
+      if (wordWidth > width2) return !1;
+      let last2 = lines.length - 1;
+      last2 >= 0 && lines[last2] + space + wordWidth <= width2 ? lines[last2] += space + wordWidth : lines.push(wordWidth);
     }
     let radius = diameter / 2 - 3, half = (lines.length * lineHeight + extra) / 2;
-    return lines.every((lineWidth, line) => {
-      let y = Math.abs(extra + (line + 0.5) * lineHeight - half);
+    return lines.every((lineWidth, line2) => {
+      let y = Math.abs(extra + (line2 + 0.5) * lineHeight - half);
       return y < radius && lineWidth / 2 <= Math.sqrt(radius * radius - y * y);
     });
   }
@@ -2018,11 +2135,11 @@ prompt for credentials:i:1\r
       app.querySelectorAll(selector)
     ) {
       node.style.removeProperty("font-size");
-      for (let step = 20; step >= 12; step--) {
-        let scale = step / 20;
+      for (let step2 = 20; step2 >= 12; step2--) {
+        let scale = step2 / 20;
         context.font = `${style.fontWeight} ${fontSize * scale}px ${style.fontFamily}`;
         let measure = (text) => context.measureText(text).width;
-        if (step === 12 || labelFits(
+        if (step2 === 12 || labelFits(
           /** @type {string} */
           node.textContent,
           size,
@@ -2057,8 +2174,8 @@ prompt for credentials:i:1\r
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "moon-spokes"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
     for (let point of points) {
-      let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", String(origin.x)), line.setAttribute("y1", String(origin.y)), line.setAttribute("x2", String(point.x)), line.setAttribute("y2", String(point.y)), svg.append(line);
+      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line2.setAttribute("x1", String(origin.x)), line2.setAttribute("y1", String(origin.y)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
     }
     return svg;
   }
@@ -2066,10 +2183,10 @@ prompt for credentials:i:1\r
     let angle = Number(field.dataset.angle), home = field.dataset.context === "home", planet = orbitSizes[home ? "home" : "detail"] || (home ? 72 : 100), moon = orbitSizes.moon || 72, moons = (
       /** @type {HTMLElement[]} */
       [...field.querySelectorAll(".moon-link")]
-    ), crowded = moons.length > 4, spread = (crowded ? 150 : 130) * Math.PI / 180, step = moons.length > 1 ? spread / (moons.length - 1) : 0, extra = crowded ? 28 : 0, radius = Math.max((home ? 98 : 108) + extra, planet / 2 + moon / 2 + 26 + extra);
-    step && (radius = Math.max(radius, (moon + 6) / (2 * Math.sin(step / 2))));
+    ), crowded = moons.length > 4, spread = (crowded ? 150 : 130) * Math.PI / 180, step2 = moons.length > 1 ? spread / (moons.length - 1) : 0, extra = crowded ? 28 : 0, radius = Math.max((home ? 98 : 108) + extra, planet / 2 + moon / 2 + 26 + extra);
+    step2 && (radius = Math.max(radius, (moon + 6) / (2 * Math.sin(step2 / 2))));
     let positions = moons.map((_, index) => {
-      let moonAngle = angle - spread / 2 * (moons.length > 1 ? 1 : 0) + step * index;
+      let moonAngle = angle - spread / 2 * (moons.length > 1 ? 1 : 0) + step2 * index;
       return { x: Math.cos(moonAngle) * radius, y: Math.sin(moonAngle) * radius };
     }), lift = Math.sin(angle) * galaxyReach(planet);
     field.dataset.rise = String(Math.round(Math.max(...positions.map((point) => -(lift + point.y))) + moon / 2)), field.dataset.drop = String(Math.round(Math.max(...positions.map((point) => point.y)) + moon / 2));
@@ -2141,9 +2258,9 @@ prompt for credentials:i:1\r
     }
   }
   function installLayout() {
-    let frame = 0;
+    let frame2 = 0;
     window.addEventListener("resize", () => {
-      cancelAnimationFrame(frame), frame = requestAnimationFrame(layoutOrbits);
+      cancelAnimationFrame(frame2), frame2 = requestAnimationFrame(layoutOrbits);
     }), window.addEventListener("load", () => document.fonts?.ready.then(layoutOrbits));
   }
 
@@ -2543,7 +2660,8 @@ prompt for credentials:i:1\r
       for (let [value, label] of [
         ["default", "Default"],
         ["alabama", "Red"],
-        ["auburn", "Blue"]
+        ["auburn", "Blue"],
+        ["aurora", "Aurora"]
       ]) {
         let option = element("option", "", label);
         option.value = value, themeSelect.append(option);
@@ -2552,7 +2670,7 @@ prompt for credentials:i:1\r
         setActiveTheme(
           /** @type {any} */
           themeSelect.value
-        ), document.documentElement.dataset.theme = activeTheme, savePreference("orbit:theme", activeTheme);
+        ), document.documentElement.dataset.theme = activeTheme, savePreference("orbit:theme", activeTheme), refreshBackdrop();
       }), themeRow.append(themeCopy, themeSelect), menuContent.append(themeRow);
       let familyRow = element("label", "setting-row"), familyCopy = element("span", "setting-copy");
       familyCopy.append(element("strong", "", "Font")), familyCopy.append(element("small", "", "Inter, or Orbit classic: DM Sans with Space Grotesk labels"));
@@ -2612,8 +2730,38 @@ prompt for credentials:i:1\r
       copy.append(element("strong", "", "Animations")), copy.append(element("small", "", "Movement and reveal effects throughout Orbit"));
       let input = document.createElement("input");
       input.type = "checkbox", input.checked = animationsEnabled, input.setAttribute("aria-label", "Animations"), input.addEventListener("change", () => {
-        setAnimationsEnabled(input.checked), document.documentElement.dataset.animations = animationsEnabled ? "on" : "off", savePreference("orbit:animations", animationsEnabled);
+        setAnimationsEnabled(input.checked), document.documentElement.dataset.animations = animationsEnabled ? "on" : "off", savePreference("orbit:animations", animationsEnabled), refreshBackdrop();
       }), row.append(copy, input), menuContent.append(row);
+      let backgroundRow = element("label", "setting-row"), backgroundCopy = element("span", "setting-copy");
+      backgroundCopy.append(element("strong", "", "Background")), backgroundCopy.append(element("small", "", "None or animated Constellations"));
+      let backgroundSelect = document.createElement("select");
+      backgroundSelect.setAttribute("aria-label", "Background");
+      for (let [value, label] of [["none", "None"], ["constellations", "Constellations"]]) {
+        let option = element("option", "", label);
+        option.value = value, backgroundSelect.append(option);
+      }
+      backgroundSelect.value = backgroundMode, backgroundSelect.addEventListener("change", () => {
+        setBackgroundMode(
+          /** @type {'none' | 'constellations'} */
+          backgroundSelect.value
+        ), document.documentElement.dataset.background = backgroundMode, savePreference("orbit:background", backgroundMode), particlesRow.hidden = backgroundMode !== "constellations", refreshBackdrop();
+      }), backgroundRow.append(backgroundCopy, backgroundSelect), menuContent.append(backgroundRow);
+      let particlesRow = element("label", "setting-row");
+      particlesRow.hidden = backgroundMode !== "constellations";
+      let particlesCopy = element("span", "setting-copy");
+      particlesCopy.append(element("strong", "", "Particles")), particlesCopy.append(element("small", "", "Set the constellation strength"));
+      let particlesSelect = document.createElement("select");
+      particlesSelect.setAttribute("aria-label", "Particles");
+      for (let [value, label] of [["subtle", "Subtle"], ["normal", "Normal"], ["bold", "Bold"]]) {
+        let option = element("option", "", label);
+        option.value = value, particlesSelect.append(option);
+      }
+      particlesSelect.value = particleStrength, particlesSelect.addEventListener("change", () => {
+        setParticleStrength(
+          /** @type {'subtle' | 'normal' | 'bold'} */
+          particlesSelect.value
+        ), document.documentElement.dataset.particles = particleStrength, savePreference("orbit:particles", particleStrength), refreshBackdrop();
+      }), particlesRow.append(particlesCopy, particlesSelect), menuContent.append(particlesRow);
       let moonRow = element("label", "setting-row"), moonCopy = element("span", "setting-copy");
       moonCopy.append(element("strong", "", "Always show moons")), moonCopy.append(element("small", "", "Show moons around visible planets without hovering"));
       let moonInput = document.createElement("input");
@@ -3544,8 +3692,8 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", "orbit-lines"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
     for (let point of points) {
-      let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", String(center)), line.setAttribute("y1", String(center)), line.setAttribute("x2", String(point.x)), line.setAttribute("y2", String(point.y)), svg.append(line);
+      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line2.setAttribute("x1", String(center)), line2.setAttribute("y1", String(center)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
     }
     return svg;
   }
@@ -3754,7 +3902,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   }
 
   // src/ui/views/render.js
-  function render() {
+  function render2() {
     modes.send("render"), updateMapLabelSizes();
     let route = decodeURIComponent(location.hash.slice(1)), id = route.startsWith("group/") ? route.slice(6) : null, group = groups.find((item) => item.id === id);
     modes.send(group ? "openSystem" : "toGalaxy"), group ? renderDetail(group) : renderHome(), layoutOrbits(), editToggle().hidden = !1, updateEditBar(), window.scrollTo({ top: 0, behavior: "instant" }), revealPendingGroup(group?.id ?? null);
@@ -3785,7 +3933,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
         location.hash = "";
       } },
       { label: "Clear recent links", run: () => {
-        clearRecent(), render();
+        clearRecent(), render2();
       } },
       ...favoriteItems().length > 1 && !modes.inEditMode() ? [{ label: "Open all favorites", run: openAllFavorites }] : [],
       ...routines.map((routine, index) => ({
@@ -3983,8 +4131,8 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     }
   }
   function start() {
-    findPageElements(), readPreferences(), settingsTrigger.replaceChildren(icon("settings")), document.querySelector("#menu-close")?.replaceChildren(icon("x")), store.subscribe((state, kind) => {
-      showStoreState(state), countDestinations(), kind !== "switch" && render(), updateRemovalNotice();
+    findPageElements(), readPreferences(), refreshBackdrop(), settingsTrigger.replaceChildren(icon("settings")), document.querySelector("#menu-close")?.replaceChildren(icon("x")), store.subscribe((state, kind) => {
+      showStoreState(state), countDestinations(), kind !== "switch" && render2(), updateRemovalNotice();
     }), modes.subscribe((next, previous, event) => {
       let held = (state) => state.mode === "pressed" || state.mode === "dragging";
       if (held(previous) && !held(next) && gestureEnded(previous.mode === "dragging", event), previous.overlay !== next.overlay) {
@@ -3995,9 +4143,9 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
       let editing = (state) => state.mode !== "browsing";
       editing(previous) !== editing(next) && showEditMode(editing(next));
     }), window.addEventListener("hashchange", () => {
-      modes.send("pageChange"), render();
+      modes.send("pageChange"), render2();
     }), document.querySelector(".brand").addEventListener("click", (event) => {
-      event.preventDefault(), quickFind.value = "", setFindQuery(""), location.hash && location.hash !== "#" ? location.hash = "" : render();
+      event.preventDefault(), quickFind.value = "", setFindQuery(""), location.hash && location.hash !== "#" ? location.hash = "" : render2();
     }), settingsTrigger.addEventListener("click", openMenu), viewToggle.addEventListener("click", () => setGalaxyView(galaxyView === "list" ? "orbits" : "list")), document.querySelector("#menu-close").addEventListener("click", closeMenu), document.querySelector("#menu-scrim").addEventListener("click", closeMenu);
     for (
       let option of
@@ -4167,12 +4315,12 @@ ${preset.settings}`, `the ${preset.name} preset`);
     return { suns: list.length, planets, moons };
   }
   function countDifference(from, to) {
-    let parts = [];
+    let parts2 = [];
     for (let kind of ["suns", "planets", "moons"]) {
       let change = to[kind] - from[kind];
-      change && parts.push(`${change > 0 ? "+" : "−"}${counted(Math.abs(change), kind.slice(0, -1))}`);
+      change && parts2.push(`${change > 0 ? "+" : "−"}${counted(Math.abs(change), kind.slice(0, -1))}`);
     }
-    return parts.length ? parts.join(", ") : "same counts";
+    return parts2.length ? parts2.join(", ") : "same counts";
   }
   function showHistory() {
     editorHeader("History", nav.showSunList);
@@ -4303,7 +4451,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     let settings = editorField("Settings", preset.settings.replace(/\r\n/g, `
 `), "textarea");
     settings.input.setAttribute("aria-label", "Settings"), settings.input.classList.add("preset-settings");
-    let rows = () => settings.input.value.split(/\n/).map((line) => line.trim()).filter(Boolean), setRows = (list) => {
+    let rows = () => settings.input.value.split(/\n/).map((line2) => line2.trim()).filter(Boolean), setRows = (list) => {
       settings.input.value = list.join(`
 `);
     }, displayField = element("label", "editor-field");
@@ -4313,7 +4461,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       let option = element("option", "", label);
       option.value = value, display.append(option);
     }), displayField.append(display);
-    let current = rows(), matching = PRESET_CHOICES.display.find(([value, , lines]) => value && lines.every((line) => current.includes(line)));
+    let current = rows(), matching = PRESET_CHOICES.display.find(([value, , lines]) => value && lines.every((line2) => current.includes(line2)));
     display.value = matching ? matching[0] : "", display.addEventListener("change", () => {
       let lines = (
         /** @type {[string, string, string[]]} */
@@ -4321,11 +4469,11 @@ ${preset.settings}`, `the ${preset.name} preset`);
       );
       setRows([...rows().filter((row) => !DISPLAY_KEYS.includes(settingKey(row))), ...lines]);
     });
-    let toggles = PRESET_CHOICES.toggles.map(([key, label, line]) => {
+    let toggles = PRESET_CHOICES.toggles.map(([key, label, line2]) => {
       let row = element("label", "editor-check"), box = document.createElement("input");
-      return box.type = "checkbox", box.checked = current.includes(line), box.setAttribute("aria-label", label), box.addEventListener("change", () => {
+      return box.type = "checkbox", box.checked = current.includes(line2), box.setAttribute("aria-label", label), box.addEventListener("change", () => {
         let others = rows().filter((item) => settingKey(item) !== key);
-        setRows(box.checked ? [...others, line] : others);
+        setRows(box.checked ? [...others, line2] : others);
       }), row.append(box, element("span", "", label)), row;
     }), fromFile = editorButton("Start from an .rdp file", () => {
       let input = document.createElement("input");
@@ -4477,12 +4625,12 @@ ${preset.settings}`, `the ${preset.name} preset`);
       ...rdpPresets.length ? { rdpPresets } : {}
     }, "orbit-links.json"), noteBackupMade2();
   }
-  function reviewCheck(className, checked, parts) {
+  function reviewCheck(className, checked, parts2) {
     let label = element("label", `editor-check ${className}`), box = (
       /** @type {HTMLInputElement} */
       element("input")
     );
-    return box.type = "checkbox", box.checked = checked, label.append(box, ...parts), { label, box };
+    return box.type = "checkbox", box.checked = checked, label.append(box, ...parts2), { label, box };
   }
   function showImportReview(data, options = {}) {
     editorHeader(options.title || "Review import", showSunList);
@@ -4946,9 +5094,9 @@ ${preset.settings}`, `the ${preset.name} preset`);
   function trapMenuFocus(event) {
     let items = menuFocusables();
     if (!items.length) return;
-    let first = items[0], last = items[items.length - 1];
+    let first = items[0], last2 = items[items.length - 1];
     /** @type {HTMLElement} */
-    menuOverlay.querySelector(".menu-sheet").contains(document.activeElement) ? event.shiftKey && document.activeElement === first ? (event.preventDefault(), last.focus()) : !event.shiftKey && document.activeElement === last && (event.preventDefault(), first.focus()) : (event.preventDefault(), (event.shiftKey ? last : first).focus());
+    menuOverlay.querySelector(".menu-sheet").contains(document.activeElement) ? event.shiftKey && document.activeElement === first ? (event.preventDefault(), last2.focus()) : !event.shiftKey && document.activeElement === last2 && (event.preventDefault(), first.focus()) : (event.preventDefault(), (event.shiftKey ? last2 : first).focus());
   }
   function handleEscape(event) {
     if (hideTooltip()) {
@@ -5001,9 +5149,9 @@ ${preset.settings}`, `the ${preset.name} preset`);
     }
     return best;
   }
-  function neighbor(list, node, step) {
+  function neighbor(list, node, step2) {
     let index = list.indexOf(node);
-    return index === -1 ? null : list[index + step] || null;
+    return index === -1 ? null : list[index + step2] || null;
   }
   function planetTarget(planet, [dx, dy]) {
     let cluster = planet.closest(".planet-cluster"), container = cluster.parentElement, planets = [...container.querySelectorAll(":scope > .planet-cluster > :is(.home-satellite, .detail-satellite)")];
@@ -5068,7 +5216,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
   // src/app/main.js
   setVersion(APP_VERSION);
   document.documentElement.dataset.fontFamily = readFontFamily();
-  hooks.render = render;
+  document.documentElement.dataset.background = readBackground();
+  hooks.render = render2;
   hooks.refreshQuickBar = refreshQuickBar;
   hooks.openMenu = openMenu;
   hooks.showMenuPanel = showMenuPanel;
@@ -5079,6 +5228,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   installRoutineOffers();
   installDrag();
   installKeys();
+  installBackdrop();
   installMapEditButtons();
   function startPage() {
     installTooltip(), start();

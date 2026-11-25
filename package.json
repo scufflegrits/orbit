@@ -10,7 +10,7 @@
     "check": "tsc --noEmit -p jsconfig.json",
     "check:bundle": "node scripts/build.mjs --check",
     "check:layers": "node scripts/check-layers.mjs",
-    "test:unit": "node --test \"src/**/*.test.js\"",
+    "test:unit": "node scripts/test-unit.mjs",
     "icons": "node scripts/icons.mjs",
     "check:icons": "node scripts/icons.mjs --check"
   },

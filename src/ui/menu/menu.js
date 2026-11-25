@@ -4,6 +4,7 @@
 // in rewrite phase 6a.
 import * as prefs from '../../state/prefs.js';
 import { counted, element } from '../dom.js';
+import { refreshBackdrop } from '../backdrop/backdrop.js';
 import { hooks } from '../hooks.js';
 import { showBackupReminder } from '../notices/backup.js';
 import { editorButton, restoreEditorOrigin, setEditorTree } from '../editor/kit.js';
@@ -13,7 +14,7 @@ import { modes } from '../page-modes.js';
 import { store } from '../../state/page-store.js';
 import { team } from '../team-map.js';
 import { workspaceSettings } from './workspaces.js';
-import { activeFontFamily, activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, rdpLaunchMode, setActiveFontFamily, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowEditButtons, setShowQuickBar, setShowSiteIcons, settingsTrigger, showEditButtons, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
+import { activeFontFamily, activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, backgroundMode, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, particleStrength, rdpLaunchMode, setActiveFontFamily, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setBackgroundMode, setParticleStrength, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowEditButtons, setShowQuickBar, setShowSiteIcons, settingsTrigger, showEditButtons, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
 
 /** The element that opened the menu, to refocus when it closes. @type {HTMLElement | null} */
 let menuOpener = null;
@@ -86,7 +87,7 @@ export function showMenuPanel(name) {
     const themeSelect = document.createElement('select');
     themeSelect.setAttribute('aria-label', 'Theme');
     for (const [value, label] of [
-      ['default', 'Default'], ['alabama', 'Red'], ['auburn', 'Blue'],
+      ['default', 'Default'], ['alabama', 'Red'], ['auburn', 'Blue'], ['aurora', 'Aurora'],
     ]) {
       const option = element('option', '', label);
       option.value = value;
@@ -97,6 +98,7 @@ export function showMenuPanel(name) {
       setActiveTheme(/** @type {any} */ (themeSelect.value));
       document.documentElement.dataset.theme = activeTheme;
       prefs.savePreference('orbit:theme', activeTheme);
+      refreshBackdrop();
     });
     themeRow.append(themeCopy, themeSelect);
     menuContent.append(themeRow);
@@ -181,9 +183,52 @@ export function showMenuPanel(name) {
       setAnimationsEnabled(input.checked);
       document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
       prefs.savePreference('orbit:animations', animationsEnabled);
+      refreshBackdrop();
     });
     row.append(copy, input);
     menuContent.append(row);
+    const backgroundRow = element('label', 'setting-row');
+    const backgroundCopy = element('span', 'setting-copy');
+    backgroundCopy.append(element('strong', '', 'Background'));
+    backgroundCopy.append(element('small', '', 'None or animated Constellations'));
+    const backgroundSelect = document.createElement('select');
+    backgroundSelect.setAttribute('aria-label', 'Background');
+    for (const [value, label] of [['none', 'None'], ['constellations', 'Constellations']]) {
+      const option = element('option', '', label);
+      option.value = value;
+      backgroundSelect.append(option);
+    }
+    backgroundSelect.value = backgroundMode;
+    backgroundSelect.addEventListener('change', () => {
+      setBackgroundMode(/** @type {'none' | 'constellations'} */ (backgroundSelect.value));
+      document.documentElement.dataset.background = backgroundMode;
+      prefs.savePreference('orbit:background', backgroundMode);
+      particlesRow.hidden = backgroundMode !== 'constellations';
+      refreshBackdrop();
+    });
+    backgroundRow.append(backgroundCopy, backgroundSelect);
+    menuContent.append(backgroundRow);
+    const particlesRow = element('label', 'setting-row');
+    particlesRow.hidden = backgroundMode !== 'constellations';
+    const particlesCopy = element('span', 'setting-copy');
+    particlesCopy.append(element('strong', '', 'Particles'));
+    particlesCopy.append(element('small', '', 'Set the constellation strength'));
+    const particlesSelect = document.createElement('select');
+    particlesSelect.setAttribute('aria-label', 'Particles');
+    for (const [value, label] of [['subtle', 'Subtle'], ['normal', 'Normal'], ['bold', 'Bold']]) {
+      const option = element('option', '', label);
+      option.value = value;
+      particlesSelect.append(option);
+    }
+    particlesSelect.value = particleStrength;
+    particlesSelect.addEventListener('change', () => {
+      setParticleStrength(/** @type {'subtle' | 'normal' | 'bold'} */ (particlesSelect.value));
+      document.documentElement.dataset.particles = particleStrength;
+      prefs.savePreference('orbit:particles', particleStrength);
+      refreshBackdrop();
+    });
+    particlesRow.append(particlesCopy, particlesSelect);
+    menuContent.append(particlesRow);
     const moonRow = element('label', 'setting-row');
     const moonCopy = element('span', 'setting-copy');
     moonCopy.append(element('strong', '', 'Always show moons'));

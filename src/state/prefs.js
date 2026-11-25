@@ -35,7 +35,11 @@ function readChoice(key, allowed, fallback) {
 }
 
 export const readButtonTips = () => readChoice('orbit:button-tips', ['normal', 'slow', 'off'], 'normal');
-export const readTheme = () => readChoice('orbit:theme', ['default', 'alabama', 'auburn'], 'default');
+export const readTheme = () => readChoice('orbit:theme', ['default', 'alabama', 'auburn', 'aurora'], 'default');
+/** The animated background: none (today's still dot pattern, the default) or constellations. */
+export const readBackground = () => readChoice('orbit:background', ['none', 'constellations'], 'none');
+/** How strongly the constellations' particles are drawn. */
+export const readParticles = () => readChoice('orbit:particles', ['subtle', 'normal', 'bold'], 'normal');
 /** The font: Inter (the default) or Orbit classic (DM Sans and Space Grotesk). */
 export const readFontFamily = () => readChoice('orbit:font-family', ['inter', 'classic'], 'inter');
 export const readFontSize = () => readChoice('orbit:font-size', ['small', 'standard', 'large', 'extra'], 'standard');

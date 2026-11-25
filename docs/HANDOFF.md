@@ -94,11 +94,11 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 **Server security.** `POST /api/check-links` requires a same-origin Host/Origin, a JSON body, and an `X-Orbit-Check: 1` header.
 
-Display preferences are shared across workspaces. **Button tips** uses `orbit:button-tips` with values `normal`, `slow`, and `off`. **Edit buttons on hover** uses `orbit:edit-buttons` and defaults to on. **Confirm before deleting** uses `orbit:confirm-before-delete` and defaults to on. Both map and editor deletions use `src/ui/remove-item.js` and the workspace’s existing removal undo.
+Display preferences are shared across workspaces. **Background** uses `orbit:background` (`none` by default, or `constellations`); **Particles** uses `orbit:particles` (`subtle`, `normal`, or `bold`, default `normal`). The decorative canvas and loop live in `src/ui/backdrop/`, with pure particle math in `particles.js`. The background pauses for reduced motion, global Animations off, hidden tabs, and open menu overlays. **Aurora** is a theme value in `orbit:theme`. **Button tips** uses `orbit:button-tips` with values `normal`, `slow`, and `off`. **Edit buttons on hover** uses `orbit:edit-buttons` and defaults to on. **Confirm before deleting** uses `orbit:confirm-before-delete` and defaults to on. Both map and editor deletions use `src/ui/remove-item.js` and the workspace’s existing removal undo.
 
 ## Tests
 
-Local tests use Python Playwright with its Chromium. Each runner checks file mode and server mode. **`scripts/test-local.sh` runs every check below** (about ten minutes; logs in `.artifacts/local/`), and `scripts/edge/run.sh` runs the browser suites in Edge on the test VM (see "Windows 11 test VM").
+Local tests use Python Playwright with its Chromium. Each runner checks file mode and server mode. **`scripts/test-local.sh` runs every check below; `scripts/test-all.sh` starts it alongside the Edge VM suite for one combined run** (about ten minutes; logs in `.artifacts/local/`), and `scripts/edge/run.sh` runs the browser suites in Edge on the test VM (see "Windows 11 test VM").
 
 | Runner | Covers | Last local result |
 | --- | --- | --- |

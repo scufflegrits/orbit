@@ -214,6 +214,8 @@ Escape dismisses a visible button tip, then closes the command palette or menu. 
 
 Click the cog on the Galaxy or any System to open Settings, Help, or About. Settings includes an **Animations** switch. Turning it off removes movement and reveal delays while leaving all links usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
 
+The **Background** setting offers **None** and **Constellations**. Constellations animates particles that drift and connect around the pointer. **Particles** adjusts their strength. Both choices are saved in this browser. Turning off **Animations** or enabling your operating system's reduced-motion setting freezes the background. The **Aurora** theme adds a dark violet palette.
+
 The **Font** setting offers **Inter**, the default, and **Orbit classic**: DM Sans for text with Space Grotesk for labels and headings. Both ship with Orbit in `fonts/`, so Orbit looks the same on every computer and works offline. Your choice is saved in this browser.
 
 The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
@@ -260,4 +262,4 @@ Using Orbit needs no build or install: open `index.html`. Changing its code need
 
 ## Credits
 
-Icons: [Lucide](https://lucide.dev) (ISC), including icons derived from Feather (MIT). Fonts: [Inter](https://rsms.me/inter/) (the default), and DM Sans and Space Grotesk (Orbit classic), all under the SIL Open Font License 1.1; each font's licence is beside it in `fonts/`. All notices are in [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).
+Icons: [Lucide](https://lucide.dev) (ISC), including icons derived from Feather (MIT). Fonts: [Inter](https://rsms.me/inter/) (the default), and DM Sans and Space Grotesk (Orbit classic), all under the SIL Open Font License 1.1; each font's licence is beside it in `fonts/`. The Constellations backdrop adapts the MIT-licensed particles and backdrop from [Launchpad](https://github.com/J-Houghton/launchpad). All notices are in [docs/THIRD_PARTY_NOTICES.md](docs/THIRD_PARTY_NOTICES.md).

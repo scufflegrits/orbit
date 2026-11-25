@@ -3,7 +3,7 @@
 // by app/start.js's subscriber, exactly once per change), the display
 // preferences, and Quick find's text. Screens import these as live bindings;
 // only the setters here change them. Moved in rewrite phase 8.
-import { readBoolean, readButtonTips, readFontFamily, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
+import { readBackground, readBoolean, readButtonTips, readFontFamily, readParticles, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
 import { hooks } from './hooks.js';
 import { icon } from './icons.js';
 import { modes } from './page-modes.js';
@@ -85,6 +85,10 @@ export let activeTheme = 'default';
 export let activeFontSize = 'standard';
 /** @type {'inter' | 'classic'} */
 export let activeFontFamily = 'inter';
+/** @type {'none' | 'constellations'} */
+export let backgroundMode = 'none';
+/** @type {'subtle' | 'normal' | 'bold'} */
+export let particleStrength = 'normal';
 /** @type {'download'|'client'} */
 export let rdpLaunchMode = 'download';
 export let showQuickBar = true;
@@ -101,6 +105,8 @@ export function readPreferences() {
   showEditButtons = readBoolean('orbit:edit-buttons', true);
   activeFontSize = readFontSize();
   activeFontFamily = /** @type {'inter' | 'classic'} */ (readFontFamily());
+  backgroundMode = /** @type {'none' | 'constellations'} */ (readBackground());
+  particleStrength = /** @type {'subtle' | 'normal' | 'bold'} */ (readParticles());
   rdpLaunchMode = readRdpLaunch();
   showQuickBar = readBoolean('orbit:quick-bar', true);
   showSiteIcons = readBoolean('orbit:site-icons', false);
@@ -111,6 +117,8 @@ export function readPreferences() {
   root.theme = activeTheme;
   root.fontSize = activeFontSize;
   root.fontFamily = activeFontFamily;
+  root.background = backgroundMode;
+  root.particles = particleStrength;
 }
 
 /** @param {boolean} on */
@@ -135,6 +143,10 @@ export function setActiveTheme(theme) { activeTheme = theme; }
 export function setActiveFontSize(size) { activeFontSize = size; }
 /** @param {'inter' | 'classic'} family */
 export function setActiveFontFamily(family) { activeFontFamily = family; }
+/** @param {'none' | 'constellations'} mode */
+export function setBackgroundMode(mode) { backgroundMode = mode; }
+/** @param {'subtle' | 'normal' | 'bold'} level */
+export function setParticleStrength(level) { particleStrength = level; }
 /** @param {'download'|'client'} mode */
 export function setRdpLaunchMode(mode) { rdpLaunchMode = mode; }
 /** @param {boolean} on */

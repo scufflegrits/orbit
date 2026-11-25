@@ -61,7 +61,7 @@ def m15_theme_names(page, url, mode):
     open_menu(page, "Settings")
     theme = page.get_by_label("Theme", exact=True)
     labels = theme.locator("option").all_inner_texts()
-    check(labels == ["Default", "Red", "Blue"], f"{mode}: theme labels read Default, Red, Blue ({labels})")
+    check(labels == ["Default", "Red", "Blue", "Aurora"], f"{mode}: theme labels include Default, Red, Blue, Aurora ({labels})")
     palettes = {}
     for value, label in (("default", "Default"), ("alabama", "Red"), ("auburn", "Blue")):
         theme.select_option(value)

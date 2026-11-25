@@ -2253,12 +2253,133 @@ def f40_fonts(ctx):
     print(f"PASS F40 fonts ({mode})")
 
 
+# ---- F41 Constellations background, Aurora theme, particle strength ---------------------
+
+# Pixel statistics of the backdrop canvas: a checksum (to tell frames apart), the brightest alpha,
+# and how many clearly drawn pixels lie within `radius` CSS px of a point.
+CANVAS_STATS = """([x, y, radius]) => {
+  const c = document.querySelector('.backdrop canvas');
+  if (!c) return null;
+  const scale = c.width / c.clientWidth, d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  let sum = 0, max = 0, lit = 0, near = 0;
+  for (let i = 3; i < d.length; i += 4) {
+    const a = d[i];
+    if (!a) continue;
+    sum = (sum + a * (i % 9973)) % 1000000007; max = Math.max(max, a); if (a > 20) lit++;
+    if (x != null && a > 20) { const p = (i - 3) / 4, px = (p % c.width) / scale, py = Math.floor(p / c.width) / scale; if (Math.hypot(px - x, py - y) < radius) near++; }
+  }
+  return { sum, max, lit, near };
+}"""
+
+
+def f41_backdrop(ctx):
+    """Background None by default; Constellations draws behind Orbit, follows the pointer, freezes on request."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    stats = lambda point=(None, None), radius=0: page.evaluate(CANVAS_STATS, [point[0], point[1], radius])
+    grid = lambda: page.evaluate("getComputedStyle(document.body, '::before').display")
+    check(page.evaluate("document.documentElement.dataset.background") == "none" and page.locator(".backdrop").count() == 0
+          and grid() != "none", f"{mode}: the default is today's look, with no animated background")
+
+    # Settings: Background, Particles (only with Constellations), and Aurora among the themes.
+    open_settings(page)
+    background = page.get_by_label("Background", exact=True)
+    check(background.locator("option").all_inner_texts() == ["None", "Constellations"], f"{mode}: Background offers None and Constellations")
+    check(page.get_by_label("Particles", exact=True).is_hidden(), f"{mode}: Particles is hidden while the background is None")
+    check(page.get_by_label("Theme", exact=True).locator("option").all_inner_texts() == ["Default", "Red", "Blue", "Aurora"],
+          f"{mode}: the themes include Aurora")
+    background.select_option("constellations")
+    particles = page.get_by_label("Particles", exact=True)
+    check(particles.is_visible() and particles.input_value() == "normal" and
+          particles.locator("option").all_inner_texts() == ["Subtle", "Normal", "Bold"], f"{mode}: Particles appears, set to Normal")
+    close_menu(page)
+    page.mouse.move(2, 400)
+    page.wait_for_timeout(500)
+    first = page.evaluate("document.body.firstElementChild.className")
+    check(first == "backdrop" and page.evaluate("getComputedStyle(document.querySelector('.backdrop')).pointerEvents") == "none"
+          and grid() == "none", f"{mode}: the backdrop is body's first layer, takes no pointer input, and replaces the dot grid ({first})")
+    hub = page.locator(".home-hub").first
+    box = hub.bounding_box()
+    under = page.evaluate("([x, y]) => document.elementFromPoint(x, y)?.closest('.home-hub') !== null", [box["x"] + box["width"] / 2, box["y"] + box["height"] / 2])
+    check(under, f"{mode}: a sun under the backdrop still gets the pointer")
+    a = stats()
+    page.wait_for_timeout(300)
+    b = stats()
+    check(a["lit"] > 50 and a["sum"] != b["sum"], f"{mode}: particles are drawn and moving ({a}, {b})")
+
+    # The pointer: dots near it brighten and reach out to it with lines.
+    gap = page.locator(".group-card").first.bounding_box()
+    point = (gap["x"] + gap["width"] + 10, gap["y"] + 40)
+    before = stats(point, 120)
+    page.mouse.move(*point, steps=8)
+    page.wait_for_timeout(600)
+    after = stats(point, 120)
+    check(after["near"] > before["near"] + 20, f"{mode}: the pointer draws the constellation to it ({before['near']} → {after['near']})")
+
+    # Animations off freezes it; on again, it moves.
+    open_settings(page)
+    page.get_by_label("Animations", exact=True).uncheck()
+    close_menu(page)
+    page.wait_for_timeout(200)
+    a, b = stats(), (page.wait_for_timeout(350), stats())[1]
+    check(a["lit"] > 50 and a["sum"] == b["sum"], f"{mode}: Animations off leaves a still frame")
+    open_settings(page)
+    page.get_by_label("Animations", exact=True).check()
+    close_menu(page)
+    page.wait_for_timeout(200)
+    a, b = stats(), (page.wait_for_timeout(350), stats())[1]
+    check(a["sum"] != b["sum"], f"{mode}: Animations on, it moves again")
+
+    # Reduced motion freezes it too.
+    page.emulate_media(reduced_motion="reduce")
+    page.wait_for_timeout(200)
+    a, b = stats(), (page.wait_for_timeout(350), stats())[1]
+    check(a["lit"] > 50 and a["sum"] == b["sum"], f"{mode}: reduced motion leaves a still frame")
+    page.emulate_media(reduced_motion="no-preference")
+
+    # Particles: Subtle is fainter than Bold.
+    peaks = {}
+    for level in ("subtle", "bold"):
+        open_settings(page)
+        page.get_by_label("Particles", exact=True).select_option(level)
+        close_menu(page)
+        page.mouse.move(2, 400)
+        page.wait_for_timeout(400)
+        peaks[level] = stats()["max"]
+    check(peaks["subtle"] < peaks["bold"], f"{mode}: Subtle draws fainter than Bold ({peaks})")
+
+    # The choice survives a reload; None restores today's look; an unknown value means None.
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.evaluate("document.documentElement.dataset.background") == "constellations" and page.locator(".backdrop").count() == 1,
+          f"{mode}: Constellations survives a reload")
+    open_settings(page)
+    page.get_by_label("Background", exact=True).select_option("none")
+    close_menu(page)
+    check(page.locator(".backdrop").count() == 0 and grid() != "none", f"{mode}: None removes the backdrop and brings back the dot grid")
+    page.evaluate("localStorage.setItem('orbit:background', 'starfield')")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.evaluate("document.documentElement.dataset.background") == "none", f"{mode}: an unknown value means None")
+
+    # Aurora: Launchpad's dark palette across Orbit.
+    open_settings(page)
+    page.get_by_label("Theme", exact=True).select_option("aurora")
+    close_menu(page)
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    bg = page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim()")
+    check(page.evaluate("document.documentElement.dataset.theme") == "aurora" and bg.replace(" ", "") == "oklch(0.1550.03295)",
+          f"{mode}: the Aurora theme is applied and saved ({bg})")
+    print(f"PASS F41 backdrop ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
           f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
-          f38_lucide_icons, f39_level_change, f40_fonts)
+          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop)
 
 
 def run_checks(make_ctx, only):

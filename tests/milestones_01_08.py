@@ -386,7 +386,7 @@ def run_milestone_5(page, url, mode):
         page.locator("#settings-trigger").click()
         page.locator('[data-menu-panel="Settings"]').click()
         theme_select = page.get_by_label("Theme")
-        check(theme_select.locator("option").count() == 3, f"{mode}: three theme choices")
+        check(theme_select.locator("option").count() == 4, f"{mode}: four theme choices")
         theme_select.select_option(theme)
         check(page.locator("html").get_attribute("data-theme") == theme,
               f"{mode}: {theme} theme selected")
