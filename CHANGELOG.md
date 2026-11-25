@@ -6,7 +6,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ### Added
 
-- The sample map's **Dev Toolbox** sun has twelve more developer links (Can I use, web.dev, explainshell, Bundlephobia, Squoosh, Can I email, the Pro Git book, GitHub Skills, Oh My Git!, Atlassian's Git tutorials, Oh Shit, Git!?!, and Visualizing Git), reorganised into eight planets: Learn Git Branching, Git guides, DevDocs, Web platform, JSON Crack, Transform, Diagramming, and Learning paths.
+- **Default workspaces:** Dev Toolbox now ships as its own workspace alongside Main. Existing browsers gain it automatically; removing it is remembered, and Settings can restore it. Defaults are not written into the saved workspace list merely by being shown. A browser that still has the old Dev Toolbox sun in Main gets a one-time Remove or Keep notice. An existing saved workspace with the `dev-toolbox` id becomes that default and keeps its saved map until Reset. Main now has nine suns, 45 planets, and 106 destinations; Dev Toolbox has five suns and 29 destinations.
 - Added the optional Constellations animated background, an Aurora theme, and a particle strength setting. The background is off by default and respects reduced motion and Orbit's Animations setting.
 
 - **Changed:** Orbit now ships its fonts and uses **Inter** by default, so it looks the same on every computer (before, Windows showed Segoe UI and Arial in place of fonts that weren't installed). Settings → **Font** offers **Orbit classic** (DM Sans and Space Grotesk).

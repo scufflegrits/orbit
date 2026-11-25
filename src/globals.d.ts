@@ -9,6 +9,7 @@ declare const ORBIT_TEST: boolean;
 interface Window {
   ORBIT_DATA?: { groups: unknown[] };
   ORBIT_TEAM_DATA?: { groups: unknown[] };
+  ORBIT_WORKSPACES?: { id: string; name: string; map: { groups: unknown[] } }[];
   OrbitNext?: { readonly version: string };
   OrbitTest?: Record<string, unknown>;
 }

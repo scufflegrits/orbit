@@ -91,7 +91,7 @@ def bundle_bytes(folder):
     """Bytes of the app's own scripts: everything index.html loads except the data files."""
     import re
     html = (folder / "index.html").read_text()
-    names = [n for n in re.findall(r'<script src="([^"]+)"', html) if n not in ("links-data.js", "team-data.js")]
+    names = [n for n in re.findall(r'<script src="([^"]+)"', html) if n not in ("links-data.js", "workspaces-data.js", "team-data.js")]
     return sum((folder / n).stat().st_size for n in names if (folder / n).exists())
 
 

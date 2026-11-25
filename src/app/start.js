@@ -4,8 +4,9 @@
 // calls start() once the page has loaded.
 import { isGroup } from '../core/destination.js';
 import { counted } from '../core/words.js';
-import { loadBundledMap } from '../services/sources.js';
+import { loadBundledMap, loadDefaultWorkspaces } from '../services/sources.js';
 import { store } from '../state/page-store.js';
+import { setDefaultWorkspaces } from '../state/workspaces.js';
 import { element } from '../ui/dom.js';
 import { icon } from '../ui/icons.js';
 import { refreshBackdrop } from '../ui/backdrop/backdrop.js';
@@ -14,6 +15,7 @@ import { paletteClosed, paletteOpened } from '../ui/find/palette.js';
 import { variableFormClosed, variableFormOpened } from '../ui/dialogs/placeholder.js';
 import { closeMenu, menuHidden, openMenu, showMenuPanel } from '../ui/menu/menu.js';
 import { updateWorkspaceSwitch } from '../ui/menu/workspaces.js';
+import { showDevToolboxMovedNotice } from '../ui/notices/dev-toolbox-moved.js';
 import { showBackupReminder } from '../ui/notices/backup.js';
 import { syncRemovalNoticeVisibility, updateRemovalNotice } from '../ui/notices/removal.js';
 import { offerDueRoutines } from '../ui/notices/routine-offer.js';
@@ -33,8 +35,12 @@ async function init() {
   try {
     const seed = await loadBundledMap();
     await loadTeamMap();
+    const defaults = await loadDefaultWorkspaces();
+    setDefaultWorkspaces(defaults);
     // Loads the workspace's map; the subscriber copies it and renders.
-    store.start({ seed, team: team.groups });
+    store.start({ seed, team: team.groups, defaults });
+    updateWorkspaceSwitch();
+    showDevToolboxMovedNotice();
     offerDueRoutines();
     checkTeamUpdates();
     showBackupReminder();
@@ -50,6 +56,7 @@ async function init() {
 export function start() {
   page.findPageElements();
   page.readPreferences();
+  setDefaultWorkspaces(Array.isArray(window.ORBIT_WORKSPACES) ? window.ORBIT_WORKSPACES : []);
   refreshBackdrop();
   // The top bar's icon buttons (index.html has only their names).
   page.settingsTrigger.replaceChildren(icon('settings'));

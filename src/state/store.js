@@ -11,7 +11,7 @@ import { isGroup } from '../core/destination.js';
 import { validateMap } from '../core/schema.js';
 import { personalGroups, uniqueSunId } from '../core/map-ops.js';
 import { KEYS, migrate, read, readSafely, remove, write } from './storage.js';
-import { MAIN, UNREADABLE, WORKSPACE_KEYS, loadWorkspaces, newWorkspace, readActiveWorkspace, saveActiveWorkspace, saveWorkspaces, workspaceKey } from './workspaces.js';
+import { MAIN, UNREADABLE, WORKSPACE_KEYS, defaultWorkspace, loadStoredWorkspaces, loadWorkspaces, markDefaultRemoved, newWorkspace, readActiveWorkspace, restoreDefault, saveActiveWorkspace, saveWorkspaces, setDefaultWorkspaces, workspaceKey } from './workspaces.js';
 import { forgetOffered, hiddenTeamSuns, writeStoredSet } from './prefs.js';
 import { recordHistory } from './history.js';
 import { countChange, forgetWorkspace } from './backup.js';
@@ -53,6 +53,8 @@ export function createStore() {
   let state = {
     groups: [], routines: [], rdpPresets: [], revision: 0, workspace: MAIN, source: 'bundled', warning: '', seed: null, team: [],
   };
+  /** @type {{id: string, name: string, map: MapData}[]} */
+  let defaults = [];
   /** @type {Set<Subscriber>} */
   const subscribers = new Set();
 
@@ -122,12 +124,15 @@ export function createStore() {
     /**
      * Load the active workspace at start-up. `seed` is the validated project
      * data; `team` the team suns (ids with `team:`, `team: true`).
-     * @param {{seed: MapData, team?: Sun[]}} input
+     * @param {{seed: MapData, team?: Sun[], defaults?: {id: string, name: string, map: MapData}[]}} input
      */
-    start({ seed, team = [] }) {
+    start({ seed, team = [], defaults: bundledDefaults = [] }) {
+      defaults = bundledDefaults;
+      setDefaultWorkspaces(defaults);
       set({ seed, team, workspace: readActiveWorkspace(), warning: '' });
       const browserMap = loadBrowserMap();
-      const map = browserMap || (state.workspace === MAIN ? seed : { groups: [] });
+      const defaultMap = defaults.find(item => item.id === state.workspace)?.map;
+      const map = browserMap || (state.workspace === MAIN ? seed : defaultMap || { groups: [] });
       // 2.2.1 quirk kept: at start-up a workspace with no saved map reports
       // 'bundled' even outside Main (switching reports 'browser').
       set({ groups: [...visibleTeam(), ...map.groups], routines: map.routines || [], rdpPresets: map.rdpPresets || [],
@@ -195,8 +200,12 @@ export function createStore() {
      * map as it was; the removal undo is cleared.
      */
     resetToBundled() {
-      const fileData = validateMap(state.seed);
+      const isDefault = Boolean(defaultWorkspace(state.workspace));
+      const fileData = validateMap(isDefault ? defaults.find(item => item.id === state.workspace)?.map : state.seed);
       if (state.workspace === MAIN) {
+        backupUnreadableMap(key(KEYS.map));
+        remove(key(KEYS.map));
+      } else if (isDefault) {
         backupUnreadableMap(key(KEYS.map));
         remove(key(KEYS.map));
       } else {
@@ -205,7 +214,7 @@ export function createStore() {
       recordHistory(key(KEYS.history), personalGroups(state.groups), 'Reset to file data', state.routines, state.rdpPresets);
       remove(key(KEYS.undo));
       set({ groups: [...visibleTeam(), ...fileData.groups], routines: fileData.routines || [], rdpPresets: fileData.rdpPresets || [],
-        revision: state.revision + 1, source: state.workspace === MAIN ? 'bundled' : 'browser', warning: '' });
+        revision: state.revision + 1, source: state.workspace === MAIN || isDefault ? 'bundled' : 'browser', warning: '' });
       notify('reset');
     },
 
@@ -278,9 +287,10 @@ export function createStore() {
       set({ workspace: id, warning: '' });
       saveActiveWorkspace(id);
       const browserMap = loadBrowserMap();
-      const map = browserMap || (id === MAIN ? state.seed || { groups: [] } : { groups: [] });
+      const defaultMap = defaults.find(item => item.id === id)?.map;
+      const map = browserMap || (id === MAIN ? state.seed || { groups: [] } : defaultMap || { groups: [] });
       set({ groups: [...visibleTeam(), ...map.groups], routines: map.routines || [], rdpPresets: map.rdpPresets || [],
-        source: browserMap ? 'browser' : id === MAIN ? 'bundled' : 'browser', revision: state.revision + 1 });
+        source: browserMap ? 'browser' : id === MAIN || defaultMap ? 'bundled' : 'browser', revision: state.revision + 1 });
       notify('switch');
       return true;
     },
@@ -292,12 +302,22 @@ export function createStore() {
      * @param {'empty'|'copy'|'bundled'|string} start
      */
     addWorkspace(name, start) {
+      if (typeof start === 'string' && start.startsWith('default:')) {
+        const id = start.slice('default:'.length);
+        const bundled = defaults.find(item => item.id === id);
+        if (!bundled) throw new Error('That default workspace is unavailable.');
+        restoreDefault(id);
+        const raw = loadStoredWorkspaces().filter(item => item.id !== id);
+        if (String(name).trim() !== bundled.name) raw.push({ id, name: String(name).trim() });
+        saveWorkspaces(raw);
+        return id;
+      }
       const added = newWorkspace(name);
       const map = start === 'copy'
         ? { groups: personalGroups(state.groups), routines: state.routines, rdpPresets: state.rdpPresets }
         : start === 'bundled' ? state.seed : { groups: [] };
       writeMap(workspaceKey(KEYS.map, added.id), validateMap(map));
-      saveWorkspaces([...loadWorkspaces(), added]);
+      saveWorkspaces([...loadStoredWorkspaces(), added]);
       return added.id;
     },
 
@@ -312,7 +332,8 @@ export function createStore() {
       for (const base of WORKSPACE_KEYS) remove(workspaceKey(base, id));
       forgetWorkspace(id);
       forgetOffered(id);
-      saveWorkspaces(loadWorkspaces().filter(item => item.id !== id));
+      if (defaultWorkspace(id)) markDefaultRemoved(id);
+      saveWorkspaces(loadStoredWorkspaces().filter(item => item.id !== id));
       return state.workspace === id;
     },
 

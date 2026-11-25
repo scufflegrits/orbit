@@ -52,8 +52,11 @@ function paletteCommands() {
       run: () => modes.inEditMode() ? (openMenu(), openEditorPage(), showRoutineEditor(index)) : runRoutine(routine) })),
     { label: 'Edit routines', run: () => { openMenu(); openEditorPage(); showRoutines(); } },
     { label: 'Add a link', run: () => showQuickAdd('') },
-    ...workspaces.loadWorkspaces().filter(item => item.id !== activeWorkspace()).map(item => ({
-      label: `Switch to workspace: ${item.name}`, run: () => switchWorkspace(item.id) })),
+    ...workspaces.loadWorkspaces().filter(item => item.id !== activeWorkspace()).map(item => {
+      const duplicate = workspaces.loadWorkspaces().some(other => other.id !== item.id && other.name.toLocaleLowerCase() === item.name.toLocaleLowerCase());
+      const suffix = workspaces.defaultWorkspace(item.id) && duplicate ? ' (default)' : '';
+      return { label: `Switch to workspace: ${item.name}${suffix}`, run: () => switchWorkspace(item.id) };
+    }),
   ];
 }
 

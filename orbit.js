@@ -296,8 +296,28 @@ prompt for credentials:i:1\r
       protocol: page.location.protocol,
       fetch: (url, init2) => page.fetch(url, init2),
       bundledData: page.ORBIT_DATA,
-      teamData: page.ORBIT_TEAM_DATA
+      teamData: page.ORBIT_TEAM_DATA,
+      workspacesData: page.ORBIT_WORKSPACES
     };
+  }
+  async function loadDefaultWorkspaces(env = pageEnv()) {
+    let entries = Array.isArray(env.workspacesData) ? env.workspacesData : [], loaded = [], seen = /* @__PURE__ */ new Set();
+    for (let entry of entries)
+      try {
+        if (!entry || typeof entry.id != "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.id) || entry.id.length > 40 || ["main", "unreadable"].includes(entry.id) || typeof entry.name != "string" || !entry.name.trim() || entry.name.trim().length > 40 || seen.has(entry.id)) throw new Error("Invalid workspace metadata.");
+        seen.add(entry.id);
+        let data = entry.map;
+        if (env.protocol !== "file:")
+          try {
+            let response = await env.fetch(`./workspaces/${encodeURIComponent(entry.id)}.json`, { cache: "no-store" });
+            response.ok && (data = await response.json());
+          } catch {
+          }
+        loaded.push({ id: entry.id, name: entry.name, map: validateMap(data) });
+      } catch (error) {
+        console.warn(`Skipping default workspace ${entry?.id || "(unknown)"}:`, error);
+      }
+    return loaded;
   }
   async function loadBundledMap(env = pageEnv()) {
     let data;
@@ -523,10 +543,38 @@ prompt for credentials:i:1\r
   }
 
   // src/state/workspaces.js
-  var MAIN = "main", UNREADABLE = "unreadable", WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
+  var MAIN = "main", UNREADABLE = "unreadable", REMOVED_DEFAULTS_KEY = "orbit:workspaces:removed:v1", defaults = [];
+  function setDefaultWorkspaces(list) {
+    defaults = Array.isArray(list) ? list.filter((item) => item && typeof item.id == "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.id) && item.id.length <= 40 && item.id !== MAIN && item.id !== UNREADABLE && typeof item.name == "string" && item.name.trim().length > 0 && item.name.trim().length <= 40) : [];
+  }
+  function removedDefaultIds() {
+    let list = readJson(REMOVED_DEFAULTS_KEY, []);
+    return new Set(Array.isArray(list) ? list.filter((id) => typeof id == "string") : []);
+  }
+  function markDefaultRemoved(id) {
+    let removed = removedDefaultIds();
+    removed.add(id), write(REMOVED_DEFAULTS_KEY, JSON.stringify([...removed]));
+  }
+  function restoreDefault(id) {
+    let removed = removedDefaultIds();
+    removed.delete(id), write(REMOVED_DEFAULTS_KEY, JSON.stringify([...removed]));
+  }
+  function loadStoredWorkspaces() {
+    let list = readJson(KEYS.workspaces, []);
+    return Array.isArray(list) ? list.filter((item) => item && typeof item.id == "string" && item.name) : [];
+  }
+  function defaultWorkspaces() {
+    return defaults;
+  }
+  function defaultWorkspace(id) {
+    return defaults.find((item) => item.id === id) || null;
+  }
+  var WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
   function loadWorkspaces() {
-    let list = readJson(KEYS.workspaces, []), valid = Array.isArray(list) ? list.filter((item) => item && typeof item.id == "string" && item.name) : [];
-    return valid.some((item) => item.id === MAIN) ? valid : [{ id: MAIN, name: "Main" }, ...valid];
+    let stored = loadStoredWorkspaces(), list = stored.some((item) => item.id === MAIN) ? stored : [{ id: MAIN, name: "Main" }, ...stored], removed = removedDefaultIds();
+    for (let item of defaults)
+      removed.has(item.id) || list.some((saved) => saved.id === item.id) || list.push({ id: item.id, name: item.name });
+    return list;
   }
   function saveWorkspaces(list) {
     write(KEYS.workspaces, JSON.stringify(list));
@@ -549,14 +597,18 @@ prompt for credentials:i:1\r
     if (!clean || clean.length > 40) throw new Error("A workspace needs a name of up to 40 characters.");
     if (list.some((item) => item.name.toLocaleLowerCase() === clean.toLocaleLowerCase()))
       throw new Error(`There is already a workspace named ${clean}.`);
-    return { id: uniqueSunId(clean, /* @__PURE__ */ new Set([UNREADABLE, ...list.map((item) => item.id)])), name: clean };
+    return { id: uniqueSunId(clean, /* @__PURE__ */ new Set([UNREADABLE, ...defaults.map((item) => item.id), ...list.map((item) => item.id)])), name: clean };
   }
   function renameWorkspace(id, name) {
     let clean = String(name || "").trim(), list = loadWorkspaces();
     if (!clean || clean.length > 40) throw new Error("A workspace needs a name of up to 40 characters.");
     if (list.some((item) => item.id !== id && item.name.toLocaleLowerCase() === clean.toLocaleLowerCase()))
       throw new Error(`There is already a workspace named ${clean}.`);
-    saveWorkspaces(list.map((item) => item.id === id ? { ...item, name: clean } : item));
+    let stored = loadStoredWorkspaces();
+    if (defaultWorkspace(id) || id === MAIN) {
+      let entry = { id, name: clean };
+      saveWorkspaces([...stored.filter((item) => item.id !== id), entry]);
+    } else saveWorkspaces(stored.map((item) => item.id === id ? { ...item, name: clean } : item));
   }
 
   // src/state/prefs.js
@@ -681,7 +733,7 @@ prompt for credentials:i:1\r
       warning: "",
       seed: null,
       team: []
-    }, subscribers = /* @__PURE__ */ new Set(), set = (changes) => {
+    }, defaults2 = [], subscribers = /* @__PURE__ */ new Set(), set = (changes) => {
       state = Object.freeze({ ...state, ...changes });
     }, notify = (kind) => {
       for (let subscriber of [...subscribers]) subscriber(state, kind);
@@ -726,11 +778,11 @@ prompt for credentials:i:1\r
       /**
        * Load the active workspace at start-up. `seed` is the validated project
        * data; `team` the team suns (ids with `team:`, `team: true`).
-       * @param {{seed: MapData, team?: Sun[]}} input
+       * @param {{seed: MapData, team?: Sun[], defaults?: {id: string, name: string, map: MapData}[]}} input
        */
-      start({ seed, team: team2 = [] }) {
-        set({ seed, team: team2, workspace: readActiveWorkspace(), warning: "" });
-        let browserMap = loadBrowserMap(), map = browserMap || (state.workspace === MAIN ? seed : { groups: [] });
+      start({ seed, team: team2 = [], defaults: bundledDefaults = [] }) {
+        defaults2 = bundledDefaults, setDefaultWorkspaces(defaults2), set({ seed, team: team2, workspace: readActiveWorkspace(), warning: "" });
+        let browserMap = loadBrowserMap(), defaultMap = defaults2.find((item) => item.id === state.workspace)?.map, map = browserMap || (state.workspace === MAIN ? seed : defaultMap || { groups: [] });
         set({
           groups: [...visibleTeam(), ...map.groups],
           routines: map.routines || [],
@@ -794,13 +846,13 @@ prompt for credentials:i:1\r
        * map as it was; the removal undo is cleared.
        */
       resetToBundled() {
-        let fileData = validateMap(state.seed);
-        state.workspace === MAIN ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : writeMap(key(KEYS.map), fileData), recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), remove(key(KEYS.undo)), set({
+        let isDefault = !!defaultWorkspace(state.workspace), fileData = validateMap(isDefault ? defaults2.find((item) => item.id === state.workspace)?.map : state.seed);
+        state.workspace === MAIN ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : isDefault ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : writeMap(key(KEYS.map), fileData), recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), remove(key(KEYS.undo)), set({
           groups: [...visibleTeam(), ...fileData.groups],
           routines: fileData.routines || [],
           rdpPresets: fileData.rdpPresets || [],
           revision: state.revision + 1,
-          source: state.workspace === MAIN ? "bundled" : "browser",
+          source: state.workspace === MAIN || isDefault ? "bundled" : "browser",
           warning: ""
         }), notify("reset");
       },
@@ -862,12 +914,12 @@ prompt for credentials:i:1\r
       switchWorkspace(id) {
         if (!loadWorkspaces().some((item) => item.id === id)) return !1;
         set({ workspace: id, warning: "" }), saveActiveWorkspace(id);
-        let browserMap = loadBrowserMap(), map = browserMap || (id === MAIN ? state.seed || { groups: [] } : { groups: [] });
+        let browserMap = loadBrowserMap(), defaultMap = defaults2.find((item) => item.id === id)?.map, map = browserMap || (id === MAIN ? state.seed || { groups: [] } : defaultMap || { groups: [] });
         return set({
           groups: [...visibleTeam(), ...map.groups],
           routines: map.routines || [],
           rdpPresets: map.rdpPresets || [],
-          source: browserMap ? "browser" : id === MAIN ? "bundled" : "browser",
+          source: browserMap ? "browser" : id === MAIN || defaultMap ? "bundled" : "browser",
           revision: state.revision + 1
         }), notify("switch"), !0;
       },
@@ -878,8 +930,15 @@ prompt for credentials:i:1\r
        * @param {'empty'|'copy'|'bundled'|string} start
        */
       addWorkspace(name, start2) {
+        if (typeof start2 == "string" && start2.startsWith("default:")) {
+          let id = start2.slice(8), bundled = defaults2.find((item) => item.id === id);
+          if (!bundled) throw new Error("That default workspace is unavailable.");
+          restoreDefault(id);
+          let raw = loadStoredWorkspaces().filter((item) => item.id !== id);
+          return String(name).trim() !== bundled.name && raw.push({ id, name: String(name).trim() }), saveWorkspaces(raw), id;
+        }
         let added = newWorkspace(name), map = start2 === "copy" ? { groups: personalGroups(state.groups), routines: state.routines, rdpPresets: state.rdpPresets } : start2 === "bundled" ? state.seed : { groups: [] };
-        return writeMap(workspaceKey(KEYS.map, added.id), validateMap(map)), saveWorkspaces([...loadWorkspaces(), added]), added.id;
+        return writeMap(workspaceKey(KEYS.map, added.id), validateMap(map)), saveWorkspaces([...loadStoredWorkspaces(), added]), added.id;
       },
       /**
        * Remove a workspace (never Main): its map, undo, and history keys, its
@@ -890,7 +949,7 @@ prompt for credentials:i:1\r
       removeWorkspace(id) {
         if (id === MAIN) return !1;
         for (let base of WORKSPACE_KEYS) remove(workspaceKey(base, id));
-        return forgetWorkspace(id), forgetOffered(id), saveWorkspaces(loadWorkspaces().filter((item) => item.id !== id)), state.workspace === id;
+        return forgetWorkspace(id), forgetOffered(id), defaultWorkspace(id) && markDefaultRemoved(id), saveWorkspaces(loadStoredWorkspaces().filter((item) => item.id !== id)), state.workspace === id;
       },
       /**
        * Where a combined index points: a team sun or a personal one.
@@ -2322,7 +2381,7 @@ prompt for credentials:i:1\r
     return backupDue(readBackupState()[activeWorkspace()], readBoolean("orbit:backup-reminders", !0), time);
   }
   function backupReminder(due) {
-    let box = element("div", "routine-offer backup-reminder"), where = loadWorkspaces().length > 1 ? ` in ${workspaceName(activeWorkspace())}` : "";
+    let box = element("div", "routine-offer backup-reminder"), workspace = activeWorkspace(), where = workspace === "main" || loadWorkspaces().length > 1 ? ` in ${workspaceName(workspace)}` : "";
     box.append(element("p", "routine-offer-copy", `Back up your map${where}: ${counted(due.changes, "change")} since your last export${due.days ? `, ${counted(due.days, "day")} ago` : ""}.`));
     let save = element("button", "routine-offer-open", "Back up now");
     save.type = "button", save.addEventListener("click", () => {
@@ -2579,7 +2638,7 @@ prompt for credentials:i:1\r
     let section = element("div", "team-settings workspace-settings");
     section.append(element("strong", "", "Workspaces")), section.append(element("p", "workspace-hint", "Separate maps, such as Work and Home, each with their own suns, favorites, routines, and history. The team map and these settings are shared.")), loadWorkspaces().forEach((item) => {
       let row = element("div", "editor-list-row workspace-row");
-      row.append(element("span", "", `${item.name}${item.id === activeWorkspace() ? " (open)" : ""}`)), item.id !== activeWorkspace() && row.append(editorButton("Switch", () => {
+      row.append(element("span", "", `${item.name}${defaultWorkspace(item.id) ? " (default)" : ""}${item.id === activeWorkspace() ? " (open)" : ""}`)), item.id !== activeWorkspace() && row.append(editorButton("Switch", () => {
         switchWorkspace(item.id), hooks.showMenuPanel("Settings");
       })), row.append(editorButton("Rename", () => {
         let name2 = window.prompt("New name for this workspace", item.name);
@@ -2593,17 +2652,27 @@ prompt for credentials:i:1\r
             );
           }
       })), item.id !== "main" && row.append(editorButton("Remove", () => {
-        confirmed(`Remove the ${item.name} workspace and its map? Export it first if you want a copy.`) && (removeWorkspace(item.id), hooks.showMenuPanel("Settings"));
+        let message = defaultWorkspace(item.id) ? `Remove the ${item.name} workspace? Your edits to it in this browser are deleted, so export it first to keep them. It's one of Orbit's default workspaces, so you can add it back from Add workspace, starting from its default links.` : `Remove the ${item.name} workspace and its map? Export it first if you want a copy.`;
+        confirmed(message) && (removeWorkspace(item.id), hooks.showMenuPanel("Settings"));
       }, "editor-danger")), section.append(row);
     });
     let form = element("form", "workspace-add"), name = editorField("New workspace", "");
     name.input.setAttribute("aria-label", "New workspace name"), name.input.placeholder = "For example: Home";
     let start2 = document.createElement("select");
     start2.setAttribute("aria-label", "Start the new workspace with");
-    for (let [value, label] of [["empty", "An empty map"], ["copy", "A copy of this workspace"], ["bundled", "The sample map"]]) {
+    for (let [value, label] of [["empty", "An empty map"], ["copy", "A copy of this workspace"], ["bundled", "Main's default map"]]) {
       let option = element("option", "", label);
       option.value = value, start2.append(option);
     }
+    for (let item of defaultWorkspaces()) {
+      if (!removedDefaultIds().has(item.id)) continue;
+      let option = element("option", "", `${item.name} (default)`);
+      option.value = `default:${item.id}`, start2.append(option);
+    }
+    start2.addEventListener("change", () => {
+      let selected = start2.value.startsWith("default:") ? defaultWorkspace(start2.value.slice(8)) : null;
+      name.input.readOnly = !!selected, selected && (name.input.value = selected.name);
+    });
     let add = element("button", "editor-button", "Add workspace");
     return add.type = "submit", form.append(name.wrapper, start2, add), form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -2824,7 +2893,7 @@ prompt for credentials:i:1\r
           savePreference("orbit:backup-reminders", checked), showBackupReminder();
         }
       )), menuContent.append(workspaceSettings()), menuContent.append(teamSettings());
-    } else name === "Help" ? (menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The list button in the top bar, next to Edit mode, switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "In Edit links, the icons on sun, planet, and moon rows let you edit, export, reorder, or remove the item. The arrows save the order within the current list right away. Team rows have View and Export icons.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "To change a moon into a planet, pause it on a sun's circle and hold on Make it a planet until it fills, then release. A planet without moons dragged onto another planet offers Make it a moon the same way. Passing over these choices never changes anything; Undo last drag reverses a change. Edit links has Make it a planet of… and Make it a moon of… under Move.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Use Edit links to reach any item, including links outside the visible orbits. In a planet or moon editor, the top toolbar has Save, Export, Move, and Remove. Open Move to change the order or pick another sun or planet and a position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
+    } else name === "Help" ? (menuContent.append(element("p", "", "Orbit includes a Dev Toolbox workspace. Remove it, or add it back, in Settings → Workspaces.")), menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The list button in the top bar, next to Edit mode, switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "In Edit links, the icons on sun, planet, and moon rows let you edit, export, reorder, or remove the item. The arrows save the order within the current list right away. Team rows have View and Export icons.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "To change a moon into a planet, pause it on a sun's circle and hold on Make it a planet until it fills, then release. A planet without moons dragged onto another planet offers Make it a moon the same way. Passing over these choices never changes anything; Undo last drag reverses a change. Edit links has Make it a planet of… and Make it a moon of… under Move.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Use Edit links to reach any item, including links outside the visible orbits. In a planet or moon editor, the top toolbar has Save, Export, Move, and Remove. Open Move to change the order or pick another sun or planet and a position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
   }
   function settingToggle(title, hint, checked, onChange) {
     let row = element("label", "setting-row"), copy = element("span", "setting-copy");
@@ -3947,10 +4016,10 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
         openMenu(), openEditorPage(), showRoutines();
       } },
       { label: "Add a link", run: () => showQuickAdd("") },
-      ...loadWorkspaces().filter((item) => item.id !== activeWorkspace()).map((item) => ({
-        label: `Switch to workspace: ${item.name}`,
-        run: () => switchWorkspace(item.id)
-      }))
+      ...loadWorkspaces().filter((item) => item.id !== activeWorkspace()).map((item) => {
+        let duplicate = loadWorkspaces().some((other) => other.id !== item.id && other.name.toLocaleLowerCase() === item.name.toLocaleLowerCase()), suffix = defaultWorkspace(item.id) && duplicate ? " (default)" : "";
+        return { label: `Switch to workspace: ${item.name}${suffix}`, run: () => switchWorkspace(item.id) };
+      })
     ];
   }
   function runMatch(match) {
@@ -4049,6 +4118,32 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     return event.key.toLowerCase() !== "k" || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || !modes.keyAllowed("commandK") ? !1 : (event.preventDefault(), openPalette(), !0);
   }
 
+  // src/ui/notices/dev-toolbox-moved.js
+  var KEY = "orbit:notice:dev-toolbox-moved";
+  function showDevToolboxMovedNotice() {
+    if (readSafely(KEY) !== null || !defaultWorkspace("dev-toolbox") || store.state().workspace !== "main" || store.state().source !== "browser") return;
+    let groups2 = store.state().groups.filter((sun) => !sun.team), index = groups2.findIndex((sun) => sun.id === "dev-toolbox");
+    if (index < 0) return;
+    let box = element("section", "routine-offer");
+    box.id = "dev-toolbox-moved-notice", box.setAttribute("role", "status"), box.append(element("p", "routine-offer-copy", "Dev Toolbox now has its own workspace. Remove the Dev Toolbox sun from Main?"));
+    let removeButton = element("button", "routine-offer-open", "Remove");
+    removeButton.type = "button", removeButton.addEventListener("click", () => {
+      let item = groups2[index], next = groups2.filter((_, i) => i !== index);
+      try {
+        store.saveMap({ groups: next }, "Removed Dev Toolbox sun from Main", {
+          undoRecord: { kind: "sun", index, item, label: "sun Dev Toolbox" }
+        }), writeSafely(KEY, "remove"), box.remove();
+      } catch (error) {
+        box.append(element("p", "editor-error", `Could not remove the sun: ${/** @type {Error} */
+        error.message}`));
+      }
+    });
+    let keepButton = element("button", "routine-offer-dismiss", "Keep");
+    keepButton.type = "button", keepButton.addEventListener("click", () => {
+      writeSafely(KEY, "keep"), box.remove();
+    }), box.append(removeButton, keepButton), noticeArea().prepend(box);
+  }
+
   // src/ui/notices/removal.js
   var lastRecord = "";
   function updateRemovalNotice() {
@@ -4125,7 +4220,9 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   async function init() {
     try {
       let seed = await loadBundledMap();
-      await loadTeamMap2(), store.start({ seed, team: team.groups }), offerDueRoutines(), checkTeamUpdates(), showBackupReminder();
+      await loadTeamMap2();
+      let defaults2 = await loadDefaultWorkspaces();
+      setDefaultWorkspaces(defaults2), store.start({ seed, team: team.groups, defaults: defaults2 }), updateWorkspaceSwitch(), showDevToolboxMovedNotice(), offerDueRoutines(), checkTeamUpdates(), showBackupReminder();
     } catch (error) {
       modes.send("loadFailed"), app.className = "error-view", app.replaceChildren(element("h1", "", "Could not load your links.")), app.append(element("p", "", "Run `python3 sync.py`, then open index.html. You can also use `python3 serve.py` for automatic updates on refresh.")), app.append(element("pre", "", String(
         /** @type {Error} */
@@ -4134,7 +4231,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     }
   }
   function start() {
-    findPageElements(), readPreferences(), refreshBackdrop(), settingsTrigger.replaceChildren(icon("settings")), document.querySelector("#menu-close")?.replaceChildren(icon("x")), store.subscribe((state, kind) => {
+    findPageElements(), readPreferences(), setDefaultWorkspaces(Array.isArray(window.ORBIT_WORKSPACES) ? window.ORBIT_WORKSPACES : []), refreshBackdrop(), settingsTrigger.replaceChildren(icon("settings")), document.querySelector("#menu-close")?.replaceChildren(icon("x")), store.subscribe((state, kind) => {
       showStoreState(state), countDestinations(), kind !== "switch" && render2(), updateRemovalNotice();
     }), modes.subscribe((next, previous, event) => {
       let held = (state) => state.mode === "pressed" || state.mode === "dragging";
@@ -4733,7 +4830,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
     }, "editor-primary")), actions.append(editorButton("Cancel", back));
   }
   function resetMap() {
-    if (confirmed("Replace browser edits with the link data loaded from the project files?"))
+    let id = activeWorkspace(), name = workspaceName(id), message = id === "main" ? "Replace Main's edits with its default links?" : defaultWorkspace(id) ? `Replace ${name}'s edits with its default links?` : `Replace ${name}'s map with Main's default map?`;
+    if (confirmed(message))
       try {
         store.resetToBundled(), showSunList();
       } catch (error) {
@@ -4804,8 +4902,8 @@ ${preset.settings}`, `the ${preset.name} preset`);
       tip(editorButton("History", showHistory), "Your map before each of your last 20 changes; restore any of them.")
     ), editorGroup(
       "Start over",
-      tip(editorButton("Reset to file data", resetMap, "editor-danger"), "Replace your browser edits with the project's map. History keeps the current one."),
-      element("p", "editor-hint", "Replaces your browser edits with the project's map. History keeps the current one.")
+      tip(editorButton("Reset to file data", resetMap, "editor-danger"), defaultWorkspace(activeWorkspace()) ? `Replace ${workspaceName(activeWorkspace())}'s edits with its default links.` : activeWorkspace() === "main" ? "Replace Main's edits with its default links." : `Replace ${workspaceName(activeWorkspace())}'s map with Main's default map.`),
+      element("p", "editor-hint", "History keeps the current map.")
     );
     let tags = tagCounts();
     if (tags.length) {

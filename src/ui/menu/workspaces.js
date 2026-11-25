@@ -100,7 +100,7 @@ export function workspaceSettings() {
   const list = workspaces.loadWorkspaces();
   list.forEach(item => {
     const row = element('div', 'editor-list-row workspace-row');
-    row.append(element('span', '', `${item.name}${item.id === activeWorkspace() ? ' (open)' : ''}`));
+    row.append(element('span', '', `${item.name}${workspaces.defaultWorkspace(item.id) ? ' (default)' : ''}${item.id === activeWorkspace() ? ' (open)' : ''}`));
     if (item.id !== activeWorkspace()) row.append(editorButton('Switch', () => { switchWorkspace(item.id); hooks.showMenuPanel('Settings'); }));
     row.append(editorButton('Rename', () => {
       const name = window.prompt('New name for this workspace', item.name);
@@ -109,7 +109,10 @@ export function workspaceSettings() {
     }));
     if (item.id !== 'main') {
       row.append(editorButton('Remove', () => {
-        if (!confirmed(`Remove the ${item.name} workspace and its map? Export it first if you want a copy.`)) return;
+        const message = workspaces.defaultWorkspace(item.id)
+          ? `Remove the ${item.name} workspace? Your edits to it in this browser are deleted, so export it first to keep them. It's one of Orbit's default workspaces, so you can add it back from Add workspace, starting from its default links.`
+          : `Remove the ${item.name} workspace and its map? Export it first if you want a copy.`;
+        if (!confirmed(message)) return;
         removeWorkspace(item.id);
         hooks.showMenuPanel('Settings');
       }, 'editor-danger'));
@@ -122,11 +125,23 @@ export function workspaceSettings() {
   name.input.placeholder = 'For example: Home';
   const start = document.createElement('select');
   start.setAttribute('aria-label', 'Start the new workspace with');
-  for (const [value, label] of [['empty', 'An empty map'], ['copy', 'A copy of this workspace'], ['bundled', 'The sample map']]) {
+  for (const [value, label] of [['empty', 'An empty map'], ['copy', 'A copy of this workspace'], ['bundled', "Main's default map"]]) {
     const option = element('option', '', label);
     option.value = value;
     start.append(option);
   }
+  for (const item of workspaces.defaultWorkspaces()) {
+    if (!workspaces.removedDefaultIds().has(item.id)) continue;
+    const option = element('option', '', `${item.name} (default)`);
+    option.value = `default:${item.id}`;
+    start.append(option);
+  }
+  start.addEventListener('change', () => {
+    const selected = start.value.startsWith('default:')
+      ? workspaces.defaultWorkspace(start.value.slice('default:'.length)) : null;
+    name.input.readOnly = Boolean(selected);
+    if (selected) name.input.value = selected.name;
+  });
   const add = element('button', 'editor-button', 'Add workspace');
   add.type = 'submit';
   form.append(name.wrapper, start, add);

@@ -24,7 +24,8 @@ export function backupDue(time = now()) {
 /** @param {{changes: number, days: number}} due */
 export function backupReminder(due) {
   const box = element('div', 'routine-offer backup-reminder');
-  const where = workspaces.loadWorkspaces().length > 1 ? ` in ${workspaces.workspaceName(activeWorkspace())}` : '';
+  const workspace = activeWorkspace();
+  const where = workspace === 'main' || workspaces.loadWorkspaces().length > 1 ? ` in ${workspaces.workspaceName(workspace)}` : '';
   box.append(element('p', 'routine-offer-copy', `Back up your map${where}: ${counted(due.changes, 'change')} since your last export${due.days ? `, ${counted(due.days, 'day')} ago` : ''}.`));
   const save = element('button', 'routine-offer-open', 'Back up now');
   save.type = 'button';

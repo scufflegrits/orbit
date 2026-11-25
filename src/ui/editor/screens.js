@@ -8,6 +8,8 @@ import * as mapOps from '../../core/map-ops.js';
 import * as rdp from '../../core/rdp.js';
 import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
+import { activeWorkspace } from '../../state/page-store.js';
+import * as workspaces from '../../state/workspaces.js';
 import * as prefs from '../../state/prefs.js';
 import { confirmed } from '../dialogs/confirm.js';
 import { counted, element } from '../dom.js';
@@ -339,7 +341,12 @@ function reviewItem(data, kind, sunIndex = null, planetIndex = null, sourceKind 
 }
 
 function resetMap() {
-  if (!confirmed('Replace browser edits with the link data loaded from the project files?')) return;
+  const id = activeWorkspace();
+  const name = workspaces.workspaceName(id);
+  const message = id === 'main' ? "Replace Main's edits with its default links?"
+    : workspaces.defaultWorkspace(id) ? `Replace ${name}'s edits with its default links?`
+      : `Replace ${name}'s map with Main's default map?`;
+  if (!confirmed(message)) return;
   try {
     // Main follows the project files again; other workspaces keep a saved
     // copy (store.resetToBundled). The store subscriber redraws.
@@ -437,8 +444,11 @@ export function showSunList() {
     tip(editorButton('History', showHistory), 'Your map before each of your last 20 changes; restore any of them.'),
   );
   editorGroup('Start over',
-    tip(editorButton('Reset to file data', resetMap, 'editor-danger'), "Replace your browser edits with the project's map. History keeps the current one."),
-    element('p', 'editor-hint', "Replaces your browser edits with the project's map. History keeps the current one."),
+    tip(editorButton('Reset to file data', resetMap, 'editor-danger'), workspaces.defaultWorkspace(activeWorkspace())
+      ? `Replace ${workspaces.workspaceName(activeWorkspace())}'s edits with its default links.`
+      : activeWorkspace() === 'main' ? "Replace Main's edits with its default links."
+        : `Replace ${workspaces.workspaceName(activeWorkspace())}'s map with Main's default map.`),
+    element('p', 'editor-hint', 'History keeps the current map.'),
   );
   const tags = tagCounts();
   if (tags.length) {

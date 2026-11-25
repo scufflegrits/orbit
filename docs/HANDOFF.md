@@ -1,10 +1,10 @@
 # Orbit handoff
 
-Last updated 2026-11-24 for the unreleased Edit links and map changes, including row actions for suns, planets, and moons, map removal, and sticky editor toolbars.
+Last updated 2026-11-25 for default workspaces.
 
 ## Status
 
-**Orbit 3.0.3:** group planets, the sun picker for whole-map imports, two Galaxy hover fixes, and new Dev Toolbox links. See the changelog for the storage compatibility warning.
+**Orbit 3.0.3:** group planets, the sun picker for whole-map imports, two Galaxy hover fixes, and default workspaces. Main has nine suns and 106 destinations. Dev Toolbox is a default workspace with five suns and 29 destinations.
 
 All work is on `main`. The unreleased changes passed the planned Chromium and headless Edge 158 checks in file and server mode. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](plans/REWRITE_PLAN.md).
 
@@ -33,7 +33,7 @@ Declined, do not build: lab reachability checks (idea 5 of the 2.0.0 list) and t
 
 ## Project intent
 
-Orbit is a local webpage for frequently visited links; no hosting or accounts. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets. Clicking a sun opens its System. Linked planets and moons open websites or download or launch Remote Desktop connections. Clicking a group planet shows its moons until dismissed. The smallest supported screen is 1920×1080. The bundled map has ten suns and 123 destinations.
+Orbit is a local webpage for frequently visited links; no hosting or accounts. The Galaxy shows suns (groups). Hovering over a sun reveals its first five planets. Clicking a sun opens its System. Linked planets and moons open websites or download or launch Remote Desktop connections. Clicking a group planet shows its moons until dismissed. The smallest supported screen is 1920×1080. Main has nine suns and 106 destinations; the default Dev Toolbox workspace has five suns and 29 destinations.
 
 ## Run and edit
 
@@ -42,18 +42,19 @@ Orbit is a local webpage for frequently visited links; no hosting or accounts. T
 - In the sun and planet editors, planet and moon rows export individual items directly. The read-only team views offer the same row exports. The sun form holds Save, with export and position below it and removal after the planet list.
 - Planet and moon editors associate their sticky Save button with the form using the `form` attribute. Their Move disclosure reuses the existing reorder and cross-parent move actions.
 - Sun rows save personal sun order directly. Team suns stay above them and can be viewed or exported from their rows. Planet and moon rows refresh their child list in place after reorder, removal, or its Undo, preserving the live parent form.
-- To change the bundled map, edit `links.json` and run `python3 sync.py` (regenerates `links-data.js` for file mode). `sync.py --team PATH` writes the gitignored `team-data.js`; `--no-team` removes it. A map saved in the browser takes precedence until **Reset to file data**.
+- To change Main, edit `links.json`; to add or change a default workspace, edit `workspaces/<id>.json`. Run `python3 sync.py` to regenerate `links-data.js` and `workspaces-data.js` for file mode. `sync.py --team PATH` writes the gitignored `team-data.js`; `--no-team` removes it. Served mode prefers workspace JSON and falls back to the generated data. A saved map takes precedence until **Reset to file data**.
 
 ## Code layout
 
-Since 3.0.0 the app is ES modules in `src/`, bundled by `scripts/build.mjs` into one committed file, `orbit.js`. `index.html` loads `links-data.js`, the optional `team-data.js`, then `orbit.js`. Layers, lowest first (`npm run check:layers` fails on an upward or circular import): core < state < services < ui < app.
+Since 3.0.0 the app is ES modules in `src/`, bundled by `scripts/build.mjs` into one committed file, `orbit.js`. `index.html` loads `links-data.js`, `workspaces-data.js`, the optional `team-data.js`, then `orbit.js`. Layers, lowest first (`npm run check:layers` fails on an upward or circular import): core < state < services < ui < app.
 
 | Path | Purpose |
 | --- | --- |
 | `index.html`, `styles.css` | Page shell; layout, animations, responsive rules, themes (Default, Red, Blue); fonts through `--font-body` / `--font-display` (Inter, or `html[data-font-family='classic']`) |
 | `fonts/` | Bundled fonts (Inter, DM Sans, Space Grotesk), each with its OFL licence file; loaded by relative `@font-face` URLs, which work from `file://` (tested in Edge and Chromium) |
 | `orbit.js` | The built app (`npm run build`); never edit by hand |
-| `links.json` / `links-data.js` | Bundled map, and its generated copy for file mode |
+| `links.json` / `links-data.js` | Main's default map, and its generated copy for file mode |
+| `workspaces/` / `workspaces-data.js` | Default workspace maps and generated copies for file mode |
 | `serve.py` / `sync.py` | Local server (with `POST /api/check-links`) / data generator |
 | `src/core/` | Pure rules: schema and validation, destination keys, placeholders, search, Remote Desktop parsing, map moves and merges, bookmarks |
 | `src/state/` | Saved data: storage, workspaces, preferences, history, backup; `page-store.js` is the only writer of the map |
@@ -80,7 +81,7 @@ Other docs: [README.md](../README.md) (user guide), [RELEASING.md](RELEASING.md)
 
 **Destination keys.** `destinationKey(item)` is a normalized URL or `rdp:host[:port]` for a link, and `null` for a group planet. Imports match group planets case-insensitively by name within a sun. Recents, favorites of team links, routines, duplicates, merge import, link packs, link-check results, and team update notices all match on it; `pathsForKey` finds an item's current position.
 
-**Workspaces.** `MAP_STORAGE_KEY`, `UNDO_STORAGE_KEY`, and `HISTORY_STORAGE_KEY` are `let` in `app.js`, built by `workspaceKey()`. Main keeps the original keys (so pre-2.2 maps stay put); other workspaces append `:<id>`. Preferences and the team map are shared across workspaces.
+**Workspaces.** `src/state/workspaces.js` keeps the merged display list separate from `orbit:workspaces:v1`, which stores only user-created workspaces and renamed defaults. Bundled defaults come from `workspaces-data.js`; `orbit:workspaces:removed:v1` remembers removed defaults. Main keeps the original map, undo, and history keys (so pre-2.2 maps stay put); other workspaces append `:<id>`. Preferences and team data are shared. `orbit:notice:dev-toolbox-moved` records the one-time prompt about Main's former Dev Toolbox sun.
 
 **Opening links.** `openLinks(items, label, options)` is the one opener for Open all, favorites, and routines. Browsers other than Playwright's Chromium (including Edge) allow only the first tab until pop-ups are allowed for the site; Orbit reports the blocked count. Remote Desktop links are never opened in bulk. Placeholder links reuse their last values, or are skipped and counted.
 

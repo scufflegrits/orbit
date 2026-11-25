@@ -12,6 +12,7 @@ import { validateMap } from '../core/schema.js';
  * @property {(url: string, init?: any) => Promise<{ok: boolean, status: number, json(): Promise<any>}>} fetch
  * @property {any} bundledData window.ORBIT_DATA
  * @property {any} teamData window.ORBIT_TEAM_DATA
+ * @property {any} workspacesData window.ORBIT_WORKSPACES
  */
 
 /** @returns {SourceEnv} */
@@ -22,7 +23,34 @@ export function pageEnv() {
     fetch: (url, init) => page.fetch(url, init),
     bundledData: page.ORBIT_DATA,
     teamData: page.ORBIT_TEAM_DATA,
+    workspacesData: page.ORBIT_WORKSPACES,
   };
+}
+
+/** Load each bundled workspace independently; a broken default never blocks Main. @param {SourceEnv} [env] */
+export async function loadDefaultWorkspaces(env = pageEnv()) {
+  const entries = Array.isArray(env.workspacesData) ? env.workspacesData : [];
+  const loaded = [];
+  const seen = new Set();
+  for (const entry of entries) {
+    try {
+      if (!entry || typeof entry.id !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.id) ||
+          entry.id.length > 40 || ['main', 'unreadable'].includes(entry.id) || typeof entry.name !== 'string' ||
+          !entry.name.trim() || entry.name.trim().length > 40 || seen.has(entry.id)) throw new Error('Invalid workspace metadata.');
+      seen.add(entry.id);
+      let data = entry.map;
+      if (env.protocol !== 'file:') {
+        try {
+          const response = await env.fetch(`./workspaces/${encodeURIComponent(entry.id)}.json`, { cache: 'no-store' });
+          if (response.ok) data = await response.json();
+        } catch { /* Use generated data if the file can't be fetched. */ }
+      }
+      loaded.push({ id: entry.id, name: entry.name, map: validateMap(data) });
+    } catch (error) {
+      console.warn(`Skipping default workspace ${entry?.id || '(unknown)'}:`, error);
+    }
+  }
+  return loaded;
 }
 
 /**

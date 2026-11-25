@@ -7,6 +7,45 @@ import { uniqueSunId } from '../core/schema.js';
 
 export const MAIN = 'main';
 export const UNREADABLE = 'unreadable';
+export const REMOVED_DEFAULTS_KEY = 'orbit:workspaces:removed:v1';
+/** @type {Workspace[]} */
+let defaults = [];
+
+/** Set bundled workspace metadata before the first workspace read. @param {Workspace[]} list */
+export function setDefaultWorkspaces(list) {
+  defaults = Array.isArray(list) ? list.filter(item => item && typeof item.id === 'string' &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.id) && item.id.length <= 40 && item.id !== MAIN && item.id !== UNREADABLE &&
+    typeof item.name === 'string' && item.name.trim().length > 0 && item.name.trim().length <= 40) : [];
+}
+
+/** The ids the user removed from the bundled defaults. */
+export function removedDefaultIds() {
+  const list = readJson(REMOVED_DEFAULTS_KEY, []);
+  return new Set(Array.isArray(list) ? list.filter(id => typeof id === 'string') : []);
+}
+
+/** @param {string} id */
+export function markDefaultRemoved(id) {
+  const removed = removedDefaultIds(); removed.add(id);
+  write(REMOVED_DEFAULTS_KEY, JSON.stringify([...removed]));
+}
+
+/** @param {string} id */
+export function restoreDefault(id) {
+  const removed = removedDefaultIds(); removed.delete(id);
+  write(REMOVED_DEFAULTS_KEY, JSON.stringify([...removed]));
+}
+
+/** Raw user choices only. Defaults are merged at read time and never persisted by listing them. */
+export function loadStoredWorkspaces() {
+  const list = readJson(KEYS.workspaces, []);
+  return Array.isArray(list) ? list.filter(item => item && typeof item.id === 'string' && item.name) : [];
+}
+
+/** Bundled workspace metadata, including its validated map when available. */
+export function defaultWorkspaces() { return defaults; }
+/** @param {string} id */
+export function defaultWorkspace(id) { return defaults.find(item => item.id === id) || null; }
 /** The keys that belong to one workspace. */
 export const WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history]);
 
@@ -15,9 +54,14 @@ export const WORKSPACE_KEYS = Object.freeze([KEYS.map, KEYS.undo, KEYS.history])
  * @returns {Workspace[]}
  */
 export function loadWorkspaces() {
-  const list = readJson(KEYS.workspaces, []);
-  const valid = Array.isArray(list) ? list.filter(item => item && typeof item.id === 'string' && item.name) : [];
-  return valid.some(item => item.id === MAIN) ? valid : [{ id: MAIN, name: 'Main' }, ...valid];
+  const stored = loadStoredWorkspaces();
+  const list = stored.some(item => item.id === MAIN) ? stored : [{ id: MAIN, name: 'Main' }, ...stored];
+  const removed = removedDefaultIds();
+  for (const item of defaults) {
+    if (removed.has(item.id) || list.some(saved => saved.id === item.id)) continue;
+    list.push({ id: item.id, name: item.name });
+  }
+  return list;
 }
 
 /**
@@ -66,7 +110,7 @@ export function newWorkspace(name) {
   if (list.some(item => item.name.toLocaleLowerCase() === clean.toLocaleLowerCase())) {
     throw new Error(`There is already a workspace named ${clean}.`);
   }
-  return { id: uniqueSunId(clean, new Set([UNREADABLE, ...list.map(item => item.id)])), name: clean };
+  return { id: uniqueSunId(clean, new Set([UNREADABLE, ...defaults.map(item => item.id), ...list.map(item => item.id)])), name: clean };
 }
 
 /**
@@ -80,5 +124,9 @@ export function renameWorkspace(id, name) {
   if (list.some(item => item.id !== id && item.name.toLocaleLowerCase() === clean.toLocaleLowerCase())) {
     throw new Error(`There is already a workspace named ${clean}.`);
   }
-  saveWorkspaces(list.map(item => item.id === id ? { ...item, name: clean } : item));
+  const stored = loadStoredWorkspaces();
+  if (defaultWorkspace(id) || id === MAIN) {
+    const entry = { id, name: clean };
+    saveWorkspaces([...stored.filter(item => item.id !== id), entry]);
+  } else saveWorkspaces(stored.map(item => item.id === id ? { ...item, name: clean } : item));
 }

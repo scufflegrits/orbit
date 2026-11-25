@@ -7,7 +7,7 @@ import fc from 'fast-check';
 import { oracle } from '../../tests/oracle/oracle.mjs';
 import { rawMap, runs, validMap } from '../../tests/unit/arbitraries.mjs';
 import { fakeFetch } from '../../tests/unit/fakes.mjs';
-import { loadBundledMap, loadTeamMap } from './sources.js';
+import { loadBundledMap, loadDefaultWorkspaces, loadTeamMap } from './sources.js';
 
 const MAP = { groups: [{ id: 'docs', name: 'Docs', color: '#79d9f8', links: [{ name: 'Guide', url: 'https://guide.test/' }] }] };
 const OTHER = { groups: [{ id: 'ops', name: 'Ops', color: '#79d9f8', links: [] }] };
@@ -74,4 +74,18 @@ test('team map: the same groups, source, and error as 2.2.1 loadTeamMap', async 
     const result = await loadTeamMap({ protocol, fetch: fakeFetch({ './team.json': spec }), bundledData: undefined, teamData: local });
     assert.deepEqual(result, { groups: old.get('teamGroups'), source: old.get('teamSource'), error: old.get('teamError') });
   }), runs(300));
+});
+
+test('default workspaces: served JSON wins, failures fall back to embedded data, invalid defaults are skipped', async () => {
+  const embedded = { id: 'tools', name: 'Tools', map: MAP };
+  const changed = { groups: [{ id: 'new', name: 'New', color: '#79d9f8', links: [] }] };
+  const env = served({ './workspaces/tools.json': { status: 200, body: changed }, './workspaces/fallback.json': { status: 404 } },
+    { workspacesData: [embedded, { id: 'fallback', name: 'Fallback', map: OTHER }, { id: 'bad', name: 'Bad', map: { groups: 'no' } }] });
+  const result = await loadDefaultWorkspaces(env);
+  assert.deepEqual(result.map(item => [item.id, item.map.groups[0].id]), [['tools', 'new'], ['fallback', 'ops']]);
+  assert.deepEqual(env.fetch.requests, [
+    { url: './workspaces/tools.json', cache: 'no-store' },
+    { url: './workspaces/fallback.json', cache: 'no-store' },
+    { url: './workspaces/bad.json', cache: 'no-store' },
+  ]);
 });

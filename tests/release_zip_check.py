@@ -34,6 +34,10 @@ def main():
           ORBIT_DATA.groups.reduce((n, sun) => n + sun.links.reduce((m, planet) => m + Number(planet.type !== "group") + (planet.moons || []).length, 0), 0)]""")
         count = page.locator("#link-count").inner_text()
         assert page.locator(".home-hub").count() == suns and f"{suns} SUNS" in count and f"{links} LINKS" in count, count
+        assert page.locator("#workspace-switch option").all_inner_texts() == ["Main", "Dev Toolbox"], "Dev Toolbox ships in the release"
+        page.locator("#workspace-switch").select_option("dev-toolbox")
+        assert page.locator(".home-hub").count() == 5 and "29 LINKS" in page.locator("#link-count").inner_text(), "Dev Toolbox map loads from the release"
+        page.locator("#workspace-switch").select_option("main")
         # The zip's own fonts/ folder supplies Inter (a zip without it falls back silently).
         page.wait_for_function("document.fonts.status === 'loaded'")
         inter = page.evaluate("""() => ({ loaded: [...document.fonts].some(face => face.family.replace(/["']/g, '') === 'Inter' && face.status === 'loaded'),

@@ -3,7 +3,7 @@
 import json
 from urllib.parse import urlparse
 from pathlib import Path
-from helpers import ARTIFACTS, ROOT, SAMPLE_LINKS, SAMPLE_SUNS, check, click_logo_to_galaxy, download_json, open_editor, submit_editor_form, upload_json
+from helpers import ARTIFACTS, ROOT, DEFAULT_LINKS, DEFAULT_SUNS, check, click_logo_to_galaxy, download_json, open_editor, submit_editor_form, upload_json
 
 
 def run_milestone_9(page, url, mode):
@@ -15,9 +15,9 @@ def run_milestone_9(page, url, mode):
     original_suns = [sun for sun in suns if sun["id"] != "labs"]
     original_planets = [planet for sun in original_suns for planet in sun["links"]]
     original_moons = [moon for planet in original_planets for moon in planet.get("moons", [])]
-    check(len(original_suns) == SAMPLE_SUNS - 1 and all(len(sun["links"]) >= 5 for sun in original_suns) and original_moons,
+    check(len(original_suns) == DEFAULT_SUNS - 1 and all(len(sun["links"]) >= 5 for sun in original_suns) and original_moons,
           "web sample suns each have at least five planets")
-    check(len({sun["id"] for sun in suns}) == SAMPLE_SUNS, "unique sun IDs")
+    check(len({sun["id"] for sun in suns}) == DEFAULT_SUNS, "unique sun IDs")
     web_planets = [planet for planet in original_planets if planet.get("type") != "group"]
     for destination in web_planets + original_moons:
         parsed = urlparse(destination["url"])
@@ -27,16 +27,20 @@ def run_milestone_9(page, url, mode):
     page.evaluate("localStorage.removeItem('orbit:map:v1'); localStorage.removeItem('orbit:undo-removal:v1')")
     page.reload(wait_until="load")
     page.wait_for_timeout(700)
-    check(page.locator(".home-hub").count() == SAMPLE_SUNS,
+    check(page.locator(".home-hub").count() == DEFAULT_SUNS,
           f"{mode}: every sample sun on Galaxy")
     cards = page.locator(".group-card").all()
-    rows = {}
+    rows = []
     for card in cards:
         box = card.bounding_box()
         check(box is not None and 0 <= box["x"] and box["x"] + box["width"] <= 1280,
               f"{mode}: sun card fits Galaxy")
-        rows.setdefault(round(box["y"]), []).append(box["x"] + box["width"] / 2)
-    last_row = rows[max(rows)]
+        row = next((row for row in rows if abs(row["y"] - box["y"]) <= 10), None)
+        if row is None:
+            row = {"y": box["y"], "centers": []}
+            rows.append(row)
+        row["centers"].append(box["x"] + box["width"] / 2)
+    last_row = max(rows, key=lambda row: row["y"])["centers"]
     check(abs(sum(last_row) / len(last_row) - 640) < 10,
           f"{mode}: last row of suns is centered ({len(last_row)} in it)")
     check(page.locator(".home-hub").filter(has_text="Stocks & Investing").count() == 1 and
@@ -197,7 +201,7 @@ def run_milestone_11(page, url, mode):
     page.goto(url, wait_until="load")
     page.evaluate("localStorage.removeItem('orbit:map:v1')")
     page.reload(wait_until="load")
-    check(f"{SAMPLE_LINKS} LINKS" in page.locator("#link-count").inner_text(),
+    check(f"{DEFAULT_LINKS} LINKS" in page.locator("#link-count").inner_text(),
           f"{mode}: sample map link count")
     labs_hub = page.locator(".home-hub").filter(has_text="Labs")
     check(labs_hub.count() == 1, f"{mode}: Labs sun appears")
@@ -325,7 +329,7 @@ def run_pending_ui(page, url, mode):
     check(page.locator(".find-item").count() > 0 and page.locator(".group-grid:visible").count() == 0,
           f"{mode}: top bar search finds links")
     page.locator(".brand").click()
-    check(search.input_value() == "" and page.locator(".home-hub").count() == SAMPLE_SUNS,
+    check(search.input_value() == "" and page.locator(".home-hub").count() == DEFAULT_SUNS,
           f"{mode}: Orbit logo clears search and shows all suns")
     search.fill("Tech")
     page.locator(".find-item").first.click()
@@ -333,7 +337,7 @@ def run_pending_ui(page, url, mode):
     check(page.locator("#topbar-search:visible").count() == 1,
           f"{mode}: Quick find remains visible in a System")
     click_logo_to_galaxy(page)
-    check(search.input_value() == "" and page.locator(".home-hub").count() == SAMPLE_SUNS,
+    check(search.input_value() == "" and page.locator(".home-hub").count() == DEFAULT_SUNS,
           f"{mode}: Orbit logo returns from a System to all suns")
     page.set_viewport_size({"width": 900, "height": 900})
     page.screenshot(path=str(ARTIFACTS / f"pending-ui-{mode}-900.png"), full_page=True)
@@ -406,7 +410,7 @@ def run_milestone_13(page, url, mode):
     page.locator(".editor-header h3").filter(has_text="Review sun import").wait_for()
     page.get_by_role("button", name="Add sun", exact=True).click()
     suns = page.evaluate("OrbitTest.groups().map(sun => sun.id)")
-    check(len(suns) == SAMPLE_SUNS + 1 and suns.count("labs") == 1 and "labs-2" in suns,
+    check(len(suns) == DEFAULT_SUNS + 1 and suns.count("labs") == 1 and "labs-2" in suns,
           f"{mode}: imported duplicate sun gets a unique ID")
     page.locator(".editor-back").click()
     page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
@@ -435,8 +439,8 @@ def run_milestone_13(page, url, mode):
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
     # Server mode renders after fetching links.json; wait for the suns before counting them.
-    page.locator(".home-hub").nth(SAMPLE_SUNS).wait_for()
-    check(page.locator(".home-hub").count() == SAMPLE_SUNS + 1 and
+    page.locator(".home-hub").nth(DEFAULT_SUNS).wait_for()
+    check(page.locator(".home-hub").count() == DEFAULT_SUNS + 1 and
           page.evaluate("OrbitTest.groups().find(sun => sun.id === 'tech').links.at(-1).moons.length") == 5,
           f"{mode}: scoped imports persist after reload")
     page.locator(".home-hub").filter(has_text="Tech").click()
@@ -450,15 +454,15 @@ def run_milestone_13(page, url, mode):
     click_logo_to_galaxy(page)
     open_editor(page)
     full_file = download_json(page, "Whole map (JSON)")
-    check(len(full_file["groups"]) == SAMPLE_SUNS + 1 and
+    check(len(full_file["groups"]) == DEFAULT_SUNS + 1 and
           full_file["groups"][0]["links"][0]["moons"][-1]["host"] == "lab1-server1",
           f"{mode}: full export includes scoped imports")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Reset to file data").click()
-    check(page.evaluate("OrbitTest.groups().length") == SAMPLE_SUNS, f"{mode}: reset removes scoped imports")
+    check(page.evaluate("OrbitTest.groups().length") == DEFAULT_SUNS, f"{mode}: reset removes scoped imports")
     upload_json(page, "Import a file", full_file)
     page.get_by_role("button", name="Replace my map").click()
-    check(page.evaluate("OrbitTest.groups().length") == SAMPLE_SUNS + 1, f"{mode}: full import restores scoped imports")
+    check(page.evaluate("OrbitTest.groups().length") == DEFAULT_SUNS + 1, f"{mode}: full import restores scoped imports")
     print(f"PASS milestone 13 ({mode})")
 
 
@@ -506,8 +510,8 @@ def run_milestone_14(page, url, mode):
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
     # Server mode renders after fetching links.json; wait for the suns before counting them.
-    page.locator(".home-hub").nth(SAMPLE_SUNS + 1).wait_for()
-    check(page.locator(".home-hub").count() == SAMPLE_SUNS + 2,
+    page.locator(".home-hub").nth(DEFAULT_SUNS + 1).wait_for()
+    check(page.locator(".home-hub").count() == DEFAULT_SUNS + 2,
           f"{mode}: both converted suns persist after reload")
     page.locator(".home-hub").filter(has_text="Shared Research").first.click()
     page.locator(".detail-view").wait_for()

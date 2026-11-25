@@ -6,13 +6,13 @@ To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planet
 
 Use **Quick find** in the top bar on the Galaxy or any System to search suns, planets, and moons by name, web address, computer name, or tag; see [Find and open links](#find-and-open-links). Searching from a System returns to the Galaxy with matching results. Press `Ctrl+K` for the command palette.
 
-The bundled map has ten sample suns, including **Dev Toolbox**, **Stocks & Investing**, **Science**, and **Labs**, with 53 planets and 135 destinations. **Dev Toolbox** collects developer learning and reference sites: Git practice and guides, DevDocs, web platform tools (Can I use, web.dev, Can I email, Bundlephobia, Squoosh), JSON and data tools, diagramming, and learning paths; its **Git guides**, **Web platform**, **Diagramming**, and **Learning paths** planets are groups.
+Orbit includes **Main** and the default **Dev Toolbox** workspace. Main has nine suns, 45 planets, and 106 destinations; Dev Toolbox has five suns and 29 destinations. Dev Toolbox collects Git, web, documentation, data, and diagramming tools.
 
 ## What's new in 3.0
 
-Orbit 3.0.0 carried over saved links, routines, workspaces, and settings from 2.2.1. It rebuilt the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. It is just as fast: the Galaxy draws 2% faster, typing in Quick find is unchanged, and the code is 1.5% larger. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md). 3.0.1 fixes routine offers in workspaces other than Main; 3.0.2 gives Galaxy planets more room around their sun and adds a Dev Toolbox sun to the sample map (see the changelog).
+Orbit 3.0.0 carried over saved links, routines, workspaces, and settings from 2.2.1. It rebuilt the code underneath (see [Changing Orbit's code](#changing-orbits-code)), so later changes are safer to make. Earlier versions and the full comparison with 2.2.1 are in [CHANGELOG.md](CHANGELOG.md).
 
-**Once you save a map containing group planets, avoid opening Orbit 3.0.2 or earlier with the same browser storage. Older versions reject the saved map, fall back to the sample map, and can overwrite your saved map on the next edit.** Back up your map using **Export → Whole map (JSON)** before switching versions. The current version backs up unreadable browser data before replacing it.
+**Once you save a map containing group planets, avoid opening Orbit 3.0.2 or earlier with the same browser storage. Older versions reject the saved map, fall back to the default map, and can overwrite your saved map on the next edit.** Back up your map using **Export → Whole map (JSON)** before switching versions. The current version backs up unreadable browser data before replacing it.
 
 ## Run
 
@@ -122,7 +122,13 @@ Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` r
 
 ## Workspaces
 
-**Settings → Workspaces** keeps separate maps, such as Work and Home, each with its own suns, favorites, routines, history, and undo. Add a workspace starting from an empty map, a copy of the current one, or the sample map; rename or remove it (Main stays). Once there is more than one, a workspace menu appears in the top bar, and the command palette offers **Switch to workspace**. The team map and your settings are shared by all workspaces. **Whole map (JSON)** and **Import a file** work on the open workspace. **Reset to file data** in Main goes back to following the project's link data; in any other workspace it saves a copy of that link data as the workspace's map, so it stays after a reload.
+**Settings → Workspaces** keeps separate maps, such as Work and Home, each with its own suns, favorites, routines, history, and undo. Orbit includes Main and the default Dev Toolbox workspace. Add a workspace starting from an empty map, a copy of the current one, or Main's default map; rename or remove workspaces (Main stays). Removed defaults stay removed until you add them back from the **(default)** option. Defaults are available on every browser but are not copied into browser storage just by being shown. Edits are saved in that browser. The top bar and command palette switch between workspaces. The team map and settings are shared. **Whole map (JSON)** and **Import a file** work on the open workspace. **Reset to file data** in Main follows `links.json`; in a default workspace it follows that workspace's file; in a user workspace it saves a copy of Main's default map.
+
+### Default workspaces
+
+A fresh clone includes Dev Toolbox automatically when you open `index.html`. Existing Orbit users also get the workspace. If you edited Main before this change, Orbit offers to remove its old Dev Toolbox sun; choose **Remove** to keep the links in the new workspace, or **Keep** to leave the old sun in Main. You can remove the default workspace and add it back later from **Settings → Workspaces**.
+
+To add another default workspace, create `workspaces/<id>.json` with its name and map, then run `python3 sync.py`. The generated `workspaces-data.js` is committed so direct file mode works; served mode reads the JSON file and falls back to the generated copy.
 
 ## Start your day with Orbit
 

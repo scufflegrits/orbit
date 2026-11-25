@@ -71,6 +71,8 @@ class OrbitHandler(SimpleHTTPRequestHandler):
         if path == "/team-data.js" and not (Path(self.directory) / "team-data.js").exists():
             # index.html always asks for team-data.js; answer quietly when there is none.
             return self.send_bytes(b"// No team map.\n", "text/javascript")
+        if path == "/workspaces-data.js" and not (Path(self.directory) / "workspaces-data.js").exists():
+            return self.send_bytes(b"window.ORBIT_WORKSPACES = [];\n", "text/javascript")
         return super().do_GET()
 
     def send_bytes(self, body, content_type, status=200):

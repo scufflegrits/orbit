@@ -41,6 +41,15 @@ def run(page, url, mode):
     check(page.evaluate("[typeof window.OrbitNext, typeof window.groups, typeof window.render]") == ["undefined"] * 3,
           f"{mode}: the release bundle defines no page globals")
     check(hubs.count() == len(DATA["groups"]), f"{mode}: the Galaxy shows every bundled sun ({hubs.count()})")
+    check(page.locator("#workspace-switch option").all_inner_texts() == ["Main", "Dev Toolbox"],
+          f"{mode}: Dev Toolbox is shipped as a default workspace")
+    check(page.evaluate("Object.keys(localStorage).filter(k => k.startsWith('orbit:')).length") == 0,
+          f"{mode}: showing the defaults writes no browser data")
+    page.locator("#workspace-switch").select_option("dev-toolbox")
+    page.locator(".home-hub").first.wait_for()
+    check(page.locator(".home-hub").count() == 5 and "29 LINKS" in page.locator("#link-count").inner_text(),
+          f"{mode}: Dev Toolbox loads its bundled map")
+    page.locator("#workspace-switch").select_option("main")
 
     hubs.first.click()
     page.locator(".detail-view").wait_for()

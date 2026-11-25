@@ -20,6 +20,8 @@ finish() {
 trap finish EXIT
 
 unzip -l "$ZIP"
+unzip -Z1 "$ZIP" | grep -q '/workspaces/dev-toolbox.json$' || { echo "The zip has no default Dev Toolbox workspace map." >&2; exit 1; }
+unzip -Z1 "$ZIP" | grep -q '/workspaces-data.js$' || { echo "The zip has no generated workspace data." >&2; exit 1; }
 (cd "$WORK" && unzip -q "$ZIP") || exit 1
 [ -f "$WORK/$NAME/index.html" ] || { echo "The zip has no $NAME/index.html." >&2; exit 1; }
 FAILED=0

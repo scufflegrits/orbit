@@ -6,7 +6,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
-from helpers import ARTIFACTS, QuietHandler, ROOT, SAMPLE_SUNS, check, open_editor, submit_editor_form, write_fixture
+from helpers import ARTIFACTS, QuietHandler, ROOT, DEFAULT_SUNS, check, open_editor, submit_editor_form, write_fixture
 
 
 def run_milestone_1(page, url, mode):
@@ -42,7 +42,7 @@ def run_extra_sun_fixture(page):
         fixture = write_fixture(directory, data)
         page.goto((fixture / "index.html").as_uri(), wait_until="load")
         page.locator(".home-hub").first.wait_for()
-        check(page.locator(".home-hub").count() == SAMPLE_SUNS + 1, "extra sun remains visible")
+        check(page.locator(".home-hub").count() == DEFAULT_SUNS + 1, "extra sun remains visible")
         page.locator(".home-hub").first.hover()
         check(page.locator(".home-orbit").first.locator(".home-satellite").count() == 5,
               "Galaxy preview stays at five planets")
@@ -201,7 +201,7 @@ def run_milestone_3(page, url, mode):
 def run_milestone_4(page, url, mode):
     page.goto(url, wait_until="load")
     open_editor(page)
-    check(page.locator(".editor-list-row").count() == SAMPLE_SUNS, f"{mode}: editor lists suns")
+    check(page.locator(".editor-list-row").count() == DEFAULT_SUNS, f"{mode}: editor lists suns")
     page.set_viewport_size({"width": 900, "height": 900})
     page.screenshot(path=str(ARTIFACTS / f"milestone4-editor-{mode}-900.png"), full_page=True)
     page.set_viewport_size({"width": 1280, "height": 900})
@@ -265,7 +265,7 @@ def run_milestone_4(page, url, mode):
         page.get_by_role("button", name="Whole map (JSON)").click()
     exported = Path(download_info.value.path()).read_bytes()
     exported_map = json.loads(exported)
-    check(len(exported_map["groups"]) == SAMPLE_SUNS + 1, f"{mode}: export includes new sun")
+    check(len(exported_map["groups"]) == DEFAULT_SUNS + 1, f"{mode}: export includes new sun")
     exported_personal = next(group for group in exported_map["groups"] if group["id"] == "personal")
     check(exported_personal["links"][0]["moons"][0]["name"] == "Second Moon",
           f"{mode}: export preserves moon order")
@@ -287,8 +287,8 @@ def run_milestone_4(page, url, mode):
     page.locator("#menu-close").click()
     page.reload(wait_until="load")
     # Server mode renders after fetching links.json; wait for the suns before counting them.
-    page.locator(".home-hub").nth(SAMPLE_SUNS).wait_for()
-    check(page.locator(".home-hub").count() == SAMPLE_SUNS + 1,
+    page.locator(".home-hub").nth(DEFAULT_SUNS).wait_for()
+    check(page.locator(".home-hub").count() == DEFAULT_SUNS + 1,
           f"{mode}: browser edits survive reload")
     personal = page.locator(".home-hub").filter(has_text="Personal Renamed")
     personal.click()
@@ -297,14 +297,14 @@ def run_milestone_4(page, url, mode):
     open_editor(page)
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Reset to file data").click()
-    check(page.locator(".editor-list-row").count() == SAMPLE_SUNS,
+    check(page.locator(".editor-list-row").count() == DEFAULT_SUNS,
           f"{mode}: reset restores bundled suns")
     with page.expect_file_chooser() as chooser_info:
         page.get_by_role("button", name="Import a file").click()
     chooser_info.value.set_files({"name": "orbit-links.json", "mimeType": "application/json",
                                   "buffer": exported})
     page.get_by_role("button", name="Replace my map").click()
-    check(page.locator(".editor-list-row").count() == SAMPLE_SUNS + 1,
+    check(page.locator(".editor-list-row").count() == DEFAULT_SUNS + 1,
           f"{mode}: import restores exported map")
     check(page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups.find(g => g.id === 'personal').links[0].moons.length") == 2,
           f"{mode}: import restores moon hierarchy")
@@ -348,10 +348,10 @@ def run_milestone_4(page, url, mode):
     page.locator(".editor-back").click()
     page.once("dialog", lambda dialog: dialog.dismiss())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".home-hub").count() == SAMPLE_SUNS + 1, f"{mode}: cancel preserves sun")
+    check(page.locator(".home-hub").count() == DEFAULT_SUNS + 1, f"{mode}: cancel preserves sun")
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".editor-list-row").count() == SAMPLE_SUNS, f"{mode}: confirm removes sun and children")
+    check(page.locator(".editor-list-row").count() == DEFAULT_SUNS, f"{mode}: confirm removes sun and children")
 
     page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
     page.get_by_role("button", name="Add planet").click()
@@ -590,7 +590,7 @@ def run_milestone_8(page, url, mode):
     page.locator(".editor-list-row").filter(has_text="Tech").get_by_role("button", name="Edit").click()
     page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Remove sun").click()
-    check(page.locator(".editor-list-row").count() == SAMPLE_SUNS - 1,
+    check(page.locator(".editor-list-row").count() == DEFAULT_SUNS - 1,
           f"{mode}: sun and children removed")
     page.get_by_role("button", name="Undo removal").click()
     saved = page.evaluate("JSON.parse(localStorage.getItem('orbit:map:v1')).groups[0]")

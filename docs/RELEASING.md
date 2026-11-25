@@ -22,8 +22,9 @@ These steps release a new version of Orbit: they set the version, test it, tag i
 | --- | --- |
 | `index.html`, `styles.css` | The page |
 | `orbit.js` | The app: the bundle built from `src/` by `npm run build` (committed, so no build is needed to ship) |
-| `links.json`, `links-data.js` | The sample link map, and the generated copy used when `index.html` is opened directly |
-| `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates `links-data.js` (and `team-data.js` with `--team`) |
+| `links.json`, `links-data.js` | Main's default map, and the generated copy used when `index.html` is opened directly |
+| `workspaces/`, `workspaces-data.js` | Default workspace maps and the generated data used when `index.html` is opened directly |
+| `serve.py`, `sync.py` | The optional local server (with `--team` and link checking), and the script that regenerates link and workspace data (and `team-data.js` with `--team`) |
 | `windows/` | The Remote Desktop helper's install, launch, and uninstall scripts |
 | `README.md`, `CHANGELOG.md`, `docs/RDP_SIGNING.md` | Instructions for the person using Orbit, and what changed in each version |
 | `docs/THIRD_PARTY_NOTICES.md` | The licence notices for the Lucide icons inside `orbit.js` and the bundled fonts (their licences require shipping them) |
@@ -31,7 +32,7 @@ These steps release a new version of Orbit: they set the version, test it, tag i
 
 Left out: `src/`, `scripts/`, `tests/`, `package.json`, `package-lock.json`, `jsconfig.json`, the rest of `docs/` (the handoff, test matrix, these release steps, and `docs/plans/`), `.gitignore`, `.gitattributes`, and `.gitconfig`. A generated `team-data.js` is never committed (it is in `.gitignore`), so a private team map is not shipped. A few links in `README.md` and `CHANGELOG.md` point to planning docs that stay in the repository; they don't work inside the zip, which is expected.
 
-**When you add a file the person using Orbit needs** (a new page asset, script, or user guide), add it to this table and to both `git archive` commands in step 4. `index.html` loads only `links-data.js`, the optional `team-data.js`, and `orbit.js`; a missing file stops the page from loading.
+**When you add a file the person using Orbit needs** (a new page asset, script, or user guide), add it to this table and to both `git archive` commands in step 4. `index.html` loads `links-data.js`, `workspaces-data.js`, the optional `team-data.js`, and `orbit.js`; `serve.py` quietly handles missing optional generated workspace data.
 
 The zip is built from the release tag, never from your working folder. Files you have not committed are left out, including private ones such as `tests/rdptest01.rdp`.
 
@@ -42,7 +43,7 @@ Choose the version: the last number for fixes only (3.0.0 → 3.0.1), the middle
 1. Set `APP_VERSION` in `src/app/version.js`. It is the version shown in Settings → About and the one the commands below read.
 2. Run `npm run build` to rebuild `orbit.js` with it.
 3. Add the new version's section at the top of `CHANGELOG.md`: the date, and what changed for the person using Orbit (new, changed, fixed), in their words.
-4. If `links.json` changed, run `python3 sync.py` so `links-data.js` matches.
+4. If `links.json` or `workspaces/*.json` changed, run `python3 sync.py` so `links-data.js` and `workspaces-data.js` match their source files.
 
 ## 2. Test it
 
@@ -75,7 +76,7 @@ Every release has a tag (`v2.2.0`, `v3.0.1`, …), so `git checkout v<version>` 
 VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.js)
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" "v$VERSION" -- \
-  index.html styles.css links.json links-data.js orbit.js \
+  index.html styles.css links.json links-data.js workspaces workspaces-data.js orbit.js \
   serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md fonts
 ```
 
@@ -85,7 +86,7 @@ git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VER
 $Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)'").Matches[0].Groups[1].Value
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" "v$Version" -- `
-  index.html styles.css links.json links-data.js orbit.js `
+  index.html styles.css links.json links-data.js workspaces workspaces-data.js orbit.js `
   serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md fonts
 ```
 
@@ -98,7 +99,7 @@ The zip is written to an `orbit-dist` folder beside the project, so it never end
 1. **List its contents.** Run `unzip -l ../orbit-dist/orbit-<version>.zip`. In PowerShell, open the zip in File Explorer instead. You should see one `orbit-<version>/` folder holding the files in the table above and nothing else.
 2. **Extract it to a fresh folder** outside the project, such as your Downloads folder.
 3. **Open `index.html` directly** from the extracted folder, in Chrome or Edge:
-   - The Galaxy appears; the bundled sample map shows all its suns, and the top bar's count matches `links.json` (the zip check compares them for you).
+   - The Galaxy appears; Main shows nine suns and the workspace switch offers Dev Toolbox. The top bar's Main count matches `links.json` (the zip check compares them for you).
    - **Edit mode** switches on in the top bar.
    - Settings → **About** shows the version you built.
    - The browser's developer console (F12) shows no errors, apart from one "file not found" for the optional `team-data.js`.

@@ -10,6 +10,7 @@ import { memoryStorage, useBackend } from './storage.js';
 import { loadHistory } from './history.js';
 import { readBackupState } from './backup.js';
 import { createStore } from './store.js';
+import { loadStoredWorkspaces, loadWorkspaces, renameWorkspace } from './workspaces.js';
 
 /** @type {ReturnType<typeof memoryStorage>} */
 let storage;
@@ -55,6 +56,71 @@ test('start: another workspace with no saved map is empty (and reports "bundled"
   assert.equal(store.state().workspace, 'home');
   assert.deepEqual(store.state().groups.map(s => s.id), ['team:ops', 'team:hr']);
   assert.equal(store.state().source, 'bundled');
+});
+
+test('default workspace: showing and switching writes no workspace data; edits persist and reset follows its file', () => {
+  const toolbox = { id: 'dev-toolbox', name: 'Dev Toolbox', map: { groups: [sun('git')] } };
+  const store = started({ defaults: [toolbox] });
+  assert.deepEqual(store.state().groups.map(s => s.id), ['team:ops', 'team:hr', 'sample']);
+  assert.equal(storage.data.size, 0, 'showing defaults writes nothing');
+  assert.deepEqual(loadWorkspaces().map(w => w.id), ['main', 'dev-toolbox']);
+  assert.deepEqual(loadStoredWorkspaces(), []);
+  assert.equal(store.switchWorkspace('dev-toolbox'), true);
+  assert.deepEqual(store.state().groups.map(s => s.id), ['team:ops', 'team:hr', 'git']);
+  assert.equal(store.state().source, 'bundled');
+  assert.deepEqual([...storage.data.keys()], ['orbit:workspace'], 'switch writes only the active workspace');
+  store.saveMap({ groups: [...store.state().groups, sun('extra')] }, 'Added');
+  assert.ok(stored('orbit:map:v1:dev-toolbox'));
+  store.resetToBundled();
+  assert.equal(storage.getItem('orbit:map:v1:dev-toolbox'), null);
+  assert.deepEqual(store.state().groups.map(s => s.id), ['team:ops', 'team:hr', 'git']);
+  assert.equal(store.state().source, 'bundled');
+});
+
+test('start: an active default workspace with no saved map follows its file without writing', () => {
+  const toolbox = { id: 'dev-toolbox', name: 'Dev Toolbox', map: { groups: [sun('git')] } };
+  fresh({ 'orbit:workspace': 'dev-toolbox' });
+  const store = started({ defaults: [toolbox] });
+  assert.deepEqual(store.state().groups.map(s => s.id), ['team:ops', 'team:hr', 'git']);
+  assert.deepEqual([...storage.data.entries()], [['orbit:workspace', 'dev-toolbox']]);
+});
+
+test('default workspace: remove remembers it; restoring creates no map and allows a matching name', () => {
+  const toolbox = { id: 'dev-toolbox', name: 'Dev Toolbox', map: { groups: [sun('git')] } };
+  fresh({ 'orbit:workspaces:v1': JSON.stringify([{ id: 'other', name: 'Dev Toolbox' }]) });
+  const store = started({ defaults: [toolbox] });
+  store.removeWorkspace('dev-toolbox');
+  assert.ok(!loadWorkspaces().some(w => w.id === 'dev-toolbox'));
+  assert.equal(store.addWorkspace('Dev Toolbox', 'default:dev-toolbox'), 'dev-toolbox');
+  assert.ok(loadWorkspaces().some(w => w.id === 'dev-toolbox'));
+  assert.equal(storage.getItem('orbit:map:v1:dev-toolbox'), null);
+});
+
+test('default workspace: user workspace list writes never persist unrenamed defaults', () => {
+  const toolbox = { id: 'dev-toolbox', name: 'Dev Toolbox', map: { groups: [sun('git')] } };
+  const store = started({ defaults: [toolbox] });
+  const id = store.addWorkspace('Home', 'empty');
+  assert.deepEqual(loadStoredWorkspaces(), [{ id, name: 'Home' }]);
+  renameWorkspace(id, 'House');
+  assert.deepEqual(loadStoredWorkspaces(), [{ id, name: 'House' }]);
+  store.removeWorkspace(id);
+  assert.deepEqual(loadStoredWorkspaces(), []);
+  assert.ok(loadWorkspaces().some(item => item.id === 'dev-toolbox'));
+});
+
+test('default id collision: an existing saved map wins until Reset follows the default file', () => {
+  const custom = { groups: [sun('kept')] };
+  fresh({
+    'orbit:workspaces:v1': JSON.stringify([{ id: 'dev-toolbox', name: 'Existing Tools' }]),
+    'orbit:map:v1:dev-toolbox': JSON.stringify(custom),
+    'orbit:workspace': 'dev-toolbox',
+  });
+  const store = started({ defaults: [{ id: 'dev-toolbox', name: 'Dev Toolbox', map: { groups: [sun('git')] } }] });
+  assert.deepEqual(store.state().groups.map(item => item.id), ['team:ops', 'team:hr', 'kept']);
+  assert.deepEqual(loadWorkspaces().find(item => item.id === 'dev-toolbox'), { id: 'dev-toolbox', name: 'Existing Tools' });
+  store.resetToBundled();
+  assert.deepEqual(store.state().groups.map(item => item.id), ['team:ops', 'team:hr', 'git']);
+  assert.equal(storage.getItem('orbit:map:v1:dev-toolbox'), null);
 });
 
 test('start: hidden team suns are left out', () => {

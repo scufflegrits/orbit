@@ -305,6 +305,7 @@ export function showMenuPanel(name) {
     menuContent.append(workspaceSettings());
     menuContent.append(teamSettings());
   } else if (name === 'Help') {
+    menuContent.append(element('p', '', 'Orbit includes a Dev Toolbox workspace. Remove it, or add it back, in Settings → Workspaces.'));
     menuContent.append(element('p', '', 'Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
     menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.'));

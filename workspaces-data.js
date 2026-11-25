@@ -1,0 +1,177 @@
+// Generated from workspaces/*.json by sync.py. Edit those files instead.
+window.ORBIT_WORKSPACES = [
+  {
+    "id": "dev-toolbox",
+    "name": "Dev Toolbox",
+    "map": {
+      "groups": [
+        {
+          "id": "git",
+          "name": "Git",
+          "description": "Learn and work with Git",
+          "color": "#f4876b",
+          "links": [
+            {
+              "name": "Learn Git Branching",
+              "url": "https://learngitbranching.js.org/",
+              "moons": [
+                {
+                  "name": "Visualizing Git",
+                  "url": "https://git-school.github.io/visualizing-git/"
+                },
+                {
+                  "name": "Oh My Git!",
+                  "url": "https://ohmygit.org/"
+                }
+              ]
+            },
+            {
+              "name": "Pro Git book",
+              "url": "https://git-scm.com/book/en/v2"
+            },
+            {
+              "name": "GitHub Skills",
+              "url": "https://learn.github.com/skills"
+            },
+            {
+              "name": "Atlassian Git tutorials",
+              "url": "https://www.atlassian.com/git/tutorials"
+            },
+            {
+              "name": "Oh Shit, Git!?!",
+              "url": "https://ohshitgit.com/"
+            }
+          ]
+        },
+        {
+          "id": "web-tools",
+          "name": "Web tools",
+          "description": "Tools for building and checking the web",
+          "color": "#75c7ec",
+          "links": [
+            {
+              "name": "Can I use",
+              "url": "https://caniuse.com/"
+            },
+            {
+              "name": "web.dev",
+              "url": "https://web.dev/"
+            },
+            {
+              "name": "Can I email",
+              "url": "https://www.caniemail.com/"
+            },
+            {
+              "name": "Bundlephobia",
+              "url": "https://bundlephobia.com/"
+            },
+            {
+              "name": "Squoosh",
+              "url": "https://squoosh.app/"
+            }
+          ]
+        },
+        {
+          "id": "docs-learning",
+          "name": "Docs & learning",
+          "description": "References and learning paths",
+          "color": "#a993e8",
+          "links": [
+            {
+              "name": "DevDocs",
+              "url": "https://devdocs.io/"
+            },
+            {
+              "name": "Devhints",
+              "url": "https://devhints.io/"
+            },
+            {
+              "name": "explainshell",
+              "url": "https://explainshell.com/"
+            },
+            {
+              "name": "roadmap.sh",
+              "url": "https://roadmap.sh/"
+            },
+            {
+              "name": "Refactoring Guru",
+              "url": "https://refactoring.guru/"
+            }
+          ]
+        },
+        {
+          "id": "data-tools",
+          "name": "Data tools",
+          "description": "Inspect, transform, and query data",
+          "color": "#72d2a0",
+          "links": [
+            {
+              "name": "JSON Crack",
+              "url": "https://jsoncrack.com/",
+              "moons": [
+                {
+                  "name": "ToDiagram",
+                  "url": "https://todiagram.com/"
+                },
+                {
+                  "name": "JSON Crack on GitHub",
+                  "url": "https://github.com/AykutSarac/jsoncrack.com"
+                },
+                {
+                  "name": "JSON Crack for VS Code",
+                  "url": "https://marketplace.visualstudio.com/items?itemName=AykutSarac.jsoncrack-vscode"
+                }
+              ]
+            },
+            {
+              "name": "transform.tools",
+              "url": "https://transform.tools/"
+            },
+            {
+              "name": "Command-line JSON",
+              "type": "group",
+              "moons": [
+                {
+                  "name": "jq",
+                  "url": "https://jqlang.org/"
+                },
+                {
+                  "name": "yq",
+                  "url": "https://github.com/mikefarah/yq"
+                },
+                {
+                  "name": "jless",
+                  "url": "https://jless.io/"
+                },
+                {
+                  "name": "fx",
+                  "url": "https://fx.wtf/"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "diagramming",
+          "name": "Diagramming",
+          "description": "Create diagrams and visualize systems",
+          "color": "#f2c96b",
+          "links": [
+            {
+              "name": "Excalidraw",
+              "url": "https://excalidraw.com/"
+            },
+            {
+              "name": "PlantUML JSON diagrams",
+              "url": "https://plantuml.com/json"
+            },
+            {
+              "name": "Graphviz",
+              "url": "https://graphviz.org/"
+            }
+          ]
+        }
+      ]
+    }
+  }
+];

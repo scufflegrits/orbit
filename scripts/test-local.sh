@@ -29,6 +29,8 @@ step layers npm run -s check:layers
 step bundle npm run -s check:bundle
 step icons npm run -s check:icons
 step unit npm run -s test:unit
+step sync "$PY" tests/sync_check.py
+step defaults "$PY" tests/default_workspaces.py
 step matrix "$PY" tests/browser_matrix.py --milestone 19
 step drag1 "$PY" tests/drag_drop.py --phase 1
 step drag2 "$PY" tests/drag_drop.py --phase 2

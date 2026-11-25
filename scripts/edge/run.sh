@@ -18,7 +18,7 @@
 set -u
 source "$(dirname "$0")/env.sh"
 
-SUITES="drag,features,sizes,pending,services,compat"
+SUITES="drag,features,sizes,pending,services,compat,defaults"
 VISIBLE=0; MODES="file server"; CHECK=""; REPEAT=1; TIMEOUT=600
 while [ $# -gt 0 ]; do
   case $1 in
@@ -45,10 +45,10 @@ finish() {
 trap finish EXIT
 
 # Fixtures. Each suite gets a folder and, for server mode, a port.
-declare -A PORT=([drag]=8772 [sizes]=8776 [pending]=8777 [services]=8778 [compat]=8779)
-declare -A FOLDER=([drag]=drag [features]=feat [sizes]=size [pending]=pend [services]=svc [compat]=compat)
+declare -A PORT=([drag]=8772 [sizes]=8776 [pending]=8777 [services]=8778 [compat]=8779 [defaults]=8780)
+declare -A FOLDER=([drag]=drag [features]=feat [sizes]=size [pending]=pend [services]=svc [compat]=compat [defaults]=defaults)
 cd "$REPO"
-for suite in drag features sizes pending services compat; do
+for suite in drag features sizes pending services compat defaults; do
   wants $suite || continue
   dir="$OUT/fixture-${FOLDER[$suite]}"; mkdir -p "$dir"
   case $suite in
@@ -57,6 +57,7 @@ for suite in drag features sizes pending services compat; do
     sizes) "$PY" tests/orbit_sizes.py --write-fixture "$dir" ;;
     services) "$PY" tests/services_check.py --write-fixture "$dir" ;;
     compat) "$PY" tests/data_compat_check.py --write-fixture "$dir" ;;
+    defaults) "$PY" tests/default_workspaces.py --write-fixture "$dir" ;;
     pending) (cd tests && "$PY" -c "import sys; sys.argv=['x']; from pending_checks import DATA; from helpers import write_fixture; write_fixture('$dir', DATA)") ;;
   esac || { echo "could not write the $suite fixture" >&2; exit 1; }
 done
@@ -71,7 +72,7 @@ foreach ($data in Get-ChildItem $HOME -Directory -Filter 'orbit-*-data') {
   Write-Output ("{0}: {1} files" -f $t, (Get-ChildItem $t).Count)
 }
 PS
-for suite in drag features sizes pending services compat; do
+for suite in drag features sizes pending services compat defaults; do
   wants $suite || continue
   to_vm -r "$OUT/fixture-${FOLDER[$suite]}" "orbit-${FOLDER[$suite]}-data" || exit 1
 done
@@ -83,7 +84,7 @@ if wants features; then
   "$PY" "$EDGE_DIR/serve_features.py" > "$OUT/serve-features.log" 2>&1 & PIDS+=($!)
   TUNNEL+=(-R 127.0.0.1:8774:127.0.0.1:8774 -R 127.0.0.1:8775:127.0.0.1:8775)
 fi
-for suite in drag sizes pending services compat; do
+for suite in drag sizes pending services compat defaults; do
   wants $suite || continue
   PIDS+=("$(serve_dir "${PORT[$suite]}" "$OUT/fixture-${FOLDER[$suite]}" "$OUT/serve-$suite.log")")
   TUNNEL+=(-R "127.0.0.1:${PORT[$suite]}:127.0.0.1:${PORT[$suite]}")
@@ -118,7 +119,7 @@ run() {
 }
 only=(); [ -n "$CHECK" ] && only=(--only "$CHECK")
 for mode in $MODES; do
-  for suite in drag features sizes pending compat services; do
+  for suite in drag features sizes pending compat services defaults; do
     wants $suite || continue
     if [ "$mode" = file ]; then url="file:///C:/orbit-${FOLDER[$suite]}-test/index.html"
     elif [ $suite = features ]; then url="http://127.0.0.1:8775/index.html"
@@ -131,6 +132,7 @@ for mode in $MODES; do
       pending) run "pending-$mode" tests/pending_checks.py --url "$url" ;;
       compat) run "compat-$mode" tests/data_compat_check.py --url "$url" ;;
       services) run "services-$mode" tests/services_check.py --url "$url" ;;
+      defaults) run "defaults-$mode" tests/default_workspaces.py --url "$url" --server-mode ;;
     esac
   done
 done

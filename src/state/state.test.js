@@ -6,7 +6,7 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { oracle } from '../../tests/oracle/oracle.mjs';
 import { KEYS, MIGRATIONS, memoryStorage, migrate, onExternalChange, readJson, useBackend, write, writeSafely } from './storage.js';
-import { loadWorkspaces, newWorkspace, readActiveWorkspace, renameWorkspace, workspaceKey, workspaceName } from './workspaces.js';
+import { defaultWorkspaces, loadStoredWorkspaces, loadWorkspaces, markDefaultRemoved, newWorkspace, readActiveWorkspace, removedDefaultIds, renameWorkspace, restoreDefault, setDefaultWorkspaces, workspaceKey, workspaceName } from './workspaces.js';
 import { hiddenTeamSuns, markOffered, offeredIn, readBackground, readBoolean, readFontFamily, readParticles, readButtonTips, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
 import { HISTORY_LIMIT, loadHistory, recordHistory } from './history.js';
 import { countChange, forgetWorkspace, noteBackupMade, readBackupState } from './backup.js';
@@ -16,6 +16,7 @@ let storage;
 beforeEach(() => {
   storage = memoryStorage();
   useBackend(storage);
+  setDefaultWorkspaces([]);
 });
 
 test('storage: same key names as 2.2.1', () => {
@@ -98,6 +99,22 @@ test('workspaces: names are 1-40 characters and unique ignoring case; ids come f
   renameWorkspace('home', 'Cottage');
   assert.equal(workspaceName('home'), 'Cottage');
   assert.throws(() => renameWorkspace('home', 'MAIN'), { message: 'There is already a workspace named MAIN.' });
+});
+
+test('workspaces: defaults appear without being stored, removal persists, ids stay reserved, rename stores only the choice', () => {
+  setDefaultWorkspaces([{ id: 'dev-toolbox', name: 'Dev Toolbox', map: { groups: [] } }]);
+  assert.deepEqual(loadWorkspaces(), [{ id: 'main', name: 'Main' }, { id: 'dev-toolbox', name: 'Dev Toolbox' }]);
+  assert.deepEqual(loadStoredWorkspaces(), []);
+  assert.throws(() => newWorkspace('Dev Toolbox'), /already a workspace/);
+  markDefaultRemoved('dev-toolbox');
+  assert.deepEqual(loadWorkspaces(), [{ id: 'main', name: 'Main' }]);
+  assert.notEqual(newWorkspace('Dev Toolbox').id, 'dev-toolbox');
+  restoreDefault('dev-toolbox');
+  renameWorkspace('dev-toolbox', 'Tools');
+  assert.deepEqual(loadStoredWorkspaces(), [{ id: 'dev-toolbox', name: 'Tools' }]);
+  assert.deepEqual(defaultWorkspaces().map(item => item.id), ['dev-toolbox']);
+  storage.setItem('orbit:workspaces:removed:v1', '{bad');
+  assert.deepEqual([...removedDefaultIds()], []);
 });
 
 test('prefs: booleans are the strings true and false; unknown values fall back', () => {

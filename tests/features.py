@@ -1789,7 +1789,7 @@ def f34_remove_map_items(ctx):
     check(tree(page, "editor-tree-moon", "Guide").count() == 1, "editor Undo restores the moon")
     DISMISS_NEXT.add(page)
     page.get_by_role("button", name="Reset to file data").click()
-    check(len(prompts) == before + 1 and "project files" in prompts[-1],
+    check(len(prompts) == before + 1 and "Main's edits" in prompts[-1] and "default links" in prompts[-1],
           "reset still asks for confirmation")
     print(f"PASS F34 Remove map items ({ctx.mode})")
 
