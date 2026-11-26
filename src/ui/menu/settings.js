@@ -3,6 +3,8 @@ import * as prefs from '../../state/prefs.js';
 import { counted, element } from '../dom.js';
 import { reducedMotionQuery, refreshBackdrop } from '../backdrop/backdrop.js';
 import { hooks } from '../hooks.js';
+import { icon } from '../icons.js';
+import { tip } from '../tooltip.js';
 import { showBackupReminder } from '../notices/backup.js';
 import { editorButton } from '../editor/kit.js';
 import { openEditorPage } from '../editor/page.js';
@@ -60,8 +62,12 @@ export function showSettingsPanel() {
   const edit = element('button', 'editor-open', 'Edit links');
   edit.type = 'button';
   edit.addEventListener('click', openEditorPage);
-  menuContent.append(edit);
-  menuContent.append(element('p', 'data-source', `Active link map: ${dataSourceLabel()}`));
+  const editRow = element('div', 'editor-open-row');
+  editRow.append(edit, helpLink('settings-edit-links', 'Edit links'));
+  menuContent.append(editRow);
+  const source = element('p', 'data-source', `Active link map: ${dataSourceLabel()}`);
+  source.append(helpLink('settings-active-map', 'the active link map'));
+  menuContent.append(source);
   if (storageWarning) menuContent.append(element('p', 'editor-error', storageWarning));
   const workspacesAndTeam = settingsGroup('workspaces-and-team', 'Workspaces and team');
   workspacesAndTeam.append(workspaceSettings(), teamSettings());
@@ -77,8 +83,24 @@ function settingsGroup(slug, title) {
   const heading = element('h4', 'editor-section-title', title);
   heading.id = `settings-group-${slug}`;
   section.setAttribute('aria-labelledby', heading.id);
-  section.append(heading);
+  section.append(heading, helpLink(`settings-${slug}`, title));
   return section;
+}
+
+/**
+ * A ? link to this part of the Help guide (help.html), opened in a new tab. The
+ * ids it points at are a contract with help.html; F45 checks each one exists.
+ * @param {string} id
+ * @param {string} title
+ */
+function helpLink(id, title) {
+  const link = /** @type {HTMLAnchorElement} */ (element('a', 'settings-help'));
+  link.href = `help.html#${id}`;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.setAttribute('aria-label', `Help for ${title}`);
+  link.append(icon('circle-help'));
+  return tip(link, 'Opens the Help guide in a new tab');
 }
 
 function lookSettings() {

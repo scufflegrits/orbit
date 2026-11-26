@@ -119,7 +119,7 @@ def run_shared(page, url, mode):
 
 def write_fixture(directory, data, workspaces=None):
     fixture = Path(directory)
-    for name in ("index.html", "styles.css", *APP_SCRIPTS):
+    for name in ("index.html", "help.html", "styles.css", *APP_SCRIPTS):
         shutil.copy2(ROOT / name, fixture / name)
     # styles.css imports its parts from css/; the bundled fonts load from fonts/ beside index.html.
     shutil.copytree(ROOT / "css", fixture / "css", dirs_exist_ok=True)

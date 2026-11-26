@@ -105,9 +105,9 @@ def m15_right_menu(page, url, mode):
         page.mouse.click(30, viewport["height"] // 2)
         check(menu_closed(page), f"{mode}: an outside click closes the menu")
         page.screenshot(path=str(ARTIFACTS / f"pending-menu-{mode}-{viewport['width']}.png"))
-    # A short window makes Help taller than the panel; the panel scrolls.
+    # A short window makes Settings taller than the panel; the panel scrolls.
     page.set_viewport_size({"width": 900, "height": 420})
-    open_menu(page, "Help")
+    open_menu(page, "Settings")
     page.wait_for_timeout(400)
     scroll = page.locator(".menu-sheet").evaluate(
         "s => { const before = s.scrollTop; s.scrollTop = 10000; return [s.scrollHeight > s.clientHeight, s.scrollTop > before]; }")
@@ -137,7 +137,7 @@ def m15_reduced_motion(page, url, mode):
     check(running == 0 and abs(box["x"] + box["width"] - usable_width(page)) <= 1,
           f"{mode}: with Animations Off the panel appears in place at once ({running}, {box})")
     page.locator('[data-menu-panel="Help"]').click()
-    check("Hover over a sun" in page.locator("#menu-content").inner_text(), f"{mode}: controls work without motion")
+    check("Open the Help guide" in page.locator("#menu-content").inner_text(), f"{mode}: controls work without motion")
     page.locator("#menu-close").click()
     # Return to Full and ask for reduced motion instead.
     open_menu(page, "Settings")
@@ -183,9 +183,10 @@ def m16_help_and_navigation(page, url, mode):
     fresh(page, url)
     page.set_viewport_size(WIDE)
     open_menu(page, "Help")
-    help_text = page.locator("#menu-content").inner_text()
-    for phrase in ("Hover over a sun", "Click a sun to open its System", "Quick find"):
-        check(phrase in help_text, f"{mode}: Help explains navigation ({phrase})")
+    check(page.locator("#menu-content a.help-guide-link").get_attribute("href") == "help.html", f"{mode}: Help links to the guide")
+    help_text = (ROOT / "help.html").read_text()
+    for phrase in ("Rest the pointer on a sun", "Click a sun to open its", "Quick find"):
+        check(phrase in help_text, f"{mode}: the Help guide explains navigation ({phrase})")
     page.locator("#menu-close").click()
     page.locator("#quick-find").fill("Engadget")
     check(page.locator(".find-item").filter(has_text="Engadget").count() >= 1, f"{mode}: Quick find finds a planet")

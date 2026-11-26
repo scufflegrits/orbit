@@ -21,6 +21,7 @@ These steps release a new version of Orbit: they set the version, test it, tag i
 | Included | Why |
 | --- | --- |
 | `index.html`, `styles.css`, `css/` | The page; `styles.css` imports its parts from `css/` |
+| `help.html` | The Help guide, opened from Settings, the Help tab and the command palette; it uses `css/tokens.css` and `css/help.css` |
 | `orbit.js` | The app: the bundle built from `src/` by `npm run build` (committed, so no build is needed to ship) |
 | `links.json`, `links-data.js` | Main's default map, and the generated copy used when `index.html` is opened directly |
 | `workspaces/`, `workspaces-data.js` | Default workspace maps and the generated data used when `index.html` is opened directly |
@@ -76,7 +77,7 @@ Every release has a tag (`v2.2.0`, `v3.0.1`, …), so `git checkout v<version>` 
 VERSION=$(sed -n "s/^export const APP_VERSION = '\(.*\)';/\1/p" src/app/version.js)
 mkdir -p ../orbit-dist
 git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VERSION.zip" "v$VERSION" -- \
-  index.html styles.css css links.json links-data.js workspaces workspaces-data.js orbit.js \
+  index.html help.html styles.css css links.json links-data.js workspaces workspaces-data.js orbit.js \
   serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md fonts
 ```
 
@@ -86,7 +87,7 @@ git archive --format=zip --prefix="orbit-$VERSION/" -o "../orbit-dist/orbit-$VER
 $Version = (Select-String -Path src\app\version.js -Pattern "APP_VERSION = '(.+)'").Matches[0].Groups[1].Value
 New-Item -ItemType Directory -Force ..\orbit-dist | Out-Null
 git archive --format=zip --prefix="orbit-$Version/" -o "..\orbit-dist\orbit-$Version.zip" "v$Version" -- `
-  index.html styles.css css links.json links-data.js workspaces workspaces-data.js orbit.js `
+  index.html help.html styles.css css links.json links-data.js workspaces workspaces-data.js orbit.js `
   serve.py sync.py windows README.md CHANGELOG.md docs/RDP_SIGNING.md docs/THIRD_PARTY_NOTICES.md fonts
 ```
 
@@ -102,6 +103,7 @@ The zip is written to an `orbit-dist` folder beside the project, so it never end
    - The Galaxy appears; Main shows nine suns and the workspace switch offers Dev Toolbox. The top bar's Main count matches `links.json` (the zip check compares them for you).
    - **Edit mode** switches on in the top bar.
    - Settings → **About** shows the version you built.
+   - A **?** beside a Settings heading opens `help.html` at that section in a new tab.
    - The browser's developer console (F12) shows no errors, apart from one "file not found" for the optional `team-data.js`.
 4. **Try the local server.** In the extracted folder run `python3 serve.py` (on Windows, `py serve.py`), open <http://localhost:8000>, check the same things, then press `Ctrl+C` to stop it.
 5. **Delete the extracted test folder.** If you tried things in the browser, also use Settings → Edit links → **Reset to file data** so your test changes do not linger.

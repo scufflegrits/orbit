@@ -2673,7 +2673,7 @@ def f43_settings_layout(ctx):
     check(not problems, f"{mode}: Settings layout: {', '.join(problems)}")
     check(content.evaluate("""el => {
         const [title, edit, source, firstGroup] = el.children;
-        return title.textContent === 'Settings' && edit.textContent === 'Edit links' &&
+        return title.textContent === 'Settings' && edit.querySelector('.editor-open')?.textContent === 'Edit links' &&
                source.textContent.startsWith('Active link map:') && firstGroup.matches('.settings-group');
     }"""), f"{mode}: Edit links and the active map precede the groups")
 
@@ -2719,12 +2719,80 @@ def f44_page_icon(ctx):
     print(f"PASS F44 Page icon ({mode})")
 
 
+# ---- F45 Help guide --------------------------------------------------------------
+
+HELP_LINKS = {"Edit links": "settings-edit-links", "the active link map": "settings-active-map",
+              "Look": "settings-look", "Galaxy": "settings-galaxy", "Editing": "settings-editing",
+              "Workspaces and team": "settings-workspaces-and-team", "Remote Desktop": "settings-remote-desktop"}
+
+
+def f45_help_guide(ctx):
+    """help.html is the Help guide; Settings links each group to its section, opened in a new tab."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    guide_url = ctx.url.split("#")[0].rsplit("/", 1)[0] + "/help.html"
+    page.locator("#settings-trigger").click()
+    links = page.locator(".menu-content a.settings-help")
+    found = {a.get_attribute("aria-label"): (a.get_attribute("href"), a.get_attribute("target"), a.get_attribute("rel"))
+             for a in links.all()}
+    expected = {f"Help for {title}": (f"help.html#{slug}", "_blank", "noopener") for title, slug in HELP_LINKS.items()}
+    check(found == expected, f"{mode}: Settings has a ? link to the guide for each part ({found})")
+
+    # Every id the app links to exists in the guide.
+    guide = page.context.new_page()
+    guide.goto(guide_url, wait_until="load")
+    ids = set(guide.evaluate("[...document.querySelectorAll('[id]')].map(el => el.id)"))
+    missing = [slug for slug in HELP_LINKS.values() if slug not in ids]
+    check(not missing, f"{mode}: the guide has every linked section ({missing})")
+    check(guide.locator(".back-link").get_attribute("href") == "index.html", f"{mode}: Back to Orbit returns to index.html")
+    guide.keyboard.press("Tab")
+    check(guide.evaluate("document.activeElement.classList.contains('skip-link')"), f"{mode}: the first Tab stop skips to the guide")
+    guide.set_viewport_size({"width": 375, "height": 800})
+    check(guide.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"{mode}: the guide fits a 375 px screen")
+    guide.close()
+
+    # A ? link opens its section in a new tab, scrolled into view.
+    with page.expect_popup() as popup_info:
+        page.locator('.settings-group a[aria-label="Help for Look"]').click()
+    popup = popup_info.value
+    popup.wait_for_load_state("load")
+    # The guide jumps again once its fonts have loaded and the text has reflowed.
+    popup.evaluate("document.fonts.ready.then(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))))")
+    top = popup.evaluate("document.getElementById('settings-look').getBoundingClientRect().top")
+    check(popup.url.endswith("help.html#settings-look") and 0 <= top < popup.evaluate("innerHeight"),
+          f"{mode}: the Look link opens its section ({popup.url}, top {top})")
+    popup.close()
+
+    # The Help tab and the command palette lead to the guide.
+    page.locator('[data-menu-panel="Help"]').click()
+    check(page.locator("#menu-content a.help-guide-link").get_attribute("href") == "help.html", f"{mode}: the Help tab links to the guide")
+    page.locator("#menu-close").click()
+    page.keyboard.press("Control+k")
+    page.keyboard.type("Help")
+    with page.expect_popup() as popup_info:
+        page.keyboard.press("Enter")
+    popup = popup_info.value
+    popup.wait_for_load_state("load")
+    check(popup.url.endswith("/help.html"), f"{mode}: the palette's Help command opens the guide ({popup.url})")
+    popup.close()
+
+    # The guide follows the theme saved in Orbit.
+    page.evaluate("localStorage.setItem('orbit:theme', 'aurora')")
+    guide = page.context.new_page()
+    guide.goto(guide_url, wait_until="load")
+    theme = guide.evaluate("document.documentElement.dataset.theme || 'default'")
+    guide.close()
+    page.evaluate("localStorage.removeItem('orbit:theme')")
+    check(theme == "aurora", f"{mode}: the guide follows the saved theme ({theme})")
+    print(f"PASS F45 Help guide ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
           f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
-          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout, f44_page_icon)
+          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout, f44_page_icon, f45_help_guide)
 
 
 def run_checks(make_ctx, only):

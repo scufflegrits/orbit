@@ -17,8 +17,8 @@ def run_milestone_1(page, url, mode):
           f"{mode}: first five planets visible on hover")
     page.locator("#settings-trigger").click()
     page.locator('[data-menu-panel="Help"]').click()
-    check("Explore your Galaxy" in page.locator("#menu-content").inner_text(),
-          f"{mode}: Galaxy guidance is in Help")
+    check(page.locator("#menu-content a.help-guide-link").get_attribute("href") == "help.html",
+          f"{mode}: Help links to the guide")
     page.locator("#menu-close").click()
     page.locator(".home-hub").first.click()
     check("SYSTEM" in page.locator(".detail-heading .eyebrow").inner_text(),
@@ -151,7 +151,7 @@ def run_milestone_3(page, url, mode):
     check(page.locator(".menu-option").count() == 3,
           f"{mode}: Settings, Help, About entries")
     page.locator('[data-menu-panel="Help"]').click()
-    check("Hover over a sun" in page.locator("#menu-content").inner_text(),
+    check("Open the Help guide" in page.locator("#menu-content").inner_text(),
           f"{mode}: Help content")
     page.locator('[data-menu-panel="About"]').click()
     check("local link map" in page.locator("#menu-content").inner_text(),

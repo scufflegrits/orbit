@@ -64,6 +64,27 @@
 .settings-group + .settings-group { margin-top: 26px; }
 .settings-group > .editor-section-title { margin: 0 0 10px; }
 .settings-group > .workspace-settings { margin-top: 0; padding-top: 0; border-top: 0; }
+/* ? links to the matching part of help.html, beside each heading, Edit links and the active map. */
+.settings-group { position: relative; }
+.settings-group > .editor-section-title { padding-right: 34px; }
+.settings-group > .settings-help { position: absolute; top: -4px; right: 0; }
+.settings-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: var(--muted);
+  vertical-align: middle;
+}
+.settings-help:hover { background: var(--hover-base); color: var(--text); }
+.settings-help .icon { width: 17px; height: 17px; }
+.editor-open-row { display: flex; align-items: center; gap: 8px; }
+.editor-open-row .editor-open { flex: 1; width: auto; }
+.data-source .settings-help { width: 22px; height: 22px; margin-left: 4px; }
+.data-source .settings-help .icon { width: 15px; height: 15px; }
+.help-guide-link { display: block; margin-bottom: 16px; text-decoration: none; }
 /* The workspace fills the window exactly: the tree and pane scroll, not the sheet or the page. */
 .menu-sheet.editor-page-mode { display: flex; flex-direction: column; width: 100%; padding: 24px max(24px, calc((100vw - 1200px) / 2)); border: 0; border-radius: 0; }
 html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }

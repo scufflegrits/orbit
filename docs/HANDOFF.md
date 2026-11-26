@@ -110,7 +110,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 15 passed (phase 1), 31 passed (phase 2, with DD18) |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS12 at 1920×1080 | 23 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F44, no F05 (F42 is in `default_workspaces.py`) | 84 `PASS F` lines (42 checks × 2 modes) |
+| `tests/features.py` | F01–F45, no F05 (F42 is in `default_workspaces.py`) | 86 `PASS F` lines (43 checks × 2 modes) |
 | `npm run check` | Type-checks JavaScript with TypeScript (`tsc --noEmit -p jsconfig.json`). Layer, bundle, and icon checks run separately with `npm run check:layers`, `npm run check:bundle`, and `npm run check:icons`. | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 225 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
@@ -121,7 +121,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/release_smoke.py` | The page loads Main and Dev Toolbox with no test hook | 3 passed |
 | `tests/perf_compare.py` | The performance recipe (`--baseline`, `--against REF [--quick]`) | baseline recorded |
 
-Last checked 2026-11-26 (Orbit 3.1.0, plus Structurizr and the tab icon). Edge 158 on the VM, per mode (file and server): drag 15, features 43 `PASS` lines, sizes 12, pending 11, compatibility 1, services 6, defaults 3.
+Last checked 2026-11-26 (Orbit 3.1.0, plus Structurizr and the tab icon). Edge 158 on the VM, per mode (file and server): drag 15, features 44 `PASS` lines, sizes 12, pending 11, compatibility 1, services 6, defaults 3.
 
 `drag_drop.py`, `orbit_sizes.py`, `pending_checks.py`, and `features.py` accept `--cdp URL` and `--url PAGE` to drive a remote browser; `features.py` also takes `--target`, `--server-mode`, and `--write-fixture DIR`, and the drag and sizing runners take `--write-fixture DIR`.
 

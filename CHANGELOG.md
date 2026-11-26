@@ -6,6 +6,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ### New
 
+- **Help guide.** Help is now a full guide, `help.html`, that opens in its own tab. A **?** beside each part of Settings opens the matching section, and the command palette's **Help** opens the guide too. The Help tab keeps a link to it and the most-used keys. The guide works without a server and follows your theme and font.
 - **Orbit has a tab icon:** an orbit symbol on a dark square, so its tab is easy to find. Before, the tab showed the browser's blank page icon.
 
 ### Changed

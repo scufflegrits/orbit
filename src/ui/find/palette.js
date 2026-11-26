@@ -8,7 +8,7 @@ import { counted, element, tagChips } from '../dom.js';
 import { showQuickAdd, typedAddress } from '../editor/quick-add.js';
 import { openEditorAt, openEditorPage } from '../editor/page.js';
 import { showRoutineEditor, showRoutines } from '../editor/tools/routines.js';
-import { openMenu, openSettings, showMenuPanel } from '../menu/menu.js';
+import { openMenu, openSettings } from '../menu/menu.js';
 import { switchWorkspace } from '../menu/workspaces.js';
 import { activeWorkspace, store } from '../../state/page-store.js';
 import * as workspaces from '../../state/workspaces.js';
@@ -42,7 +42,8 @@ function paletteCommands() {
     { label: modes.inEditMode() ? 'Turn off Edit mode' : 'Turn on Edit mode', run: () => setEditMode(!modes.inEditMode()) },
     { label: 'Open Settings', run: openSettings },
     { label: 'Edit links', run: () => { openMenu(); openEditorPage(); } },
-    { label: 'Help', run: () => { openMenu(); showMenuPanel('Help'); } },
+    // Opened straight from the key or click that runs the command, so the browser allows the new tab.
+    { label: 'Help', run: () => { window.open('help.html', '_blank', 'noopener'); } },
     { label: galaxyView === 'list' ? 'Show the Galaxy as orbits' : 'Show the Galaxy as a list',
       run: () => setGalaxyView(galaxyView === 'list' ? 'orbits' : 'list') },
     { label: 'Return to Galaxy', run: () => { location.hash = ''; } },
