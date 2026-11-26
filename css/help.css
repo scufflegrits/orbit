@@ -1,0 +1,165 @@
+/* help.css: layout for help.html only. The guide loads css/tokens.css for Orbit's
+   colours, fonts and themes, then this file; it never loads styles.css, and the app
+   never loads this file. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-padding-top: 24px; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, color-mix(in oklab, var(--theme-accent) 9%, transparent), transparent 70%),
+    var(--page-bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: calc(17px * var(--font-scale));
+  line-height: 1.6;
+}
+
+a { color: var(--theme-accent); text-underline-offset: 3px; }
+a:hover { color: var(--text); }
+:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 3px; border-radius: 4px; }
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 10;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+.skip-link:focus { top: 12px; }
+
+/* Header */
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 8px;
+}
+.help-brand { display: flex; align-items: center; gap: 12px; margin: 0; font-family: var(--font-display); font-size: 1.5em; font-weight: 650; letter-spacing: -.01em; }
+.help-brand img { width: 34px; height: 34px; }
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-size: .9em;
+  white-space: nowrap;
+}
+.back-link:hover { border-color: var(--theme-accent); color: var(--text); }
+
+/* Contents beside the guide on wide screens, above it on narrow ones */
+.help-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px 48px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 8px 24px 80px;
+}
+.help-contents { font-size: .92em; }
+.help-contents h2 { margin: 16px 0 8px; color: var(--muted); font-size: .85em; font-weight: 600; }
+.help-contents ol { margin: 0; padding: 0; list-style: none; }
+.help-contents li { margin: 0; }
+.help-contents a { display: block; padding: 5px 10px; border-left: 2px solid var(--line); color: var(--muted-strong); text-decoration: none; }
+.help-contents a:hover { border-left-color: var(--theme-accent); color: var(--text); }
+.help-contents ol ol a { padding-left: 24px; font-size: .95em; color: var(--muted); }
+
+@media (max-width: 959px) {
+  /* Narrow screens: the main sections as wrapped chips, so the guide starts on the first screen. */
+  .help-contents > ol { display: flex; flex-wrap: wrap; gap: 6px; }
+  .help-contents > ol > li > a { padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; }
+  .help-contents ol ol { display: none; }
+}
+
+@media (min-width: 960px) {
+  .help-layout { grid-template-columns: 240px minmax(0, 1fr); }
+  .help-contents { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow-y: auto; }
+}
+
+/* The guide */
+main { max-width: 72ch; min-width: 0; }
+.help-intro { margin: 16px 0 8px; color: var(--muted-strong); font-size: 1.08em; }
+
+section { padding-top: 8px; }
+section + section { margin-top: 40px; border-top: 1px solid var(--line-soft); }
+h2 { margin: 24px 0 8px; font-family: var(--font-display); font-size: 1.55em; line-height: 1.25; letter-spacing: -.01em; }
+h3 { margin: 28px 0 6px; font-family: var(--font-display); font-size: 1.12em; line-height: 1.35; }
+p, ul, ol, dl { margin: 0 0 14px; }
+li { margin: 4px 0; }
+li::marker { color: var(--muted); }
+strong { font-weight: 640; }
+
+ol.steps { padding-left: 1.4em; }
+ol.steps > li { padding-left: 4px; }
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface-input);
+  font-family: var(--font-body);
+  font-size: .86em;
+  line-height: 1.4;
+  text-align: center;
+}
+code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-input);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: .88em;
+  overflow-wrap: anywhere;
+}
+pre {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface-input);
+  overflow-x: auto;
+}
+pre code { padding: 0; background: none; overflow-wrap: normal; }
+
+.note {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--theme-accent);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in oklab, var(--surface) 80%, transparent);
+  color: var(--muted-strong);
+}
+.note.warning { border-left-color: var(--danger); }
+
+/* Settings reference: one term per control */
+dl.settings { display: grid; grid-template-columns: 1fr; gap: 2px 20px; }
+dl.settings dt { margin-top: 10px; font-weight: 640; }
+dl.settings dd { margin: 0; color: var(--muted-strong); }
+@media (min-width: 720px) {
+  dl.settings { grid-template-columns: minmax(150px, 13em) 1fr; }
+  dl.settings dt, dl.settings dd { margin-top: 10px; }
+}
+
+.help-footer { margin-top: 56px; color: var(--subtle); font-size: .88em; }
+
+@media (max-width: 520px) {
+  body { font-size: calc(16px * var(--font-scale)); }
+  .help-header { padding: 20px 16px 4px; }
+  .help-layout { padding: 4px 16px 64px; }
+  .help-brand { font-size: 1.25em; }
+}

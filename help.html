@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1020" />
+    <title>Orbit Help</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230b1020'/%3E%3Cg transform='translate(2.4 2.4) scale(.8)' fill='none' stroke='%238fd6eb' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.341 6.484A10 10 0 0 1 10.266 21.85'/%3E%3Cpath d='M3.659 17.516A10 10 0 0 1 13.74 2.152'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Ccircle cx='19' cy='5' r='2'/%3E%3Ccircle cx='5' cy='19' r='2'/%3E%3C/g%3E%3C/svg%3E" />
+    <!-- Follow the theme, font and text size saved in Orbit's settings, when the browser shares them,
+         and keep a linked section in view once the fonts load. Without JavaScript the guide still works. -->
+    <script>
+      try {
+        const saved = window.localStorage, root = document.documentElement.dataset;
+        const theme = saved.getItem('orbit:theme');
+        if (['alabama', 'auburn', 'aurora'].includes(theme)) root.theme = theme;
+        if (saved.getItem('orbit:font-family') === 'classic') root.fontFamily = 'classic';
+        const size = saved.getItem('orbit:font-size');
+        if (['small', 'large', 'extra'].includes(size)) root.fontSize = size;
+      } catch { /* No saved settings: use the default look. */ }
+      // A link to a section jumps there before Orbit's fonts finish loading; the text then
+      // reflows, so jump again once they're ready.
+      if (location.hash && document.fonts) {
+        document.fonts.ready.then(() => document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView());
+      }
+    </script>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/help.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#guide">Skip to the guide</a>
+    <header class="help-header">
+      <p class="help-brand"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%230b1020'/%3E%3Cg transform='translate(2.4 2.4) scale(.8)' fill='none' stroke='%238fd6eb' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.341 6.484A10 10 0 0 1 10.266 21.85'/%3E%3Cpath d='M3.659 17.516A10 10 0 0 1 13.74 2.152'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Ccircle cx='19' cy='5' r='2'/%3E%3Ccircle cx='5' cy='19' r='2'/%3E%3C/g%3E%3C/svg%3E" alt="" />Orbit Help</p>
+      <a class="back-link" href="index.html">Back to Orbit</a>
+    </header>
+
+    <div class="help-layout">
+      <nav class="help-contents" aria-labelledby="contents-title">
+        <h2 id="contents-title">Contents</h2>
+        <ol>
+          <li><a href="#find-and-open">Find and open links</a></li>
+          <li><a href="#change-the-galaxy">Change how the Galaxy looks</a></li>
+          <li><a href="#edit-your-map">Edit your map</a></li>
+          <li><a href="#workspaces">Workspaces</a></li>
+          <li><a href="#routines">Routines</a></li>
+          <li><a href="#remote-desktop">Remote Desktop</a></li>
+          <li><a href="#team-map">Team map</a></li>
+          <li><a href="#keyboard">Keyboard</a></li>
+          <li><a href="#settings">Settings reference</a>
+            <ol>
+              <li><a href="#settings-edit-links">Edit links</a></li>
+              <li><a href="#settings-active-map">Active link map</a></li>
+              <li><a href="#settings-look">Look</a></li>
+              <li><a href="#settings-galaxy">Galaxy</a></li>
+              <li><a href="#settings-editing">Editing</a></li>
+              <li><a href="#settings-workspaces-and-team">Workspaces and team</a></li>
+              <li><a href="#settings-remote-desktop">Remote Desktop</a></li>
+            </ol>
+          </li>
+        </ol>
+      </nav>
+
+      <main id="guide" tabindex="-1">
+        <p class="help-intro">Orbit is a map of the links you use most. Each <strong>sun</strong> is a group, its <strong>planets</strong> are links, and a planet's <strong>moons</strong> are related links. Everything runs in your browser on this computer, without an account.</p>
+
+        <section id="find-and-open" aria-labelledby="find-and-open-title">
+          <h2 id="find-and-open-title">Find and open links</h2>
+
+          <h3>Move around the Galaxy</h3>
+          <ul>
+            <li>Rest the pointer on a sun to see its first five planets. Rest it on a planet to see its moons.</li>
+            <li>Click a planet or moon to open it. Websites open in a new tab.</li>
+            <li>Click a sun to open its <strong>System</strong>, which shows all its planets. Planets that don't fit around the sun are listed below it. Use <strong>Return to Galaxy</strong>, or press <kbd>Escape</kbd>, to go back.</li>
+            <li>A <strong>group planet</strong> has no link of its own; it holds related links. Rest the pointer on it, or focus it with <kbd>Tab</kbd>, to see them. Click it or press <kbd>Enter</kbd> to keep them open; click elsewhere or press <kbd>Escape</kbd> to close them again.</li>
+          </ul>
+
+          <h3>Quick find</h3>
+          <p>Type in <strong>Quick find</strong> in the top bar, or press <kbd>/</kbd> to jump there. Every word you type must match something about a link: its name, the sun or planet it sits in, its web address or computer name, its tags, or its note.</p>
+          <ul>
+            <li>The sun or planet a link sits in narrows a search: “tech reviews” finds the Reviews moons in Tech.</li>
+            <li>Short forms work: “lab1 s3” finds <code>lab1-server3</code>. Small typos are forgiven: “engadgte” still finds Engadget.</li>
+            <li>Type <code>#tag</code> or <code>tag:name</code> to see only links with that tag.</li>
+            <li>Searching from a System takes you back to the Galaxy with the results.</li>
+          </ul>
+
+          <h3>The command palette</h3>
+          <p>Press <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>Cmd</kbd>+<kbd>K</kbd> on a Mac) from anywhere. Type to search links and commands, such as <strong>Turn on Edit mode</strong>, <strong>Edit links</strong>, <strong>Show the Galaxy as a list</strong>, <strong>Switch to workspace</strong> or <strong>Run routine</strong>. Press <kbd>Enter</kbd> to run the highlighted entry.</p>
+
+          <h3>Favorites and recent links</h3>
+          <p>A row above the Galaxy shows your routines, favorites and the last ten links you opened. Star a planet or moon in Quick find results, or tick <strong>Favorite</strong> in its editor. <strong>Open all</strong> at the end of the row opens every favorite at once.</p>
+
+          <h3>Open several links at once</h3>
+          <ul>
+            <li><kbd>Shift</kbd>+click a planet to open it with all its moons. In a System, the <strong>Open a planet with all its moons</strong> buttons do the same.</li>
+            <li>Orbit asks before opening more than one tab, and leaves Remote Desktop links out.</li>
+          </ul>
+          <p class="note">Most browsers block every tab after the first until you allow pop-ups for Orbit. In Edge and Chrome, click the blocked pop-up icon at the right of the address bar. Orbit tells you how many were blocked.</p>
+
+          <h3>Notes and placeholders</h3>
+          <ul>
+            <li>A planet or moon can have a short <strong>note</strong> (up to 500 characters), such as which account to use. It shows on hover and in search results, and Quick find matches it. Never put passwords in a note.</li>
+            <li>A web address can contain up to five <strong>placeholders</strong>, such as <code>https://jira.example.com/browse/{ticket}</code>. Opening the link asks for each value, filled in with the last ones you used. Open all and routines use the last values, and skip a link that has none yet.</li>
+          </ul>
+        </section>
+
+        <section id="change-the-galaxy" aria-labelledby="change-the-galaxy-title">
+          <h2 id="change-the-galaxy-title">Change how the Galaxy looks</h2>
+          <p>All of these are in Settings, and are saved in this browser. See the <a href="#settings">Settings reference</a> for every option.</p>
+          <ul>
+            <li><strong>Theme:</strong> Default, Red, Blue or Aurora.</li>
+            <li><strong>Font and Font size:</strong> Inter or Orbit classic, from 90% to 130%.</li>
+            <li><strong>Background:</strong> None, or Constellations: stars that drift, link up and gather around the pointer. <strong>Particles</strong> sets how strongly they're drawn.</li>
+            <li><strong>Animations:</strong> Full, Calm or Off. Calm keeps the background still but lets it follow the pointer.</li>
+            <li><strong>List view:</strong> the list button in the top bar shows every sun, planet and moon as a compact list. Links open the same way.</li>
+            <li><strong>Always show moons</strong> shows moons around visible planets without hovering.</li>
+            <li><strong>Show site icons</strong> adds each website's own icon to its planets and moons.</li>
+            <li><strong>Sun icons:</strong> give a sun one or two characters, such as an emoji, in its editor. It appears above the sun's name.</li>
+          </ul>
+        </section>
+
+        <section id="edit-your-map" aria-labelledby="edit-your-map-title">
+          <h2 id="edit-your-map-title">Edit your map</h2>
+          <p class="note">Your changes are saved in this browser. Use <strong>Export → Whole map (JSON)</strong> in Edit links to keep a backup, and to move your map to another browser or computer.</p>
+
+          <h3>Edit links</h3>
+          <p>Open <strong>Settings → Edit links</strong> to see the whole map as a tree beside the editor for the selected item.</p>
+          <ul>
+            <li>Use <strong>Add sun</strong> and <strong>Add a link</strong> at the top of the sun list.</li>
+            <li>Change a name, colour, description, sun icon, web address, Remote Desktop host, tags or note, then select <strong>Save</strong>.</li>
+            <li>The icons on each row edit, export, move up, move down or remove that item. Arrows and confirmed removals take effect at once.</li>
+            <li>In a planet or moon editor, the toolbar at the top has <strong>Save</strong>, <strong>Export</strong>, <strong>Move</strong> and <strong>Remove</strong>. Use <strong>Move</strong> to change the order, or to put the item in another sun or planet.</li>
+            <li>A sun's description can contain a link written as <code>[label](https://example.com)</code>.</li>
+            <li>A planet or moon can have up to eight tags of letters, digits, spaces and hyphens. The sun list shows the tags in use; select one to search for it.</li>
+          </ul>
+
+          <h3>Edit straight from the map</h3>
+          <ul>
+            <li>Rest the pointer on a sun, planet or moon and click the pencil to open its editor, or press <kbd>E</kbd> on a focused item.</li>
+            <li>Use the trash button below the pencil to remove it. <strong>Undo removal</strong> brings back the last removed item and everything in it.</li>
+          </ul>
+
+          <h3>Add a link quickly</h3>
+          <p>Paste a web address into Quick find and choose <strong>Add this link to your map</strong>, or choose <strong>Add a link</strong> in the command palette. Pick a sun to add it as a planet, or a planet to add it as a moon.</p>
+
+          <h3>Group planets</h3>
+          <ol class="steps">
+            <li>In Edit links, open a sun and choose <strong>Add planet</strong>.</li>
+            <li>Set <strong>Kind</strong> to <strong>Group (no link)</strong>, name it, and save.</li>
+            <li>Use <strong>Add link</strong> for each website or Remote Desktop link in the group.</li>
+          </ol>
+          <p>Change <strong>Kind</strong> to switch between a group and a linked planet; both keep their moons.</p>
+
+          <h3>Rearrange by dragging</h3>
+          <p>Turn on <strong>Edit mode</strong> in the top bar to rearrange the map with a mouse or pen. While it's on, planets and moons don't open; a sun still opens its System. Edit mode is off after every reload.</p>
+          <ul>
+            <li>Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet.</li>
+            <li>To set the order, drag onto an item of the same kind and choose <strong>Before</strong> or <strong>After</strong>.</li>
+            <li>Pause on a sun to show its planets, or on a planet to show its moons. In a System, a list of the other suns and planets appears while you drag.</li>
+            <li><strong>Make a moon a planet:</strong> pause the moon on a sun's circle and hold on <strong>Make it a planet of</strong> until it fills, then release.</li>
+            <li><strong>Make a planet a moon:</strong> drag a planet without moons onto another planet and hold on <strong>Make it a moon of</strong>.</li>
+            <li><strong>Undo last drag</strong> reverses the most recent move.</li>
+          </ul>
+          <p>Without dragging, use <strong>Move</strong> in an item's editor, including <strong>Make it a planet of…</strong> and <strong>Make it a moon of…</strong>. Touch dragging isn't supported, and team suns can't be dragged.</p>
+
+          <h3>Import and export</h3>
+          <ul>
+            <li><strong>Import a file</strong> accepts a whole map, a single sun, a planet to add as a new sun, or a bookmarks file exported from Chrome, Edge or Firefox. For a whole map, a review shows what each sun adds; <strong>Merge into my map</strong> adds what you're missing, and <strong>Replace my map</strong> takes the whole file.</li>
+            <li><strong>Export → Whole map (JSON)</strong> downloads the open workspace's map with its routines and Remote Desktop presets.</li>
+            <li>The <strong>Export</strong> icon on a sun, planet or moon row saves just that item, for someone else to import.</li>
+            <li><strong>Share favorites</strong>, and <strong>Share</strong> beside a routine, save a small link pack. <strong>Link pack</strong> under Import reads one.</li>
+          </ul>
+
+          <h3>Tidy up and undo</h3>
+          <ul>
+            <li><strong>Find duplicates</strong> lists links that point to the same place.</li>
+            <li><strong>Check links</strong> lists websites that don't answer. It needs Orbit started with <code>python3 serve.py</code>.</li>
+            <li><strong>History</strong> keeps the map from before each of the last 20 changes; restore any of them.</li>
+            <li><strong>Reset to file data</strong> replaces your browser edits with the project's map. History keeps the current one.</li>
+            <li>Orbit suggests a backup after 20 changes or 14 days without one.</li>
+          </ul>
+        </section>
+
+        <section id="workspaces" aria-labelledby="workspaces-title">
+          <h2 id="workspaces-title">Workspaces</h2>
+          <p>A workspace is a separate map, such as Work and Home, with its own suns, favorites, routines, history and undo. Switch between them in the top bar or the command palette.</p>
+          <ul>
+            <li>Orbit includes <strong>Main</strong> and the default <strong>Dev Toolbox</strong> workspace.</li>
+            <li>Add a workspace in <strong>Settings → Workspaces</strong>, starting from an empty map, a copy of the current one, or Main's default map. Rename or remove workspaces there too; Main always stays.</li>
+            <li>A removed default workspace stays removed until you add it back from its <strong>(default)</strong> option.</li>
+            <li>Settings and the team map are shared by every workspace. Export, import and Reset to file data work on the open workspace.</li>
+          </ul>
+        </section>
+
+        <section id="routines" aria-labelledby="routines-title">
+          <h2 id="routines-title">Routines</h2>
+          <p>A routine is a named set of links you open together, such as the sites you start every morning with.</p>
+          <ol class="steps">
+            <li>Open <strong>Settings → Edit links → Routines → New routine</strong>.</li>
+            <li>Name it, tick its planets and moons, and save.</li>
+            <li>Click its chip above the Galaxy, or choose <strong>Run routine</strong> in the command palette, to open all its websites.</li>
+          </ol>
+          <p>Tick <strong>Offer this routine when Orbit opens</strong> and choose a time and days. When you open Orbit after that time, a banner offers to open it. Browsers only open tabs after a click, so Orbit asks rather than opening them by itself.</p>
+          <h3>Start your day with Orbit</h3>
+          <ol class="steps">
+            <li>Make Orbit your browser's startup page. In Edge: <strong>Settings → Start, home, and new tabs → When Edge starts → Open these pages</strong>. In Chrome: <strong>Settings → On startup → Open a specific page or set of pages</strong>.</li>
+            <li>Open a routine once, and allow pop-ups for Orbit when the browser asks.</li>
+          </ol>
+          <p>Routines remember links by address, so renaming or moving a link keeps them working. Remote Desktop links are left out when a routine opens.</p>
+        </section>
+
+        <section id="remote-desktop" aria-labelledby="remote-desktop-title">
+          <h2 id="remote-desktop-title">Remote Desktop</h2>
+          <p>A planet or moon can be a <strong>Windows Remote Desktop</strong> link to a computer name or IP address, with an optional port such as <code>lab1-server1:3390</code>.</p>
+          <ul>
+            <li><strong>Download .rdp file</strong> (the default): clicking the link downloads a connection file. Open it to start Remote Desktop Connection.</li>
+            <li><strong>Open mstsc.exe:</strong> clicking opens Remote Desktop Connection directly. This needs the Orbit Windows helper, installed once on that PC. Your browser may ask before opening it.</li>
+          </ul>
+          <h3>Install the Windows helper</h3>
+          <p>From the Orbit folder, run this in Windows PowerShell 5.1, then choose <strong>Open mstsc.exe</strong> in <a href="#settings-remote-desktop">Settings → Remote Desktop</a>:</p>
+          <pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Install-OrbitRdp.ps1</code></pre>
+          <p>If only PowerShell 7 is available, run the same command with <code>pwsh.exe</code>. Re-run it after updating Orbit. To remove it, run <code>.\windows\Uninstall-OrbitRdp.ps1</code> the same way.</p>
+          <h3>Saved connection settings</h3>
+          <ul>
+            <li>In a planet or moon's editor, <strong>Import .rdp file</strong> keeps a saved connection's settings with that link. Save the link afterwards.</li>
+            <li>Import many at once with <strong>Import .rdp files as planets</strong> on a sun, or <strong>as moons</strong> on a planet.</li>
+            <li><strong>RDP presets</strong> save common settings, such as full screen on all monitors, for many links at once.</li>
+          </ul>
+          <p class="note warning">Orbit never stores passwords, tokens or signatures. Exports do include the other connection settings, so review them before sharing.</p>
+        </section>
+
+        <section id="team-map" aria-labelledby="team-map-title">
+          <h2 id="team-map-title">Team map</h2>
+          <p>A team map is an Orbit map file that a group shares. Its suns appear first, marked <strong>TEAM</strong>, beside your own.</p>
+          <ul>
+            <li>With the local server: <code>python3 serve.py --team /path/to/team-links.json</code>.</li>
+            <li>Opening <code>index.html</code> directly: <code>python3 sync.py --team /path/to/team-links.json</code>. Run <code>python3 sync.py --no-team</code> to remove it.</li>
+            <li>Team suns are read-only. Open one in Edit links to <strong>Copy</strong> it into your own map, or to hide it.</li>
+            <li>When the team file changes, a notice says what's new or removed.</li>
+          </ul>
+        </section>
+
+        <section id="keyboard" aria-labelledby="keyboard-title">
+          <h2 id="keyboard-title">Keyboard</h2>
+          <dl class="settings">
+            <dt><kbd>/</kbd></dt><dd>Jump to Quick find. <kbd>↓</kbd> moves into the results, <kbd>↑</kbd> and <kbd>↓</kbd> move between them, and <kbd>Enter</kbd> opens one.</dd>
+            <dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>Open the command palette (<kbd>Cmd</kbd>+<kbd>K</kbd> on a Mac).</dd>
+            <dt><kbd>Tab</kbd></dt><dd>Move through the page. Focusing a sun shows its planets, and focusing a planet shows its moons.</dd>
+            <dt>Arrow keys</dt><dd>Move between suns, and between planets or moons. <kbd>↓</kbd> on a planet enters its moons; <kbd>↑</kbd> goes back out.</dd>
+            <dt><kbd>Enter</kbd></dt><dd>Open the focused link, or the focused sun's System.</dd>
+            <dt><kbd>E</kbd></dt><dd>Open the focused sun, planet or moon in its editor.</dd>
+            <dt><kbd>Shift</kbd>+click</dt><dd>Open a planet with all its moons.</dd>
+            <dt><kbd>Escape</kbd></dt><dd>One step back at a time: hide a button tip, close the palette or menu, cancel a drag, turn Edit mode off, clear Quick find, then return from a System to the Galaxy.</dd>
+          </dl>
+        </section>
+
+        <section id="settings" aria-labelledby="settings-title">
+          <h2 id="settings-title">Settings reference</h2>
+          <p>Click the cog in the top bar to open Settings. The <strong>?</strong> beside each heading opens its part of this guide. Settings are saved in this browser and shared by every workspace.</p>
+
+          <h3 id="settings-edit-links">Edit links</h3>
+          <p>Opens the full editor: the whole map as a tree, with tools to import, export, find duplicates, check links, manage routines and presets, and restore history. See <a href="#edit-your-map">Edit your map</a>.</p>
+
+          <h3 id="settings-active-map">Active link map</h3>
+          <p>Says whether you're seeing the map that came with Orbit or your own edits saved in this browser. Your edits take precedence until you use <strong>Reset to file data</strong>. Opening <code>index.html</code> directly and using <code>serve.py</code> keep separate browser storage; use export and import to move a map between them.</p>
+
+          <h3 id="settings-look">Look</h3>
+          <dl class="settings">
+            <dt>Theme</dt><dd>Default, Red, Blue or Aurora.</dd>
+            <dt>Font</dt><dd>Inter (the default), or Orbit classic: DM Sans with Space Grotesk for labels and headings. Both ship with Orbit, so it looks the same on every computer.</dd>
+            <dt>Font size</dt><dd>Small (90%), Standard (100%), Large (115%) or Extra large (130%).</dd>
+            <dt>Background</dt><dd>None, or Constellations: stars that drift, link up and gather around the pointer.</dd>
+            <dt>Particles</dt><dd>How strongly the Constellations are drawn: Subtle, Normal or Bold.</dd>
+            <dt>Animations</dt><dd><strong>Full</strong> (the default) animates the interface and the background. <strong>Calm</strong> holds the background still but lets it follow the pointer. <strong>Off</strong> stops animations, transitions and pointer effects. Your device's reduce-motion setting always keeps the background still.</dd>
+          </dl>
+
+          <h3 id="settings-galaxy">Galaxy</h3>
+          <dl class="settings">
+            <dt>Galaxy view</dt><dd>Orbits, or a compact List of every sun, planet and moon.</dd>
+            <dt>Always show moons</dt><dd>Shows moons around visible planets without hovering.</dd>
+            <dt>Show favorites and recent</dt><dd>The row of routines, favorites and recent links above the Galaxy.</dd>
+            <dt>Clear recent links</dt><dd>Empties the recent list.</dd>
+            <dt>Show site icons</dt><dd>Adds each website's own icon, loaded from that site. Off by default, so Orbit contacts no site until you open it.</dd>
+          </dl>
+
+          <h3 id="settings-editing">Editing</h3>
+          <dl class="settings">
+            <dt>Edit buttons on hover</dt><dd>Shows the pencil and trash buttons when you rest the pointer on a map item. <kbd>E</kbd> still opens the editor when they're off.</dd>
+            <dt>Button tips</dt><dd>When a button's tip appears: after 0.8 seconds (the default), after 1.5 seconds, or never.</dd>
+            <dt>Confirm before deleting</dt><dd>Asks before removing a sun, planet or moon. With it off, <strong>Undo removal</strong> is still available.</dd>
+            <dt>Backup reminders</dt><dd>Suggests exporting a backup after 20 changes or 14 days without one.</dd>
+          </dl>
+
+          <h3 id="settings-workspaces-and-team">Workspaces and team</h3>
+          <dl class="settings">
+            <dt>Workspace</dt><dd>Switch, rename or remove workspaces, and add a new one. See <a href="#workspaces">Workspaces</a>.</dd>
+            <dt>Team map</dt><dd>Shows whether a team map is set up, and lets you show team suns you've hidden. See <a href="#team-map">Team map</a>.</dd>
+          </dl>
+
+          <h3 id="settings-remote-desktop">Remote Desktop</h3>
+          <dl class="settings">
+            <dt>Remote Desktop launch</dt><dd><strong>Download .rdp file</strong> (the default), or <strong>Open mstsc.exe</strong>, which needs the Orbit Windows helper. The commands to install it are shown here. See <a href="#remote-desktop">Remote Desktop</a>.</dd>
+          </dl>
+        </section>
+
+        <footer class="help-footer">
+          <p>Orbit runs on this computer, without an account or hosted service. Your version is shown in Settings → About; <code>CHANGELOG.md</code> lists what changed.</p>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
