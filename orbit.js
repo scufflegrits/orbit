@@ -2122,228 +2122,6 @@ prompt for credentials:i:1\r
     }), menuContent.append(dropZone), actions.append(editorButton("Choose .rdp files", () => choose(!1))), actions.append(editorButton("Choose folder", () => choose(!0))), actions.append(add), menuContent.append(preview);
   }
 
-  // src/ui/layout/orbits.js
-  var GALAXY_PLANETS = 5, SYSTEM_PLANETS = 8, VISIBLE_MOONS = 6, galaxyReach = (planet) => 91 + planet / 2, SITE_ICON_ROOM = 19;
-  function labelFit(names, totalLimit, wordLimit) {
-    let longest = Math.max(1, ...names.map((name) => name.length)), word = Math.max(1, ...names.flatMap((name) => name.split(/[\s/-]+/).map((part) => part.length)));
-    return Math.max(0.8, Math.min(1, totalLimit / longest, wordLimit / word));
-  }
-  function updateMapLabelSizes() {
-    document.documentElement.style.setProperty(
-      "--sun-label-fit",
-      String(labelFit(groups.map((sun) => sun.name), 18, 10))
-    );
-  }
-  var ORBIT_LEVELS = {
-    home: {
-      selector: ".home-satellite",
-      variable: "--home-planet-size",
-      base: () => 72,
-      max: 112,
-      names: () => groups.flatMap((sun) => sun.links.slice(0, GALAXY_PLANETS))
-    },
-    detail: {
-      selector: ".detail-satellite",
-      variable: "--detail-planet-size",
-      base: () => Math.min(100, Math.max(70, window.innerWidth * 0.16)),
-      max: 140,
-      names: () => groups.flatMap((sun) => sun.links.slice(0, SYSTEM_PLANETS))
-    },
-    moon: {
-      selector: ".moon-link",
-      variable: "--moon-size",
-      base: () => 72,
-      max: 88,
-      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons.slice(0, VISIBLE_MOONS)))
-    },
-    more: {
-      selector: ".more-link",
-      variable: "--more-planet-size",
-      base: () => 90,
-      max: 130,
-      names: () => groups.flatMap((sun) => sun.links.slice(SYSTEM_PLANETS))
-    },
-    overflowMoon: {
-      selector: ".overflow-moon-link",
-      variable: "--overflow-moon-size",
-      base: () => 76,
-      max: 110,
-      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons))
-    }
-  }, orbitSizes = {}, canvas2 = null, measureContext = () => (
-    /** @type {CanvasRenderingContext2D} */
-    canvas2 ?? (canvas2 = document.createElement("canvas").getContext("2d"))
-  );
-  function labelFits(name, diameter, padding, lineHeight, measure, extra = 0) {
-    let width2 = diameter - padding * 2, space = measure(" "), lines = [];
-    for (let word of name.split(/\s+/).filter(Boolean)) {
-      let wordWidth = measure(word);
-      if (wordWidth > width2) return !1;
-      let last2 = lines.length - 1;
-      last2 >= 0 && lines[last2] + space + wordWidth <= width2 ? lines[last2] += space + wordWidth : lines.push(wordWidth);
-    }
-    let radius = diameter / 2 - 3, half = (lines.length * lineHeight + extra) / 2;
-    return lines.every((lineWidth, line2) => {
-      let y = Math.abs(extra + (line2 + 0.5) * lineHeight - half);
-      return y < radius && lineWidth / 2 <= Math.sqrt(radius * radius - y * y);
-    });
-  }
-  function fitOrbitSizes() {
-    let root = document.documentElement.style, context = measureContext();
-    for (let [key, level] of Object.entries(ORBIT_LEVELS)) {
-      let sample = app.querySelector(level.selector), base = level.base();
-      if (!sample) {
-        orbitSizes[key] || (orbitSizes[key] = base);
-        continue;
-      }
-      let style = getComputedStyle(sample);
-      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      let cache = /* @__PURE__ */ new Map(), measure = (text) => (cache.has(text) || cache.set(text, context.measureText(text).width), cache.get(text)), padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.borderLeftWidth) || 0), lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2, names = [...new Set(level.names().map((item) => item.name))], extra = showSiteIcons ? SITE_ICON_ROOM : 0, size = Math.round(base);
-      for (; size < level.max && !names.every((name) => labelFits(name, size, padding, lineHeight, measure, extra)); ) size += 2;
-      orbitSizes[key] = Math.min(size, level.max), root.setProperty(
-        /** @type {string} */
-        level.variable,
-        `${orbitSizes[key]}px`
-      ), shrinkLongLabels(level.selector, orbitSizes[key], style, padding, extra);
-    }
-  }
-  function shrinkLongLabels(selector, size, style, padding, extra = 0) {
-    let context = measureContext(), fontSize = parseFloat(style.fontSize), lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
-    for (
-      let node of
-      /** @type {NodeListOf<HTMLElement>} */
-      app.querySelectorAll(selector)
-    ) {
-      node.style.removeProperty("font-size");
-      for (let step2 = 20; step2 >= 12; step2--) {
-        let scale = step2 / 20;
-        context.font = `${style.fontWeight} ${fontSize * scale}px ${style.fontFamily}`;
-        let measure = (text) => context.measureText(text).width;
-        if (step2 === 12 || labelFits(
-          /** @type {string} */
-          node.textContent,
-          size,
-          padding,
-          lineHeight * scale,
-          measure,
-          extra
-        )) {
-          scale < 1 && (node.style.fontSize = `${(fontSize * scale).toFixed(2)}px`);
-          break;
-        }
-      }
-    }
-  }
-  function circleHull(circles, margin) {
-    let points = circles.flatMap(({ x, y, r }) => Array.from({ length: 24 }, (_, i) => {
-      let turn = i * Math.PI / 12;
-      return { x: x + Math.cos(turn) * (r + margin), y: y + Math.sin(turn) * (r + margin) };
-    })).sort((a, b) => a.x - b.x || a.y - b.y), cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x), half = (list) => list.reduce((hull, point) => {
-      for (; hull.length >= 2 && cross(
-        /** @type {Point} */
-        hull.at(-2),
-        /** @type {Point} */
-        hull.at(-1),
-        point
-      ) <= 0; ) hull.pop();
-      return hull.push(point), hull;
-    }, []), lower = half(points), upper = half([...points].reverse());
-    return [...lower.slice(0, -1), ...upper.slice(0, -1)];
-  }
-  function moonSpokes(points, origin, size) {
-    let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "moon-spokes"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
-    for (let point of points) {
-      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line2.setAttribute("x1", String(origin.x)), line2.setAttribute("y1", String(origin.y)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
-    }
-    return svg;
-  }
-  function layoutMoonField(field) {
-    let angle = Number(field.dataset.angle), home = field.dataset.context === "home", planet = orbitSizes[home ? "home" : "detail"] || (home ? 72 : 100), moon = orbitSizes.moon || 72, moons = (
-      /** @type {HTMLElement[]} */
-      [...field.querySelectorAll(".moon-link")]
-    ), crowded = moons.length > 4, spread = (crowded ? 150 : 130) * Math.PI / 180, step2 = moons.length > 1 ? spread / (moons.length - 1) : 0, extra = crowded ? 28 : 0, radius = Math.max((home ? 98 : 108) + extra, planet / 2 + moon / 2 + 26 + extra);
-    step2 && (radius = Math.max(radius, (moon + 6) / (2 * Math.sin(step2 / 2))));
-    let positions = moons.map((_, index) => {
-      let moonAngle = angle - spread / 2 * (moons.length > 1 ? 1 : 0) + step2 * index;
-      return { x: Math.cos(moonAngle) * radius, y: Math.sin(moonAngle) * radius };
-    }), lift = Math.sin(angle) * galaxyReach(planet);
-    field.dataset.rise = String(Math.round(Math.max(...positions.map((point) => -(lift + point.y))) + moon / 2)), field.dataset.drop = String(Math.round(Math.max(...positions.map((point) => point.y)) + moon / 2));
-    let hull = circleHull([
-      { x: 0, y: 0, r: planet / 2 },
-      ...positions.map((point) => ({ ...point, r: moon / 2 }))
-    ], 12), out = radius * 0.5, center = { x: Math.cos(angle) * out, y: Math.sin(angle) * out }, size = Math.ceil(2 * Math.max(...hull.map((point) => Math.hypot(point.x - center.x, point.y - center.y))));
-    field.style.width = field.style.height = `${size}px`, field.style.clipPath = `polygon(${hull.map((point) => `${(point.x - center.x + size / 2).toFixed(1)}px ${(point.y - center.y + size / 2).toFixed(1)}px`).join(", ")})`, field.style.setProperty("--out-x", `${center.x}px`), field.style.setProperty("--out-y", `${center.y}px`), moons.forEach((node, index) => {
-      node.style.setProperty("--mx", `${positions[index].x - center.x}px`), node.style.setProperty("--my", `${positions[index].y - center.y}px`);
-    });
-    let origin = { x: size / 2 - center.x, y: size / 2 - center.y };
-    field.querySelector(".moon-spokes")?.remove(), field.prepend(moonSpokes(positions.map((point) => ({
-      x: origin.x + point.x,
-      y: origin.y + point.y
-    })), origin, size));
-  }
-  function markCaptionFans() {
-    let planet = orbitSizes.home || 72;
-    for (
-      let orbit of
-      /** @type {NodeListOf<HTMLElement>} */
-      app.querySelectorAll(".home-orbit")
-    ) {
-      let caption = (
-        /** @type {HTMLElement | null} */
-        orbit.parentElement?.querySelector(":scope > .group-description") ?? null
-      ), center = orbit.offsetTop + orbit.offsetHeight / 2;
-      for (
-        let field of
-        /** @type {NodeListOf<HTMLElement>} */
-        orbit.querySelectorAll(".moon-field")
-      ) {
-        let bottom = center + Math.sin(Number(field.dataset.angle)) * galaxyReach(planet) + Number(field.dataset.drop);
-        field.closest(".planet-cluster")?.toggleAttribute(
-          "data-covers-caption",
-          !!caption?.textContent && bottom > /** @type {HTMLElement} */
-          caption.offsetTop
-        );
-      }
-    }
-  }
-  function layoutOrbits() {
-    fitOrbitSizes(), app.querySelectorAll(".moon-field").forEach(layoutMoonField);
-    let firstCard = (
-      /** @type {HTMLElement | null} */
-      app.querySelector(".group-card")
-    ), firstRow = firstCard?.offsetTop, orbitMargin = parseFloat(getComputedStyle(firstCard?.querySelector(".home-orbit") ?? document.body).marginTop) || 0, fans = (
-      /** @type {HTMLElement[]} */
-      [...app.querySelectorAll(".home-orbit .moon-field")].filter((field) => (
-        /** @type {HTMLElement} */
-        field.closest(".group-card").offsetTop === firstRow
-      )).map((field) => Number(field.dataset.rise))
-    ), extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
-    document.documentElement.style.setProperty("--galaxy-fan-room", `${Math.max(0, Math.ceil(extra))}px`), markCaptionFans();
-    let stage = (
-      /** @type {HTMLElement | null} */
-      app.querySelector(".detail-stage")
-    ), note = (
-      /** @type {HTMLElement | null} */
-      app.querySelector(".detail-note")
-    );
-    if (stage && note) {
-      let overhang = Math.max(0, .../** @type {HTMLElement[]} */
-      [...stage.querySelectorAll(".moon-field")].map((field) => (
-        /** @type {HTMLElement} */
-        field.closest(".planet-cluster").offsetTop + Number(field.dataset.drop) - stage.offsetHeight
-      )));
-      note.style.marginTop = overhang > 0 ? `${Math.ceil(overhang + 12)}px` : "";
-    }
-  }
-  function installLayout() {
-    let frame2 = 0;
-    window.addEventListener("resize", () => {
-      cancelAnimationFrame(frame2), frame2 = requestAnimationFrame(layoutOrbits);
-    }), window.addEventListener("load", () => document.fonts?.ready.then(layoutOrbits));
-  }
-
   // src/services/schedule.js
   var BACKUP_CHANGES = 20, BACKUP_DAYS = 14, DAY_MS = 1440 * 60 * 1e3, SNOOZE_MS = 3 * DAY_MS, fixedNow = null, now = () => fixedNow === null ? Date.now() : fixedNow, today = () => new Date(now());
   function localDay(date) {
@@ -2980,7 +2758,229 @@ prompt for credentials:i:1\r
     menuContent.append(element("h3", "", name)), name === "Settings" ? showSettingsPanel() : name === "Help" ? (menuContent.append(element("p", "", "Orbit includes a Dev Toolbox workspace. Remove it, or add it back, in Settings → Workspaces.")), menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Hover over a group planet or focus it with Tab to see its links. Click the group or press Enter to keep them open. Click elsewhere or press Escape to unpin it.")), menuContent.append(element("p", "", "With Animations set to Full, the interface and Constellations move. In Calm, the Constellations background holds still but follows the pointer. Off stops animations and pointer effects. Your device’s reduced-motion setting keeps the background still and disables its pointer effects at every level.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The list button in the top bar, next to Edit mode, switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "In Edit links, the icons on sun, planet, and moon rows let you edit, export, reorder, or remove the item. The arrows save the order within the current list right away. Team rows have View and Export icons.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "To change a moon into a planet, pause it on a sun's circle and hold on Make it a planet until it fills, then release. A planet without moons dragged onto another planet offers Make it a moon the same way. Passing over these choices never changes anything; Undo last drag reverses a change. Edit links has Make it a planet of… and Make it a moon of… under Move.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Use Edit links to reach any item, including links outside the visible orbits. In a planet or moon editor, the top toolbar has Save, Export, Move, and Remove. Open Move to change the order or pick another sun or planet and a position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
   }
 
-  // src/ui/drag/drag.js
+  // src/ui/layout/orbits.js
+  var GALAXY_PLANETS = 5, SYSTEM_PLANETS = 8, VISIBLE_MOONS = 6, galaxyReach = (planet) => 91 + planet / 2, SITE_ICON_ROOM = 19;
+  function labelFit(names, totalLimit, wordLimit) {
+    let longest = Math.max(1, ...names.map((name) => name.length)), word = Math.max(1, ...names.flatMap((name) => name.split(/[\s/-]+/).map((part) => part.length)));
+    return Math.max(0.8, Math.min(1, totalLimit / longest, wordLimit / word));
+  }
+  function updateMapLabelSizes() {
+    document.documentElement.style.setProperty(
+      "--sun-label-fit",
+      String(labelFit(groups.map((sun) => sun.name), 18, 10))
+    );
+  }
+  var ORBIT_LEVELS = {
+    home: {
+      selector: ".home-satellite",
+      variable: "--home-planet-size",
+      base: () => 72,
+      max: 112,
+      names: () => groups.flatMap((sun) => sun.links.slice(0, GALAXY_PLANETS))
+    },
+    detail: {
+      selector: ".detail-satellite",
+      variable: "--detail-planet-size",
+      base: () => Math.min(100, Math.max(70, window.innerWidth * 0.16)),
+      max: 140,
+      names: () => groups.flatMap((sun) => sun.links.slice(0, SYSTEM_PLANETS))
+    },
+    moon: {
+      selector: ".moon-link",
+      variable: "--moon-size",
+      base: () => 72,
+      max: 88,
+      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons.slice(0, VISIBLE_MOONS)))
+    },
+    more: {
+      selector: ".more-link",
+      variable: "--more-planet-size",
+      base: () => 90,
+      max: 130,
+      names: () => groups.flatMap((sun) => sun.links.slice(SYSTEM_PLANETS))
+    },
+    overflowMoon: {
+      selector: ".overflow-moon-link",
+      variable: "--overflow-moon-size",
+      base: () => 76,
+      max: 110,
+      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons))
+    }
+  }, orbitSizes = {}, canvas2 = null, measureContext = () => (
+    /** @type {CanvasRenderingContext2D} */
+    canvas2 ?? (canvas2 = document.createElement("canvas").getContext("2d"))
+  );
+  function labelFits(name, diameter, padding, lineHeight, measure, extra = 0) {
+    let width2 = diameter - padding * 2, space = measure(" "), lines = [];
+    for (let word of name.split(/\s+/).filter(Boolean)) {
+      let wordWidth = measure(word);
+      if (wordWidth > width2) return !1;
+      let last2 = lines.length - 1;
+      last2 >= 0 && lines[last2] + space + wordWidth <= width2 ? lines[last2] += space + wordWidth : lines.push(wordWidth);
+    }
+    let radius = diameter / 2 - 3, half = (lines.length * lineHeight + extra) / 2;
+    return lines.every((lineWidth, line2) => {
+      let y = Math.abs(extra + (line2 + 0.5) * lineHeight - half);
+      return y < radius && lineWidth / 2 <= Math.sqrt(radius * radius - y * y);
+    });
+  }
+  function fitOrbitSizes() {
+    let root = document.documentElement.style, context = measureContext();
+    for (let [key, level] of Object.entries(ORBIT_LEVELS)) {
+      let sample = app.querySelector(level.selector), base = level.base();
+      if (!sample) {
+        orbitSizes[key] || (orbitSizes[key] = base);
+        continue;
+      }
+      let style = getComputedStyle(sample);
+      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      let cache = /* @__PURE__ */ new Map(), measure = (text) => (cache.has(text) || cache.set(text, context.measureText(text).width), cache.get(text)), padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.borderLeftWidth) || 0), lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2, names = [...new Set(level.names().map((item) => item.name))], extra = showSiteIcons ? SITE_ICON_ROOM : 0, size = Math.round(base);
+      for (; size < level.max && !names.every((name) => labelFits(name, size, padding, lineHeight, measure, extra)); ) size += 2;
+      orbitSizes[key] = Math.min(size, level.max), root.setProperty(
+        /** @type {string} */
+        level.variable,
+        `${orbitSizes[key]}px`
+      ), shrinkLongLabels(level.selector, orbitSizes[key], style, padding, extra);
+    }
+  }
+  function shrinkLongLabels(selector, size, style, padding, extra = 0) {
+    let context = measureContext(), fontSize = parseFloat(style.fontSize), lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+    for (
+      let node of
+      /** @type {NodeListOf<HTMLElement>} */
+      app.querySelectorAll(selector)
+    ) {
+      node.style.removeProperty("font-size");
+      for (let step2 = 20; step2 >= 12; step2--) {
+        let scale = step2 / 20;
+        context.font = `${style.fontWeight} ${fontSize * scale}px ${style.fontFamily}`;
+        let measure = (text) => context.measureText(text).width;
+        if (step2 === 12 || labelFits(
+          /** @type {string} */
+          node.textContent,
+          size,
+          padding,
+          lineHeight * scale,
+          measure,
+          extra
+        )) {
+          scale < 1 && (node.style.fontSize = `${(fontSize * scale).toFixed(2)}px`);
+          break;
+        }
+      }
+    }
+  }
+  function circleHull(circles, margin) {
+    let points = circles.flatMap(({ x, y, r }) => Array.from({ length: 24 }, (_, i) => {
+      let turn = i * Math.PI / 12;
+      return { x: x + Math.cos(turn) * (r + margin), y: y + Math.sin(turn) * (r + margin) };
+    })).sort((a, b) => a.x - b.x || a.y - b.y), cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x), half = (list) => list.reduce((hull, point) => {
+      for (; hull.length >= 2 && cross(
+        /** @type {Point} */
+        hull.at(-2),
+        /** @type {Point} */
+        hull.at(-1),
+        point
+      ) <= 0; ) hull.pop();
+      return hull.push(point), hull;
+    }, []), lower = half(points), upper = half([...points].reverse());
+    return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+  }
+  function moonSpokes(points, origin, size) {
+    let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "moon-spokes"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
+    for (let point of points) {
+      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line2.setAttribute("x1", String(origin.x)), line2.setAttribute("y1", String(origin.y)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
+    }
+    return svg;
+  }
+  function layoutMoonField(field) {
+    let angle = Number(field.dataset.angle), home = field.dataset.context === "home", planet = orbitSizes[home ? "home" : "detail"] || (home ? 72 : 100), moon = orbitSizes.moon || 72, moons = (
+      /** @type {HTMLElement[]} */
+      [...field.querySelectorAll(".moon-link")]
+    ), crowded = moons.length > 4, spread = (crowded ? 150 : 130) * Math.PI / 180, step2 = moons.length > 1 ? spread / (moons.length - 1) : 0, extra = crowded ? 28 : 0, radius = Math.max((home ? 98 : 108) + extra, planet / 2 + moon / 2 + 26 + extra);
+    step2 && (radius = Math.max(radius, (moon + 6) / (2 * Math.sin(step2 / 2))));
+    let positions = moons.map((_, index) => {
+      let moonAngle = angle - spread / 2 * (moons.length > 1 ? 1 : 0) + step2 * index;
+      return { x: Math.cos(moonAngle) * radius, y: Math.sin(moonAngle) * radius };
+    }), lift = Math.sin(angle) * galaxyReach(planet);
+    field.dataset.rise = String(Math.round(Math.max(...positions.map((point) => -(lift + point.y))) + moon / 2)), field.dataset.drop = String(Math.round(Math.max(...positions.map((point) => point.y)) + moon / 2));
+    let hull = circleHull([
+      { x: 0, y: 0, r: planet / 2 },
+      ...positions.map((point) => ({ ...point, r: moon / 2 }))
+    ], 12), out = radius * 0.5, center = { x: Math.cos(angle) * out, y: Math.sin(angle) * out }, size = Math.ceil(2 * Math.max(...hull.map((point) => Math.hypot(point.x - center.x, point.y - center.y))));
+    field.style.width = field.style.height = `${size}px`, field.style.clipPath = `polygon(${hull.map((point) => `${(point.x - center.x + size / 2).toFixed(1)}px ${(point.y - center.y + size / 2).toFixed(1)}px`).join(", ")})`, field.style.setProperty("--out-x", `${center.x}px`), field.style.setProperty("--out-y", `${center.y}px`), moons.forEach((node, index) => {
+      node.style.setProperty("--mx", `${positions[index].x - center.x}px`), node.style.setProperty("--my", `${positions[index].y - center.y}px`);
+    });
+    let origin = { x: size / 2 - center.x, y: size / 2 - center.y };
+    field.querySelector(".moon-spokes")?.remove(), field.prepend(moonSpokes(positions.map((point) => ({
+      x: origin.x + point.x,
+      y: origin.y + point.y
+    })), origin, size));
+  }
+  function markCaptionFans() {
+    let planet = orbitSizes.home || 72;
+    for (
+      let orbit of
+      /** @type {NodeListOf<HTMLElement>} */
+      app.querySelectorAll(".home-orbit")
+    ) {
+      let caption = (
+        /** @type {HTMLElement | null} */
+        orbit.parentElement?.querySelector(":scope > .group-description") ?? null
+      ), center = orbit.offsetTop + orbit.offsetHeight / 2;
+      for (
+        let field of
+        /** @type {NodeListOf<HTMLElement>} */
+        orbit.querySelectorAll(".moon-field")
+      ) {
+        let bottom = center + Math.sin(Number(field.dataset.angle)) * galaxyReach(planet) + Number(field.dataset.drop);
+        field.closest(".planet-cluster")?.toggleAttribute(
+          "data-covers-caption",
+          !!caption?.textContent && bottom > /** @type {HTMLElement} */
+          caption.offsetTop
+        );
+      }
+    }
+  }
+  function layoutOrbits() {
+    fitOrbitSizes(), app.querySelectorAll(".moon-field").forEach(layoutMoonField);
+    let firstCard = (
+      /** @type {HTMLElement | null} */
+      app.querySelector(".group-card")
+    ), firstRow = firstCard?.offsetTop, orbitMargin = parseFloat(getComputedStyle(firstCard?.querySelector(".home-orbit") ?? document.body).marginTop) || 0, fans = (
+      /** @type {HTMLElement[]} */
+      [...app.querySelectorAll(".home-orbit .moon-field")].filter((field) => (
+        /** @type {HTMLElement} */
+        field.closest(".group-card").offsetTop === firstRow
+      )).map((field) => Number(field.dataset.rise))
+    ), extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
+    document.documentElement.style.setProperty("--galaxy-fan-room", `${Math.max(0, Math.ceil(extra))}px`), markCaptionFans();
+    let stage = (
+      /** @type {HTMLElement | null} */
+      app.querySelector(".detail-stage")
+    ), note = (
+      /** @type {HTMLElement | null} */
+      app.querySelector(".detail-note")
+    );
+    if (stage && note) {
+      let overhang = Math.max(0, .../** @type {HTMLElement[]} */
+      [...stage.querySelectorAll(".moon-field")].map((field) => (
+        /** @type {HTMLElement} */
+        field.closest(".planet-cluster").offsetTop + Number(field.dataset.drop) - stage.offsetHeight
+      )));
+      note.style.marginTop = overhang > 0 ? `${Math.ceil(overhang + 12)}px` : "";
+    }
+  }
+  function installLayout() {
+    let frame2 = 0;
+    window.addEventListener("resize", () => {
+      cancelAnimationFrame(frame2), frame2 = requestAnimationFrame(layoutOrbits);
+    }), window.addEventListener("load", () => document.fonts?.ready.then(layoutOrbits));
+  }
+
+  // src/ui/drag/edit-bar.js
   var editToggle = () => (
     /** @type {HTMLButtonElement} */
     document.querySelector("#edit-toggle")
@@ -2993,13 +2993,7 @@ prompt for credentials:i:1\r
   ), editUndo = () => (
     /** @type {HTMLButtonElement} */
     document.querySelector("#edit-undo")
-  );
-  var DRAG_THRESHOLD = 6, DWELL_MS = 350, drag = null, cancelMessage = null, dragUndo = null, suppressNextClick = !1;
-  var DRAG_HELP = {
-    sun: "Drop beside another sun",
-    planet: "Drop on a sun, or beside a planet. Hold on Make it a moon to change it into a moon",
-    moon: "Drop on a planet, or beside a moon. Hold on a sun to make it a planet"
-  };
+  ), dragUndo = null;
   function storageToken() {
     try {
       return localStorage.getItem(workspaceKey(KEYS.map, activeWorkspace()));
@@ -3020,15 +3014,8 @@ prompt for credentials:i:1\r
   function updateEditBar() {
     dragUndo && !dragUndoValid() && (dragUndo = null), editUndo().hidden = !dragUndo;
   }
-  function setEditMode(on) {
-    modes.inEditMode() !== on && (cancelDrag(), modes.send(on ? "editOn" : "editOff"));
-  }
   function showEditMode(on) {
     document.documentElement.dataset.edit = on ? "on" : "off", editToggle().setAttribute("aria-pressed", String(on)), editToggle().querySelector(".edit-toggle-state").textContent = on ? "On" : "Off", editBar().hidden = !on, announce(""), app.classList.contains("error-view") || keepingScroll(hooks.render), offerDueRoutines();
-  }
-  function pathOf(node) {
-    let data = node.dataset, path = { kind: data.kind, sun: Number(data.sun) };
-    return data.planet !== void 0 && (path.planet = Number(data.planet)), data.moon !== void 0 && (path.moon = Number(data.moon)), path;
   }
   function pathSelector(path) {
     let selector = `[data-kind="${path.kind}"][data-sun="${path.sun}"]`;
@@ -3050,6 +3037,53 @@ prompt for credentials:i:1\r
   }
   function nameAt(path) {
     return mapItemAt(groups, path).name;
+  }
+  function levelPlace(result, levelChange) {
+    let number = (levelChange === "planet" ? result.path.planet : result.path.moon) + 1, note = levelChange === "planet" && number > GALAXY_PLANETS ? "shown in its System" : levelChange === "moon" && number > VISIBLE_MOONS ? "shown under More moons" : "";
+    return { number, note };
+  }
+  function commitMove(gesture, target) {
+    if (gesture.token !== storageToken())
+      return announce("The link map changed in another tab, so nothing was moved. Reload this page to pick up the latest map.", !0);
+    if (gesture.revision !== store.state().revision || mapItemAt(groups, gesture.path) !== gesture.item)
+      return announce("The link map changed during the drag, so nothing was moved.", !0);
+    let result = target.levelChange ? changeItemLevel(groups, gesture.path, target.path) : moveMapItem(groups, gesture.path, target.path);
+    if (result.status !== "moved") return announce("That is not a place this item can go. Nothing changed.");
+    let previous = groups, where = target.levelChange ? `to ${nameAt(target.path)} as a ${target.levelChange}` : target.path.place ? `${target.path.place} ${nameAt(target.path)}` : `to ${nameAt(target.path)}`, place = target.levelChange ? levelPlace(result, target.levelChange) : null, label = `${gesture.path.kind} ${gesture.item.name} ${where}`;
+    try {
+      keepingScroll(() => store.saveMap({ groups: result.groups }, `Moved ${label}`));
+    } catch (error) {
+      return announce(`The move could not be saved, so nothing changed. ${/** @type {any} */
+      error.message}`, !0);
+    }
+    dragUndo = { groups: previous, revision: store.state().revision, token: storageToken(), label }, updateEditBar(), announce(`Moved ${label}.${place?.note ? ` It's ${target.levelChange} ${place.number} (${place.note}).` : ""}`), focusPath(result.path);
+  }
+  function undoDrag() {
+    let record = dragUndo;
+    if (!dragUndoValid())
+      return dragUndo = null, updateEditBar(), announce("The link map has changed since that drag, so it can no longer be undone.", !0);
+    try {
+      keepingScroll(() => store.saveMap({ groups: record.groups }, `Undid the move of ${record.label}`));
+    } catch (error) {
+      return announce(`Undo could not be saved, so nothing changed. ${/** @type {any} */
+      error.message}`, !0);
+    }
+    dragUndo = null, updateEditBar(), announce(`Undid the move of ${record.label}.`), editStatus().focus({ preventScroll: !0 });
+  }
+
+  // src/ui/drag/drag.js
+  var DRAG_THRESHOLD = 6, DWELL_MS = 350, drag = null, cancelMessage = null, suppressNextClick = !1;
+  var DRAG_HELP = {
+    sun: "Drop beside another sun",
+    planet: "Drop on a sun, or beside a planet. Hold on Make it a moon to change it into a moon",
+    moon: "Drop on a planet, or beside a moon. Hold on a sun to make it a planet"
+  };
+  function setEditMode(on) {
+    modes.inEditMode() !== on && (cancelDrag(), modes.send(on ? "editOn" : "editOff"));
+  }
+  function pathOf(node) {
+    let data = node.dataset, path = { kind: data.kind, sun: Number(data.sun) };
+    return data.planet !== void 0 && (path.planet = Number(data.planet)), data.moon !== void 0 && (path.moon = Number(data.moon)), path;
   }
   function trayRow(className, name, count, kind, ...indices) {
     let row = element("div", className);
@@ -3150,10 +3184,6 @@ prompt for credentials:i:1\r
     return choice.getAttribute("aria-disabled") === "true" ? (disarm(), waiting) : drag.arm?.choice !== choice ? (disarm(), choice.classList.add("arming"), drag.arm = { choice, ready: !1, timer: setTimeout(() => {
       !modes.dragging() || drag.arm?.choice !== choice || (drag.arm.ready = !0, choice.classList.add("armed"), refreshDrag());
     }, DWELL_MS) }, waiting) : drag.arm.ready ? { status: "valid", node: choice, path, sibling, levelChange: choice.dataset.action } : waiting;
-  }
-  function levelPlace(result, levelChange) {
-    let number = (levelChange === "planet" ? result.path.planet : result.path.moon) + 1, note = levelChange === "planet" && number > GALAXY_PLANETS ? "shown in its System" : levelChange === "moon" && number > VISIBLE_MOONS ? "shown under More moons" : "";
-    return { number, note };
   }
   function siblingTarget(choice) {
     let { sibling } = drag.choices, path = { ...drag.choices.path, place: choice.dataset.place }, result = moveMapItem(groups, drag.path, path);
@@ -3277,34 +3307,6 @@ prompt for credentials:i:1\r
     endGesture(wasDragging);
     let message = cancelMessage || "Move cancelled. Nothing changed.";
     cancelMessage = null, wasDragging && event !== "drop" && announce(message);
-  }
-  function commitMove(gesture, target) {
-    if (gesture.token !== storageToken())
-      return announce("The link map changed in another tab, so nothing was moved. Reload this page to pick up the latest map.", !0);
-    if (gesture.revision !== store.state().revision || mapItemAt(groups, gesture.path) !== gesture.item)
-      return announce("The link map changed during the drag, so nothing was moved.", !0);
-    let result = target.levelChange ? changeItemLevel(groups, gesture.path, target.path) : moveMapItem(groups, gesture.path, target.path);
-    if (result.status !== "moved") return announce("That is not a place this item can go. Nothing changed.");
-    let previous = groups, where = target.levelChange ? `to ${nameAt(target.path)} as a ${target.levelChange}` : target.path.place ? `${target.path.place} ${nameAt(target.path)}` : `to ${nameAt(target.path)}`, place = target.levelChange ? levelPlace(result, target.levelChange) : null, label = `${gesture.path.kind} ${gesture.item.name} ${where}`;
-    try {
-      keepingScroll(() => store.saveMap({ groups: result.groups }, `Moved ${label}`));
-    } catch (error) {
-      return announce(`The move could not be saved, so nothing changed. ${/** @type {any} */
-      error.message}`, !0);
-    }
-    dragUndo = { groups: previous, revision: store.state().revision, token: storageToken(), label }, updateEditBar(), announce(`Moved ${label}.${place?.note ? ` It's ${target.levelChange} ${place.number} (${place.note}).` : ""}`), focusPath(result.path);
-  }
-  function undoDrag() {
-    let record = dragUndo;
-    if (!dragUndoValid())
-      return dragUndo = null, updateEditBar(), announce("The link map has changed since that drag, so it can no longer be undone.", !0);
-    try {
-      keepingScroll(() => store.saveMap({ groups: record.groups }, `Undid the move of ${record.label}`));
-    } catch (error) {
-      return announce(`Undo could not be saved, so nothing changed. ${/** @type {any} */
-      error.message}`, !0);
-    }
-    dragUndo = null, updateEditBar(), announce(`Undid the move of ${record.label}.`), editStatus().focus({ preventScroll: !0 });
   }
   function guardActivation(event) {
     if (suppressNextClick) {

@@ -1,7 +1,8 @@
 // Keyboard handling (2.2.1 keys.js): the menu's focus trap, Escape by the
 // mode store's topmost layer, / for Quick find, arrows through the results,
 // and arrows between suns, planets, and moons. Moved in rewrite phase 7.
-import { cancelDrag, editBar, editToggle, setEditMode } from '../drag/drag.js';
+import { cancelDrag, setEditMode } from '../drag/drag.js';
+import { editBar, editToggle } from '../drag/edit-bar.js';
 import { handlePaletteKey, handlePaletteShortcut } from '../find/palette.js';
 import { hideTooltip } from '../tooltip.js';
 import { closeMenu } from '../menu/menu.js';

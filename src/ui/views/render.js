@@ -1,7 +1,7 @@
 // Drawing the page (2.2.1 render.js render()): the Galaxy, or the System the
 // address names. Moved in rewrite phase 5; the store subscriber in app.js
 // and the old scripts call it (through the bridge's page global).
-import { editToggle, updateEditBar } from '../drag/drag.js';
+import { editToggle, updateEditBar } from '../drag/edit-bar.js';
 import { layoutOrbits, updateMapLabelSizes } from '../layout/orbits.js';
 import { modes } from '../page-modes.js';
 import { revealPendingGroup } from './group-planets.js';
