@@ -1,0 +1,137 @@
+/* tokens.css: fonts, type scale, and theme tokens. Part of styles.css, which loads the parts in cascade order. */
+/* Fonts ship in fonts/ (see docs/THIRD_PARTY_NOTICES.md): Inter by default, and
+   Orbit classic (DM Sans for body text, Space Grotesk for labels and headings) from
+   Settings > Font. A browser downloads a face only when text uses it. */
+@font-face { font-family: 'Inter'; src: url('../fonts/Inter.woff2') format('woff2'); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('../fonts/DMSans.woff2') format('woff2'); font-weight: 100 1000; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Space Grotesk'; src: url('../fonts/SpaceGrotesk.woff2') format('woff2'); font-weight: 300 700; font-style: normal; font-display: swap; }
+:root {
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+}
+html[data-font-family='classic'] {
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: var(--font-body);
+  --page-bg: #0b1020;
+  --surface: #141d32;
+  --surface-input: #0e1628;
+  --planet-base: #141b2e;
+  --hub-base: #15233c;
+  --hover-base: #19243a;
+  --text: #f7f7fc;
+  --muted: #a6b2c9;
+  --muted-strong: #b9c5da;
+  --subtle: #8290a9;
+  --faint: #6d7b95;
+  --theme-accent: #8fd6eb;
+  --theme-core: #88d6eb;
+  --line: rgba(212, 222, 255, .14);
+  --line-soft: rgba(184, 205, 237, .08);
+  --star: #b7c3e5;
+  --glow: rgba(85, 109, 178, .13);
+  --top-glow: rgba(43, 58, 102, .2);
+  --scrim: rgba(3, 7, 17, .68);
+  --user-font-scale: 1;
+  --viewport-font-scale: 1;
+  --font-scale: calc(var(--user-font-scale) * var(--viewport-font-scale));
+  --backdrop-base: var(--page-bg);
+  --backdrop-accent: var(--theme-accent);
+  --backdrop-blob-1: color-mix(in oklab, var(--theme-accent) 30%, transparent);
+  --backdrop-blob-2: color-mix(in oklab, #b6a4ff 24%, transparent);
+  --backdrop-blob-3: color-mix(in oklab, #f5a7c8 13%, transparent);
+  --backdrop-blob-4: color-mix(in oklab, var(--theme-accent) 20%, transparent);
+  --backdrop-particle: color-mix(in oklab, var(--star) 80%, var(--theme-accent));
+  --backdrop-grain: .06;
+  background: var(--page-bg);
+  color: var(--text);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html[data-font-size='small'] { --user-font-scale: .9; }
+html[data-font-size='large'] { --user-font-scale: 1.15; }
+html[data-font-size='extra'] { --user-font-scale: 1.3; }
+
+@media (min-width: 1600px) {
+  :root { --viewport-font-scale: 1.1; }
+}
+
+html[data-theme='alabama'] {
+  --page-bg: #151719;
+  --surface: #25282b;
+  --surface-input: #1b1e21;
+  --planet-base: #262a2d;
+  --hub-base: #343a3e;
+  --hover-base: #3b4247;
+  --text: #faf9f7;
+  --muted: #c8ced1;
+  --muted-strong: #e0e4e6;
+  --subtle: #abb3b8;
+  --faint: #939da2;
+  --theme-accent: #e87c90;
+  --theme-core: #9e1b32;
+  --line: rgba(218, 224, 226, .2);
+  --line-soft: rgba(218, 224, 226, .11);
+  --star: #aeb5b8;
+  --glow: rgba(158, 27, 50, .14);
+  --top-glow: rgba(130, 138, 143, .12);
+  --scrim: rgba(7, 8, 9, .74);
+}
+
+html[data-theme='auburn'] {
+  --page-bg: #071629;
+  --surface: #102a46;
+  --surface-input: #091e35;
+  --planet-base: #0d2842;
+  --hub-base: #173957;
+  --hover-base: #224967;
+  --text: #fff9f1;
+  --muted: #c5d3e0;
+  --muted-strong: #e2ebf4;
+  --subtle: #9db5c9;
+  --faint: #819db5;
+  --theme-accent: #ffad6e;
+  --theme-core: #e86100;
+  --line: rgba(191, 215, 237, .19);
+  --line-soft: rgba(191, 215, 237, .1);
+  --star: #9dbad0;
+  --glow: rgba(232, 97, 0, .16);
+  --top-glow: rgba(11, 35, 65, .35);
+  --scrim: rgba(3, 11, 22, .72);
+}
+
+
+html[data-theme='aurora'] {
+  --page-bg: oklch(0.155 0.03 295);
+  --surface: oklch(0.24 0.045 300);
+  --surface-input: oklch(0.19 0.035 300);
+  --planet-base: oklch(0.25 0.05 300);
+  --hub-base: oklch(0.29 0.07 300);
+  --hover-base: oklch(0.31 0.07 300);
+  --text: oklch(0.96 0.012 300);
+  --muted: oklch(0.76 0.035 300);
+  --muted-strong: oklch(0.84 0.03 300);
+  --subtle: oklch(0.62 0.035 300);
+  --faint: oklch(0.54 0.03 300);
+  --theme-accent: oklch(0.74 0.16 300);
+  --theme-core: oklch(0.74 0.16 300);
+  --line: oklch(1 0 0 / 0.1);
+  --line-soft: oklch(1 0 0 / 0.06);
+  --star: oklch(0.86 0.072 300);
+  --scrim: oklch(0.1 0.03 300 / 0.7);
+  --glow: oklch(0.45 0.18 300 / 0.16);
+  --top-glow: oklch(0.42 0.17 300 / 0.2);
+  --backdrop-base: oklch(0.155 0.03 295);
+  --backdrop-accent: oklch(0.74 0.16 300);
+  --backdrop-blob-1: oklch(0.45 0.208 300 / 0.55);
+  --backdrop-blob-2: oklch(0.45 0.19 345 / 0.35);
+  --backdrop-blob-3: oklch(0.55 0.13 65 / 0.18);
+  --backdrop-blob-4: oklch(0.42 0.17 265 / 0.45);
+  --backdrop-particle: oklch(0.86 0.072 300);
+  --backdrop-grain: .07;
+}

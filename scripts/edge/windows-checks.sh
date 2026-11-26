@@ -9,7 +9,7 @@ OUT="$REPO/.artifacts/edge/windows-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$OUT"
 trap cleanup_vm EXIT
 
-(cd "$REPO" && git archive --format=zip -o "$OUT/orbit.zip" HEAD -- windows index.html orbit.js styles.css links.json links-data.js) || exit 1
+(cd "$REPO" && git archive --format=zip -o "$OUT/orbit.zip" HEAD -- windows index.html orbit.js styles.css css links.json links-data.js) || exit 1
 cat > "$OUT/setup.ps1" <<'PS'
 $ErrorActionPreference = 'Stop'
 $t = 'C:\orbit-test'; if (Test-Path $t) { Remove-Item -Recurse -Force $t }

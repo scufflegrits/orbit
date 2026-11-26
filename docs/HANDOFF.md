@@ -53,7 +53,7 @@ Since 3.0.0 the app is ES modules in `src/`, bundled by `scripts/build.mjs` into
 
 | Path | Purpose |
 | --- | --- |
-| `index.html`, `styles.css` | Page shell; layout, animations, responsive rules, themes (Default, Red, Blue); fonts through `--font-body` / `--font-display` (Inter, or `html[data-font-family='classic']`) |
+| `index.html`, `styles.css`, `css/` | Page shell; `styles.css` only `@import`s nine parts from `css/` in cascade order (see its header comment); layout, animations, responsive rules, themes (Default, Red, Blue); fonts through `--font-body` / `--font-display` (Inter, or `html[data-font-family='classic']`) |
 | `fonts/` | Bundled fonts (Inter, DM Sans, Space Grotesk), each with its OFL licence file; loaded by relative `@font-face` URLs, which work from `file://` (tested in Edge and Chromium) |
 | `orbit.js` | The built app (`npm run build`); never edit by hand |
 | `links.json` / `links-data.js` | Main's default map, and its generated copy for file mode |

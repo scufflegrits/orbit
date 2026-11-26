@@ -1,0 +1,350 @@
+/* features.css: list view, palette, routines, workspaces and map editing; loads after chrome.css, so screen-size and motion rules for these features go here. Part of styles.css, which loads the parts in cascade order. */
+/* ---- Feature batch 2026-11-19 ------------------------------------------ */
+
+.view-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--theme-accent) 8%, transparent);
+  color: var(--muted-strong);
+  cursor: pointer;
+}
+.view-toggle .icon { width: 17px; height: 17px; }
+.view-toggle:hover, .view-toggle[aria-pressed='true'] { border-color: var(--theme-accent); color: var(--text); }
+
+/* Site icons sit above the label inside a circle. */
+.site-icon { display: block; flex: none; width: 16px; height: 16px; margin: 0 auto 3px; border-radius: 3px; }
+:is(.home-satellite, .detail-satellite, .more-link, .moon-link, .overflow-moon-link):has(> .site-icon) { flex-direction: column; }
+.quick-chip .site-icon, .list-link .site-icon { display: inline-block; margin: 0 6px 0 0; vertical-align: -3px; }
+
+.hub-icon { display: block; margin-bottom: 4px; font-size: calc(22px * var(--font-scale)); line-height: 1; }
+.team-mark {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--accent, var(--theme-accent)) 60%, transparent);
+  border-radius: 8px;
+  color: var(--accent, var(--theme-accent));
+  font: 700 calc(8px * var(--font-scale)) var(--font-display);
+  letter-spacing: .12em;
+}
+.team-card .home-hub { border-style: dashed; }
+
+/* Favorites and recent links above the Galaxy. */
+.quick-bar { display: grid; gap: 10px; width: min(1100px, 100%); margin: 26px auto 0; }
+.quick-row { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.quick-label { flex: none; width: 76px; margin: 0; color: var(--subtle); font: 600 calc(11px * var(--font-scale)) var(--font-display); }
+.quick-chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.quick-chip {
+  max-width: 240px;
+  padding: 6px 13px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.quick-chip:hover, .quick-chip:focus-visible { border-color: var(--theme-accent); background: var(--hover-base); }
+
+/* Quick find rows: a result with a favorite star beside it. */
+.find-row { display: flex; gap: 6px; min-width: 0; }
+.find-row > .find-item { flex: 1; }
+.favorite-toggle {
+  flex: none;
+  width: 40px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--subtle);
+  cursor: pointer;
+}
+.favorite-toggle .icon { width: 17px; height: 17px; }
+.favorite-toggle:hover, .favorite-toggle:focus-visible { border-color: var(--theme-accent); color: var(--text); }
+.favorite-toggle.is-favorite { color: #ffd166; }
+.find-why { color: var(--theme-accent) !important; }
+.tag-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 4px; }
+.find-copy .tag-chips { margin-left: 0; }
+.tag-chip {
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  font: 600 calc(10px * var(--font-scale)) var(--font-display);
+}
+
+/* Open a planet with its moons, in a System. */
+.open-all-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; max-width: 900px; margin: -50px auto 60px; }
+.open-all-label { color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
+.open-all-button {
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--muted-strong);
+  font: 600 calc(11px * var(--font-scale)) var(--font-display);
+  cursor: pointer;
+}
+.open-all-button:hover, .open-all-button:focus-visible { border-color: var(--theme-accent); color: var(--text); }
+.open-all-notice {
+  position: fixed;
+  z-index: 40;
+  bottom: 24px;
+  left: 50%;
+  max-width: min(560px, calc(100% - 32px));
+  padding: 12px 18px;
+  border: 1px solid var(--theme-accent);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: calc(13px * var(--font-scale));
+  transform: translateX(-50%);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, .4);
+}
+.open-all-notice.open-all-error { border-color: #ff8a8a; }
+
+/* List view of the Galaxy. */
+.galaxy-list { display: grid; gap: 14px; width: min(1100px, 100%); margin: 30px auto 70px; }
+.list-note { color: var(--muted); }
+.list-sun { padding: 14px 18px; border: 1px solid var(--line); border-left: 3px solid var(--sun-accent); border-radius: 14px; background: var(--surface); }
+.list-sun-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; cursor: pointer; }
+.list-sun-name { color: var(--text); font: 600 calc(18px * var(--font-scale)) var(--font-display); }
+.list-count { color: var(--subtle); font-size: calc(12px * var(--font-scale)); }
+.list-sun-head .team-mark { --accent: var(--sun-accent); margin-top: 0; }
+.list-open { margin-left: auto; color: var(--theme-accent); font-size: calc(12px * var(--font-scale)); }
+.list-description { margin: 6px 0 0; color: var(--muted); font-size: calc(13px * var(--font-scale)); }
+.list-planets { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 24px; margin: 12px 0 0; padding: 0; list-style: none; }
+.list-moons { margin: 3px 0 4px; padding: 0 0 0 16px; list-style: none; border-left: 1px solid var(--line); }
+.list-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 600 calc(13px * var(--font-scale)) var(--font-display);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.list-moon .list-link { color: var(--muted-strong); font-weight: 500; font-size: calc(12px * var(--font-scale)); }
+.list-group { margin: 0; font-weight: 700; cursor: default; }
+.list-link:not(.list-group):hover, .list-link:focus-visible { color: var(--theme-accent); text-decoration: underline; }
+.list-favorite { margin-inline-start: 5px; color: #ffd166; }
+.list-favorite .icon { width: 12px; height: 12px; vertical-align: -1px; }
+.list-empty { color: var(--subtle); }
+
+/* Command palette. */
+.palette-overlay { position: fixed; z-index: 50; inset: 0; }
+.palette-scrim { position: absolute; inset: 0; background: var(--scrim); }
+.palette {
+  position: absolute;
+  top: 12vh;
+  left: 50%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  width: min(680px, calc(100% - 32px));
+  max-height: 70vh;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, .5);
+  transform: translateX(-50%);
+}
+.palette-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--page-bg);
+  color: var(--text);
+  font: 500 calc(16px * var(--font-scale)) var(--font-display);
+}
+.palette-input:focus { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
+.palette-list { min-height: 0; margin: 10px 0 0; padding: 0; overflow-y: auto; list-style: none; }
+.palette-option { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; color: var(--text); cursor: pointer; }
+.palette-option[aria-selected='true'] { background: color-mix(in srgb, var(--theme-accent) 18%, transparent); outline: 1px solid var(--theme-accent); }
+.palette-kind { flex: none; width: 70px; color: var(--theme-accent); font-size: calc(10px * var(--font-scale)); text-transform: uppercase; }
+.palette-copy { display: grid; gap: 2px; min-width: 0; }
+.palette-copy strong { overflow-wrap: anywhere; font-size: calc(14px * var(--font-scale)); }
+.palette-copy small { color: var(--muted); font-size: calc(11px * var(--font-scale)); }
+.palette-status { margin: 8px 4px 0; color: var(--muted); font-size: calc(11px * var(--font-scale)); }
+.palette-hint { margin: 2px 4px 0; color: var(--subtle); font-size: calc(11px * var(--font-scale)); }
+
+/* Editor additions. */
+.editor-check { display: flex; align-items: center; gap: 9px; margin: 6px 0; color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); cursor: pointer; }
+.editor-check input { width: 18px; height: 18px; accent-color: var(--theme-accent); }
+.editor-note { padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
+.editor-code { display: block; margin: 6px 0 12px; padding: 8px 10px; border-radius: 8px; background: var(--page-bg); color: var(--text); }
+.history-copy { display: grid; gap: 3px; min-width: 0; }
+.history-copy small { color: var(--muted); font-size: calc(11px * var(--font-scale)); }
+.duplicate-group { margin-bottom: 14px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-button {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted-strong);
+  font: 600 calc(11px * var(--font-scale)) var(--font-display);
+  cursor: pointer;
+}
+.tag-button:hover, .tag-button:focus-visible { border-color: var(--theme-accent); color: var(--text); }
+.editor-tree-item .tag-chips { margin-left: 6px; }
+.editor-tree-broken, .broken-mark { color: #ffb38a; }
+.link-check-status { color: var(--muted-strong); }
+.rdp-bulk-settings { margin: 4px 0 12px; padding-left: 20px; color: var(--muted-strong); font: 500 calc(12px * var(--font-scale)) ui-monospace, monospace; }
+.team-source { color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
+.team-settings { display: grid; gap: 6px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--text); }
+
+/* ---- Routines (2026-11-20) ---------------------------------------------- */
+
+.routine-chip { border-color: color-mix(in srgb, var(--theme-accent) 55%, var(--line)); }
+.routine-chip-icon { width: .85em; height: .85em; margin-inline-end: 5px; vertical-align: -.08em; color: var(--theme-accent); fill: currentColor; }
+.quick-open-all {
+  padding: 6px 13px;
+  border: 1px dashed var(--theme-accent);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--theme-accent);
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
+  cursor: pointer;
+}
+.quick-open-all:hover, .quick-open-all:focus-visible { background: color-mix(in srgb, var(--theme-accent) 14%, transparent); color: var(--text); }
+
+.routine-banner { display: grid; gap: 8px; width: min(1100px, 100%); margin: 14px auto 0; }
+.routine-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--theme-accent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--theme-accent) 10%, var(--surface));
+}
+.routine-offer-copy { flex: 1; margin: 0; color: var(--text); font: 600 calc(14px * var(--font-scale)) var(--font-display); }
+.routine-offer-open, .routine-offer-dismiss {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted-strong);
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
+  cursor: pointer;
+}
+.routine-offer-open { border-color: var(--theme-accent); background: color-mix(in srgb, var(--theme-accent) 22%, transparent); color: var(--text); }
+.routine-offer-open:hover, .routine-offer-dismiss:hover { border-color: var(--theme-accent); color: var(--text); }
+
+.routine-schedule { display: grid; gap: 8px; margin: 4px 0 8px 27px; }
+.routine-schedule[hidden] { display: none; }
+.routine-schedule .editor-field { max-width: 160px; }
+.routine-days { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.routine-day { margin: 0; }
+.routine-choices { display: grid; gap: 10px; max-height: 46vh; overflow-y: auto; padding-right: 6px; }
+.routine-sun { margin: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.routine-sun legend { padding: 0 6px; color: var(--text); font: 600 calc(12px * var(--font-scale)) var(--font-display); }
+.routine-choice { margin: 3px 0; }
+.routine-choice[hidden] { display: none; }
+.routine-row .editor-button { flex: none; }
+
+/* ---- Batch 3 (2026-11-20) ------------------------------------------------ */
+
+.notice-area { display: grid; gap: 8px; width: min(1100px, 100%); margin: 14px auto 0; }
+.notice-area:empty { display: none; }
+.notice-area .routine-banner { margin: 0; }
+.team-update-list { flex-basis: 100%; color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
+.team-update-list ul { margin: 4px 0 8px; padding-left: 18px; }
+.team-update-link { padding: 0; border: 0; background: none; color: var(--theme-accent); font: inherit; text-decoration: underline; cursor: pointer; }
+
+.workspace-switch {
+  max-width: 160px;
+  min-height: 34px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--theme-accent) 8%, var(--surface));
+  color: var(--text);
+  font: 600 calc(12px * var(--font-scale)) var(--font-display);
+  cursor: pointer;
+}
+.workspace-add { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 6px; }
+.workspace-add select { min-height: 38px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--page-bg); color: var(--text); }
+.workspace-row .editor-button { flex: none; }
+.workspace-hint { color: var(--muted-strong); font-size: calc(12px * var(--font-scale)); }
+
+.variable-form { gap: 10px; }
+.variable-title { margin: 0; color: var(--text); font: 600 calc(18px * var(--font-scale)) var(--font-display); }
+.variable-address, .variable-preview { margin: 0; color: var(--muted); font: 500 calc(12px * var(--font-scale)) ui-monospace, monospace; overflow-wrap: anywhere; }
+.variable-preview { color: var(--theme-accent); }
+
+.find-add { width: min(760px, 100%); margin: 0 0 10px; border-style: dashed; }
+.find-note { color: var(--muted-strong) !important; font-style: italic; }
+.list-note-text { color: var(--subtle); font-weight: 500; font-size: calc(11px * var(--font-scale)); }
+
+.empty-galaxy { display: grid; justify-items: center; gap: 10px; margin: 80px auto; text-align: center; color: var(--muted); }
+.empty-galaxy h1 { margin: 0; color: var(--text); font: 600 calc(28px * var(--font-scale)) var(--font-display); }
+.empty-galaxy .editor-primary { padding: 8px 16px; border-radius: 10px; font: 600 calc(13px * var(--font-scale)) var(--font-display); cursor: pointer; }
+.preset-settings { min-height: 120px; font-family: ui-monospace, monospace; }
+
+.map-item-actions {
+  position: absolute;
+  z-index: 12;
+  inset: 0 auto auto 0;
+  display: grid;
+  gap: 4px;
+  animation: fade-in .12s ease-out;
+}
+.map-edit-button, .map-remove-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--accent, var(--theme-accent));
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.map-edit-button .icon, .map-remove-button .icon { width: 14px; height: 14px; }
+.map-edit-button:hover { background: var(--hover-base); }
+.map-remove-button {
+  border-color: rgba(245, 167, 200, .5);
+  color: #ffd5e4;
+}
+.map-remove-button:hover { background: color-mix(in srgb, #f5a7c8 17%, var(--surface)); }
+
+.map-removal-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 29;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: min(530px, calc(100% - 32px));
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: calc(13px * var(--font-scale));
+  box-shadow: 0 12px 35px rgba(0, 0, 0, .35);
+}
+.map-removal-notice span { overflow-wrap: anywhere; }
+.moon-overflow-links { position: relative; }
+.home-orbit.restoring-map-focus .home-planet-cluster,
+.planet-cluster.restoring-map-focus .moon-field { visibility: visible !important; transition: none; }
+.overflow-planet:is(:focus-within, .restoring-map-focus) .overflow-moons { display: flex; }
+@media (prefers-reduced-motion: reduce) {
+  .map-item-actions { animation: none; }
+}

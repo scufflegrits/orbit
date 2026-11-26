@@ -1,0 +1,72 @@
+/* backdrop.css: reset, page background, starfield and backdrop. Part of styles.css, which loads the parts in cascade order. */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { min-height: 100%; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 50% 0%, var(--top-glow), transparent 42%),
+    var(--page-bg);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .34;
+  background-image: radial-gradient(var(--star) 0.7px, transparent 0.7px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, #000, transparent 80%);
+}
+
+.background-glow {
+  position: fixed;
+  z-index: 0;
+  width: 620px;
+  height: 620px;
+  left: 50%;
+  top: 210px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(circle, var(--glow), transparent 67%);
+}
+
+
+html[data-theme='aurora'] .group-card,
+html[data-theme='aurora'] .detail-stage { --accent: var(--sun-accent); }
+
+html[data-background='constellations'] body::before,
+html[data-background='constellations'] .background-glow { display: none; }
+.backdrop {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--backdrop-base);
+  isolation: isolate;
+}
+.backdrop canvas { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--backdrop-particle); }
+.backdrop .blob { position: absolute; width: 55vw; height: 55vw; max-width: 900px; max-height: 900px; border-radius: 50%; filter: blur(85px); opacity: .55; will-change: transform; }
+.backdrop .blob-1 { left: -12%; top: -34%; background: radial-gradient(circle, var(--backdrop-blob-1), transparent 68%); animation: backdrop-drift-1 48s ease-in-out infinite alternate; }
+.backdrop .blob-2 { right: -16%; top: -24%; background: radial-gradient(circle, var(--backdrop-blob-2), transparent 68%); animation: backdrop-drift-2 54s ease-in-out infinite alternate; }
+.backdrop .blob-3 { left: 24%; bottom: -48%; background: radial-gradient(circle, var(--backdrop-blob-3), transparent 68%); animation: backdrop-drift-3 42s ease-in-out infinite alternate; }
+.backdrop .blob-4 { right: -22%; bottom: -46%; background: radial-gradient(circle, var(--backdrop-blob-4), transparent 68%); animation: backdrop-drift-4 58s ease-in-out infinite alternate; }
+@keyframes backdrop-drift-1 { to { transform: translate(17vw, 13vh) scale(1.12); } }
+@keyframes backdrop-drift-2 { to { transform: translate(-14vw, 17vh) scale(.92); } }
+@keyframes backdrop-drift-3 { to { transform: translate(-12vw, -12vh) scale(1.1); } }
+@keyframes backdrop-drift-4 { to { transform: translate(-18vw, -14vh) scale(1.08); } }
+.backdrop .cursor-glow { position: absolute; inset: 0; opacity: 0; background: radial-gradient(420px circle at var(--cx, 50%) var(--cy, 50%), color-mix(in oklab, var(--backdrop-accent) 13%, transparent), transparent 72%); transition: opacity .7s; }
+.backdrop[data-pointer] .cursor-glow { opacity: 1; }
+/* Under an open menu the background holds still: the blobs pause where they are and resume on close. */
+.backdrop:is([data-menu], [data-hidden]) .blob { animation-play-state: paused; }
+html[data-motion='calm'] .backdrop .blob { animation-play-state: paused !important; }
+.backdrop .grain { position: absolute; inset: 0; opacity: var(--backdrop-grain); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E"); }
+.app-shell { z-index: 1; }
+@media (max-width: 700px) { .backdrop .blob { filter: blur(55px); } }

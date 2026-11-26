@@ -1,0 +1,70 @@
+/* chrome.css: footer, errors, keyframes, breakpoints and reduced motion. Part of styles.css, which loads the parts in cascade order. */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 0 30px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: calc(11px * var(--font-scale));
+}
+
+code { color: var(--muted-strong); font-family: ui-monospace, monospace; }
+.error-view { max-width: 650px; margin: 110px auto; text-align: center; }
+.error-view h1 { font-size: calc(42px * var(--font-scale)); }
+.error-view p { color: var(--muted); line-height: 1.6; }
+.error-view pre { white-space: pre-wrap; color: #f5a7c8; }
+
+@keyframes rise-in { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { from { opacity: 0; transform: translate(-50%, -50%) scale(.55); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes sheet-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+@media (max-width: 1030px) {
+  .group-grid { max-width: 760px; }
+  .group-card { flex-basis: calc((100% - 20px) / 2); }
+}
+
+@media (min-width: 681px) and (max-width: 1100px) {
+  /* Leave the room to Quick find and the Edit mode toggle. */
+  .local-badge { display: none; }
+}
+
+@media (max-width: 680px) {
+  .menu-sheet { border-radius: 0; }
+  .menu-sheet.editor-page-mode { display: block; padding: 18px; }
+  .editor-page-layout { display: block; height: auto; }
+  .editor-tree { max-height: 38vh; margin-bottom: 16px; }
+  .editor-pane { min-height: 40vh; overflow: visible; }
+  .app-shell { width: min(100% - 36px, 440px); }
+  .topbar { min-height: 72px; flex-wrap: wrap; gap: 0 12px; padding-bottom: 12px; }
+  .topbar-search { order: 3; flex-basis: 100%; max-width: none; margin: 0; }
+  .topbar-right { gap: 0; }
+  .settings-trigger { margin-left: 12px; }
+  .link-count { display: none; }
+  .edit-toggle { margin-left: 12px; }
+  .edit-bar-actions { margin-left: 0; }
+  .local-badge { font-size: calc(9px * var(--font-scale)); }
+  .intro-copy { font-size: calc(13px * var(--font-scale)); }
+  .find-list { grid-template-columns: 1fr; }
+  .group-grid { gap: 0; margin-top: 20px; }
+  .group-card { flex-basis: 100%; }
+  .group-description { margin-top: -2px; }
+  .detail-heading { padding-top: 45px; }
+  .detail-stage { margin: 28px auto 15px; }
+  .detail-note { margin-bottom: 75px; }
+  .footer { flex-direction: column; gap: 6px; text-align: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .backdrop .blob { animation: none !important; }
+}
+
+html[data-animations='off'] *,
+html[data-animations='off'] *::before,
+html[data-animations='off'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
