@@ -4,7 +4,7 @@
 // in rewrite phase 6a.
 import * as prefs from '../../state/prefs.js';
 import { counted, element } from '../dom.js';
-import { refreshBackdrop } from '../backdrop/backdrop.js';
+import { reducedMotionQuery, refreshBackdrop } from '../backdrop/backdrop.js';
 import { hooks } from '../hooks.js';
 import { showBackupReminder } from '../notices/backup.js';
 import { editorButton, restoreEditorOrigin, setEditorTree } from '../editor/kit.js';
@@ -14,10 +14,34 @@ import { modes } from '../page-modes.js';
 import { store } from '../../state/page-store.js';
 import { team } from '../team-map.js';
 import { workspaceSettings } from './workspaces.js';
-import { activeFontFamily, activeFontSize, activeTheme, alwaysShowMoons, animationsEnabled, APP_VERSION, backgroundMode, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, particleStrength, rdpLaunchMode, setActiveFontFamily, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setAnimationsEnabled, setBackgroundMode, setParticleStrength, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowEditButtons, setShowQuickBar, setShowSiteIcons, settingsTrigger, showEditButtons, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
+import { activeFontFamily, activeFontSize, activeTheme, alwaysShowMoons, animationLevel, applyAnimationLevel, APP_VERSION, backgroundMode, buttonTips, dataSourceLabel, galaxyView, menuContent, menuOverlay, menuRoot, particleStrength, rdpLaunchMode, setActiveFontFamily, setActiveFontSize, setActiveTheme, setAlwaysShowMoons, setBackgroundMode, setParticleStrength, setButtonTips, setGalaxyView, setMenuContent, setRdpLaunchMode, setShowEditButtons, setShowQuickBar, setShowSiteIcons, settingsTrigger, showEditButtons, showQuickBar, showSiteIcons, storageWarning } from '../page.js';
 
 /** The element that opened the menu, to refocus when it closes. @type {HTMLElement | null} */
 let menuOpener = null;
+
+/** @type {HTMLElement | null} */
+let animationHint = null;
+const animationHints = {
+  full: "Everything moves, including the Constellations background when it's on.",
+  calm: 'The Constellations background holds still but follows the pointer. Hovers and menus animate as usual.',
+  off: 'No animations or transitions anywhere.',
+};
+
+function updateAnimationHint() {
+  if (!animationHint) return;
+  const lines = [animationHints[animationLevel]];
+  if (animationLevel === 'calm' && backgroundMode === 'none') {
+    lines.push('Calm only differs from Full with the Constellations background.');
+  }
+  if (reducedMotionQuery().matches) {
+    lines.push("Your device's 'reduce motion' setting is on, so the background stays still and other animations are near-instant, whatever you choose.");
+  }
+  animationHint.textContent = lines.join(' ');
+}
+
+reducedMotionQuery().addEventListener('change', () => {
+  if (animationHint?.isConnected) updateAnimationHint();
+});
 
 export function closeMenu() {
   if (!modes.menuOpen()) return;
@@ -29,6 +53,7 @@ export function closeMenu() {
  * reason (Close, the scrim, Escape, or a page change).
  */
 export function menuHidden() {
+  animationHint = null;
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-sheet')).classList.remove('editor-page-mode');
   /** @type {HTMLElement} */ (menuOverlay.querySelector('.menu-top h2')).textContent = 'Explore the menu';
   setMenuContent(menuRoot);
@@ -73,6 +98,7 @@ async function applyFontFamily(family) {
 /** @param {string} name Settings, Help, or About. */
 export function showMenuPanel(name) {
   modes.send('choosePanel');
+  animationHint = null;
   menuContent.replaceChildren();
   for (const option of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('[data-menu-panel]'))) {
     option.classList.toggle('active', option.dataset.menuPanel === name);
@@ -92,6 +118,7 @@ export function showMenuPanel(name) {
     menuContent.append(element('p', '', 'Orbit includes a Dev Toolbox workspace. Remove it, or add it back, in Settings → Workspaces.'));
     menuContent.append(element('p', '', 'Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.'));
     menuContent.append(element('p', '', 'Hover over a group planet or focus it with Tab to see its links. Click the group or press Enter to keep them open. Click elsewhere or press Escape to unpin it.'));
+    menuContent.append(element('p', '', 'With Animations set to Full, the interface and Constellations move. In Calm, the Constellations background holds still but follows the pointer. Off stops animations and pointer effects. Your device’s reduced-motion setting keeps the background still and disables its pointer effects at every level.'));
     menuContent.append(element('p', '', 'Click a sun to open its System and find more planets. Web planets and moons open in a new tab.'));
     menuContent.append(element('p', '', 'Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.'));
     menuContent.append(element('p', '', 'In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.'));
@@ -220,6 +247,7 @@ function lookSettings() {
     document.documentElement.dataset.background = backgroundMode;
     prefs.savePreference('orbit:background', backgroundMode);
     particlesRow.hidden = backgroundMode !== 'constellations';
+    updateAnimationHint();
     refreshBackdrop();
   });
   backgroundRow.append(backgroundCopy, backgroundSelect);
@@ -247,19 +275,27 @@ function lookSettings() {
   section.append(particlesRow);
   const row = element('label', 'setting-row');
   const copy = element('span', 'setting-copy');
-  copy.append(element('strong', '', 'Animations'));
-  copy.append(element('small', '', 'Movement and reveal effects throughout Orbit'));
-  const input = document.createElement('input');
-  input.type = 'checkbox';
-  input.checked = animationsEnabled;
-  input.setAttribute('aria-label', 'Animations');
-  input.addEventListener('change', () => {
-    setAnimationsEnabled(input.checked);
-    document.documentElement.dataset.animations = animationsEnabled ? 'on' : 'off';
-    prefs.savePreference('orbit:animations', animationsEnabled);
+  animationHint = element('small');
+  animationHint.id = 'animations-hint';
+  copy.append(element('strong', '', 'Animations'), animationHint);
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', 'Animations');
+  select.setAttribute('aria-describedby', animationHint.id);
+  for (const [value, label] of [['full', 'Full (default)'], ['calm', 'Calm'], ['off', 'Off']]) {
+    const option = element('option', '', label);
+    option.value = value;
+    select.append(option);
+  }
+  select.value = animationLevel;
+  updateAnimationHint();
+  select.addEventListener('change', () => {
+    const level = /** @type {prefs.AnimationLevel} */ (select.value);
+    applyAnimationLevel(level);
+    prefs.saveAnimationLevel(level);
+    updateAnimationHint();
     refreshBackdrop();
   });
-  row.append(copy, input);
+  row.append(copy, select);
   section.append(row);
   return section;
 }

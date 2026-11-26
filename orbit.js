@@ -619,6 +619,13 @@ prompt for credentials:i:1\r
   function savePreference(key, value) {
     writeSafely(key, String(value));
   }
+  function readAnimationLevel() {
+    let value = readSafely("orbit:animations");
+    return value === "false" ? "off" : value === "calm" ? "calm" : "full";
+  }
+  function saveAnimationLevel(level) {
+    savePreference("orbit:animations", { full: "true", calm: "calm", off: "false" }[level]);
+  }
   function readChoice(key, allowed, fallback) {
     let value = (
       /** @type {T} */
@@ -1298,17 +1305,19 @@ prompt for credentials:i:1\r
   function dataSourceLabel() {
     return activeMapSource === "browser" ? "Browser edits" : "Bundled project data";
   }
-  var animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", showEditButtons = !0, activeTheme = "default", activeFontSize = "standard", activeFontFamily = "inter", backgroundMode = "none", particleStrength = "normal", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
+  var animationLevel = "full", animationsEnabled = !0, alwaysShowMoons = !1, buttonTips = "normal", showEditButtons = !0, activeTheme = "default", activeFontSize = "standard", activeFontFamily = "inter", backgroundMode = "none", particleStrength = "normal", rdpLaunchMode = "download", showQuickBar = !0, showSiteIcons = !1, galaxyView = "orbits";
   function readPreferences() {
-    animationsEnabled = readBoolean("orbit:animations", !0), alwaysShowMoons = readBoolean("orbit:always-show-moons", !1), activeTheme = readTheme(), buttonTips = readButtonTips(), showEditButtons = readBoolean("orbit:edit-buttons", !0), activeFontSize = readFontSize(), activeFontFamily = /** @type {'inter' | 'classic'} */
+    applyAnimationLevel(readAnimationLevel()), alwaysShowMoons = readBoolean("orbit:always-show-moons", !1), activeTheme = readTheme(), buttonTips = readButtonTips(), showEditButtons = readBoolean("orbit:edit-buttons", !0), activeFontSize = readFontSize(), activeFontFamily = /** @type {'inter' | 'classic'} */
     readFontFamily(), backgroundMode = /** @type {'none' | 'constellations'} */
     readBackground(), particleStrength = /** @type {'subtle' | 'normal' | 'bold'} */
     readParticles(), rdpLaunchMode = readRdpLaunch(), showQuickBar = readBoolean("orbit:quick-bar", !0), showSiteIcons = readBoolean("orbit:site-icons", !1), galaxyView = readGalaxyView();
     let root = document.documentElement.dataset;
-    root.animations = animationsEnabled ? "on" : "off", root.moons = alwaysShowMoons ? "always" : "hover", root.theme = activeTheme, root.fontSize = activeFontSize, root.fontFamily = activeFontFamily, root.background = backgroundMode, root.particles = particleStrength;
+    root.moons = alwaysShowMoons ? "always" : "hover", root.theme = activeTheme, root.fontSize = activeFontSize, root.fontFamily = activeFontFamily, root.background = backgroundMode, root.particles = particleStrength;
   }
-  function setAnimationsEnabled(on) {
-    animationsEnabled = on;
+  function applyAnimationLevel(level) {
+    animationLevel = level, animationsEnabled = level !== "off";
+    let root = document.documentElement.dataset;
+    root.animations = animationsEnabled ? "on" : "off", root.motion = level;
   }
   function setAlwaysShowMoons(on) {
     alwaysShowMoons = on;
@@ -1390,9 +1399,18 @@ prompt for credentials:i:1\r
   ] ?? 1;
 
   // src/ui/backdrop/backdrop.js
-  var reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches, layer = null, canvas = null, g = null, parts = [], width = 0, height = 0, pointer = null, last = 0, frame = 0, menuWasOpen = !1, still = () => !animationsEnabled || reducedMotion(), paused = () => still() || document.hidden || modes.menuOpen(), activePointer = () => paused() ? null : pointer;
-  function syncLayerState() {
-    layer && (paused() ? delete layer.dataset.pointer : pointer && (layer.dataset.pointer = ""), modes.menuOpen() ? layer.dataset.menu = "" : delete layer.dataset.menu);
+  var reducedMotionQuery = () => matchMedia("(prefers-reduced-motion: reduce)"), layer = null, canvas = null, g = null, parts = [], width = 0, height = 0, pointer = null, last = 0, frame = 0, menuWasOpen = !1, pointerReacts = () => animationLevel !== "off" && !reducedMotionQuery().matches && !document.hidden && !modes.menuOpen(), drifting = () => animationLevel === "full" && pointerReacts();
+  function syncPointer() {
+    if (layer) {
+      if (!pointer || !pointerReacts()) {
+        delete layer.dataset.pointer;
+        return;
+      }
+      layer.style.setProperty("--cx", `${pointer.x}px`), layer.style.setProperty("--cy", `${pointer.y}px`), layer.dataset.pointer = "";
+    }
+  }
+  function redrawPointer() {
+    !layer || !pointerReacts() || (syncPointer(), !drifting() && !frame && (frame = requestAnimationFrame(loop)));
   }
   function build() {
     layer = element("div", "backdrop"), layer.setAttribute("aria-hidden", "true");
@@ -1401,7 +1419,7 @@ prompt for credentials:i:1\r
     element("canvas"), g = canvas.getContext("2d"), layer.append(canvas, element("div", "cursor-glow"), element("div", "grain")), document.body.prepend(layer), parts = [], width = 0, height = 0, resize();
   }
   function remove2() {
-    cancelAnimationFrame(frame), layer?.remove(), layer = canvas = g = null, parts = [];
+    cancelAnimationFrame(frame), frame = 0, layer?.remove(), layer = canvas = g = null, parts = [];
   }
   function resize() {
     if (!canvas || !g) return;
@@ -1420,7 +1438,7 @@ prompt for credentials:i:1\r
   }
   function render() {
     if (!canvas || !g) return;
-    let k = strength(particleStrength), reach = activePointer(), px = reach?.x ?? -1e4, py = reach?.y ?? -1e4;
+    let k = strength(particleStrength), reach = pointerReacts() ? pointer : null, px = reach?.x ?? -1e4, py = reach?.y ?? -1e4;
     g.clearRect(0, 0, width, height), g.strokeStyle = g.fillStyle = getComputedStyle(canvas).color;
     for (let i = 0; i < parts.length; i++) {
       let a = parts[i];
@@ -1440,26 +1458,26 @@ prompt for credentials:i:1\r
   }
   function loop(now2) {
     if (frame = 0, !layer) return;
-    let dt = last ? frameDt(now2 - last) : 0;
-    last = now2, paused() || step(parts, dt, activePointer(), width, height), render(), paused() ? last = 0 : frame = requestAnimationFrame(loop);
+    let moving = drifting();
+    moving ? (step(parts, last ? frameDt(now2 - last) : 0, pointer, width, height), last = now2) : last = 0, render(), moving && (frame = requestAnimationFrame(loop));
   }
   function refreshBackdrop() {
     if (backgroundMode !== "constellations") {
       layer && remove2();
       return;
     }
-    layer || build(), syncLayerState(), cancelAnimationFrame(frame), last = 0, frame = requestAnimationFrame(loop);
+    layer || build(), syncPointer(), layer?.toggleAttribute("data-menu", modes.menuOpen()), layer?.toggleAttribute("data-hidden", document.hidden), cancelAnimationFrame(frame), last = 0, frame = requestAnimationFrame(loop);
   }
   function installBackdrop() {
     addEventListener("resize", () => {
       layer && (resize(), refreshBackdrop());
     }), addEventListener("pointermove", (event) => {
-      pointer = { x: event.clientX, y: event.clientY }, !(!layer || paused()) && (layer.style.setProperty("--cx", `${event.clientX}px`), layer.style.setProperty("--cy", `${event.clientY}px`), layer.dataset.pointer = "");
+      pointer = { x: event.clientX, y: event.clientY }, redrawPointer();
     }, { passive: !0 }), document.documentElement.addEventListener("pointerleave", () => {
-      pointer = null, layer && delete layer.dataset.pointer;
+      pointer = null, redrawPointer();
     }), document.addEventListener("visibilitychange", () => {
       layer && refreshBackdrop();
-    }), matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", () => {
+    }), reducedMotionQuery().addEventListener("change", () => {
       layer && refreshBackdrop();
     }), modes.subscribe(() => {
       let open = modes.menuOpen();
@@ -2689,12 +2707,24 @@ prompt for credentials:i:1\r
   }
 
   // src/ui/menu/menu.js
-  var menuOpener = null;
+  var menuOpener = null, animationHint = null, animationHints = {
+    full: "Everything moves, including the Constellations background when it's on.",
+    calm: "The Constellations background holds still but follows the pointer. Hovers and menus animate as usual.",
+    off: "No animations or transitions anywhere."
+  };
+  function updateAnimationHint() {
+    if (!animationHint) return;
+    let lines = [animationHints[animationLevel]];
+    animationLevel === "calm" && backgroundMode === "none" && lines.push("Calm only differs from Full with the Constellations background."), reducedMotionQuery().matches && lines.push("Your device's 'reduce motion' setting is on, so the background stays still and other animations are near-instant, whatever you choose."), animationHint.textContent = lines.join(" ");
+  }
+  reducedMotionQuery().addEventListener("change", () => {
+    animationHint?.isConnected && updateAnimationHint();
+  });
   function closeMenu() {
     modes.menuOpen() && modes.send("closeOverlay");
   }
   function menuHidden() {
-    menuOverlay.querySelector(".menu-sheet").classList.remove("editor-page-mode"), menuOverlay.querySelector(".menu-top h2").textContent = "Explore the menu", setMenuContent(menuRoot), setEditorTree(null);
+    animationHint = null, menuOverlay.querySelector(".menu-sheet").classList.remove("editor-page-mode"), menuOverlay.querySelector(".menu-top h2").textContent = "Explore the menu", setMenuContent(menuRoot), setEditorTree(null);
     let target = menuOpener && document.contains(menuOpener) ? menuOpener : settingsTrigger;
     menuOpener = null, restoreEditorOrigin() || target.focus();
   }
@@ -2718,7 +2748,7 @@ prompt for credentials:i:1\r
     hooks.render();
   }
   function showMenuPanel(name) {
-    modes.send("choosePanel"), menuContent.replaceChildren();
+    modes.send("choosePanel"), animationHint = null, menuContent.replaceChildren();
     for (
       let option of
       /** @type {NodeListOf<HTMLElement>} */
@@ -2730,7 +2760,7 @@ prompt for credentials:i:1\r
       edit.type = "button", edit.addEventListener("click", openEditorPage), menuContent.append(edit), menuContent.append(element("p", "data-source", `Active link map: ${dataSourceLabel()}`)), storageWarning && menuContent.append(element("p", "editor-error", storageWarning));
       let workspacesAndTeam = settingsGroup("workspaces-and-team", "Workspaces and team");
       workspacesAndTeam.append(workspaceSettings(), teamSettings()), menuContent.append(lookSettings(), galaxySettings(), editingSettings(), workspacesAndTeam, remoteDesktopSettings());
-    } else name === "Help" ? (menuContent.append(element("p", "", "Orbit includes a Dev Toolbox workspace. Remove it, or add it back, in Settings → Workspaces.")), menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Hover over a group planet or focus it with Tab to see its links. Click the group or press Enter to keep them open. Click elsewhere or press Escape to unpin it.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The list button in the top bar, next to Edit mode, switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "In Edit links, the icons on sun, planet, and moon rows let you edit, export, reorder, or remove the item. The arrows save the order within the current list right away. Team rows have View and Export icons.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "To change a moon into a planet, pause it on a sun's circle and hold on Make it a planet until it fills, then release. A planet without moons dragged onto another planet offers Make it a moon the same way. Passing over these choices never changes anything; Undo last drag reverses a change. Edit links has Make it a planet of… and Make it a moon of… under Move.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Use Edit links to reach any item, including links outside the visible orbits. In a planet or moon editor, the top toolbar has Save, Export, Move, and Remove. Open Move to change the order or pick another sun or planet and a position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
+    } else name === "Help" ? (menuContent.append(element("p", "", "Orbit includes a Dev Toolbox workspace. Remove it, or add it back, in Settings → Workspaces.")), menuContent.append(element("p", "", "Explore your Galaxy. Hover over a sun to see its first five planets, then hover over a planet to reveal its moons.")), menuContent.append(element("p", "", "Hover over a group planet or focus it with Tab to see its links. Click the group or press Enter to keep them open. Click elsewhere or press Escape to unpin it.")), menuContent.append(element("p", "", "With Animations set to Full, the interface and Constellations move. In Calm, the Constellations background holds still but follows the pointer. Off stops animations and pointer effects. Your device’s reduced-motion setting keeps the background still and disables its pointer effects at every level.")), menuContent.append(element("p", "", "Click a sun to open its System and find more planets. Web planets and moons open in a new tab.")), menuContent.append(element("p", "", "Windows Remote Desktop entries download an .rdp file by default. After installing the Orbit Windows helper, choose Open mstsc.exe in Settings to open Remote Desktop Connection with the target loaded.")), menuContent.append(element("p", "", "In Edit links, open a planet or moon and use Import .rdp file to keep a saved connection profile with that link. Save the link after importing.")), menuContent.append(element("p", "", "Your browser may ask before opening the helper. Orbit does not store credentials.")), menuContent.append(element("p", "", "Use Quick find to search any sun, planet, or moon. It matches names, the sun or planet a link sits in, web addresses and computer names, and small typos; every word must match. Short forms work too: “lab1 s3” finds lab1-server3. Type #tag (or tag:name) to show only links with that tag.")), menuContent.append(element("p", "", "Press Ctrl+K (Cmd+K on a Mac) for the command palette: search links and commands, then press Enter to open the highlighted one straight away.")), menuContent.append(element("p", "", "Routines, favorites, and recently opened links appear above the Galaxy. Star a link in Quick find results, or tick Favorite in Edit links; Open all opens every favorite at once.")), menuContent.append(element("p", "", "A routine is a named set of links, such as the sites you open every morning. Create one in Edit links → Routines, then click its chip above the Galaxy to open them all. Give it a time and days, and Orbit offers to open it when you arrive. Set Orbit as your browser’s startup page and allow pop-ups for it, and your day starts with one click.")), menuContent.append(element("p", "", "Shift+click a planet, or use “Open a planet with all its moons” in a System, to open a planet and its website moons in new tabs. If only one tab opens, allow pop-ups for Orbit in your browser.")), menuContent.append(element("p", "", "The list button in the top bar, next to Edit mode, switches the Galaxy between orbits and a compact list.")), menuContent.append(element("p", "", "In Edit links, the icons on sun, planet, and moon rows let you edit, export, reorder, or remove the item. The arrows save the order within the current list right away. Team rows have View and Export icons.")), menuContent.append(element("p", "", "Edit links has tools for version history (restore an earlier map), finding duplicates, checking for broken links (needs python3 serve.py), and importing files. Import a file accepts whole maps, individual suns, planets as suns, and browser bookmarks. Whole maps merge by default.")), menuContent.append(element("p", "", "A team map, if one is set up, adds read-only team suns marked TEAM. Copy anything from them into your own map in Edit links. When the team map changes, Orbit lists what is new.")), menuContent.append(element("p", "", "Paste a web address into Quick find (or use Add a link in the command palette) to add it to a sun as a planet or to a planet as a moon. A link can have a note, shown on hover and in search; never put passwords in notes.")), menuContent.append(element("p", "", "A web address can contain {placeholders}, such as https://jira.example.com/browse/{ticket}. Opening the link asks for each value and remembers the last one.")), menuContent.append(element("p", "", "Workspaces in Settings keep separate maps, such as Work and Home. Link packs share a routine or your favorites as a small file. Remote Desktop presets save connection settings, such as full screen on all monitors, for many links at once. Orbit reminds you to export a backup after many changes.")), menuContent.append(element("h4", "editor-section-title", "Rearranging by dragging")), menuContent.append(element("p", "", "Turn on Edit mode in the top bar to rearrange the map with a mouse or pen. While it is on, planets and moons do not open; a sun still opens its System.")), menuContent.append(element("p", "", "Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet; in the Galaxy, pause on a sun to show its planets.")), menuContent.append(element("p", "", "To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun. Choose Before or After, and the hint shows the position it will take. Pause on a planet to show its moons.")), menuContent.append(element("p", "", "To change a moon into a planet, pause it on a sun's circle and hold on Make it a planet until it fills, then release. A planet without moons dragged onto another planet offers Make it a moon the same way. Passing over these choices never changes anything; Undo last drag reverses a change. Edit links has Make it a planet of… and Make it a moon of… under Move.")), menuContent.append(element("p", "", "In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it. Undo last drag reverses the most recent move until the map changes again.")), menuContent.append(element("p", "", "Use Edit links to reach any item, including links outside the visible orbits. In a planet or moon editor, the top toolbar has Save, Export, Move, and Remove. Open Move to change the order or pick another sun or planet and a position. In Edit mode, a Quick find result opens that planet or moon in Edit links.")), menuContent.append(element("h4", "editor-section-title", "Keyboard")), menuContent.append(element("p", "", "Press / to jump to Quick find. Down Arrow moves into the results, Up and Down Arrow move between them, and Enter opens one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. You can also rest the pointer on an item and click its pencil or use the trash button to remove it. Undo removal restores the last removed item.")), menuContent.append(element("p", "", "Tab moves through the page. Focusing a sun reveals its planets, and focusing a planet reveals its moons.")), menuContent.append(element("p", "", "Arrow keys move between suns, and between sibling planets or moons. Down Arrow on a planet enters its moons, and Up Arrow goes back out.")), menuContent.append(element("p", "", "Escape dismisses a visible button tip, closes the menu, then cancels a drag, then turns Edit mode off, then clears Quick find, then returns from a System to the Galaxy.")), menuContent.append(element("p", "", "Ctrl+K or Cmd+K opens the command palette. Up and Down Arrow move through it, Enter runs or opens the highlighted entry, and Escape closes it first."))) : name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
   }
   function settingsGroup(slug, title) {
     let section = element("section", "settings-group"), heading = element("h4", "editor-section-title", title);
@@ -2799,7 +2829,7 @@ prompt for credentials:i:1\r
       setBackgroundMode(
         /** @type {'none' | 'constellations'} */
         backgroundSelect.value
-      ), document.documentElement.dataset.background = backgroundMode, savePreference("orbit:background", backgroundMode), particlesRow.hidden = backgroundMode !== "constellations", refreshBackdrop();
+      ), document.documentElement.dataset.background = backgroundMode, savePreference("orbit:background", backgroundMode), particlesRow.hidden = backgroundMode !== "constellations", updateAnimationHint(), refreshBackdrop();
     }), backgroundRow.append(backgroundCopy, backgroundSelect), section.append(backgroundRow);
     let particlesRow = element("label", "setting-row");
     particlesRow.hidden = backgroundMode !== "constellations";
@@ -2818,11 +2848,20 @@ prompt for credentials:i:1\r
       ), document.documentElement.dataset.particles = particleStrength, savePreference("orbit:particles", particleStrength), refreshBackdrop();
     }), particlesRow.append(particlesCopy, particlesSelect), section.append(particlesRow);
     let row = element("label", "setting-row"), copy = element("span", "setting-copy");
-    copy.append(element("strong", "", "Animations")), copy.append(element("small", "", "Movement and reveal effects throughout Orbit"));
-    let input = document.createElement("input");
-    return input.type = "checkbox", input.checked = animationsEnabled, input.setAttribute("aria-label", "Animations"), input.addEventListener("change", () => {
-      setAnimationsEnabled(input.checked), document.documentElement.dataset.animations = animationsEnabled ? "on" : "off", savePreference("orbit:animations", animationsEnabled), refreshBackdrop();
-    }), row.append(copy, input), section.append(row), section;
+    animationHint = element("small"), animationHint.id = "animations-hint", copy.append(element("strong", "", "Animations"), animationHint);
+    let select = document.createElement("select");
+    select.setAttribute("aria-label", "Animations"), select.setAttribute("aria-describedby", animationHint.id);
+    for (let [value, label] of [["full", "Full (default)"], ["calm", "Calm"], ["off", "Off"]]) {
+      let option = element("option", "", label);
+      option.value = value, select.append(option);
+    }
+    return select.value = animationLevel, updateAnimationHint(), select.addEventListener("change", () => {
+      let level = (
+        /** @type {prefs.AnimationLevel} */
+        select.value
+      );
+      applyAnimationLevel(level), saveAnimationLevel(level), updateAnimationHint(), refreshBackdrop();
+    }), row.append(copy, select), section.append(row), section;
   }
   function galaxySettings() {
     let section = settingsGroup("galaxy", "Galaxy"), viewRow = element("label", "setting-row"), viewCopy = element("span", "setting-copy");

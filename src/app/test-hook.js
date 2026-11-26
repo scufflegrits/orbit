@@ -42,7 +42,8 @@ export function installTestHook(store, { schedule, modes }) {
   const readOnly = {
     drag: currentGesture,
     activeTheme: () => page.activeTheme, activeFontSize: () => page.activeFontSize,
-    animationsEnabled: () => page.animationsEnabled, alwaysShowMoons: () => page.alwaysShowMoons,
+    animationsEnabled: () => page.animationsEnabled, animationLevel: () => page.animationLevel,
+    alwaysShowMoons: () => page.alwaysShowMoons,
     rdpLaunchMode: () => page.rdpLaunchMode, showQuickBar: () => page.showQuickBar,
     showSiteIcons: () => page.showSiteIcons, galaxyView: () => page.galaxyView,
   };

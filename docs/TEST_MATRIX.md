@@ -68,8 +68,8 @@ Rules:
 | ID | Mode | Check | Pass condition | Result |
 | --- | --- | --- | --- | --- |
 | P01 | Both | Click the Galaxy cog, switch between Settings, Help, and About, and dismiss the menu. | The menu opens in Settings. Each tab opens its panel. The close button or a click outside dismisses the menu. | Pass |
-| P02 | Both | Switch Animations Off, hover suns and planets, open Settings, then reload. | Reveals and panels work without movement or delay; Off persists after reload. | Pass |
-| P03 | Both | Switch Animations On and test with the operating system reduced-motion preference. | Motion returns when allowed; reduced-motion still suppresses it. | Pass |
+| P02 | Both | Confirm Animations defaults to Full. Choose Off, hover suns and planets, open Settings, then reload. | Reveals and panels work without movement or delay. Off persists after reload. | Pass |
+| P03 | Both | Select Full and test device reduced motion. Repeat with Calm in F41. | Full and Calm animate the interface. Reduced motion makes transitions near-instant in either level. | Pass |
 
 ## Milestone 4 — Local web editor and portability
 
@@ -91,7 +91,7 @@ Rules:
 | T01 | Both | Select Default, Alabama-inspired, and Auburn-inspired themes in the Galaxy and a System. | Each theme applies to suns, planets, moons, spokes, and menus; Default matches the original look. | Pass |
 | T02 | Both | Reload after choosing each theme. | The selected theme persists and can be reset to Default. | Pass |
 | T03 | Both | Inspect text, controls, hover states, and the editor in each theme. | Labels remain readable and controls visually distinguishable; no remote theme assets are required. | Pass |
-| T04 | Both | Turn Animations Off while using each theme. | The motion setting still works in every theme. | Pass |
+| T04 | Both | Select Off and return to Full in each theme. Compare Calm in Default and Aurora in F41. | Off disables interface motion in every theme. Calm keeps interface motion and follows the same backdrop rules in both themes. | Pass |
 
 ## Milestone 6 — Alabama theme refresh
 
@@ -196,7 +196,7 @@ Rules:
 | --- | --- | --- | --- | --- |
 | M15-01 | Both | Open Theme in Settings after choosing Red and Blue, including after reload with older saved theme values. | Labels read Red and Blue; both retain their palettes and saved choices. | Pass — `tests/pending_checks.py` in Chromium (both modes) and Edge 157 on the VM (file and server, 2026-11-19). |
 | M15-02 | Both | Open the cog menu at normal and narrow desktop widths; inspect Settings, Help, About, and the editor. | The panel slides in from the right edge, scrolls when needed, and closes by button or outside click. | Pass — `tests/pending_checks.py` in Chromium (both modes) and Edge 157 on the VM (file and server, 2026-11-19). |
-| M15-03 | Both | Turn Animations Off and use reduced motion, then open the menu. | The panel appears immediately without a slide while all controls remain usable. | Pass — `tests/pending_checks.py` in Chromium (both modes) and Edge 157 on the VM (file and server, 2026-11-19). |
+| M15-03 | Both | Open the menu with Animations set to Off, then with Full and device reduced motion. | Off removes the slide. Device reduced motion makes it near-instant in Full. All controls remain usable. | Pass — `tests/pending_checks.py` in Chromium and Edge in file and server modes. |
 
 ## Milestone 16 — Compact Galaxy home
 
@@ -335,9 +335,33 @@ Rewrite phase 4 added `tests/services_check.py` (on `rewrite`): pop-up allowance
 | F38 | Both | Visit the Galaxy, list view, a planet's hover buttons (and a team sun's), Quick find, the Edit links sun list, a sun, a planet, and a moon editor. | No button, link, or marker shows a text symbol (✎ ⤓ ↑ ↓ ↕ 💾 👁 ⧉ ↗ ☰ ◎ ⚙ × ★ ☆ 📁 ⚠ ▶ → ←); every icon-only button draws a Lucide icon and has a name; the view toggle shows list/orbit; a favorite's star is filled and others are outlines; map buttons draw pencil and trash (a team sun: eye, no trash); the tree marks groups with a folder; no CSS-drawn trash or play mark is left. | Pass — Chromium and Edge 158 (2026-11-24). Failed on the baseline. |
 | F39 | Both | Favorite Broken Page, then in Edit links: Make it a planet of… Beta; Make it a moon of… on Docs Portal (has moons) and Wiki (to Alpha → Status); a group planet; in Edit mode drag the group onto a planet and a moon onto the team sun's circle. | Broken Page is Beta's last planet, still a favorite, and its planet editor opens; Docs Portal and the group aren't offered Make it a moon; Wiki becomes Status's last moon and its moon editor opens; the dragged group and the team sun show disabled choices with their reasons. | Pass — Chromium and Edge 158 (2026-11-24). Failed before (no Make it a planet of… button). |
 | F40 | Both | Fresh load; Settings → Font → Orbit classic; reload; save an unknown value and reload. | Inter by default for labels and body text, the only loaded face, and (server) fetched from `fonts/Inter.woff2`; the Font setting offers Inter (default) and Orbit classic; classic uses Space Grotesk and DM Sans, re-measures the circles (no split labels, same size as a fresh classic load), is saved, survives a reload, and doesn't load Inter; an unknown value falls back to Inter. | Pass — Chromium and Edge 158 (2026-11-24). Failed before; failed with Inter's file path broken (mutation). |
+| F41 | Both | Use Constellations in Full, Calm, and Off. Move the pointer, check device reduced motion, switch between Default and Aurora, change particle strength, and reload. | See the [animation levels matrix](#animation-levels). Calm survives reload, redraws on pointer changes, and schedules zero frames while idle. The Settings hint reflects the level, background, and device preference. | Pass in Chromium and Edge 158 in both modes. Failed on the baseline and under all eight mutations. |
 | F42 | Both | Load a saved 3.0.3 map with the old Dev Toolbox sun; remove it from Main; switch to the default workspace; edit, reload, reset, remove and restore. Also check server JSON precedence and an upgrade with saved workspaces. | Notice appears only for a saved Main map containing the old sun; Remove is undoable and in History, Keep is remembered; Dev Toolbox has five suns and 29 destinations; showing it writes nothing, edits persist, Reset removes the saved copy, removal persists, restoration is read-only and does not save a map; existing keys remain unchanged on upgrade. | Pass — Chromium (file and server modes) and Edge 158 (file and server modes, 2026-11-25). |
 | F43 | Both | Open Settings. Check headings, row order, region names, and the placement of Edit links, the active map, and Remote Desktop. Change Background, Theme, and the Remote Desktop launch method. Reopen Settings from Ctrl+K. | Settings contains Look, Galaxy, Editing, Workspaces and team, and Remote Desktop in order. Each heading names its region. The client setup box follows Team map, Clear recent links follows its row, Particles follows Background, and the palette opens Settings at the top. | Passed in Chromium and Edge 158 in both modes. Failed on the baseline and when Remote Desktop moved above Animations. |
 | Group storage | Both | Save a group map, load the same browser storage in 3.0.2, and save the fallback. Load an unreadable map in the current version and save the fallback. | 3.0.2 overwrites the map, as warned. The current version preserves the raw map before replacing it. | Pass — Chromium in file and server modes, plus Node storage tests. |
+
+## Animation levels
+
+Interface motion covers hovers, moon reveals, caption fades, menus, and drag arming. Pointer effects include constellation lines, brighter nearby stars, and the glow.
+
+| Background | Animations | Device reduce motion | Interface | Stars drift | Stars pushed | Blobs | Pointer lines and glow | Settings note | Checked by |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| None | Full | Off | Animates | — | — | — | — | — | M15-02, M3 |
+| None | Calm | Off | Animates | — | — | — | — | Calm only differs from Full with the Constellations background. | F41 |
+| None | Off | Off | Still | — | — | — | — | — | M3, M5, M15-03 |
+| Constellations | Full | Off | Animates | Yes | Yes | Drift | Yes | — | F41 |
+| Constellations | Calm | Off | Animates | No | No | Hold in place | Yes | — | F41 in Default and Aurora |
+| Constellations | Off | Off | Still | No | No | Static | No | — | F41 |
+| None | Full or Calm | On | Near-instant at 0.01 ms | — | — | — | — | Device note. Calm also shows the Background None note. | M3, M15-03, F41 |
+| None | Off | On | Still | — | — | — | — | Device note | M3, M15-03 |
+| Constellations | Any | On | Near-instant, or still with Off | No | No | Static | No | Device note | F41 |
+| Constellations, with an open menu or hidden tab | Any | Any | As above for the effective level | No | No | Paused, or static with Off or device reduced motion | No | As above for the effective level | F41 for open menus in Full and Calm. The visibility handler was checked separately with simulated visibility. |
+
+- Device reduced motion overrides the background behavior of Full and Calm and makes their interface transitions near-instant. Off keeps the interface still.
+- Calm and Full behave alike with Background set to None. A dash in the backdrop columns means None uses the static dot pattern.
+- Particles scales star and line opacity by 0.5, 1, or 1.6 for Subtle, Normal, or Bold in every level. A strength change redraws the backdrop immediately. F41 checks brightness in all three levels.
+- Themes set the colors and appearance. The animation level and device preference govern motion independently of the theme. Future theme exports must omit the animation level.
+- Update this matrix and its checks together when animation behavior changes.
 
 ## Milestone commit record
 
@@ -421,3 +445,4 @@ After the shared checks and the current milestone's rows pass, record the commit
 | Group planet previews | 2026-11-25 | F30 covers hover, focus, Always show moons, opening a previewed link, and the pin ring in the Galaxy, System orbit, and More planets. The hover check failed on the baseline. Restoring the old CSS also hid the links on hover, focus, and with Always show moons. OS09 and OS10 now check the caption and pointer handoff with an unpinned group. Features, sizing, and drag passed in Chromium and Edge 158 in file and server modes. Types, layers, and bundle checks passed. | Preview group planets on hover |
 | Cog opens Settings | 2026-11-25 | The Settings cog and the palette command share the same opener. MR03 failed on the baseline and when the cog was switched back to the empty-menu opener in a temporary fixture. MR04 checks the Edit bar’s direct editor entry. Existing explicit Settings-tab clicks still work. F26 now selects the Settings textbox and F42 scopes its Settings-tab clicks to the menu. Chromium passed mode rules, milestones through 8, pending, drag, features, and default-workspace checks in file and server modes. Edge 158 passed features, pending, and drag in both modes and the default-workspace check on the file fixture. Types, layers, and bundle checks passed. | Open Settings directly from the cog |
 | Sections in Settings | 2026-11-25 | F43 failed on the baseline. Moving Remote Desktop above Animations in a temporary fixture broke the heading, row, and placement checks. Chromium passed features, milestones through 8, pending, drag, mode rules, and compatibility in file and server modes. Edge 158 passed features, pending, drag, and compatibility in both modes. Types, layers, and the bundle check passed. | Group settings under five headings |
+| Animation levels | 2026-11-26 | New preference tests and F41 failed on the baseline. F41 detected all eight backdrop, interface, and brightness mutations in temporary fixtures. Node, types, layers, bundle, and Chromium F41, milestones through 8, pending, and data compatibility passed. Edge 158 passed features, pending, and compatibility in file and server modes. The Edge feature suites went from 3m 08s to 3m 30s in file mode and 3m 18s to 3m 46s in server mode. | Add Full, Calm, and Off animation levels |

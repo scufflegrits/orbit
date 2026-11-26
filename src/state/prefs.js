@@ -22,6 +22,20 @@ export function savePreference(key, value) {
   writeSafely(key, String(value));
 }
 
+/** @typedef {'full' | 'calm' | 'off'} AnimationLevel */
+
+/** @returns {AnimationLevel} */
+export function readAnimationLevel() {
+  const value = readSafely('orbit:animations');
+  if (value === 'false') return 'off';
+  return value === 'calm' ? 'calm' : 'full';
+}
+
+/** @param {AnimationLevel} level */
+export function saveAnimationLevel(level) {
+  savePreference('orbit:animations', { full: 'true', calm: 'calm', off: 'false' }[level]);
+}
+
 /**
  * @template {string} T
  * @param {string} key

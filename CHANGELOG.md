@@ -6,6 +6,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ### Changed
 
+- Animations now offers Full, Calm, and Off. In Calm, the Constellations background holds still but follows the pointer. Your device’s reduced-motion setting keeps the background fully still.
 - Settings is grouped under Look, Galaxy, Editing, Workspaces and team, and Remote Desktop. The Remote Desktop launch method and Windows setup are at the bottom.
 - The cog opens Settings directly. Help and About are tabs beside it.
 - Group planets show their links on hover, like a planet’s moons. Clicking one keeps them open, and an accent ring marks the pinned group.

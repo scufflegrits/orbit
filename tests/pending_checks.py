@@ -129,7 +129,7 @@ def m15_reduced_motion(page, url, mode):
     fresh(page, url)
     page.set_viewport_size(WIDE)
     open_menu(page, "Settings")
-    page.get_by_label("Animations", exact=True).uncheck()
+    page.get_by_label("Animations", exact=True).select_option("off")
     page.locator("#menu-close").click()
     open_menu(page)
     running = page.locator(".menu-sheet").evaluate("s => s.getAnimations().length")
@@ -139,9 +139,9 @@ def m15_reduced_motion(page, url, mode):
     page.locator('[data-menu-panel="Help"]').click()
     check("Hover over a sun" in page.locator("#menu-content").inner_text(), f"{mode}: controls work without motion")
     page.locator("#menu-close").click()
-    # Turn Animations back on and ask for reduced motion instead.
+    # Return to Full and ask for reduced motion instead.
     open_menu(page, "Settings")
-    page.get_by_label("Animations", exact=True).check()
+    page.get_by_label("Animations", exact=True).select_option("full")
     page.locator("#menu-close").click()
     page.emulate_media(reduced_motion="reduce")
     open_menu(page)

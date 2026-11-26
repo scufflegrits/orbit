@@ -6,15 +6,15 @@
 //
 // It never takes input (pointer-events: none) and sits as body's first child
 // with z-index 0: Orbit paints backgrounds on both <html> and <body>, which
-// would cover anything with a negative z-index. It moves only when the
-// background is on, the tab is visible, no menu covers the page, Animations
-// are on, and reduced motion isn't requested; otherwise it draws one still frame.
+// would cover anything with a negative z-index. Full advances the stars on
+// each frame, and Calm redraws when the pointer changes. Reduced motion,
+// Off, a hidden tab, and an open menu all suspend pointer effects.
 import { element } from '../dom.js';
-import { animationsEnabled, backgroundMode, particleStrength } from '../page.js';
+import { animationLevel, backgroundMode, particleStrength } from '../page.js';
 import { modes } from '../page-modes.js';
 import { dotStyle, frameDt, linkAlpha, pointerAlpha, rescale, spawn, step, strength, targetCount } from './particles.js';
 
-const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+export const reducedMotionQuery = () => matchMedia('(prefers-reduced-motion: reduce)');
 
 /** @type {HTMLElement | null} */
 let layer = null;
@@ -32,18 +32,25 @@ let last = 0;
 let frame = 0;
 let menuWasOpen = false;
 
-const still = () => !animationsEnabled || reducedMotion();
-const paused = () => still() || document.hidden || modes.menuOpen();
-/** The pointer only shapes the background while it moves: with motion off or a menu open it's ignored. */
-const activePointer = () => (paused() ? null : pointer);
+const pointerReacts = () => animationLevel !== 'off' && !reducedMotionQuery().matches && !document.hidden && !modes.menuOpen();
+const drifting = () => animationLevel === 'full' && pointerReacts();
 
-/** Show the pointer's glow only while the background moves, and pause the blobs under a menu. */
-function syncLayerState() {
+/** Keep the glow's coordinates and visibility in sync with the canvas pointer. */
+function syncPointer() {
   if (!layer) return;
-  if (paused()) delete layer.dataset.pointer;
-  else if (pointer) layer.dataset.pointer = '';
-  if (modes.menuOpen()) layer.dataset.menu = '';
-  else delete layer.dataset.menu;
+  if (!pointer || !pointerReacts()) {
+    delete layer.dataset.pointer;
+    return;
+  }
+  layer.style.setProperty('--cx', `${pointer.x}px`);
+  layer.style.setProperty('--cy', `${pointer.y}px`);
+  layer.dataset.pointer = '';
+}
+
+function redrawPointer() {
+  if (!layer || !pointerReacts()) return;
+  syncPointer();
+  if (!drifting() && !frame) frame = requestAnimationFrame(loop);
 }
 
 function build() {
@@ -62,6 +69,7 @@ function build() {
 
 function remove() {
   cancelAnimationFrame(frame);
+  frame = 0;
   layer?.remove();
   layer = canvas = g = null;
   parts = [];
@@ -94,7 +102,7 @@ function line(x1, y1, x2, y2, alpha) {
 function render() {
   if (!canvas || !g) return;
   const k = strength(particleStrength);
-  const reach = activePointer();
+  const reach = pointerReacts() ? pointer : null;
   const px = reach?.x ?? -1e4;
   const py = reach?.y ?? -1e4;
   g.clearRect(0, 0, width, height);
@@ -127,12 +135,13 @@ function render() {
 function loop(now) {
   frame = 0;
   if (!layer) return;
-  const dt = last ? frameDt(now - last) : 0;
-  last = now;
-  if (!paused()) step(parts, dt, activePointer(), width, height);
+  const moving = drifting();
+  if (moving) {
+    step(parts, last ? frameDt(now - last) : 0, pointer, width, height);
+    last = now;
+  } else last = 0;
   render();
-  if (paused()) last = 0;
-  else frame = requestAnimationFrame(loop);
+  if (moving) frame = requestAnimationFrame(loop);
 }
 
 /** Show, hide, or redraw the background after a setting, theme, or visibility change. */
@@ -142,7 +151,9 @@ export function refreshBackdrop() {
     return;
   }
   if (!layer) build();
-  syncLayerState();
+  syncPointer();
+  layer?.toggleAttribute('data-menu', modes.menuOpen());
+  layer?.toggleAttribute('data-hidden', document.hidden);
   cancelAnimationFrame(frame);
   last = 0;
   frame = requestAnimationFrame(loop);
@@ -157,19 +168,14 @@ export function installBackdrop() {
   });
   addEventListener('pointermove', event => {
     pointer = { x: event.clientX, y: event.clientY };
-    // While paused (Animations off, reduced motion, a menu, a hidden tab) the
-    // pointer changes nothing: no glow, no lines, no redraw.
-    if (!layer || paused()) return;
-    layer.style.setProperty('--cx', `${event.clientX}px`);
-    layer.style.setProperty('--cy', `${event.clientY}px`);
-    layer.dataset.pointer = '';
+    redrawPointer();
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', () => {
     pointer = null;
-    if (layer) delete layer.dataset.pointer;
+    redrawPointer();
   });
   document.addEventListener('visibilitychange', () => { if (layer) refreshBackdrop(); });
-  matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { if (layer) refreshBackdrop(); });
+  reducedMotionQuery().addEventListener('change', () => { if (layer) refreshBackdrop(); });
   // Pause while a menu covers the page, and pick up again when it closes.
   modes.subscribe(() => {
     const open = modes.menuOpen();

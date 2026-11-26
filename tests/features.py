@@ -2361,6 +2361,90 @@ def backdrop_ignores_pointer(page, stats, label):
           f"{label}: the pointer glow stays off and doesn't follow the pointer ({before_glow} → {after_glow})")
 
 
+BLOB_STATES = """() => [...document.querySelectorAll('.backdrop .blob')].map(b => {
+  const s = getComputedStyle(b); return [s.animationPlayState, s.transform]; })"""
+
+
+def leave_backdrop(page):
+    page.evaluate("""() => new Promise(resolve => {
+      document.documentElement.dispatchEvent(new PointerEvent('pointerleave'));
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    })""")
+
+
+def check_calm_backdrop(page, stats, point, label):
+    """Check the pointer response and frozen frame in the Galaxy with Settings closed."""
+    layer = page.locator(".backdrop")
+    frame = lambda: layer.locator("canvas").evaluate("canvas => canvas.toDataURL()")
+    problems = []
+
+    leave_backdrop(page)
+    resting = frame()
+    nearby = stats(point, 120)["near"]
+    first_blobs = page.evaluate(BLOB_STATES)
+    page.wait_for_timeout(400)
+    if frame() != resting or layer.get_attribute("data-pointer") is not None:
+        problems.append("stars must hold still without a pointer")
+    if (len(first_blobs) != 4 or any(state != "paused" for state, _ in first_blobs)
+            or page.evaluate(BLOB_STATES) != first_blobs):
+        problems.append("all four blobs must hold still")
+
+    page.mouse.move(*point, steps=6)
+    page.wait_for_timeout(100)
+    glow = layer.evaluate("""el => [el.hasAttribute('data-pointer'),
+        parseFloat(el.style.getPropertyValue('--cx')), parseFloat(el.style.getPropertyValue('--cy'))]""")
+    if stats(point, 120)["near"] <= nearby + 20:
+        problems.append("the canvas must draw lines and brighten near the pointer")
+    if not glow[0] or any(value is None or abs(value - coordinate) > 1 for value, coordinate in zip(glow[1:], point)):
+        problems.append(f"the glow must follow the pointer ({glow}, {point})")
+    if page.evaluate(BLOB_STATES) != first_blobs:
+        problems.append("pointer movement must not move the blobs")
+    leave_backdrop(page)
+    exact_frame = frame() == resting
+    glow_hidden = layer.get_attribute("data-pointer") is None
+    if not exact_frame or not glow_hidden:
+        problems.append(f"leaving must remove pointer effects and restore the exact frame ({exact_frame=}, {glow_hidden=})")
+
+    page.evaluate("""() => {
+      const request = window.requestAnimationFrame;
+      const callbacks = [];
+      window.animationTest = { request, callbacks };
+      window.requestAnimationFrame = callback => {
+        callbacks.push(callback.name || '(anonymous)');
+        return request.call(window, callback);
+      };
+    }""")
+    try:
+        page.wait_for_timeout(1000)
+    finally:
+        calls = page.evaluate("""() => {
+          const { request, callbacks } = window.animationTest;
+          window.requestAnimationFrame = request;
+          delete window.animationTest;
+          return callbacks;
+        }""")
+    if calls:
+        problems.append(f"no frame requests while idle ({len(calls)} calls to {sorted(set(calls))})")
+
+    open_settings(page)
+    page.wait_for_timeout(200)
+    if page.evaluate(BLOB_STATES) != first_blobs or layer.get_attribute("data-pointer") is not None or frame() != resting:
+        problems.append("opening Settings must keep the backdrop still and dismiss pointer effects")
+    close_menu(page)
+    check(not problems, f"{label}: {', '.join(problems)}")
+
+
+def check_calm_interface(page, label):
+    animation_count = page.locator("#settings-trigger").evaluate(
+        "el => { el.click(); return document.querySelector('.menu-sheet').getAnimations().length; }")
+    check(animation_count > 0, f"{label}: Calm keeps the menu animation")
+    moves = page.locator(".home-hub").first.evaluate("""el => {
+        const css = getComputedStyle(el);
+        return css.transitionProperty !== 'none' && parseFloat(css.transitionDuration) > 0;
+    }""")
+    check(moves, f"{label}: Calm keeps the sun transitions")
+
+
 def f41_backdrop(ctx):
     """Background None by default; Constellations draws behind Orbit, follows the pointer, freezes on request."""
     page, mode = ctx.page, ctx.mode
@@ -2373,6 +2457,10 @@ def f41_backdrop(ctx):
     # Settings: Background, Particles (only with Constellations), and Aurora among the themes.
     open_settings(page)
     background = page.get_by_label("Background", exact=True)
+    animations = page.get_by_label("Animations", exact=True)
+    check(animations.locator("option").evaluate_all("options => options.map(el => el.value)") == ["full", "calm", "off"],
+          f"{mode}: Animations offers Full, Calm, and Off")
+    check(animations.input_value() == "full", f"{mode}: Animations defaults to Full")
     check(background.locator("option").all_inner_texts() == ["None", "Constellations"], f"{mode}: Background offers None and Constellations")
     check(page.get_by_label("Particles", exact=True).is_hidden(), f"{mode}: Particles is hidden while the background is None")
     check(page.get_by_label("Theme", exact=True).locator("option").all_inner_texts() == ["Default", "Red", "Blue", "Aurora"],
@@ -2405,20 +2493,20 @@ def f41_backdrop(ctx):
     after = stats(point, 120)
     check(after["near"] > before["near"] + 20, f"{mode}: the pointer draws the constellation to it ({before['near']} → {after['near']})")
 
-    # Animations off freezes it; on again, it moves.
+    # Animations Off freezes it; Full makes it move again.
     open_settings(page)
-    page.get_by_label("Animations", exact=True).uncheck()
+    animations.select_option("off")
     close_menu(page)
     page.wait_for_timeout(200)
     a, b = stats(), (page.wait_for_timeout(350), stats())[1]
     check(a["lit"] > 50 and a["sum"] == b["sum"], f"{mode}: Animations off leaves a still frame")
     backdrop_ignores_pointer(page, stats, f"{mode}: Animations off")
     open_settings(page)
-    page.get_by_label("Animations", exact=True).check()
+    animations.select_option("full")
     close_menu(page)
     page.wait_for_timeout(200)
     a, b = stats(), (page.wait_for_timeout(350), stats())[1]
-    check(a["sum"] != b["sum"], f"{mode}: Animations on, it moves again")
+    check(a["sum"] != b["sum"], f"{mode}: Animations Full makes it move again")
 
     # Reduced motion freezes it too.
     page.emulate_media(reduced_motion="reduce")
@@ -2429,20 +2517,18 @@ def f41_backdrop(ctx):
     page.emulate_media(reduced_motion="no-preference")
 
     # An open menu holds the background still: the blobs pause where they are, then resume.
-    blobs = """() => [...document.querySelectorAll('.backdrop .blob')].map(b => {
-      const s = getComputedStyle(b); return [s.animationPlayState, s.transform]; })"""
     open_settings(page)
     page.wait_for_timeout(200)
-    first = page.evaluate(blobs)
+    first = page.evaluate(BLOB_STATES)
     page.wait_for_timeout(400)
-    second = page.evaluate(blobs)
+    second = page.evaluate(BLOB_STATES)
     check(len(first) == 4 and all(state == "paused" for state, _ in first) and first == second,
           f"{mode}: the blobs stop drifting behind an open menu ({first[0]})")
     close_menu(page)
     page.wait_for_timeout(200)
-    first = page.evaluate(blobs)
+    first = page.evaluate(BLOB_STATES)
     page.wait_for_timeout(400)
-    second = page.evaluate(blobs)
+    second = page.evaluate(BLOB_STATES)
     check(all(state == "running" for state, _ in first) and first != second, f"{mode}: the blobs drift again once the menu closes")
 
     # Particles: Subtle is fainter than Bold.
@@ -2455,6 +2541,75 @@ def f41_backdrop(ctx):
         page.wait_for_timeout(400)
         peaks[level] = stats()["max"]
     check(peaks["subtle"] < peaks["bold"], f"{mode}: Subtle draws fainter than Bold ({peaks})")
+
+    # Calm preserves the canvas positions and interface motion in every theme.
+    open_settings(page)
+    particles.select_option("normal")
+    animations.select_option("calm")
+    hint_id = animations.get_attribute("aria-describedby")
+    check(hint_id, f"{mode}: Animations has an accessible hint")
+    hint = page.locator(f"#{hint_id}")
+    check("follows the pointer" in hint.inner_text(), f"{mode}: the Animations hint describes Calm")
+    close_menu(page)
+    theme_guard = page.add_style_tag(content="""
+        html[data-theme='aurora'] .backdrop .blob-1 { animation: backdrop-drift-1 48s infinite alternate; }
+    """)
+    for theme in ("default", "aurora"):
+        open_settings(page)
+        page.get_by_label("Theme", exact=True).select_option(theme)
+        close_menu(page)
+        check_calm_backdrop(page, stats, point, f"{mode}: Calm in {theme}")
+    theme_guard.evaluate("el => el.remove()")
+
+    open_settings(page)
+    page.get_by_label("Theme", exact=True).select_option("default")
+    close_menu(page)
+    check_calm_interface(page, f"{mode}: Calm with Constellations")
+    device_note = "Your device's 'reduce motion' setting is on"
+    page.emulate_media(reduced_motion="reduce")
+    expect(hint).to_contain_text(device_note)
+    close_menu(page)
+    page.wait_for_timeout(200)
+    backdrop_ignores_pointer(page, stats, f"{mode}: Calm with device reduced motion")
+    page.emulate_media(reduced_motion="no-preference")
+
+    open_settings(page)
+    background.select_option("none")
+    none_note = "Calm only differs from Full with the Constellations background."
+    expect(hint).to_contain_text(none_note)
+    close_menu(page)
+    check_calm_interface(page, f"{mode}: Calm with Background None")
+    page.emulate_media(reduced_motion="reduce")
+    expect(hint).to_contain_text(device_note)
+    expect(hint).to_contain_text(none_note)
+    check(page.locator(".home-hub").first.evaluate(
+        "el => parseFloat(getComputedStyle(el).transitionDuration) < 0.001"
+    ), f"{mode}: the device can reduce interface transitions in Calm")
+    page.emulate_media(reduced_motion="no-preference")
+    expect(hint).not_to_contain_text(device_note)
+    background.select_option("constellations")
+    expect(hint).not_to_contain_text(none_note)
+    close_menu(page)
+
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(page.evaluate("""() => window.animationLevel === 'calm' &&
+        localStorage.getItem('orbit:animations') === 'calm' &&
+        document.documentElement.dataset.motion === 'calm'"""), f"{mode}: Calm survives a reload")
+    for level in ("calm", "off"):
+        peaks = {}
+        for strength in ("subtle", "bold"):
+            open_settings(page)
+            animations.select_option(level)
+            particles.select_option(strength)
+            close_menu(page)
+            leave_backdrop(page)
+            peaks[strength] = stats()["max"]
+        check(peaks["subtle"] < peaks["bold"], f"{mode}: Particles changes brightness in {level} ({peaks})")
+    open_settings(page)
+    animations.select_option("full")
+    particles.select_option("normal")
+    close_menu(page)
 
     # The choice survives a reload; None restores today's look; an unknown value means None.
     page.reload(wait_until="load")

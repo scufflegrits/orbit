@@ -3,7 +3,7 @@
 // by app/start.js's subscriber, exactly once per change), the display
 // preferences, and Quick find's text. Screens import these as live bindings;
 // only the setters here change them. Moved in rewrite phase 8.
-import { readBackground, readBoolean, readButtonTips, readFontFamily, readParticles, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
+import { readAnimationLevel, readBackground, readBoolean, readButtonTips, readFontFamily, readParticles, readFontSize, readGalaxyView, readRdpLaunch, readTheme, savePreference } from '../state/prefs.js';
 import { hooks } from './hooks.js';
 import { icon } from './icons.js';
 import { modes } from './page-modes.js';
@@ -76,6 +76,8 @@ export function dataSourceLabel() {
 
 // ---- Display preferences (read when the page loads) ----------------------
 
+/** @type {import('../state/prefs.js').AnimationLevel} */
+export let animationLevel = 'full';
 export let animationsEnabled = true;
 export let alwaysShowMoons = false;
 /** @type {'normal'|'slow'|'off'} */
@@ -98,7 +100,7 @@ export let galaxyView = 'orbits';
 
 /** Read the saved preferences and show the ones set on the page's root. */
 export function readPreferences() {
-  animationsEnabled = readBoolean('orbit:animations', true);
+  applyAnimationLevel(readAnimationLevel());
   alwaysShowMoons = readBoolean('orbit:always-show-moons', false);
   activeTheme = readTheme();
   buttonTips = readButtonTips();
@@ -112,7 +114,6 @@ export function readPreferences() {
   showSiteIcons = readBoolean('orbit:site-icons', false);
   galaxyView = readGalaxyView();
   const root = document.documentElement.dataset;
-  root.animations = animationsEnabled ? 'on' : 'off';
   root.moons = alwaysShowMoons ? 'always' : 'hover';
   root.theme = activeTheme;
   root.fontSize = activeFontSize;
@@ -121,8 +122,14 @@ export function readPreferences() {
   root.particles = particleStrength;
 }
 
-/** @param {boolean} on */
-export function setAnimationsEnabled(on) { animationsEnabled = on; }
+/** @param {import('../state/prefs.js').AnimationLevel} level */
+export function applyAnimationLevel(level) {
+  animationLevel = level;
+  animationsEnabled = level !== 'off';
+  const root = document.documentElement.dataset;
+  root.animations = animationsEnabled ? 'on' : 'off';
+  root.motion = level;
+}
 /** @param {boolean} on */
 export function setAlwaysShowMoons(on) { alwaysShowMoons = on; }
 /** @param {string} value */

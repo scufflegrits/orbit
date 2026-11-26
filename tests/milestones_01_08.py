@@ -157,9 +157,9 @@ def run_milestone_3(page, url, mode):
     check("local link map" in page.locator("#menu-content").inner_text(),
           f"{mode}: About content")
     page.locator('[data-menu-panel="Settings"]').click()
-    toggle = page.locator('input[aria-label="Animations"]')
-    check(toggle.is_checked(), f"{mode}: Animations defaults On")
-    toggle.uncheck()
+    animations = page.get_by_label("Animations", exact=True)
+    check(animations.input_value() == "full", f"{mode}: Animations defaults to Full")
+    animations.select_option("off")
     check(page.locator("html").get_attribute("data-animations") == "off",
           f"{mode}: Animations Off applies immediately")
     check(page.locator(".menu-sheet").evaluate(
@@ -173,9 +173,9 @@ def run_milestone_3(page, url, mode):
           f"{mode}: Animations Off persists")
     page.locator("#settings-trigger").click()
     page.locator('[data-menu-panel="Settings"]').click()
-    page.locator('input[aria-label="Animations"]').check()
+    animations.select_option("full")
     check(page.locator("html").get_attribute("data-animations") == "on",
-          f"{mode}: Animations On applies")
+          f"{mode}: Animations Full applies")
     page.locator("#menu-scrim").click(position={"x": 5, "y": 5})
     check(page.locator("#menu-overlay:visible").count() == 0,
           f"{mode}: outside click closes menu")
@@ -399,11 +399,11 @@ def run_milestone_5(page, url, mode):
                                        ("--muted", "--page-bg"), ("--theme-accent", "--surface")):
             ratio = contrast_ratio(palette[foreground], palette[background])
             check(ratio >= 4.5, f"{mode}: {theme} {foreground} contrast {ratio:.2f}")
-        page.get_by_label("Animations").uncheck()
+        page.get_by_label("Animations", exact=True).select_option("off")
         check(page.locator(".menu-sheet").evaluate(
             "el => getComputedStyle(el).animationName") == "none",
             f"{mode}: motion Off works in {theme}")
-        page.get_by_label("Animations").check()
+        page.get_by_label("Animations", exact=True).select_option("full")
         menu_background = page.locator(".menu-sheet").evaluate(
             "el => getComputedStyle(el).backgroundColor")
         page.locator("#menu-close").click()

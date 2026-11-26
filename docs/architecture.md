@@ -46,6 +46,8 @@ flowchart TB
 
 The release archive includes the browser assets, generated data, Python scripts, and Windows helper. See the [page entry point](../index.html), [local server](../serve.py), [RDP launch service](../src/services/rdp-launch.js), and [release contents](RELEASING.md#what-goes-in-the-zip).
 
+The page loads its shared animation level from browser preferences before creating the optional Constellations background. The existing `orbit:animations` key stores `true` for Full, `calm` for Calm, or `false` for Off. Reading the preference does not write to storage. The page applies `data-motion` and the existing `data-animations` flag together. The backdrop uses one frame request at a time. Full schedules continuous frames, and Calm redraws when the pointer changes without advancing the stars. Off and device reduced motion suppress backdrop movement and pointer effects. Open menus and hidden tabs also suspend those effects. See the [preference reader](../src/state/prefs.js), [page state](../src/ui/page.js), [backdrop](../src/ui/backdrop/backdrop.js), and [animation checks](TEST_MATRIX.md#animation-levels).
+
 ## Source layers and build
 
 Source files may import from their own layer or any lower layer. The layer check rejects upward imports and cycles. In the diagram, the vertical connections show layer order. The build starts at `src/app/main.js` and emits `orbit.js` as a plain browser script.

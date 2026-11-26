@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { oracle } from '../../tests/oracle/oracle.mjs';
 import { KEYS, MIGRATIONS, memoryStorage, migrate, onExternalChange, readJson, useBackend, write, writeSafely } from './storage.js';
 import { defaultWorkspaces, loadStoredWorkspaces, loadWorkspaces, markDefaultRemoved, newWorkspace, readActiveWorkspace, removedDefaultIds, renameWorkspace, restoreDefault, setDefaultWorkspaces, workspaceKey, workspaceName } from './workspaces.js';
-import { hiddenTeamSuns, markOffered, offeredIn, readBackground, readBoolean, readFontFamily, readParticles, readButtonTips, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, savePreference, saveVariables, writeStoredSet } from './prefs.js';
+import { hiddenTeamSuns, markOffered, offeredIn, readAnimationLevel, readBackground, readBoolean, readFontFamily, readParticles, readButtonTips, readFontSize, readGalaxyView, readOffered, readRdpLaunch, readStoredSet, readTeamSeen, readTheme, readVariables, rememberTeam, saveAnimationLevel, savePreference, saveVariables, writeStoredSet } from './prefs.js';
 import { HISTORY_LIMIT, loadHistory, recordHistory } from './history.js';
 import { countChange, forgetWorkspace, noteBackupMade, readBackupState } from './backup.js';
 
@@ -131,6 +131,27 @@ test('prefs: booleans are the strings true and false; unknown values fall back',
   }
   storage.setItem('orbit:theme', 'auburn');
   assert.equal(readTheme(), 'auburn');
+});
+
+test('prefs: animation levels read old values and fall back to Full without writing', () => {
+  for (const [saved, level] of [[null, 'full'], ['true', 'full'], ['calm', 'calm'], ['false', 'off'], ['junk', 'full']]) {
+    if (saved !== null) storage.setItem('orbit:animations', saved);
+    assert.equal(readAnimationLevel(), level);
+    assert.equal(storage.getItem('orbit:animations'), saved);
+  }
+});
+
+test('prefs: animation levels round-trip and Calm reads as Off in older builds', () => {
+  saveAnimationLevel('calm');
+  assert.equal(storage.getItem('orbit:animations'), 'calm');
+  assert.equal(readAnimationLevel(), 'calm');
+  assert.equal(readBoolean('orbit:animations', true), false);
+  saveAnimationLevel('off');
+  assert.equal(storage.getItem('orbit:animations'), 'false');
+  assert.equal(readAnimationLevel(), 'off');
+  saveAnimationLevel('full');
+  assert.equal(storage.getItem('orbit:animations'), 'true');
+  assert.equal(readAnimationLevel(), 'full');
 });
 
 test('prefs: stored sets (team hidden, team favorites) read as sets of strings', () => {

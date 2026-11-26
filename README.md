@@ -226,9 +226,9 @@ Click the cog (**Settings**) in the Galaxy or any System to open Settings. Use t
 4. **Workspaces and team** has workspace controls and [team map](#team-map) status.
 5. **Remote Desktop**, at the bottom, has the launch method and Windows helper setup.
 
-The **Animations** switch removes movement and reveal delays when off, while all links remain usable. The choice is saved in this browser. Orbit also honors your operating system's reduced-motion preference.
+**Animations** offers **Full** (the default), **Calm**, and **Off**. Full animates both the interface and the Constellations background. In Calm, the Constellations background holds still but follows the pointer, and hovers and menus animate as usual. Off stops animations, transitions, and pointer effects. Your device’s reduced-motion setting keeps Constellations still and makes interface transitions near-instant. Close Settings to preview the background. Your choice is saved in this browser.
 
-The **Background** setting offers **None** and **Constellations**. Constellations animates particles that drift and connect around the pointer. **Particles** adjusts their strength. Both choices are saved in this browser. Turning off **Animations** or enabling your operating system's reduced-motion setting freezes the background. The **Aurora** theme adds a dark violet palette.
+The **Background** setting offers **None** and **Constellations**. **Particles** adjusts the brightness of the stars and lines at every animation level. Both choices are saved in this browser. Calm and Full behave alike with Background set to None. The **Aurora** theme adds a dark violet palette.
 
 The **Font** setting offers **Inter**, the default, and **Orbit classic**: DM Sans for text with Space Grotesk for labels and headings. Both ship with Orbit in `fonts/`, so Orbit looks the same on every computer and works offline. Your choice is saved in this browser.
 
