@@ -146,13 +146,27 @@ pre code { padding: 0; background: none; overflow-wrap: normal; }
 }
 .note.warning { border-left-color: var(--danger); }
 
-/* Settings reference: one term per control */
-dl.settings { display: grid; grid-template-columns: 1fr; gap: 2px 20px; }
-dl.settings dt { margin-top: 10px; font-weight: 640; }
-dl.settings dd { margin: 0; color: var(--muted-strong); }
+/* Settings reference and keyboard table: one term per row, with faint outlines so a long
+   description stays with its term. Terms sit beside descriptions on wide screens and above
+   them on narrow ones. */
+dl.settings {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+dl.settings dt, dl.settings dd { margin: 0; padding: 10px 14px; border-top: 1px solid var(--line-soft); }
+dl.settings dt { font-weight: 640; }
+dl.settings dd { color: var(--muted-strong); }
+dl.settings dt:first-of-type, dl.settings dt:first-of-type + dd { border-top: 0; }
+@media (max-width: 719px) {
+  dl.settings dd { padding-top: 0; border-top: 0; }
+}
 @media (min-width: 720px) {
   dl.settings { grid-template-columns: minmax(150px, 13em) 1fr; }
-  dl.settings dt, dl.settings dd { margin-top: 10px; }
+  dl.settings dt { border-right: 1px solid var(--line-soft); background: color-mix(in oklab, var(--surface) 40%, transparent); }
 }
 
 .help-footer { margin-top: 56px; color: var(--subtle); font-size: .88em; }
