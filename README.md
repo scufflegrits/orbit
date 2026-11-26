@@ -1,12 +1,10 @@
 # Orbit
 
-A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations. Hover over a sun to preview its first five planets, click the sun to open its System, click a linked planet to open its destination, or hover over a group planet to see its links. Your routines, favorites, and recent links sit above the Galaxy, and the ☰ button shows everything as a compact list. Set Orbit as your startup page and a [routine](#start-your-day-with-orbit) opens your morning sites in one click.
-
-To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planets, and moons; see [Rearrange by dragging](#rearrange-by-dragging).
-
-Use **Quick find** in the top bar on the Galaxy or any System to search suns, planets, and moons by name, web address, computer name, or tag; see [Find and open links](#find-and-open-links). Searching from a System returns to the Galaxy with matching results. Press `Ctrl+K` for the command palette.
+A local link map organized as a Galaxy of suns and planets. Each sun is a group of destinations, its planets are links, and a planet's moons are related links. Hover over a sun to preview its planets, click it to open its System, and click a planet to open it. Quick find, a command palette (`Ctrl+K`), favorites, routines, workspaces, and Windows Remote Desktop links are built in.
 
 Orbit includes **Main** and the default **Dev Toolbox** workspace. Main has nine suns, 45 planets, and 106 destinations; Dev Toolbox has five suns and 31 destinations. Dev Toolbox collects Git, web, documentation, data, and diagramming tools.
+
+**How to use Orbit is in the Help guide, `help.html`.** Open it from your copy of Orbit: the **?** beside each part of Settings, the Help tab, or **Help** in the command palette. This README covers running Orbit, its data files, and setup. (On GitHub, `help.html` shows as source; open it from a downloaded copy.)
 
 ## What's new in 3.0
 
@@ -28,9 +26,23 @@ python3 serve.py
 
 Then open <http://localhost:8000>. The server listens only on this computer. Press `Ctrl+C` to stop it. Use `--port` to pick another port, and `--team PATH` to add a read-only [team map](#team-map). The server is also what makes **Check links** in the editor work.
 
-## Add your links
+## Using Orbit
 
-Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` array is a planet. A website planet looks like this.
+The Help guide, [`help.html`](help.html), explains everything. Its sections:
+
+- [Find and open links](help.html#find-and-open): the Galaxy and Systems, group planets, Quick find, the command palette, favorites, Open all, list view, notes, and placeholders.
+- [Change how the Galaxy looks](help.html#change-the-galaxy): themes, fonts, background, animations, site icons, and sun icons.
+- [Edit your map](help.html#edit-your-map): Edit links, editing from the map, quick add, group planets, dragging in Edit mode, import, export, duplicates, link checking, History, and backups.
+- [Workspaces](help.html#workspaces), [Routines](help.html#routines), [Remote Desktop](help.html#remote-desktop), [Team map](help.html#team-map), and [Keyboard](help.html#keyboard).
+- [Settings reference](help.html#settings): every setting, group by group.
+
+## Back up your map
+
+Your edits are saved in this browser, separately for opening `index.html` directly and for `serve.py`. In **Settings → Edit links**, use **Export → Whole map (JSON)** for a backup, and **Import → Import a file** to restore it or move it to another browser. **Reset to file data** returns to the project's map; History keeps the previous one. Orbit suggests a backup after 20 changes or 14 days.
+
+## Map files
+
+Orbit's default maps are files you can edit: `links.json` for Main and `workspaces/<id>.json` for other default workspaces. Each item in `groups` is a sun, and each item in its `links` array is a planet. A website planet looks like this:
 
 ```json
 {
@@ -50,35 +62,20 @@ Edit `links.json`. Each item in `groups` is a sun, and each item in its `links` 
 }
 ```
 
-The `moons` array is optional. Hover over a planet to reveal its moons; clicking the planet still opens its own destination. The Galaxy previews up to five planets per sun. A System shows up to eight planets around its sun and lists additional planets below. Up to six moons appear around a hovered planet, fanned farther out when there are more than four; any extras are listed in the System. Planet and moon circles grow to fit their longest name without splitting a word, and every planet in a view shares one size. A name too long even for the largest circle gets smaller text instead. Orbit is laid out for screens 1920×1080 and larger.
+- `moons` is optional. Keep the surrounding `{"groups": [...]}` structure.
+- A **group planet** uses `"type": "group"`, a name and no address of its own, with its destinations in `"moons"`.
+- A **Windows Remote Desktop** link uses `type` and `host` instead of `url`: `{ "name": "lab1-server1", "type": "rdp", "host": "lab1-server1" }`. The **Labs** sun has examples; change their computer names to hosts on your network.
+- If you open `index.html` directly, run `python3 sync.py` after editing these files, then refresh. With the local server, just refresh. Your browser edits take precedence until you use **Reset to file data**; the browser editor never writes these files.
 
-Keep the surrounding `{"groups": [...]}` structure. If you opened `index.html` directly, run `python3 sync.py` after editing `links.json`, then refresh the page. If you use the local server, just refresh.
+### Default workspaces
 
-## Group planets
+A fresh copy includes Dev Toolbox automatically, and existing users get it too. If you edited Main before Dev Toolbox became a workspace, Orbit offers once to remove its old Dev Toolbox sun. You can remove the default workspace and add it back later from **Settings → Workspaces**.
 
-A group planet holds related links inside a sun. In **Settings → Edit links**, open a sun, choose **Add planet**, then set **Kind** to **Group (no link)**. Save the group and use **Add link** for each website or Remote Desktop link. Groups can start empty and can have notes and tags.
+To add another default workspace, create `workspaces/<id>.json` with its name and map, then run `python3 sync.py`. The generated `workspaces-data.js` is committed so direct file mode works; served mode reads the JSON file and falls back to the generated copy.
 
-Hover over a group planet to see its links, as with a planet’s moons. Click it or press **Enter** to keep them open. Click elsewhere or press **Escape** to unpin it. **Shift+click** uses Open all for the group's links. Quick find takes you to the group in its System. The compact Galaxy list shows groups as headings above their links.
+## Windows Remote Desktop helper
 
-Change **Kind** to switch between a group and a linked planet. Both keep their moons. Switching to a group asks you to confirm removal of the planet's address. Switching to a linked planet requires a website address or Remote Desktop host. **Export planet** keeps the group intact. **Share links as a pack** exports the links for someone to import individually.
-
-In `links.json`, use `"type": "group"` on the planet and put its destinations in `"moons"`. Give the group a name and leave out its own address.
-
-## Windows Remote Desktop entries
-
-The **Labs** sun contains `lab1` through `lab5` as planets and five server moons around `lab1`. Their computer names are examples; edit each target to match a reachable host on your network. A Windows Remote Desktop destination uses `type` and `host` instead of `url`:
-
-```json
-{ "name": "lab1-server1", "type": "rdp", "host": "lab1-server1" }
-```
-
-By default, clicking one downloads a `.rdp` connection file with that host. Open the downloaded file on Windows to start Remote Desktop Connection. The destination editor offers **Windows Remote Desktop** as a type for any planet or moon, and accepts a computer name or IP address with an optional port such as `lab1-server1:3390`.
-
-To use a saved connection, open its planet or moon in **Settings → Edit links** and select **Import .rdp file**. For example, open **Labs → lab1 → lab1-server3**, import the saved file, review the computer address, then select **Save moon**. Orbit keeps the file's connection settings with that link for future `.rdp` downloads and native `mstsc.exe` launches. The same control can fill a new planet or moon; its file name becomes the link name if you have not entered one. Editing the computer address later updates the saved profile's target while retaining its other settings. Password, token, and signature fields are excluded; Orbit does not store credentials. Exported Orbit JSON includes the remaining profile settings, so review it before sharing.
-
-To import several saved connections, open a saved sun and choose **Import .rdp files as planets**, or open a saved planet and choose **Import .rdp files as moons**. Pick multiple files, pick a folder, or drop files or a folder into the import area. Review the names and computer addresses, then add the batch. Orbit skips non-`.rdp` files in a folder and stops the batch if any selected `.rdp` file is invalid. The browser reads the chosen files locally; Orbit does not watch the folder for future changes.
-
-To open the Windows client directly from a moon, install the per-user **Orbit launcher** once on the Windows PC where you use Orbit. This opens the built-in `mstsc.exe`; the separate MSRDC app installed by `winget install Microsoft.RemoteDesktopClient` does not register Orbit's launcher. From the project folder, run with Windows PowerShell 5.1:
+By default, clicking a Remote Desktop link downloads a `.rdp` file. To open Remote Desktop Connection directly instead, install the per-user **Orbit launcher** once on the Windows PC where you use Orbit. It opens the built-in `mstsc.exe`; the separate MSRDC app installed by `winget install Microsoft.RemoteDesktopClient` does not register Orbit's launcher. From the project folder, run with Windows PowerShell 5.1:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Install-OrbitRdp.ps1
@@ -92,173 +89,16 @@ pwsh.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Install-OrbitRdp.ps1
 
 The installer registers the same PowerShell executable that ran it. Running it again replaces the current user's `orbit-rdp://` registration with the new executable, so a 5.1 install followed by a PowerShell 7 install switches future clicks to `pwsh.exe`. It also refreshes the copied helper; Orbit's browser settings and generated `.rdp` files remain in place. Re-run the installer after updating Orbit, or if you later remove the registered PowerShell installation.
 
-Then choose **Settings → Remote Desktop → Open mstsc.exe**. Clicking a lab planet or moon asks Windows to open the Orbit launcher. A host-only link uses `mstsc.exe /v:` with a credential prompt and creates no connection file. A link with imported profile settings still writes a file under `%LOCALAPPDATA%\Orbit\Connections` and opens it for review in Remote Desktop Connection. Your browser may ask whether to open the external app. This setting is saved in the browser; **Download .rdp file** remains available in the same menu. Orbit stores no credentials.
+Then choose **Settings → Remote Desktop → Open mstsc.exe**. A host-only link uses `mstsc.exe /v:` with a credential prompt and creates no connection file. A link with imported profile settings writes a file under `%LOCALAPPDATA%\Orbit\Connections` and opens it for review in Remote Desktop Connection. Your browser may ask whether to open the external app. Orbit stores no credentials.
 
-Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` registry key as a uniquely named `.reg` file in `%LOCALAPPDATA%\Orbit` and print its path. If that backup fails, the script stops before changing the registration. To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files and registry backups remain available for manual use.
-
-## Find and open links
-
-**Quick find** matches every word you type against a link's name, the sun and planet it sits in, its web address or computer name, and its tags. The sun or planet a link sits in only narrows a search, so “tech reviews” finds the Reviews moons in Tech, while “tech” alone finds the Tech sun. Short forms work: “lab1 s3” finds `lab1-server3`. A word that matches nothing exactly also finds near misses, so “engadgte” still finds Engadget. Type `#tag` or `tag:name` to see only links with that tag. Better matches come first; a result found by its address says so.
-
-**Favorites and recent links** appear in a row above the Galaxy. Star a planet or moon in Quick find results, or tick **Favorite** in its editor; **Open all** at the end of the row opens every favorite at once. The last ten links you opened are listed under Recent. Turn the row off, or clear Recent, in Settings.
-
-**Command palette:** press `Ctrl+K` (`Cmd+K` on a Mac) from any view. Type to search links and commands such as **Turn on Edit mode**, **Edit links**, or **Show the Galaxy as a list**, then press Enter to open the highlighted entry straight away. Up and Down Arrow (and Page Up and Page Down) move; Escape closes it.
-
-**Open a planet with all its moons:** Shift+click a planet, use the **Open a planet with all its moons** buttons under a System, or choose **Open all** in the command palette. Orbit asks before opening more than one tab and leaves Remote Desktop links out. Most browsers block all but the first tab until you allow pop-ups for Orbit (Edge and Chrome show a pop-up icon in the address bar); Orbit tells you how many were blocked.
-
-**List view:** the ☰ button in the top bar (or **Settings → Galaxy view**) shows the Galaxy as a compact list of every sun with its planets and moons. Links open the same way as on the map. Dragging works in the Orbits view; in List view, Edit mode opens links in Edit links instead.
-
-**Edit from the map** by resting the pointer on a sun, planet, or moon in the Galaxy’s Orbits view or a System, then clicking the pencil. A planet’s editor also lists its moons. Back from the first editor screen or Close returns to the map item. Team items open read-only.
-
-**Remove from the map** with the trash button below the pencil. The confirmation names the item and counts the planets or moons that go with it. **Undo removal** on the map restores the last removed item and its contents.
-
-**Icons:** give a sun an icon (one or two characters, such as an emoji) in its editor; it appears above the sun's name. **Show site icons** in Settings adds each website's own icon to its planets and moons. It is off by default because it loads `/favicon.ico` from every site on your map; when off, Orbit contacts no site until you open it.
-
-## Notes, placeholders, and quick add
-
-**Notes:** a planet or moon can have a short note (up to 500 characters), such as what the page is for or which account to use. It shows on hover, in Quick find and command palette results, and in the list view, and Quick find matches it. Never put passwords in a note; notes are plain text in your browser and in exports.
-
-**Placeholders:** a web address can contain up to five `{name}` parts, such as `https://jira.example.com/browse/{ticket}`. Opening the link shows a small form for each value, filled in with the last ones you used, and a preview of the address. Open all and routines use the last values; a link without values yet is left out and counted. Link checking skips these links.
-
-**Quick add:** paste or type a web address into Quick find and choose **Add this link to your map**, or press `Ctrl+K` and choose **Add a link** (or **Add <address>**). Pick a sun to add it as a planet, or a planet to add it as a moon. **Paste from clipboard** fills the address when the browser allows it.
-
-## Workspaces
-
-**Settings → Workspaces** keeps separate maps, such as Work and Home, each with its own suns, favorites, routines, history, and undo. Orbit includes Main and the default Dev Toolbox workspace. Add a workspace starting from an empty map, a copy of the current one, or Main's default map; rename or remove workspaces (Main stays). Removed defaults stay removed until you add them back from the **(default)** option. Defaults are available on every browser but are not copied into browser storage just by being shown. Edits are saved in that browser. The top bar and command palette switch between workspaces. The team map and settings are shared. **Whole map (JSON)** and **Import a file** work on the open workspace. **Reset to file data** in Main follows `links.json`; in a default workspace it follows that workspace's file; in a user workspace it saves a copy of Main's default map.
-
-### Default workspaces
-
-A fresh clone includes Dev Toolbox automatically when you open `index.html`. Existing Orbit users also get the workspace. If you edited Main before this change, Orbit offers to remove its old Dev Toolbox sun; choose **Remove** to keep the links in the new workspace, or **Keep** to leave the old sun in Main. You can remove the default workspace and add it back later from **Settings → Workspaces**.
-
-To add another default workspace, create `workspaces/<id>.json` with its name and map, then run `python3 sync.py`. The generated `workspaces-data.js` is committed so direct file mode works; served mode reads the JSON file and falls back to the generated copy.
-
-## Start your day with Orbit
-
-A **routine** is a named set of links you open together, such as the sites you start every morning with. Create one in **Settings → Edit links → Routines → New routine**: name it, tick its planets and moons (team links work too), and save. It appears as a chip in the Routines row above the Galaxy; one click opens all its websites in new tabs. Remote Desktop links in a routine are left out when it opens. The command palette lists **Run routine: <name>**.
-
-Routines remember links by their address, so renaming or moving a link on the map keeps the routine working; a link you remove is skipped and counted. Routines are saved with your map: **Whole map (JSON)** includes them, whole-map imports merge routines with new names, and History restores them.
-
-Tick **Offer this routine when Orbit opens** to give a routine a time and days (weekdays by default). When Orbit opens on one of those days at or after that time, a banner offers **Open <routine>** or **Not today**. Browsers open tabs only after a click, so Orbit asks instead of opening them by itself, and it asks once a day in each workspace.
-
-To make this your morning start:
-
-1. Make Orbit your browser's startup page. In Edge: **Settings → Start, home, and new tabs → When Edge starts → Open these pages**, and add Orbit's address (`file:///C:/path/to/orbit/index.html`, or `http://localhost:8000` with `serve.py`). In Chrome: **Settings → On startup → Open a specific page or set of pages**.
-2. Open a routine once and allow pop-ups for Orbit when the browser asks (the blocked pop-up icon at the right of the address bar). Until then, the browser opens only the first tab and Orbit says how many were blocked.
-
-## Edit links tools
-
-**Add sun** and **Add a link** are above the sun list. The tools below the list are grouped by task.
-
-Each sun row has icons to edit, export, move up, move down, or remove the sun. The arrows save the Galaxy order as soon as you use them. Read-only team suns stay above personal suns and offer **View** and **Export**. Removing a sun follows **Confirm before deleting** and offers **Undo removal**.
-
-Planet, moon, and group-link rows use the same icons. Their arrows save the order within the current sun or planet. Reordering, removing, and undoing from a child row keep the parent editor open and preserve its unsaved fields. To move an item to a different parent, use **Move** in that item’s toolbar. Team rows offer **View** and **Export**.
-
-### Import
-
-- **Import a file** accepts a whole map, a single sun, a planet to add as a new sun, or browser bookmarks.
-- For a whole map, the review shows what each sun adds and starts with every sun that has something to add ticked. Use **Select all** or **Select none** to change the selection. **Merge into my map** adds the ticked suns with their planets and moons. If you already have a sun (matched by ID or name), Orbit adds the links you’re missing, matching links by destination and group planets by name. Routines and Remote Desktop presets have their own boxes. **Replace my map** takes the whole file and keeps the old map in History.
-- For an HTML bookmark export from Chrome, Edge, or Firefox, folders become suns and subfolders become group planets. Orbit unwraps bars such as “Bookmarks bar” and keeps web links. Pick which suns to merge.
-- **Link pack** reads a pack file or pasted text, shows which links are new, and adds those links to a new or existing sun. It can add a shared routine too.
-
-### Export
-
-- **Whole map (JSON)** downloads the active workspace’s map with its routines and Remote Desktop presets.
-- **Share favorites**, and **Share** beside a routine, save a small `orbit-pack-*.json` file with link names, addresses, tags, and notes. A routine pack also includes its name and schedule.
-
-### Organize
-
-- **Routines** lists your routines with Open, Share, Edit, and Remove. See [Start your day with Orbit](#start-your-day-with-orbit).
-- **RDP presets** store Remote Desktop settings such as full screen on all monitors. Build a preset from common choices, edit its settings text, or start from an `.rdp` file. A link’s **Connection settings** can select a preset or its own imported settings. Presets omit computer addresses and passwords.
-- **Find duplicates** lists links that point to the same address or computer and shows where each one is.
-- **Check links** lists websites that don’t answer and offers Edit buttons. Start Orbit with `python3 serve.py` to enable this button. The check covers web links.
-- **History** keeps the map and routines from before each of the last 20 changes. Restoring a version records a new change you can undo.
-
-### Start over
-
-- **Reset to file data** replaces your browser edits with the project’s map. History keeps the current map.
-
-The sun list also shows the tags in use. Select a tag to search for it. A planet or moon can have up to eight tags made of letters, digits, spaces, and hyphens.
-
-Orbit suggests a backup after 20 changes or 14 days with changes since your last export. Choose **Back up now** or **Remind me later** above the Galaxy or in Edit links. You can turn reminders off in Settings.
-
-**Apply RDP settings to moons**, in a planet with Remote Desktop moons, copies one set of connection settings (from an `.rdp` file, another moon, or a preset) to the planet and its moons. Each keeps its own computer, and passwords, tokens, and signatures are never kept. **Clear imported settings** removes them again.
+Before reinstalling or uninstalling, the scripts save any existing `orbit-rdp` registry key as a uniquely named `.reg` file in `%LOCALAPPDATA%\Orbit` and print its path. If that backup fails, the script stops before changing the registration. To remove the launcher registration from that Windows account, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Uninstall-OrbitRdp.ps1`. The generated connection files and registry backups remain available for manual use. Signing the scripts is covered in [docs/RDP_SIGNING.md](docs/RDP_SIGNING.md).
 
 ## Team map
 
-A team map is an ordinary Orbit map file that a group shares. Orbit shows its suns first, marked **TEAM**, alongside your own map:
+A team map is an ordinary Orbit map file that a group shares; its suns appear read-only, marked **TEAM**. See the guide's [Team map](help.html#team-map) section for using it. To set one up:
 
 - With the local server: `python3 serve.py --team /path/to/team-links.json`.
 - Opening `index.html` directly: `python3 sync.py --team /path/to/team-links.json` writes `team-data.js` next to `index.html`; run `python3 sync.py --no-team` to remove it. Without that file, the browser console shows one harmless “file not found” message.
-
-When the team file changes, a notice says how many links are new or removed; **Show what’s new** lists them (new ones open from the list) and **Dismiss** hides it until the next change.
-
-Team suns are read-only: they cannot be dragged or edited, and they are never saved or exported with your map. Quick find, favorites, and recent links include them. In Edit links, open a team sun, planet, or moon to **Copy** it into your own map, or **Hide this team sun** (show it again in Settings). Changes to the team file appear when you reload.
-
-## Rearrange by dragging
-
-Turn on **Edit mode** in the top bar to rearrange the map with a mouse or pen. It is off after every reload. While it is on, planets and moons do not open, download, or launch Remote Desktop; a sun still opens its System.
-
-- Drag a planet onto another sun to move it there with all its moons.
-- Drag a moon onto another planet. In the Galaxy, pause on another sun to show its planets.
-- In a System, a list of the other suns and planets appears while you drag, because only one sun is on screen.
-- To set the order, drag onto a sibling: a planet onto a planet, a moon onto a moon, or a sun onto a sun in the Galaxy. Choose **Before** or **After**; the hint shows the position the item will take. Pause on a planet to show its moons, or on a tray entry to open it.
-- **Change a moon into a planet:** pause the moon on a sun's circle; a box offers **Make it a planet of** that sun. Hold on it until it fills, then release: the moon becomes the sun's last planet, with its link, note, and tags. In a System, the list beside the stage has **+ New planet in** each sun for the same thing.
-- **Change a planet into a moon:** drag a planet without moons onto another planet; below **Before** and **After**, hold on **Make it a moon of** that planet. A planet with moons, or a group, shows why it can't. Releasing without holding, or just passing over these choices, changes nothing.
-- **Undo last drag** reverses the most recent move until the map changes again or the page reloads.
-
-Without dragging, open a moon or planet in **Edit links** and use **Make it a planet of…** or **Make it a moon of…** under **Move**.
-
-A moved link keeps its name, destination, and any imported `.rdp` profile, and goes to the end of its new parent unless you choose a position beside a sibling. Reordering a sun keeps its System address. The Galaxy shows only the first five planets of each sun and six moons of each planet, so use a System, the list view, or **Edit links** for the rest. In Edit mode, a Quick find result opens that planet or moon in Edit links. Dragging needs a mouse or pen. In **Edit links**, use the arrows on a row to reorder it. In a planet or moon editor, use the **Move** menu to reorder the item or move it to another sun or planet at a chosen position. Touch dragging is not supported or planned. Team suns cannot be dragged.
-
-## Keyboard
-
-Orbit works without a mouse. Press `/` anywhere to jump to **Quick find**, then use Down Arrow to move into the results, Up and Down Arrow to move between them, and Enter to open one. Press `Ctrl+K` (`Cmd+K` on a Mac) for the command palette.
-
-Tab moves through the page. Focusing a sun shows its planets and focusing a planet shows its moons, each with a visible focus ring. Arrow keys move between suns by position, between sibling planets or moons, down from a planet into its moons, and back up. Enter opens the focused link or Galaxy sun. Press **E** on a focused sun, planet, or moon in Orbits view or a System to go straight to its editor.
-
-Escape dismisses a visible button tip, then closes the command palette or menu. It can then cancel a drag, turn Edit mode off, clear Quick find, or return from a System to the Galaxy. Tab stays inside the open menu. Closing it returns focus to the map item or to the control that opened the menu.
-
-## Settings and help
-
-Click the cog (**Settings**) in the Galaxy or any System to open Settings. Use the **Help** or **About** tab to switch panels. **Edit links** and the active link map appear first, followed by five groups.
-
-1. **Look** has theme, fonts, background, particles, and animations.
-2. **Galaxy** has **Galaxy view** (Orbits or List), **Always show moons**, **Show favorites and recent**, **Clear recent links**, and **Show site icons**.
-3. **Editing** has **Edit buttons on hover**, **Button tips** (0.8 seconds by default, 1.5 seconds, or off), **Confirm before deleting**, and **Backup reminders**.
-4. **Workspaces and team** has workspace controls and [team map](#team-map) status.
-5. **Remote Desktop**, at the bottom, has the launch method and Windows helper setup.
-
-**Animations** offers **Full** (the default), **Calm**, and **Off**. Full animates both the interface and the Constellations background. In Calm, the Constellations background holds still but follows the pointer, and hovers and menus animate as usual. Off stops animations, transitions, and pointer effects. Your device’s reduced-motion setting keeps Constellations still and makes interface transitions near-instant. Close Settings to preview the background. Your choice is saved in this browser.
-
-The **Background** setting offers **None** and **Constellations**. **Particles** adjusts the brightness of the stars and lines at every animation level. Both choices are saved in this browser. Calm and Full behave alike with Background set to None. The **Aurora** theme adds a dark violet palette.
-
-The **Font** setting offers **Inter**, the default, and **Orbit classic**: DM Sans for text with Space Grotesk for labels and headings. Both ship with Orbit in `fonts/`, so Orbit looks the same on every computer and works offline. Your choice is saved in this browser.
-
-The **Font size** setting offers Small (90%), Standard (100%), Large (115%), and Extra large (130%). Standard is the default. The choice applies immediately throughout Orbit and is saved in this browser.
-Circle labels use a shared size for each level across the Galaxy, and long names wrap inside their circles. Moons have larger circles and text; other interface text grows slightly on wide desktop screens.
-
-**Edit links** opens a full-screen workspace with the complete sun, planet, and moon tree beside the selected item's editor. The editor lets you add, rename, reorder, or remove suns, planets, and moons, move a planet to another sun or a moon to another planet at a chosen position, and edit descriptions, colors, sun icons, website URLs, Remote Desktop hosts, tags, and favorites. Use **Save** to apply field edits. Row arrows and confirmed removals take effect immediately. Orbit stores these changes in this browser. Use **Export → Whole map (JSON)** for a portable backup or **Import → Import a file** to bring data into the browser map. See [Edit links tools](#edit-links-tools) for history, duplicates, link checking, and bookmark import.
-
-**Edit buttons on hover** is on by default. It shares the Button tips delay and uses 0.8 seconds when tips are off. It controls the pencil and trash buttons. **E** still opens the focused item’s editor when hover buttons are off.
-
-**Confirm before deleting** is checked by default and applies to removing suns, planets, and moons from the map or the editor. Turning it off removes those items immediately, with **Undo removal** still available. **Reset to file data** has its own confirmation.
-
-Sun descriptions can include links within their text. In a sun's Description field, write `[label](https://example.com)`; use an `http` or `https` URL. The link appears in the Galaxy and System and opens in a new tab. Unsupported link markup remains plain text. Descriptions are included in JSON exports.
-
-To share part of your map, use the **Export** icon on a sun, planet, or moon row. You can also choose **Export sun** below the sun form. On a read-only team row, Export sits beside **View**. A sun export includes its planets and moons. A planet export includes its moons. A moon export contains just that moon. To receive an `orbit-*.json` export, use **Import a file** for a sun, **Import planet** inside the destination sun, or **Import moon** inside the destination planet. Review the item and destination, then add it. Orbit appends the imported links and gives a duplicate sun ID a unique value.
-
-The planet and moon editors keep their actions at the top as you scroll. **Save** has a floppy disk icon and a label. The other icons let you export, move, and remove the saved item. The moon toolbar also has **Copy moon**, and group planets with links can share them as a pack. Focus or hover over an icon to see its tip when **Button tips** is on.
-
-In the sun editor, **Save sun** is part of the form. **Export sun** and the position controls sit below it. **Remove sun** is at the bottom, after the planet list and its controls.
-
-If someone shares a planet and you want it at the top level, choose **Import a file** in the sun list and select the planet export. Orbit creates a sun named after the planet and places the shared planet inside it as its first planet. The planet's destination and moons remain available. The new sun receives a default color that you can change in the editor.
-
-Settings and Edit links show whether the active map is bundled project data or browser edits. After removing a sun, planet, or moon, use **Undo removal** on the map or in the editor to restore it. The latest removal remains available after a reload. Replacing or resetting the map clears it. For anything older, use **History** (see [Edit links tools](#edit-links-tools)).
-To copy a moon to another planet, open that moon in **Edit links** and choose the **Copy moon** icon in its toolbar. Pick a target planet in the review screen. The copy keeps the saved destination and any imported Remote Desktop profile, and later edits to either moon are independent.
-
-Browser edits take precedence over `links.json` (or `links-data.js` in direct-file mode) until you reset. Direct-file and local-server pages have separate browser storage; use export and import to move edits between them. The browser editor does not write `links.json` directly.
-
-The Theme setting offers Default, Red, and Blue. Red and Blue retain their existing palettes, and previously saved theme choices still work. Your choice is saved in this browser; select Default to return to the original appearance.
 
 ## Changing Orbit's code
 

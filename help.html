@@ -67,38 +67,42 @@
 
           <h3>Move around the Galaxy</h3>
           <ul>
-            <li>Rest the pointer on a sun to see its first five planets. Rest it on a planet to see its moons.</li>
+            <li>Rest the pointer on a sun to see its first five planets. Rest it on a planet to see its moons: up to six, fanned farther out when there are more than four.</li>
             <li>Click a planet or moon to open it. Websites open in a new tab.</li>
-            <li>Click a sun to open its <strong>System</strong>, which shows all its planets. Planets that don't fit around the sun are listed below it. Use <strong>Return to Galaxy</strong>, or press <kbd>Escape</kbd>, to go back.</li>
+            <li>Click a sun to open its <strong>System</strong>. Up to eight planets circle the sun, and the rest are listed below it, along with moons that didn't fit. Use <strong>Return to Galaxy</strong>, or press <kbd>Escape</kbd>, to go back.</li>
             <li>A <strong>group planet</strong> has no link of its own; it holds related links. Rest the pointer on it, or focus it with <kbd>Tab</kbd>, to see them. Click it or press <kbd>Enter</kbd> to keep them open; click elsewhere or press <kbd>Escape</kbd> to close them again.</li>
+            <li>Circles grow to fit their longest name without splitting a word, and every planet in a view shares one size. Orbit is laid out for screens 1920×1080 and larger.</li>
           </ul>
 
           <h3>Quick find</h3>
-          <p>Type in <strong>Quick find</strong> in the top bar, or press <kbd>/</kbd> to jump there. Every word you type must match something about a link: its name, the sun or planet it sits in, its web address or computer name, its tags, or its note.</p>
+          <p>Type in <strong>Quick find</strong> in the top bar, or press <kbd>/</kbd> to jump there. Every word you type must match something about a link: its name, the sun or planet it sits in, its web address or computer name, its tags, or its note. Better matches come first, and a result found by its address says so.</p>
           <ul>
-            <li>The sun or planet a link sits in narrows a search: “tech reviews” finds the Reviews moons in Tech.</li>
+            <li>The sun or planet a link sits in only narrows a search: “tech reviews” finds the Reviews moons in Tech, while “tech” alone finds the Tech sun.</li>
             <li>Short forms work: “lab1 s3” finds <code>lab1-server3</code>. Small typos are forgiven: “engadgte” still finds Engadget.</li>
             <li>Type <code>#tag</code> or <code>tag:name</code> to see only links with that tag.</li>
-            <li>Searching from a System takes you back to the Galaxy with the results.</li>
+            <li>Searching from a System takes you back to the Galaxy with the results. A group planet's result takes you to the group in its System.</li>
           </ul>
 
           <h3>The command palette</h3>
-          <p>Press <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>Cmd</kbd>+<kbd>K</kbd> on a Mac) from anywhere. Type to search links and commands, such as <strong>Turn on Edit mode</strong>, <strong>Edit links</strong>, <strong>Show the Galaxy as a list</strong>, <strong>Switch to workspace</strong> or <strong>Run routine</strong>. Press <kbd>Enter</kbd> to run the highlighted entry.</p>
+          <p>Press <kbd>Ctrl</kbd>+<kbd>K</kbd> (<kbd>Cmd</kbd>+<kbd>K</kbd> on a Mac) from anywhere. Type to search links and commands, such as <strong>Turn on Edit mode</strong>, <strong>Edit links</strong>, <strong>Show the Galaxy as a list</strong>, <strong>Switch to workspace</strong>, <strong>Run routine</strong> or <strong>Help</strong>. <kbd>↑</kbd>, <kbd>↓</kbd>, <kbd>Page Up</kbd> and <kbd>Page Down</kbd> move; <kbd>Enter</kbd> runs the highlighted entry; <kbd>Escape</kbd> closes it.</p>
 
           <h3>Favorites and recent links</h3>
-          <p>A row above the Galaxy shows your routines, favorites and the last ten links you opened. Star a planet or moon in Quick find results, or tick <strong>Favorite</strong> in its editor. <strong>Open all</strong> at the end of the row opens every favorite at once.</p>
+          <p>A row above the Galaxy shows your routines, favorites and the last ten links you opened. Star a planet or moon in Quick find results, or tick <strong>Favorite</strong> in its editor. <strong>Open all</strong> at the end of the row opens every favorite at once. Turn the row off, or clear Recent, in <a href="#settings-galaxy">Settings → Galaxy</a>.</p>
 
           <h3>Open several links at once</h3>
           <ul>
-            <li><kbd>Shift</kbd>+click a planet to open it with all its moons. In a System, the <strong>Open a planet with all its moons</strong> buttons do the same.</li>
+            <li><kbd>Shift</kbd>+click a planet to open it with all its moons, or a group planet to open its links. In a System, the <strong>Open a planet with all its moons</strong> buttons do the same, and the command palette has <strong>Open all</strong>.</li>
             <li>Orbit asks before opening more than one tab, and leaves Remote Desktop links out.</li>
           </ul>
           <p class="note">Most browsers block every tab after the first until you allow pop-ups for Orbit. In Edge and Chrome, click the blocked pop-up icon at the right of the address bar. Orbit tells you how many were blocked.</p>
 
+          <h3>List view</h3>
+          <p>The list button in the top bar, or <a href="#settings-galaxy">Settings → Galaxy view</a>, shows the Galaxy as a compact list of every sun with its planets and moons; group planets are headings above their links. Links open the same way as on the map. Dragging works only in the Orbits view; in List view, Edit mode opens links in Edit links instead.</p>
+
           <h3>Notes and placeholders</h3>
           <ul>
-            <li>A planet or moon can have a short <strong>note</strong> (up to 500 characters), such as which account to use. It shows on hover and in search results, and Quick find matches it. Never put passwords in a note.</li>
-            <li>A web address can contain up to five <strong>placeholders</strong>, such as <code>https://jira.example.com/browse/{ticket}</code>. Opening the link asks for each value, filled in with the last ones you used. Open all and routines use the last values, and skip a link that has none yet.</li>
+            <li>A planet or moon can have a short <strong>note</strong> (up to 500 characters), such as what the page is for or which account to use. It shows on hover, in Quick find and command palette results, and in the list view, and Quick find matches it. Never put passwords in a note: notes are plain text in your browser and in exports.</li>
+            <li>A web address can contain up to five <strong>placeholders</strong>, such as <code>https://jira.example.com/browse/{ticket}</code>. Opening the link shows a small form for each value, filled in with the last ones you used, and a preview of the address. Open all and routines use the last values, and skip and count a link that has none yet. Link checking skips these links.</li>
           </ul>
         </section>
 
@@ -106,14 +110,15 @@
           <h2 id="change-the-galaxy-title">Change how the Galaxy looks</h2>
           <p>All of these are in Settings, and are saved in this browser. See the <a href="#settings">Settings reference</a> for every option.</p>
           <ul>
-            <li><strong>Theme:</strong> Default, Red, Blue or Aurora.</li>
+            <li><strong>Theme:</strong> Default, Red, Blue or Aurora (a dark violet palette).</li>
             <li><strong>Font and Font size:</strong> Inter or Orbit classic, from 90% to 130%.</li>
-            <li><strong>Background:</strong> None, or Constellations: stars that drift, link up and gather around the pointer. <strong>Particles</strong> sets how strongly they're drawn.</li>
+            <li><strong>Background:</strong> None, or Constellations: stars that drift, link up and gather around the pointer. <strong>Particles</strong> sets how strongly they're drawn. Close Settings to see the background.</li>
             <li><strong>Animations:</strong> Full, Calm or Off. Calm keeps the background still but lets it follow the pointer.</li>
-            <li><strong>List view:</strong> the list button in the top bar shows every sun, planet and moon as a compact list. Links open the same way.</li>
+            <li><strong>List view</strong> shows every sun, planet and moon as a compact list.</li>
             <li><strong>Always show moons</strong> shows moons around visible planets without hovering.</li>
             <li><strong>Show site icons</strong> adds each website's own icon to its planets and moons.</li>
             <li><strong>Sun icons:</strong> give a sun one or two characters, such as an emoji, in its editor. It appears above the sun's name.</li>
+            <li><strong>Sun descriptions</strong> can contain a link, written as <code>[label](https://example.com)</code> with an http or https address. It shows in the Galaxy and System and opens in a new tab.</li>
           </ul>
         </section>
 
@@ -125,21 +130,23 @@
           <p>Open <strong>Settings → Edit links</strong> to see the whole map as a tree beside the editor for the selected item.</p>
           <ul>
             <li>Use <strong>Add sun</strong> and <strong>Add a link</strong> at the top of the sun list.</li>
-            <li>Change a name, colour, description, sun icon, web address, Remote Desktop host, tags or note, then select <strong>Save</strong>.</li>
-            <li>The icons on each row edit, export, move up, move down or remove that item. Arrows and confirmed removals take effect at once.</li>
-            <li>In a planet or moon editor, the toolbar at the top has <strong>Save</strong>, <strong>Export</strong>, <strong>Move</strong> and <strong>Remove</strong>. Use <strong>Move</strong> to change the order, or to put the item in another sun or planet.</li>
-            <li>A sun's description can contain a link written as <code>[label](https://example.com)</code>.</li>
+            <li>Change a name, colour, description, sun icon, web address, Remote Desktop host, tags, note or favorite, then select <strong>Save</strong>.</li>
+            <li>The icons on each row edit, export, move up, move down or remove that item. Arrows and confirmed removals take effect at once. Reordering or removing from a child row keeps the parent editor open, with its unsaved fields.</li>
+            <li>The planet and moon editors keep their toolbar at the top as you scroll: <strong>Save</strong>, <strong>Export</strong>, <strong>Move</strong> and <strong>Remove</strong>, plus <strong>Copy moon</strong> for a moon. Use <strong>Move</strong> to change the order, or to put the item in another sun or planet at a chosen position.</li>
+            <li>In the sun editor, <strong>Save sun</strong> is part of the form, <strong>Export sun</strong> and the position controls are below it, and <strong>Remove sun</strong> is at the bottom.</li>
             <li>A planet or moon can have up to eight tags of letters, digits, spaces and hyphens. The sun list shows the tags in use; select one to search for it.</li>
+            <li>Team rows open read-only, with <strong>View</strong> and <strong>Export</strong>.</li>
           </ul>
+          <p>To copy a moon to another planet, open it and choose <strong>Copy moon</strong>, then pick the target. The copy keeps the destination and any Remote Desktop profile, and later edits to either are independent.</p>
 
           <h3>Edit straight from the map</h3>
           <ul>
-            <li>Rest the pointer on a sun, planet or moon and click the pencil to open its editor, or press <kbd>E</kbd> on a focused item.</li>
-            <li>Use the trash button below the pencil to remove it. <strong>Undo removal</strong> brings back the last removed item and everything in it.</li>
+            <li>Rest the pointer on a sun, planet or moon in the Orbits view or a System and click the pencil to open its editor, or press <kbd>E</kbd> on a focused item. A planet's editor also lists its moons. <strong>Back</strong> from the first editor screen, or <strong>Close</strong>, returns to the map item.</li>
+            <li>Use the trash button below the pencil to remove it. The confirmation names the item and counts what goes with it. <strong>Undo removal</strong> brings back the last removed item and everything in it, even after a reload. Replacing or resetting the map clears it; for anything older, use History.</li>
           </ul>
 
           <h3>Add a link quickly</h3>
-          <p>Paste a web address into Quick find and choose <strong>Add this link to your map</strong>, or choose <strong>Add a link</strong> in the command palette. Pick a sun to add it as a planet, or a planet to add it as a moon.</p>
+          <p>Paste a web address into Quick find and choose <strong>Add this link to your map</strong>, or choose <strong>Add a link</strong> (or <strong>Add &lt;address&gt;</strong>) in the command palette. Pick a sun to add it as a planet, or a planet to add it as a moon. <strong>Paste from clipboard</strong> fills the address when the browser allows it.</p>
 
           <h3>Group planets</h3>
           <ol class="steps">
@@ -147,35 +154,43 @@
             <li>Set <strong>Kind</strong> to <strong>Group (no link)</strong>, name it, and save.</li>
             <li>Use <strong>Add link</strong> for each website or Remote Desktop link in the group.</li>
           </ol>
-          <p>Change <strong>Kind</strong> to switch between a group and a linked planet; both keep their moons.</p>
+          <p>Groups can start empty, and can have notes and tags. Change <strong>Kind</strong> to switch between a group and a linked planet; both keep their moons. Switching to a group asks before removing the planet's address, and switching back needs a web address or Remote Desktop host. <strong>Export planet</strong> keeps the group intact; <strong>Share links as a pack</strong> exports its links for someone to import one by one.</p>
 
           <h3>Rearrange by dragging</h3>
-          <p>Turn on <strong>Edit mode</strong> in the top bar to rearrange the map with a mouse or pen. While it's on, planets and moons don't open; a sun still opens its System. Edit mode is off after every reload.</p>
+          <p>Turn on <strong>Edit mode</strong> in the top bar to rearrange the map with a mouse or pen. While it's on, planets and moons don't open, download or launch Remote Desktop; a sun still opens its System. Edit mode is off after every reload.</p>
           <ul>
             <li>Drag a planet onto another sun to move it there with all its moons. Drag a moon onto another planet.</li>
-            <li>To set the order, drag onto an item of the same kind and choose <strong>Before</strong> or <strong>After</strong>.</li>
-            <li>Pause on a sun to show its planets, or on a planet to show its moons. In a System, a list of the other suns and planets appears while you drag.</li>
-            <li><strong>Make a moon a planet:</strong> pause the moon on a sun's circle and hold on <strong>Make it a planet of</strong> until it fills, then release.</li>
-            <li><strong>Make a planet a moon:</strong> drag a planet without moons onto another planet and hold on <strong>Make it a moon of</strong>.</li>
-            <li><strong>Undo last drag</strong> reverses the most recent move.</li>
+            <li>To set the order, drag onto an item of the same kind and choose <strong>Before</strong> or <strong>After</strong>; the hint shows the position it will take. Otherwise a moved item goes to the end of its new parent.</li>
+            <li>Pause on a sun to show its planets, or on a planet to show its moons. In a System, a list of the other suns and planets appears while you drag; pause on an entry to open it.</li>
+            <li><strong>Make a moon a planet:</strong> pause the moon on a sun's circle and hold on <strong>Make it a planet of</strong> until it fills, then release. It becomes the sun's last planet, with its link, note and tags. In a System, the list beside the stage has <strong>+ New planet in</strong> each sun.</li>
+            <li><strong>Make a planet a moon:</strong> drag a planet without moons onto another planet and hold on <strong>Make it a moon of</strong>. A planet with moons, or a group, shows why it can't. Passing over these choices, or releasing without holding, changes nothing.</li>
+            <li><strong>Undo last drag</strong> reverses the most recent move, until the map changes again or the page reloads.</li>
           </ul>
-          <p>Without dragging, use <strong>Move</strong> in an item's editor, including <strong>Make it a planet of…</strong> and <strong>Make it a moon of…</strong>. Touch dragging isn't supported, and team suns can't be dragged.</p>
+          <p>A moved link keeps its name, destination and Remote Desktop profile, and reordering a sun keeps its System address. The Galaxy shows only five planets per sun and six moons per planet, so use a System, the list view or Edit links for the rest. In Edit mode, a Quick find result opens that item in Edit links. Without dragging, use <strong>Move</strong> in an item's editor, including <strong>Make it a planet of…</strong> and <strong>Make it a moon of…</strong>. Touch dragging isn't supported, and team suns can't be dragged.</p>
 
-          <h3>Import and export</h3>
+          <h3>Import</h3>
           <ul>
-            <li><strong>Import a file</strong> accepts a whole map, a single sun, a planet to add as a new sun, or a bookmarks file exported from Chrome, Edge or Firefox. For a whole map, a review shows what each sun adds; <strong>Merge into my map</strong> adds what you're missing, and <strong>Replace my map</strong> takes the whole file.</li>
-            <li><strong>Export → Whole map (JSON)</strong> downloads the open workspace's map with its routines and Remote Desktop presets.</li>
-            <li>The <strong>Export</strong> icon on a sun, planet or moon row saves just that item, for someone else to import.</li>
-            <li><strong>Share favorites</strong>, and <strong>Share</strong> beside a routine, save a small link pack. <strong>Link pack</strong> under Import reads one.</li>
+            <li><strong>Import a file</strong> accepts a whole map, a single sun, a planet to add as a new sun, or browser bookmarks.</li>
+            <li>For a whole map, a review shows what each sun adds, with every sun that adds something ticked; use <strong>Select all</strong> or <strong>Select none</strong> to change that. <strong>Merge into my map</strong> adds the ticked suns. If you already have a sun with the same id or name, Orbit adds only the links you're missing, matching links by destination and group planets by name. Routines and Remote Desktop presets have their own boxes. <strong>Replace my map</strong> takes the whole file and keeps the old map in History.</li>
+            <li>A bookmarks file exported from Chrome, Edge or Firefox: folders become suns and subfolders become group planets. Bars such as “Bookmarks bar” are unwrapped, and web links are kept. Pick which suns to merge.</li>
+            <li>A planet export imported from the sun list becomes a new sun named after the planet, with the planet inside it. To add a shared planet or moon to an existing sun or planet, use <strong>Import planet</strong> inside the sun or <strong>Import moon</strong> inside the planet. A duplicate sun id is given a new one.</li>
+            <li><strong>Link pack</strong> reads a pack file or pasted text, shows which links are new, and adds them to a new or existing sun. It can add a shared routine too.</li>
+          </ul>
+
+          <h3>Export</h3>
+          <ul>
+            <li><strong>Whole map (JSON)</strong> downloads the open workspace's map with its routines and Remote Desktop presets.</li>
+            <li>The <strong>Export</strong> icon on a sun, planet or moon row, or <strong>Export sun</strong> below the sun form, saves just that item: a sun with its planets and moons, a planet with its moons, or one moon.</li>
+            <li><strong>Share favorites</strong>, and <strong>Share</strong> beside a routine, save a small <code>orbit-pack-*.json</code> file with link names, addresses, tags and notes. A routine pack also has its name and schedule.</li>
           </ul>
 
           <h3>Tidy up and undo</h3>
           <ul>
-            <li><strong>Find duplicates</strong> lists links that point to the same place.</li>
-            <li><strong>Check links</strong> lists websites that don't answer. It needs Orbit started with <code>python3 serve.py</code>.</li>
-            <li><strong>History</strong> keeps the map from before each of the last 20 changes; restore any of them.</li>
-            <li><strong>Reset to file data</strong> replaces your browser edits with the project's map. History keeps the current one.</li>
-            <li>Orbit suggests a backup after 20 changes or 14 days without one.</li>
+            <li><strong>Find duplicates</strong> lists links that point to the same address or computer, and where each one is.</li>
+            <li><strong>Check links</strong> lists websites that don't answer, with Edit buttons. It covers web links, and needs Orbit started with <code>python3 serve.py</code>.</li>
+            <li><strong>History</strong> keeps the map and routines from before each of the last 20 changes. Restoring a version is itself a change you can undo.</li>
+            <li><strong>Reset to file data</strong> replaces your browser edits with the project's map, and has its own confirmation. History keeps the current map.</li>
+            <li>Orbit suggests a backup after 20 changes, or 14 days with changes, since your last export. Choose <strong>Back up now</strong> or <strong>Remind me later</strong> above the Galaxy or in Edit links, or turn reminders off in <a href="#settings-editing">Settings → Editing</a>.</li>
           </ul>
         </section>
 
@@ -183,10 +198,12 @@
           <h2 id="workspaces-title">Workspaces</h2>
           <p>A workspace is a separate map, such as Work and Home, with its own suns, favorites, routines, history and undo. Switch between them in the top bar or the command palette.</p>
           <ul>
-            <li>Orbit includes <strong>Main</strong> and the default <strong>Dev Toolbox</strong> workspace.</li>
-            <li>Add a workspace in <strong>Settings → Workspaces</strong>, starting from an empty map, a copy of the current one, or Main's default map. Rename or remove workspaces there too; Main always stays.</li>
+            <li>Orbit includes <strong>Main</strong> and the default <strong>Dev Toolbox</strong> workspace. Defaults are available in every browser, but aren't copied into browser storage until you change them.</li>
+            <li>Add a workspace in <a href="#settings-workspaces-and-team">Settings → Workspaces</a>, starting from an empty map, a copy of the current one, or Main's default map. Rename or remove workspaces there too; Main always stays.</li>
             <li>A removed default workspace stays removed until you add it back from its <strong>(default)</strong> option.</li>
             <li>Settings and the team map are shared by every workspace. Export, import and Reset to file data work on the open workspace.</li>
+            <li><strong>Reset to file data</strong> in Main returns to Orbit's <code>links.json</code>; in a default workspace, to that workspace's file; in a workspace you added, to a copy of Main's default map.</li>
+            <li>If your Main map still has the old Dev Toolbox sun from before it became a workspace, Orbit asks once: <strong>Remove</strong> it from Main, or <strong>Keep</strong> it.</li>
           </ul>
         </section>
 
@@ -195,34 +212,40 @@
           <p>A routine is a named set of links you open together, such as the sites you start every morning with.</p>
           <ol class="steps">
             <li>Open <strong>Settings → Edit links → Routines → New routine</strong>.</li>
-            <li>Name it, tick its planets and moons, and save.</li>
+            <li>Name it, tick its planets and moons (team links work too), and save.</li>
             <li>Click its chip above the Galaxy, or choose <strong>Run routine</strong> in the command palette, to open all its websites.</li>
           </ol>
-          <p>Tick <strong>Offer this routine when Orbit opens</strong> and choose a time and days. When you open Orbit after that time, a banner offers to open it. Browsers only open tabs after a click, so Orbit asks rather than opening them by itself.</p>
+          <p>Tick <strong>Offer this routine when Orbit opens</strong> and choose a time and days (weekdays by default). When you open Orbit on one of those days, at or after that time, a banner offers <strong>Open</strong> or <strong>Not today</strong>. Browsers only open tabs after a click, so Orbit asks rather than opening them by itself, once a day in each workspace.</p>
           <h3>Start your day with Orbit</h3>
           <ol class="steps">
-            <li>Make Orbit your browser's startup page. In Edge: <strong>Settings → Start, home, and new tabs → When Edge starts → Open these pages</strong>. In Chrome: <strong>Settings → On startup → Open a specific page or set of pages</strong>.</li>
-            <li>Open a routine once, and allow pop-ups for Orbit when the browser asks.</li>
+            <li>Make Orbit your browser's startup page, using its address (<code>file:///C:/path/to/orbit/index.html</code>, or <code>http://localhost:8000</code> with <code>serve.py</code>). In Edge: <strong>Settings → Start, home, and new tabs → When Edge starts → Open these pages</strong>. In Chrome: <strong>Settings → On startup → Open a specific page or set of pages</strong>.</li>
+            <li>Open a routine once, and allow pop-ups for Orbit when the browser asks. Until then, only the first tab opens and Orbit says how many were blocked.</li>
           </ol>
-          <p>Routines remember links by address, so renaming or moving a link keeps them working. Remote Desktop links are left out when a routine opens.</p>
+          <h3>How routines keep working</h3>
+          <ul>
+            <li>Routines remember links by address, so renaming or moving a link keeps them working. A removed link is skipped and counted. Remote Desktop links are left out when a routine opens.</li>
+            <li>Routines are saved with your map: Whole map (JSON) includes them, a whole-map import merges them under new names, and History restores them.</li>
+            <li>In Edit links, <strong>Routines</strong> lists them with Open, Share, Edit and Remove.</li>
+          </ul>
         </section>
 
         <section id="remote-desktop" aria-labelledby="remote-desktop-title">
           <h2 id="remote-desktop-title">Remote Desktop</h2>
-          <p>A planet or moon can be a <strong>Windows Remote Desktop</strong> link to a computer name or IP address, with an optional port such as <code>lab1-server1:3390</code>.</p>
+          <p>A planet or moon can be a <strong>Windows Remote Desktop</strong> link to a computer name or IP address, with an optional port such as <code>lab1-server1:3390</code>. The <strong>Labs</strong> sun has examples; change their computer names to hosts on your network.</p>
           <ul>
             <li><strong>Download .rdp file</strong> (the default): clicking the link downloads a connection file. Open it to start Remote Desktop Connection.</li>
-            <li><strong>Open mstsc.exe:</strong> clicking opens Remote Desktop Connection directly. This needs the Orbit Windows helper, installed once on that PC. Your browser may ask before opening it.</li>
+            <li><strong>Open mstsc.exe:</strong> clicking opens Remote Desktop Connection directly. This needs the Orbit Windows helper, installed once on that PC. Your browser may ask before opening it. A link with only a host connects with a credential prompt; a link with saved settings opens them for review first.</li>
           </ul>
           <h3>Install the Windows helper</h3>
           <p>From the Orbit folder, run this in Windows PowerShell 5.1, then choose <strong>Open mstsc.exe</strong> in <a href="#settings-remote-desktop">Settings → Remote Desktop</a>:</p>
           <pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\Install-OrbitRdp.ps1</code></pre>
-          <p>If only PowerShell 7 is available, run the same command with <code>pwsh.exe</code>. Re-run it after updating Orbit. To remove it, run <code>.\windows\Uninstall-OrbitRdp.ps1</code> the same way.</p>
+          <p>If only PowerShell 7 is available, run the same command with <code>pwsh.exe</code>. Re-run it after updating Orbit. To remove it, run <code>.\windows\Uninstall-OrbitRdp.ps1</code> the same way. The helper opens the built-in <code>mstsc.exe</code>; installing the separate Microsoft Remote Desktop Client doesn't install it. Orbit's <code>README.md</code> has the full details.</p>
           <h3>Saved connection settings</h3>
           <ul>
-            <li>In a planet or moon's editor, <strong>Import .rdp file</strong> keeps a saved connection's settings with that link. Save the link afterwards.</li>
-            <li>Import many at once with <strong>Import .rdp files as planets</strong> on a sun, or <strong>as moons</strong> on a planet.</li>
-            <li><strong>RDP presets</strong> save common settings, such as full screen on all monitors, for many links at once.</li>
+            <li>In a planet or moon's editor, <strong>Import .rdp file</strong> keeps a saved connection's settings with that link; review the computer address and save the link. On a new link, the file name becomes the link name if you haven't typed one. Changing the address later keeps the other settings.</li>
+            <li>Import many at once with <strong>Import .rdp files as planets</strong> on a sun, or <strong>as moons</strong> on a planet. Pick several files or a folder, or drop them on the import area, then review the names and addresses. Files that aren't <code>.rdp</code> are skipped, and an invalid <code>.rdp</code> file stops the batch. The files are read in your browser; Orbit doesn't watch the folder.</li>
+            <li><strong>RDP presets</strong> (in Edit links) save common settings, such as full screen on all monitors. Build one from common choices, edit its settings text, or start from an <code>.rdp</code> file. A link's <strong>Connection settings</strong> can use a preset or its own imported settings. Presets never contain computer addresses or passwords.</li>
+            <li>In a planet with Remote Desktop moons, <strong>Apply RDP settings to moons</strong> copies one set of settings, from a file, another moon or a preset, to the planet and its moons. Each keeps its own computer. <strong>Clear imported settings</strong> removes them.</li>
           </ul>
           <p class="note warning">Orbit never stores passwords, tokens or signatures. Exports do include the other connection settings, so review them before sharing.</p>
         </section>
@@ -233,22 +256,24 @@
           <ul>
             <li>With the local server: <code>python3 serve.py --team /path/to/team-links.json</code>.</li>
             <li>Opening <code>index.html</code> directly: <code>python3 sync.py --team /path/to/team-links.json</code>. Run <code>python3 sync.py --no-team</code> to remove it.</li>
-            <li>Team suns are read-only. Open one in Edit links to <strong>Copy</strong> it into your own map, or to hide it.</li>
-            <li>When the team file changes, a notice says what's new or removed.</li>
+            <li>Team suns are read-only: they can't be dragged or edited, and they're never saved or exported with your map. Quick find, favorites and recent links include them.</li>
+            <li>In Edit links, open a team sun, planet or moon to <strong>Copy</strong> it into your own map, or <strong>Hide this team sun</strong>. Show it again in <a href="#settings-workspaces-and-team">Settings</a>.</li>
+            <li>When the team file changes, a notice says how many links are new or removed. <strong>Show what's new</strong> lists them, and <strong>Dismiss</strong> hides the notice until the next change. Changes appear when you reload.</li>
           </ul>
         </section>
 
         <section id="keyboard" aria-labelledby="keyboard-title">
           <h2 id="keyboard-title">Keyboard</h2>
+          <p>Orbit works without a mouse.</p>
           <dl class="settings">
             <dt><kbd>/</kbd></dt><dd>Jump to Quick find. <kbd>↓</kbd> moves into the results, <kbd>↑</kbd> and <kbd>↓</kbd> move between them, and <kbd>Enter</kbd> opens one.</dd>
             <dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>Open the command palette (<kbd>Cmd</kbd>+<kbd>K</kbd> on a Mac).</dd>
-            <dt><kbd>Tab</kbd></dt><dd>Move through the page. Focusing a sun shows its planets, and focusing a planet shows its moons.</dd>
-            <dt>Arrow keys</dt><dd>Move between suns, and between planets or moons. <kbd>↓</kbd> on a planet enters its moons; <kbd>↑</kbd> goes back out.</dd>
+            <dt><kbd>Tab</kbd></dt><dd>Move through the page. Focusing a sun shows its planets, and focusing a planet shows its moons, each with a visible focus ring. In the menu, Tab stays inside it.</dd>
+            <dt>Arrow keys</dt><dd>Move between suns by position, and between planets or moons. <kbd>↓</kbd> on a planet enters its moons; <kbd>↑</kbd> goes back out.</dd>
             <dt><kbd>Enter</kbd></dt><dd>Open the focused link, or the focused sun's System.</dd>
-            <dt><kbd>E</kbd></dt><dd>Open the focused sun, planet or moon in its editor.</dd>
+            <dt><kbd>E</kbd></dt><dd>Open the focused sun, planet or moon in its editor, in the Orbits view or a System.</dd>
             <dt><kbd>Shift</kbd>+click</dt><dd>Open a planet with all its moons.</dd>
-            <dt><kbd>Escape</kbd></dt><dd>One step back at a time: hide a button tip, close the palette or menu, cancel a drag, turn Edit mode off, clear Quick find, then return from a System to the Galaxy.</dd>
+            <dt><kbd>Escape</kbd></dt><dd>One step back at a time: hide a button tip, close the palette or menu, cancel a drag, turn Edit mode off, clear Quick find, then return from a System to the Galaxy. Closing the menu returns focus to where you were.</dd>
           </dl>
         </section>
 
@@ -260,16 +285,16 @@
           <p>Opens the full editor: the whole map as a tree, with tools to import, export, find duplicates, check links, manage routines and presets, and restore history. See <a href="#edit-your-map">Edit your map</a>.</p>
 
           <h3 id="settings-active-map">Active link map</h3>
-          <p>Says whether you're seeing the map that came with Orbit or your own edits saved in this browser. Your edits take precedence until you use <strong>Reset to file data</strong>. Opening <code>index.html</code> directly and using <code>serve.py</code> keep separate browser storage; use export and import to move a map between them.</p>
+          <p>Says whether you're seeing the map that came with Orbit or your own edits saved in this browser. Your edits take precedence until you use <strong>Reset to file data</strong>. Opening <code>index.html</code> directly and using <code>serve.py</code> keep separate browser storage; use export and import to move a map between them. The editor never changes Orbit's own files, such as <code>links.json</code>.</p>
 
           <h3 id="settings-look">Look</h3>
           <dl class="settings">
             <dt>Theme</dt><dd>Default, Red, Blue or Aurora.</dd>
-            <dt>Font</dt><dd>Inter (the default), or Orbit classic: DM Sans with Space Grotesk for labels and headings. Both ship with Orbit, so it looks the same on every computer.</dd>
-            <dt>Font size</dt><dd>Small (90%), Standard (100%), Large (115%) or Extra large (130%).</dd>
+            <dt>Font</dt><dd>Inter (the default), or Orbit classic: DM Sans with Space Grotesk for labels and headings. Both ship with Orbit, so it looks the same on every computer and works offline.</dd>
+            <dt>Font size</dt><dd>Small (90%), Standard (100%), Large (115%) or Extra large (130%). Circle labels share one size per level, and long names wrap inside their circles.</dd>
             <dt>Background</dt><dd>None, or Constellations: stars that drift, link up and gather around the pointer.</dd>
             <dt>Particles</dt><dd>How strongly the Constellations are drawn: Subtle, Normal or Bold.</dd>
-            <dt>Animations</dt><dd><strong>Full</strong> (the default) animates the interface and the background. <strong>Calm</strong> holds the background still but lets it follow the pointer. <strong>Off</strong> stops animations, transitions and pointer effects. Your device's reduce-motion setting always keeps the background still.</dd>
+            <dt>Animations</dt><dd><strong>Full</strong> (the default) animates the interface and the background. <strong>Calm</strong> holds the background still but lets it follow the pointer; with Background set to None, Calm and Full look the same. <strong>Off</strong> stops animations, transitions and pointer effects. Your device's reduce-motion setting always keeps the background still.</dd>
           </dl>
 
           <h3 id="settings-galaxy">Galaxy</h3>
@@ -278,14 +303,14 @@
             <dt>Always show moons</dt><dd>Shows moons around visible planets without hovering.</dd>
             <dt>Show favorites and recent</dt><dd>The row of routines, favorites and recent links above the Galaxy.</dd>
             <dt>Clear recent links</dt><dd>Empties the recent list.</dd>
-            <dt>Show site icons</dt><dd>Adds each website's own icon, loaded from that site. Off by default, so Orbit contacts no site until you open it.</dd>
+            <dt>Show site icons</dt><dd>Adds each website's own icon, loaded from that site's <code>/favicon.ico</code>. Off by default, so Orbit contacts no site until you open it.</dd>
           </dl>
 
           <h3 id="settings-editing">Editing</h3>
           <dl class="settings">
-            <dt>Edit buttons on hover</dt><dd>Shows the pencil and trash buttons when you rest the pointer on a map item. <kbd>E</kbd> still opens the editor when they're off.</dd>
+            <dt>Edit buttons on hover</dt><dd>Shows the pencil and trash buttons when you rest the pointer on a map item, after the Button tips delay (0.8 seconds when tips are off). <kbd>E</kbd> still opens the editor when they're off.</dd>
             <dt>Button tips</dt><dd>When a button's tip appears: after 0.8 seconds (the default), after 1.5 seconds, or never.</dd>
-            <dt>Confirm before deleting</dt><dd>Asks before removing a sun, planet or moon. With it off, <strong>Undo removal</strong> is still available.</dd>
+            <dt>Confirm before deleting</dt><dd>Asks before removing a sun, planet or moon from the map or the editor. With it off, <strong>Undo removal</strong> is still available.</dd>
             <dt>Backup reminders</dt><dd>Suggests exporting a backup after 20 changes or 14 days without one.</dd>
           </dl>
 

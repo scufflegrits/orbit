@@ -124,4 +124,4 @@ Delete earlier versions' zips and checksum files from `orbit-dist`, so only the 
 
 ## What to tell the person receiving it
 
-Unzip it anywhere and open `index.html`. Everything else is in the included `README.md`: adding links, Edit mode and dragging, Settings, and the optional Windows Remote Desktop helper. If they already use Orbit, `CHANGELOG.md` says what's new, and their saved links carry over.
+Unzip it anywhere and open `index.html`. How to use Orbit is in the included Help guide, `help.html` (also opened from the **?** links in Settings). `README.md` covers running Orbit, its map files, backups, and the optional Windows Remote Desktop helper. If they already use Orbit, `CHANGELOG.md` says what's new, and their saved links carry over.
