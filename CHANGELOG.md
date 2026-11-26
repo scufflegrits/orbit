@@ -10,6 +10,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ### Changed
 
+- **Browser requirements:** Orbit now needs Edge 144, Chrome 144, Firefox 147, or Safari 26.3 or later, the first releases of 2026. Keep your browser up to date.
 - **Dev Toolbox** gains **Structurizr** in Diagramming, with **The C4 model** as its moon, so it now has 31 links. If you've already saved Dev Toolbox, use Settings → Edit links → **Reset to file data** on it to see them.
 
 ## 3.1.0 — 2026-11-26

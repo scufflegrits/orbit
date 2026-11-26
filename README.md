@@ -18,6 +18,8 @@ Orbit 3.0.0 carried over saved links, routines, workspaces, and settings from 2.
 
 Open `index.html` in your browser. No server or internet connection is needed for the page itself.
 
+**Browsers:** use an up-to-date browser. Orbit needs at least **Edge 144, Chrome 144, Firefox 147, or Safari 26.3**, the first releases of 2026. It is tested in Edge and Chrome. Firefox and Safari should work but aren't tested. In an older browser, parts of the page may lose their colours or layout.
+
 You can also run it through a local-only server:
 
 ```bash
