@@ -107,16 +107,21 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | Runner | Covers | Last local result |
 | --- | --- | --- |
 | `tests/browser_matrix.py` | Milestones 1–14, 18, 19 (`--milestone N`, `--only-new`, `--repeat N`) | 39 passed |
-| `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 31 passed (phase 2, with DD18) |
+| `tests/drag_drop.py` | DD checks (`--phase 1\|2`) | 15 passed (phase 1), 31 passed (phase 2, with DD18) |
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS12 at 1920×1080 | 23 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
-| `tests/features.py` | F01–F40, no F05 | 79 passed (both modes), with F40 for the fonts |
+| `tests/features.py` | F01–F44, no F05 (F42 is in `default_workspaces.py`) | 84 `PASS F` lines (42 checks × 2 modes) |
 | `npm run check` | Types (`tsc`), import layers, bundle up to date, icon data matches Lucide (`check:icons`) | passed |
-| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 207 passed |
+| `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 225 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
 | `tests/data_compat_check.py` | The 2.2 storage fixture reads back as recorded | passed |
+| `tests/services_check.py` | Pop-up allowance and team-map sources in server mode | 15 passed |
+| `tests/default_workspaces.py` | F42: the default Dev Toolbox workspace (five suns, 31 destinations) | 6 passed |
+| `tests/release_smoke.py` | The page loads Main and Dev Toolbox with no test hook | 3 passed |
 | `tests/perf_compare.py` | The performance recipe (`--baseline`, `--against REF [--quick]`) | baseline recorded |
+
+Last checked 2026-11-26 (Orbit 3.1.0, plus Structurizr and the tab icon). Edge 158 on the VM, per mode (file and server): drag 15, features 43 `PASS` lines, sizes 12, pending 11, compatibility 1, services 6, defaults 3.
 
 `drag_drop.py`, `orbit_sizes.py`, `pending_checks.py`, and `features.py` accept `--cdp URL` and `--url PAGE` to drive a remote browser; `features.py` also takes `--target`, `--server-mode`, and `--write-fixture DIR`, and the drag and sizing runners take `--write-fixture DIR`.
 
