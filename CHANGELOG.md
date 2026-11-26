@@ -2,32 +2,32 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
-## Unreleased
+## 3.1.0 — 2026-11-26
+
+### New
+
+- **Dev Toolbox workspace.** Dev Toolbox now ships as its own workspace beside Main, with five suns (Git, Web tools, Docs & learning, Data tools, Diagramming) and 29 developer links. Existing browsers gain it automatically. Removing it is remembered, and Settings → Workspaces can add it back. If your Main map still has the old Dev Toolbox sun, Orbit asks once whether to remove it from Main. An existing workspace you named with the `dev-toolbox` id becomes the default one and keeps your saved links until you choose Reset. Main now has nine suns and 106 links.
+- **Constellations background and Aurora theme.** Settings → **Background** → **Constellations** adds stars that drift, link up, and gather around the pointer. It's off by default. **Particles** sets how strongly they're drawn. **Aurora** is a new dark violet theme beside Default, Red, and Blue.
+- **Animations has three levels:** Full, Calm, and Off. In Calm, the Constellations background holds still but follows the pointer, while hovers and menus animate as usual. Your device's reduce-motion setting keeps the background fully still.
+- **Orbit ships its own fonts** and uses **Inter** by default, so it looks the same on every computer (before, Windows showed Segoe UI and Arial in place of fonts that weren't installed). Settings → **Font** offers **Orbit classic** (DM Sans and Space Grotesk).
+- **Change a moon into a planet, or a planet into a moon,** by drag and drop in Edit mode. Pause a moon on a sun's circle and hold on **Make it a planet**, or drag a planet without moons onto another planet and hold on **Make it a moon**. Just passing over these choices never changes anything. Edit links has **Make it a planet of…** and **Make it a moon of…** under Move too.
+- **Edit from the map:** open a sun, planet, or moon's editor from its pencil, or by pressing **E** while it has focus. Closing the editor returns focus to the map item.
+- **Removing from the map:** a trash button below the pencil, **Undo removal**, and a **Confirm before deleting** setting shared by the map and the editor (on by default).
+- **Button tips** appear on hover or keyboard focus. Settings offers a shorter delay, a longer delay, or Off. In file mode, the **Check links** tip explains how to enable the check.
+- **Import a file** reviews whole maps, suns, planets as new suns, and browser bookmarks from one picker.
 
 ### Changed
 
-- Animations now offers Full, Calm, and Off. In Calm, the Constellations background holds still but follows the pointer. Your device’s reduced-motion setting keeps the background fully still.
-- Settings is grouped under Look, Galaxy, Editing, Workspaces and team, and Remote Desktop. The Remote Desktop launch method and Windows setup are at the bottom.
-- The cog opens Settings directly. Help and About are tabs beside it.
-- Group planets show their links on hover, like a planet’s moons. Clicking one keeps them open, and an accent ring marks the pinned group.
-
-### Added
-
-- **Default workspaces:** Dev Toolbox now ships as its own workspace alongside Main. Existing browsers gain it automatically; removing it is remembered, and Settings can restore it. Defaults are not written into the saved workspace list merely by being shown. A browser that still has the old Dev Toolbox sun in Main gets a one-time Remove or Keep notice. An existing saved workspace with the `dev-toolbox` id becomes that default and keeps its saved map until Reset. Main now has nine suns, 45 planets, and 106 destinations; Dev Toolbox has five suns and 29 destinations.
-- Added the optional Constellations animated background, an Aurora theme, and a particle strength setting. The background is off by default and respects reduced motion and Orbit's Animations setting.
-
-- **Changed:** Orbit now ships its fonts and uses **Inter** by default, so it looks the same on every computer (before, Windows showed Segoe UI and Arial in place of fonts that weren't installed). Settings → **Font** offers **Orbit classic** (DM Sans and Space Grotesk).
-- **Added:** change a moon into a planet, or a planet without moons into a moon, by drag and drop in Edit mode: pause a moon on a sun's circle and hold on **Make it a planet**, or drag a planet onto another planet and hold on **Make it a moon**. Just passing over these choices never changes anything. Edit links has **Make it a planet of…** and **Make it a moon of…** under Move too.
-- Buttons and markers use [Lucide](https://lucide.dev) icons instead of text symbols (✎ ⤓ ↑ ↓ ☰ ⚙ × ★ and others), so they look the same in every browser and follow the theme color. A favorite's star is filled.
-- Grouped the Edit links tools and moved **Add sun** and **Add a link** above the sun list.
-- **Import a file** reviews whole maps, suns, planets as new suns, and browser bookmarks from one picker.
-- Added button tips that appear on hover or keyboard focus. Settings offers a shorter delay, a longer delay, or Off. In file mode, the **Check links** tip explains how to enable the check.
-- Open a sun, planet, or moon’s editor from its pencil on the map or by pressing **E** while the item has focus. Closing the editor returns focus to the map item.
-- Added **Export** beside Edit or View on planet and moon rows. Moved the sun editor’s export, position, and removal actions into separate rows from Save.
-- Added a trash button below the pencil, **Undo removal** on the map, and a **Confirm before deleting** setting shared by the map and editor. Confirmation is on by default. Map and editor removal buttons use the same outlined bin icon.
-- Put Save, Export, Move, and Remove in a sticky toolbar in planet and moon editors. Save has a floppy disk icon and a label. The planet and moon rows use icons for their Edit and Export shortcuts.
-- Added Edit, Export, Move up, Move down, and Remove icons to personal sun rows. Team sun rows offer View and Export.
-- Matched the planet, moon, and group-link rows to the sun row icons. Move and Remove work directly from the list and preserve unsaved fields in the parent editor.
+- **The cog opens Settings directly,** with Help and About as tabs beside it.
+- **Settings is grouped** under Look, Galaxy, Editing, Workspaces and team, and Remote Desktop. The Remote Desktop launch method and Windows setup are at the bottom.
+- **Group planets show their links on hover,** like a planet's moons. Clicking one keeps them open, and an accent ring marks the pinned group.
+- Buttons and markers use [Lucide](https://lucide.dev) icons instead of text symbols (✎ ⤓ ↑ ↓ ☰ ⚙ × ★ and others), so they look the same in every browser and follow the theme colour. A favourite's star is filled.
+- **Edit links is reorganised:**
+  - The tools are grouped, and **Add sun** and **Add a link** sit above the sun list.
+  - Planet and moon editors keep **Save**, **Export**, **Move**, and **Remove** in a sticky toolbar.
+  - Sun, planet, moon, and group-link rows have matching Edit, Export, Move up, Move down, and Remove icons. Team sun rows offer View and Export.
+  - Move and Remove work directly from the list and keep unsaved fields in the parent editor.
+  - The sun editor's export, position, and removal actions are in their own rows, apart from Save.
 
 ## 3.0.3 — 2026-11-22
 

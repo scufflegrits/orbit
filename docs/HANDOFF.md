@@ -4,7 +4,10 @@ Last updated 2026-11-25 for default workspaces.
 
 ## Status
 
-**Orbit 3.0.3:** group planets, the sun picker for whole-map imports, two Galaxy hover fixes, and default workspaces. Main has nine suns and 106 destinations. Dev Toolbox is a default workspace with five suns and 29 destinations.
+**Orbit 3.1.0 (2026-11-26):**
+- **New:** the Dev Toolbox default workspace, the Constellations background and Aurora theme, Full / Calm / Off animation levels, bundled fonts (Inter), moon and planet level changes, editing from the map, and Lucide icons.
+- **Changed:** Settings is grouped, the cog opens Settings directly, and group planets open on hover.
+- **Totals:** Main has nine suns and 106 destinations. Dev Toolbox is a default workspace with five suns and 29 destinations.
 
 All work is on `main`. The unreleased changes passed the planned Chromium and headless Edge 158 checks in file and server mode. **3.0.0 (2026-11-22) is the rewrite**, merged from the `rewrite` branch as one squashed commit with the user's approval; the branch was deleted and its 34 phase commits are kept under tag `rewrite-history` (one of them, `ceafb8c`, doesn't run on its own). Orbit's code is now ES modules in `src/` (layers core < state < services < ui < app, checked by `npm run check:layers`), bundled by esbuild into the committed `orbit.js`; changing `src/` needs Node (`npm install`, then `npm run build`), see README "Changing Orbit's code". The tests reach the app only through `window.OrbitTest`, which exists in the git-ignored test bundle `orbit.test.js` only. One store (`src/state/page-store.js`) is the only writer of the map and one mode store (`src/ui/page-modes.js`) owns the interaction modes; `src/app/one-owner.test.js` fails on a second owner. How it was done, phase by phase: [REWRITE_PLAN.md](plans/REWRITE_PLAN.md).
 

@@ -3,7 +3,7 @@
 "use strict";
 (() => {
   // src/app/version.js
-  var APP_VERSION = "3.0.3";
+  var APP_VERSION = "3.1.0";
 
   // src/core/destination.js
   function isGroup(item) {
