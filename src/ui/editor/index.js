@@ -2,7 +2,9 @@
 // call through (ui/editor/nav.js). Imported once by main.js.
 import { nav } from './nav.js';
 import { renderEditorTree } from './page.js';
-import { showImportReview, showMoonEditor, showPlanetEditor, showSunEditor, showSunList } from './screens.js';
+import { showImportReview } from './import-export.js';
+import { showMoonEditor, showPlanetEditor, showSunEditor } from './item-editors.js';
+import { showSunList } from './sun-list.js';
 
 export function installEditor() {
   Object.assign(nav, { showSunList, showSunEditor, showPlanetEditor, showMoonEditor, showImportReview, renderEditorTree });

@@ -9,7 +9,7 @@ import { installTestHook } from './test-hook.js';
 import { store } from '../state/page-store.js';
 import { installDrag } from '../ui/drag/drag.js';
 import { installEditor } from '../ui/editor/index.js';
-import { exportMap } from '../ui/editor/screens.js';
+import { exportMap } from '../ui/editor/import-export.js';
 import { hooks } from '../ui/hooks.js';
 import { installKeys } from '../ui/keys/keys.js';
 import { installLayout } from '../ui/layout/orbits.js';

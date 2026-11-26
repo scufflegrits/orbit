@@ -787,8 +787,8 @@ prompt for credentials:i:1\r
        * data; `team` the team suns (ids with `team:`, `team: true`).
        * @param {{seed: MapData, team?: Sun[], defaults?: {id: string, name: string, map: MapData}[]}} input
        */
-      start({ seed, team: team2 = [], defaults: bundledDefaults = [] }) {
-        defaults2 = bundledDefaults, setDefaultWorkspaces(defaults2), set({ seed, team: team2, workspace: readActiveWorkspace(), warning: "" });
+      start({ seed, team: team3 = [], defaults: bundledDefaults = [] }) {
+        defaults2 = bundledDefaults, setDefaultWorkspaces(defaults2), set({ seed, team: team3, workspace: readActiveWorkspace(), warning: "" });
         let browserMap = loadBrowserMap(), defaultMap = defaults2.find((item) => item.id === state.workspace)?.map, map = browserMap || (state.workspace === MAIN ? seed : defaultMap || { groups: [] });
         set({
           groups: [...visibleTeam(), ...map.groups],
@@ -1099,7 +1099,7 @@ prompt for credentials:i:1\r
     /** Show a menu panel (ui/menu/menu.js). @type {(name: string) => void} */
     showMenuPanel: () => {
     },
-    /** Export the personal map as JSON (ui/editor/screens.js). */
+    /** Export the personal map as JSON (ui/editor/import-export.js). */
     exportMap: () => {
     }
   };
@@ -4378,135 +4378,195 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     nav.showImportReview(map, { title: "Review bookmarks", replace: !1, label: "Imported browser bookmarks", note });
   }
 
-  // src/ui/editor/tools/bulk-rdp.js
-  function showBulkRdp(sunIndex, planetIndex) {
-    let planet = groups[sunIndex].links[planetIndex], back = () => nav.showPlanetEditor(sunIndex, planetIndex);
-    editorHeader(`RDP settings for ${planet.name}`, back), menuContent.append(element("p", "", "Apply one set of Remote Desktop settings to several links at once. Each link keeps its own computer; passwords, tokens, and signatures are never kept."));
-    let targets = [];
-    planet.type === "rdp" && targets.push({ label: `${planet.name} (this planet)`, path: [sunIndex, planetIndex], item: planet }), planet.moons.forEach((moon, moonIndex) => {
-      moon.type === "rdp" && targets.push({ label: moon.name, path: [sunIndex, planetIndex, moonIndex], item: moon });
+  // src/ui/editor/import-export.js
+  function exportMap() {
+    downloadJson({
+      groups: personalGroups(groups),
+      ...routines.length ? { routines } : {},
+      ...rdpPresets.length ? { rdpPresets } : {}
+    }, "orbit-links.json"), noteBackupMade2();
+  }
+  function reviewCheck(className, checked, parts2) {
+    let label = element("label", `editor-check ${className}`), box = (
+      /** @type {HTMLInputElement} */
+      element("input")
+    );
+    return box.type = "checkbox", box.checked = checked, label.append(box, ...parts2), { label, box };
+  }
+  function showImportReview(data, options = {}) {
+    editorHeader(options.title || "Review import", nav.showSunList);
+    let planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0), moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
+      (total, planet) => total + planet.moons.length,
+      0
+    ), 0);
+    options.note && menuContent.append(element("p", "", options.note)), menuContent.append(element("p", "", `The file has ${counted(data.groups.length, "sun")} · ${counted(planetCount, "planet")} · ${counted(moonCount, "moon")}.`));
+    let personal = personalGroups(groups), additions = sunAdditions(personal, data.groups), newRoutines = mergeRoutines(routines, data.routines || []), addedRoutines = newRoutines.length - routines.length, newPresets = mergeRoutines(rdpPresets, data.rdpPresets || []), addedPresets = newPresets.length - rdpPresets.length, picker = element("fieldset", "import-suns");
+    picker.append(element("legend", "", "Choose the suns to add"));
+    let choose = element("p", "import-sun-choose"), setAll = (text, value) => editorButton(text, () => {
+      for (let box of sunBoxes) box.disabled || (box.checked = value);
+      update();
+    }, "import-sun-all"), sunBoxes = data.groups.map((sun, index) => {
+      let adds = additions[index], something = adds.planets + adds.moons > 0 || adds.isNew, what = adds.isNew ? `new sun · ${counted(adds.planets, "planet")} · ${counted(adds.moons, "moon")}` : something ? `already yours · adds ${counted(adds.planets, "planet")}, ${counted(adds.moons, "moon")}` : "already yours · nothing new", { label, box } = reviewCheck(
+        "import-sun",
+        something,
+        [element("span", "import-sun-name", sun.name), element("span", "import-sun-adds", what)]
+      );
+      return box.disabled = !something, box.addEventListener("change", () => update()), picker.append(label), box;
     });
-    let profile = null, sourceField = element("label", "editor-field");
-    sourceField.append(element("span", "", "Settings from"));
-    let source = document.createElement("select");
-    source.setAttribute("aria-label", "Settings from");
-    let fileOption = element("option", "", "An .rdp file…");
-    fileOption.value = "file", source.append(fileOption), targets.forEach((target, index) => {
-      if (!target.item.rdpProfile) return;
-      let option = element("option", "", `${target.item.name}’s imported settings`);
-      option.value = String(index), source.append(option);
-    }), rdpPresets.forEach((preset) => {
-      let option = element("option", "", `Preset: ${preset.name}`);
-      option.value = `preset:${preset.id}`, source.append(option);
-    }), sourceField.append(source);
-    let preview = element("div", "rdp-bulk-preview"), chooseFile = editorButton("Choose .rdp file", () => {
+    choose.append(setAll("Select all", !0), setAll("Select none", !1)), picker.insertBefore(choose, picker.children[1] ?? null), menuContent.append(picker);
+    let routineBox = addedRoutines ? reviewCheck("import-extra", !0, [`Also add ${counted(addedRoutines, "routine")}`]) : null, presetBox = addedPresets ? reviewCheck("import-extra", !0, [`Also add ${counted(addedPresets, "Remote Desktop preset")}`]) : null;
+    for (let extra of [routineBox, presetBox])
+      extra && (extra.box.addEventListener("change", () => update()), menuContent.append(extra.label));
+    let summary = element("p", "import-merge-summary");
+    menuContent.append(summary);
+    let chosen = () => data.groups.filter((_, index) => sunBoxes[index].checked), merged = () => mergeMaps(personal, chosen()), actions = editorActions(), merge = editorButton("Merge into my map", () => {
+      let withRoutines = !!routineBox?.box.checked, withPresets = !!presetBox?.box.checked;
+      applyEditorChange(
+        [...groups.filter((sun) => sun.team), ...merged().groups],
+        nav.showSunList,
+        {
+          label: options.label || "Merged an imported map",
+          routines: withRoutines ? newRoutines : routines,
+          rdpPresets: withPresets ? newPresets : rdpPresets
+        }
+      );
+    }, "editor-primary");
+    function update() {
+      let { added, skipped } = merged(), routineCount = routineBox?.box.checked ? addedRoutines : 0, presetCount = presetBox?.box.checked ? addedPresets : 0, skippedLinks = skipped.planets + skipped.moons;
+      summary.textContent = `Merge adds ${counted(added.suns, "sun")}, ${counted(added.planets, "planet")}, and ${counted(added.moons, "moon")}${routineCount ? ` and ${counted(routineCount, "routine")}` : ""}${presetCount ? ` and ${counted(presetCount, "Remote Desktop preset")}` : ""}; ${counted(skippedLinks, "link")} already in your map ${skippedLinks === 1 ? "is" : "are"} skipped. Nothing in your map changes.`, merge.disabled = !(added.suns + added.planets + added.moons + routineCount + presetCount);
+    }
+    update(), actions.append(merge), options.replace !== !1 && (menuContent.append(element("p", "editor-hint", "Replace my map swaps your whole map for the file, every sun whatever is ticked. Version history keeps the current map, so you can restore it.")), actions.append(editorButton("Replace my map", () => applyEditorChange(
+      data.groups,
+      nav.showSunList,
+      { clearUndo: !0, label: "Replaced the map with an import", routines: data.routines || [], rdpPresets: data.rdpPresets || [] }
+    )))), actions.append(editorButton("Cancel", nav.showSunList));
+  }
+  function importFile() {
+    pickFile(".json,application/json,.html,.htm,text/html", async (file) => {
+      try {
+        let { text, data } = await readImportFile(file);
+        switch (importKind(data === void 0 ? text : typeof data == "string" ? null : data, file.name)) {
+          case "bookmarks":
+            return reviewBookmarks(text);
+          case "map":
+            return showImportReview(validateMap(data));
+          case "sun":
+            return reviewItem(data, "sun");
+          case "planet":
+            return reviewItem(data, "sun", null, null, "planet");
+          case "moon":
+            return editorError("This file is a moon. Import moons inside a planet: Edit → the planet → Import moon.");
+          default:
+            return editorError("This isn't an Orbit map, sun, planet, or bookmarks file.");
+        }
+      } catch (error) {
+        editorError(`Import failed: ${/** @type {Error} */
+        error.message}`);
+      }
+    });
+  }
+  function importItem(kind, sunIndex, planetIndex = null) {
+    selectJsonFile((data) => reviewItem(data, kind, sunIndex, planetIndex));
+  }
+  function reviewItem(data, kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
+    let item = validItemExport(data, kind, sourceKind), back = kind === "sun" ? nav.showSunList : kind === "planet" ? () => nav.showSunEditor(sunIndex) : () => nav.showPlanetEditor(sunIndex, planetIndex);
+    if (editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back), menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun") {
+      let planet = item.links[0];
+      menuContent.append(element("p", "", isGroup(planet) ? "The group becomes the first planet in a new sun and keeps all its links." : "The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.")), isGroup(planet) || menuContent.append(element("p", "", `Planet destination: ${planet.host || planet.url}`));
+    }
+    if (kind === "sun") {
+      let moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);
+      menuContent.append(element("p", "", `${counted(item.links.length, "planet")} · ${counted(moons, "moon")}`));
+    } else kind === "planet" ? menuContent.append(element("p", "", isGroup(item) ? item.moons.length ? counted(item.moons.length, "link") : "No links yet" : `${counted(item.moons.length, "moon")} · ${item.host || item.url}`)) : menuContent.append(element("p", "", item.host || item.url));
+    let destination = kind === "sun" ? "the Galaxy" : kind === "planet" ? `${groups[sunIndex].name} sun` : `${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet`;
+    menuContent.append(element("p", "", `Add to ${destination}. Existing links will remain.`));
+    let actions = editorActions();
+    actions.append(editorButton(`Add ${kind}`, () => {
+      let next = copyGroups(), imported = JSON.parse(JSON.stringify(item)), showNext;
+      kind === "sun" ? (next.some((sun) => sun.id === imported.id) && (imported.id = uniqueSunId(imported.name, new Set(next.map((sun) => sun.id)))), next.push(imported), showNext = () => nav.showSunEditor(next.length - 1)) : kind === "planet" ? (next[sunIndex].links.push(imported), showNext = () => nav.showPlanetEditor(sunIndex, next[sunIndex].links.length - 1)) : (next[sunIndex].links[planetIndex].moons.push(imported), showNext = () => nav.showMoonEditor(
+        sunIndex,
+        planetIndex,
+        next[sunIndex].links[planetIndex].moons.length - 1
+      )), applyEditorChange(next, showNext);
+    }, "editor-primary")), actions.append(editorButton("Cancel", back));
+  }
+  function resetMap() {
+    let id = activeWorkspace(), name = workspaceName(id), message = id === "main" ? "Replace Main's edits with its default links?" : defaultWorkspace(id) ? `Replace ${name}'s edits with its default links?` : `Replace ${name}'s map with Main's default map?`;
+    if (confirmed(message))
+      try {
+        store.resetToBundled(), nav.showSunList();
+      } catch (error) {
+        editorError(
+          /** @type {any} */
+          error.message
+        );
+      }
+  }
+
+  // src/ui/editor/fields.js
+  function destinationFields(form, destination, onRdpImported, allowGroup = !1) {
+    let type = element("label", "editor-field"), fieldName = allowGroup ? "Kind" : "Destination type";
+    type.append(element("span", "", fieldName));
+    let select = document.createElement("select");
+    select.setAttribute("aria-label", fieldName);
+    let kinds = [["web", "Website"], ["rdp", "Windows Remote Desktop"]];
+    allowGroup && kinds.push(["group", "Group (no link)"]);
+    for (let [value, label] of kinds) {
+      let option = element("option", "", label);
+      option.value = value, select.append(option);
+    }
+    select.value = destination.type || "web", type.append(select);
+    let url = editorField("Destination URL", destination.url || "", "url"), host = editorField("Computer name or IP address", destination.host || ""), rdpProfile = destination.rdpProfile || null, profileNote = element("p", "data-source", rdpProfile ? "Custom .rdp settings are saved with this link." : "No custom .rdp settings are saved."), settingsField = element("label", "editor-field");
+    settingsField.append(element("span", "", "Connection settings"));
+    let settingsSelect = document.createElement("select");
+    settingsSelect.setAttribute("aria-label", "Connection settings"), settingsField.append(settingsSelect);
+    let fillSettings = (selected) => {
+      settingsSelect.replaceChildren();
+      let add = (value, label) => {
+        let option = element("option", "", label);
+        option.value = value, settingsSelect.append(option);
+      };
+      add("none", "None (just the computer)"), rdpProfile && add("own", "Imported .rdp settings"), rdpPresets.forEach((preset) => add(`preset:${preset.id}`, `Preset: ${preset.name}`)), settingsSelect.value = [...settingsSelect.options].some((option) => option.value === selected) ? selected : "none";
+    };
+    fillSettings(destination.rdpPreset ? `preset:${destination.rdpPreset}` : rdpProfile ? "own" : "none");
+    let importRdp = editorButton("Import .rdp file", () => {
       let input = document.createElement("input");
       input.type = "file", input.accept = ".rdp,application/x-rdp", input.addEventListener("change", async () => {
         let files = input.files;
         if (files?.length)
           try {
             let parsed = parseRdpProfile(await readRdpText(files[0]));
-            setProfile(parsed.content, `${files[0].name}${parsed.removed ? ` (${counted(parsed.removed, "sensitive setting")} excluded)` : ""}`);
+            select.value = "rdp", host.input.value = parsed.host, rdpProfile = parsed.content, fillSettings("own"), profileNote.textContent = `${parsed.settings} connection settings imported. ${parsed.removed ? `${parsed.removed} password, token, or signature settings excluded. ` : ""}Save this link to keep the profile.`, update(), onRdpImported?.(files[0]);
           } catch (error) {
             editorError(`RDP import failed: ${/** @type {any} */
             error.message}`);
           }
       }), input.click();
-    }), apply = editorButton("Apply to selected links", () => {
-      let chosen = targets.filter((_, index) => boxes[index].checked);
-      if (!profile || !chosen.length) return;
-      let next = copyGroups(), preset = source.value.startsWith("preset:") ? source.value.slice(7) : null;
-      for (let target of chosen) {
-        let item = target.path.length === 3 ? next[target.path[0]].links[target.path[1]].moons[target.path[2]] : next[target.path[0]].links[target.path[1]];
-        preset ? item.rdpPreset = preset : (item.rdpProfile = parseRdpProfile(profile, item.host).content, delete item.rdpPreset);
-      }
-      applyEditorChange(next, back, { label: `Applied RDP settings to ${counted(chosen.length, "link")} in ${planet.name}` });
-    }, "editor-primary");
-    apply.disabled = !0;
-    let setProfile = (content, from) => {
-      profile = content, preview.replaceChildren(element("p", "data-source", `Settings from ${from}:`));
-      let rows = element("ul", "rdp-bulk-settings");
-      profileRows(content).filter((row) => !/^full address:/i.test(row)).forEach((row) => rows.append(element("li", "", row))), rows.children.length || rows.append(element("li", "", "Only the computer address (no other settings).")), preview.append(rows), apply.disabled = !1;
-    }, update = () => {
-      if (chooseFile.hidden = source.value !== "file", source.value === "file")
-        profile = null, preview.replaceChildren(element("p", "data-source", "Choose an .rdp file to see its settings.")), apply.disabled = !0;
-      else if (source.value.startsWith("preset:")) {
-        let preset = rdpPresets.find((item) => item.id === source.value.slice(7));
-        setProfile(`full address:s:example\r
-${preset.settings}`, `the ${preset.name} preset`);
-      } else
-        setProfile(targets[Number(source.value)].item.rdpProfile, `${targets[Number(source.value)].item.name}`);
+    }), update = () => {
+      url.wrapper.hidden = select.value !== "web", host.wrapper.hidden = select.value !== "rdp", profileNote.hidden = select.value !== "rdp", importRdp.hidden = select.value !== "rdp", settingsField.hidden = select.value !== "rdp", favorite.hidden = select.value === "group", url.input.disabled = select.value !== "web";
     };
-    source.addEventListener("change", update), menuContent.append(sourceField), editorActions().append(chooseFile), menuContent.append(preview), menuContent.append(element("h4", "editor-section-title", "Apply to"));
-    let boxes = targets.map((target) => {
-      let row = element("label", "editor-check"), box = document.createElement("input");
-      return box.type = "checkbox", box.checked = !0, row.append(box, element("span", "", `${target.label} → ${target.item.host}${target.item.rdpProfile ? " (has settings)" : ""}`)), menuContent.append(row), box;
-    }), actions = editorActions();
-    actions.append(apply), actions.append(editorButton("Clear imported settings", () => {
-      let chosen = targets.filter((_, index) => boxes[index].checked && targets[index].item.rdpProfile);
-      if (!chosen.length) return editorError("None of the selected links has imported settings.");
-      if (!confirmed(`Remove imported settings from ${counted(chosen.length, "link")}?`)) return;
-      let next = copyGroups();
-      for (let target of chosen) {
-        let item = target.path.length === 3 ? next[target.path[0]].links[target.path[1]].moons[target.path[2]] : next[target.path[0]].links[target.path[1]];
-        delete item.rdpProfile;
-      }
-      applyEditorChange(next, back, { label: `Cleared RDP settings from ${counted(chosen.length, "link")} in ${planet.name}` });
-    }, "editor-danger")), update();
+    select.addEventListener("change", update);
+    let note = editorField("Note", destination.note || "", "textarea");
+    note.input.setAttribute("aria-label", "Note"), note.input.maxLength = 500, note.input.placeholder = "Optional: what this link is for, or a hint such as which account to use", note.wrapper.append(element("small", "editor-hint", "Shown on hover and in search. Never put passwords here; notes are plain text in your browser and in exports."));
+    let tags = editorField("Tags", (destination.tags || []).join(", "));
+    tags.input.placeholder = "For example: prod, windows", tags.input.setAttribute("aria-label", "Tags"), tags.wrapper.append(element("small", "editor-hint", "Separate tags with commas. Find tagged links with #tag in Quick find."));
+    let favorite = element("label", "editor-check"), favoriteInput = document.createElement("input");
+    return favoriteInput.type = "checkbox", favoriteInput.checked = destination.favorite === !0, favorite.append(favoriteInput, element("span", "", "Favorite (shown at the top of the Galaxy)")), url.wrapper.append(element("small", "editor-hint", "Use {name} for a part that changes, such as https://jira.example.com/browse/{ticket}; Orbit asks for it when you open the link.")), form.append(type, url.wrapper, host.wrapper, settingsField, profileNote, importRdp, note.wrapper, tags.wrapper, favorite), update(), () => {
+      let extras = {
+        ...tags.input.value.trim() ? { tags: tags.input.value } : {},
+        ...favoriteInput.checked && select.value !== "group" ? { favorite: !0 } : {},
+        ...note.input.value.trim() ? { note: note.input.value } : {}
+      };
+      if (select.value === "group") return { type: "group", ...extras };
+      let choice = settingsSelect.value, keepProfile = rdpProfile && choice !== "none" ? { rdpProfile } : {}, preset = choice.startsWith("preset:") ? { rdpPreset: choice.slice(7) } : {};
+      return select.value === "rdp" ? { type: "rdp", host: host.input.value.trim(), ...keepProfile, ...preset, ...extras } : { url: url.input.value.trim(), ...extras };
+    };
   }
-
-  // src/ui/editor/tools/duplicates.js
-  function showDuplicates() {
-    editorHeader("Find duplicates", nav.showSunList);
-    let duplicates = duplicateGroups(groups);
-    if (menuContent.append(element("p", "", "Links that point to the same address or Remote Desktop computer. A copy you made on purpose shows here too; nothing is changed unless you edit or remove an item.")), !duplicates.length) {
-      menuContent.append(element("p", "editor-note", "No duplicates found."));
-      return;
-    }
-    menuContent.append(element("p", "data-source", `${counted(duplicates.length, "address", "addresses")} used more than once.`)), duplicates.forEach((list) => {
-      let block = element("div", "duplicate-group");
-      block.append(element("h4", "editor-section-title", addressText(list[0].item))), list.forEach(({ path }) => {
-        let row = element("div", "editor-list-row");
-        row.append(element("span", "", `${pathLabel(path)}${groups[path[0]].team ? " · team" : ""}`)), row.append(editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), block.append(row);
-      }), menuContent.append(block);
-    });
-  }
-
-  // src/ui/editor/tools/history.js
-  function mapCounts(list) {
-    let planets = list.reduce((sum, sun) => sum + sun.links.length, 0), moons = list.reduce((sum, sun) => sum + sun.links.reduce((total, planet) => total + planet.moons.length, 0), 0);
-    return { suns: list.length, planets, moons };
-  }
-  function countDifference(from, to) {
-    let parts2 = [];
-    for (let kind of ["suns", "planets", "moons"]) {
-      let change = to[kind] - from[kind];
-      change && parts2.push(`${change > 0 ? "+" : "−"}${counted(Math.abs(change), kind.slice(0, -1))}`);
-    }
-    return parts2.length ? parts2.join(", ") : "same counts";
-  }
-  function showHistory() {
-    editorHeader("History", nav.showSunList);
-    let entries = loadHistory(workspaceKey(KEYS.history, activeWorkspace()));
-    if (menuContent.append(element("p", "", "Orbit keeps the map as it was before each of your last 20 changes in this browser. Restoring a version is itself a change, so it can be undone here too.")), !entries.length) {
-      menuContent.append(element("p", "editor-note", "No earlier versions yet. They appear after your next change."));
-      return;
-    }
-    let current = mapCounts(personalGroups(groups)), list = element("div", "editor-list history-list");
-    entries.forEach((entry) => {
-      let counts = mapCounts(entry.groups), row = element("div", "editor-list-row history-row"), copy = element("span", "history-copy");
-      copy.append(element("strong", "", `Before: ${entry.label}`)), copy.append(element("small", "", `${new Date(entry.time).toLocaleString()} · ${counted(counts.suns, "sun")}, ${counted(counts.planets, "planet")}, ${counted(counts.moons, "moon")} · compared with now: ${countDifference(current, counts)}`)), row.append(copy, editorButton("Restore", () => {
-        confirmed(`Restore the map from ${new Date(entry.time).toLocaleString()}?`) && applyEditorChange(
-          [...groups.filter((sun) => sun.team), ...entry.groups],
-          showHistory,
-          {
-            label: `Restored the version from ${new Date(entry.time).toLocaleString()}`,
-            routines: entry.routines || [],
-            rdpPresets: entry.rdpPresets || []
-          }
-        );
-      })), list.append(row);
-    }), menuContent.append(list);
+  function editorGroup(label, ...controls) {
+    let group = element("section", "editor-group"), heading = element("h4", "editor-group-label", label);
+    heading.id = `editor-group-${label.toLowerCase().replaceAll(" ", "-")}`, group.setAttribute("aria-labelledby", heading.id);
+    let actions = element("div", "editor-actions");
+    actions.append(...controls), group.append(heading, actions), menuContent.append(group);
   }
 
   // src/services/link-check.js
@@ -4575,6 +4635,60 @@ ${preset.settings}`, `the ${preset.name} preset`);
       let row = element("div", "editor-list-row link-check-failure"), copy = element("span", "history-copy"), title = element("strong", "link-check-name", item.name);
       title.prepend(icon("triangle-alert")), copy.append(title), copy.append(element("small", "", `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`)), row.append(copy, editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), results.append(row);
     })), start2.disabled = !1, nav.renderEditorTree();
+  }
+
+  // src/ui/editor/tools/duplicates.js
+  function showDuplicates() {
+    editorHeader("Find duplicates", nav.showSunList);
+    let duplicates = duplicateGroups(groups);
+    if (menuContent.append(element("p", "", "Links that point to the same address or Remote Desktop computer. A copy you made on purpose shows here too; nothing is changed unless you edit or remove an item.")), !duplicates.length) {
+      menuContent.append(element("p", "editor-note", "No duplicates found."));
+      return;
+    }
+    menuContent.append(element("p", "data-source", `${counted(duplicates.length, "address", "addresses")} used more than once.`)), duplicates.forEach((list) => {
+      let block = element("div", "duplicate-group");
+      block.append(element("h4", "editor-section-title", addressText(list[0].item))), list.forEach(({ path }) => {
+        let row = element("div", "editor-list-row");
+        row.append(element("span", "", `${pathLabel(path)}${groups[path[0]].team ? " · team" : ""}`)), row.append(editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), block.append(row);
+      }), menuContent.append(block);
+    });
+  }
+
+  // src/ui/editor/tools/history.js
+  function mapCounts(list) {
+    let planets = list.reduce((sum, sun) => sum + sun.links.length, 0), moons = list.reduce((sum, sun) => sum + sun.links.reduce((total, planet) => total + planet.moons.length, 0), 0);
+    return { suns: list.length, planets, moons };
+  }
+  function countDifference(from, to) {
+    let parts2 = [];
+    for (let kind of ["suns", "planets", "moons"]) {
+      let change = to[kind] - from[kind];
+      change && parts2.push(`${change > 0 ? "+" : "−"}${counted(Math.abs(change), kind.slice(0, -1))}`);
+    }
+    return parts2.length ? parts2.join(", ") : "same counts";
+  }
+  function showHistory() {
+    editorHeader("History", nav.showSunList);
+    let entries = loadHistory(workspaceKey(KEYS.history, activeWorkspace()));
+    if (menuContent.append(element("p", "", "Orbit keeps the map as it was before each of your last 20 changes in this browser. Restoring a version is itself a change, so it can be undone here too.")), !entries.length) {
+      menuContent.append(element("p", "editor-note", "No earlier versions yet. They appear after your next change."));
+      return;
+    }
+    let current = mapCounts(personalGroups(groups)), list = element("div", "editor-list history-list");
+    entries.forEach((entry) => {
+      let counts = mapCounts(entry.groups), row = element("div", "editor-list-row history-row"), copy = element("span", "history-copy");
+      copy.append(element("strong", "", `Before: ${entry.label}`)), copy.append(element("small", "", `${new Date(entry.time).toLocaleString()} · ${counted(counts.suns, "sun")}, ${counted(counts.planets, "planet")}, ${counted(counts.moons, "moon")} · compared with now: ${countDifference(current, counts)}`)), row.append(copy, editorButton("Restore", () => {
+        confirmed(`Restore the map from ${new Date(entry.time).toLocaleString()}?`) && applyEditorChange(
+          [...groups.filter((sun) => sun.team), ...entry.groups],
+          showHistory,
+          {
+            label: `Restored the version from ${new Date(entry.time).toLocaleString()}`,
+            routines: entry.routines || [],
+            rdpPresets: entry.rdpPresets || []
+          }
+        );
+      })), list.append(row);
+    }), menuContent.append(list);
   }
 
   // src/ui/editor/tools/presets.js
@@ -4670,6 +4784,157 @@ ${preset.settings}`, `the ${preset.name} preset`);
     }), menuContent.append(form);
   }
 
+  // src/ui/editor/sun-list.js
+  function moveSun(index, amount, after) {
+    let target = index + amount;
+    if (!groups[index] || !groups[target] || groups[index].team || groups[target].team) return;
+    let next = copyGroups();
+    moveEntry(next, index, amount) && applyEditorChange(next, () => after(target), { label: `Reordered sun ${groups[index].name}` });
+  }
+  function sunRowActions(index, firstPersonal) {
+    return editorRowActions(groups[index].name, index - firstPersonal, groups.length - firstPersonal, [index], (amount) => {
+      let scroll = menuContent.scrollTop;
+      moveSun(index, amount, (target) => {
+        nav.showSunList(), focusMovedRow(menuContent.querySelector(".editor-list"), target, amount, scroll);
+      });
+    }, nav.showSunList);
+  }
+  function showSunList() {
+    editorHeader("Edit links", () => editorTree ? leaveEditorPage() : showMenuPanel("Settings")), menuContent.append(element("p", "", "Choose a sun to edit its planets and moons, or add, import, and export below. Changes are saved in this browser. History keeps earlier versions.")), menuContent.append(element("p", "data-source", `Active link map: ${dataSourceLabel()}`));
+    let due = backupDue2();
+    due && menuContent.append(backupReminder(due)), editorActions().append(
+      tip(editorButton("Add sun", () => nav.showSunEditor(null), "editor-primary"), "Create a new sun, a group of planets, at the end of your Galaxy."),
+      tip(editorButton("Add a link", () => showQuickAdd("")), "Add a planet or moon quickly by pasting its address.")
+    ), menuContent.append(element("h4", "editor-section-title", "Suns"));
+    let list = element("div", "editor-list"), firstPersonal = groups.findIndex((sun) => !sun.team);
+    groups.forEach((sun, index) => {
+      let summary = `${sun.icon ? `${sun.icon} ` : ""}${sun.name} · ${counted(sun.links.length, "planet")}${sun.team ? " · team, read-only" : ""}`;
+      list.append(editorExportRow(
+        "sun",
+        sun,
+        summary,
+        sun.team ? "View" : "Edit",
+        () => nav.showSunEditor(index),
+        ...sun.team ? [] : sunRowActions(index, firstPersonal)
+      ));
+    }), menuContent.append(list);
+    let hidden = team.groups.filter((sun) => hiddenTeamSuns().has(sun.id));
+    hidden.length && menuContent.append(element("p", "data-source", `${counted(hidden.length, "team sun")} hidden. Show them again in Settings.`)), editorGroup(
+      "Import",
+      tip(editorButton("Import a file", importFile), "Add from a file: a whole map (pick which suns, or replace your map), a single sun, a planet as a new sun, or a browser bookmarks file."),
+      tip(editorButton("Link pack", showPackImport), "Paste a link pack someone shared and add the links you don't have yet.")
+    ), editorGroup(
+      "Export",
+      tip(editorButton("Whole map (JSON)", exportMap), "Download your whole map, with routines and presets, as a backup or to move it to another browser."),
+      tip(editorButton("Share favorites", shareFavorites), "Copy your favorites as a link pack to send to someone.")
+    );
+    let fileMode = location.protocol === "file:", checkLinks2 = editorButton("Check links", () => {
+      fileMode || showLinkCheck();
+    });
+    fileMode && checkLinks2.setAttribute("aria-disabled", "true"), editorGroup(
+      "Organize",
+      tip(editorButton("Routines", showRoutines), "Name sets of links to open together, and have Orbit offer them at set times."),
+      tip(editorButton("RDP presets", showPresets), "Saved Remote Desktop settings (screen size, monitors) to reuse across computers."),
+      tip(editorButton("Find duplicates", showDuplicates), "List links that appear more than once in your map."),
+      tip(checkLinks2, fileMode ? "Check links needs the local server: run python3 serve.py and open http://localhost:8000." : "Test every web link and mark the ones that don't answer."),
+      tip(editorButton("History", showHistory), "Your map before each of your last 20 changes; restore any of them.")
+    ), editorGroup(
+      "Start over",
+      tip(editorButton("Reset to file data", resetMap, "editor-danger"), defaultWorkspace(activeWorkspace()) ? `Replace ${workspaceName(activeWorkspace())}'s edits with its default links.` : activeWorkspace() === "main" ? "Replace Main's edits with its default links." : `Replace ${workspaceName(activeWorkspace())}'s map with Main's default map.`),
+      element("p", "editor-hint", "History keeps the current map.")
+    );
+    let tags = tagCounts();
+    if (tags.length) {
+      menuContent.append(element("h4", "editor-section-title", "Tags"));
+      let list2 = element("div", "tag-list");
+      tags.forEach(([tag, count]) => list2.append(editorButton(`#${tag} · ${count}`, () => {
+        closeMenu(), quickFind.value = `#${tag}`, setFindQuery(quickFind.value), location.hash && location.hash !== "#" ? location.hash = "" : hooks.render();
+      }, "tag-button"))), menuContent.append(list2);
+    }
+    renderEditorTree();
+  }
+  function tagCounts() {
+    let counts = /* @__PURE__ */ new Map();
+    return groups.forEach((sun) => sun.links.forEach((planet) => [planet, ...planet.moons].forEach((item) => (item.tags || []).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1))))), [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }
+
+  // src/ui/editor/tools/bulk-rdp.js
+  function showBulkRdp(sunIndex, planetIndex) {
+    let planet = groups[sunIndex].links[planetIndex], back = () => nav.showPlanetEditor(sunIndex, planetIndex);
+    editorHeader(`RDP settings for ${planet.name}`, back), menuContent.append(element("p", "", "Apply one set of Remote Desktop settings to several links at once. Each link keeps its own computer; passwords, tokens, and signatures are never kept."));
+    let targets = [];
+    planet.type === "rdp" && targets.push({ label: `${planet.name} (this planet)`, path: [sunIndex, planetIndex], item: planet }), planet.moons.forEach((moon, moonIndex) => {
+      moon.type === "rdp" && targets.push({ label: moon.name, path: [sunIndex, planetIndex, moonIndex], item: moon });
+    });
+    let profile = null, sourceField = element("label", "editor-field");
+    sourceField.append(element("span", "", "Settings from"));
+    let source = document.createElement("select");
+    source.setAttribute("aria-label", "Settings from");
+    let fileOption = element("option", "", "An .rdp file…");
+    fileOption.value = "file", source.append(fileOption), targets.forEach((target, index) => {
+      if (!target.item.rdpProfile) return;
+      let option = element("option", "", `${target.item.name}’s imported settings`);
+      option.value = String(index), source.append(option);
+    }), rdpPresets.forEach((preset) => {
+      let option = element("option", "", `Preset: ${preset.name}`);
+      option.value = `preset:${preset.id}`, source.append(option);
+    }), sourceField.append(source);
+    let preview = element("div", "rdp-bulk-preview"), chooseFile = editorButton("Choose .rdp file", () => {
+      let input = document.createElement("input");
+      input.type = "file", input.accept = ".rdp,application/x-rdp", input.addEventListener("change", async () => {
+        let files = input.files;
+        if (files?.length)
+          try {
+            let parsed = parseRdpProfile(await readRdpText(files[0]));
+            setProfile(parsed.content, `${files[0].name}${parsed.removed ? ` (${counted(parsed.removed, "sensitive setting")} excluded)` : ""}`);
+          } catch (error) {
+            editorError(`RDP import failed: ${/** @type {any} */
+            error.message}`);
+          }
+      }), input.click();
+    }), apply = editorButton("Apply to selected links", () => {
+      let chosen = targets.filter((_, index) => boxes[index].checked);
+      if (!profile || !chosen.length) return;
+      let next = copyGroups(), preset = source.value.startsWith("preset:") ? source.value.slice(7) : null;
+      for (let target of chosen) {
+        let item = target.path.length === 3 ? next[target.path[0]].links[target.path[1]].moons[target.path[2]] : next[target.path[0]].links[target.path[1]];
+        preset ? item.rdpPreset = preset : (item.rdpProfile = parseRdpProfile(profile, item.host).content, delete item.rdpPreset);
+      }
+      applyEditorChange(next, back, { label: `Applied RDP settings to ${counted(chosen.length, "link")} in ${planet.name}` });
+    }, "editor-primary");
+    apply.disabled = !0;
+    let setProfile = (content, from) => {
+      profile = content, preview.replaceChildren(element("p", "data-source", `Settings from ${from}:`));
+      let rows = element("ul", "rdp-bulk-settings");
+      profileRows(content).filter((row) => !/^full address:/i.test(row)).forEach((row) => rows.append(element("li", "", row))), rows.children.length || rows.append(element("li", "", "Only the computer address (no other settings).")), preview.append(rows), apply.disabled = !1;
+    }, update = () => {
+      if (chooseFile.hidden = source.value !== "file", source.value === "file")
+        profile = null, preview.replaceChildren(element("p", "data-source", "Choose an .rdp file to see its settings.")), apply.disabled = !0;
+      else if (source.value.startsWith("preset:")) {
+        let preset = rdpPresets.find((item) => item.id === source.value.slice(7));
+        setProfile(`full address:s:example\r
+${preset.settings}`, `the ${preset.name} preset`);
+      } else
+        setProfile(targets[Number(source.value)].item.rdpProfile, `${targets[Number(source.value)].item.name}`);
+    };
+    source.addEventListener("change", update), menuContent.append(sourceField), editorActions().append(chooseFile), menuContent.append(preview), menuContent.append(element("h4", "editor-section-title", "Apply to"));
+    let boxes = targets.map((target) => {
+      let row = element("label", "editor-check"), box = document.createElement("input");
+      return box.type = "checkbox", box.checked = !0, row.append(box, element("span", "", `${target.label} → ${target.item.host}${target.item.rdpProfile ? " (has settings)" : ""}`)), menuContent.append(row), box;
+    }), actions = editorActions();
+    actions.append(apply), actions.append(editorButton("Clear imported settings", () => {
+      let chosen = targets.filter((_, index) => boxes[index].checked && targets[index].item.rdpProfile);
+      if (!chosen.length) return editorError("None of the selected links has imported settings.");
+      if (!confirmed(`Remove imported settings from ${counted(chosen.length, "link")}?`)) return;
+      let next = copyGroups();
+      for (let target of chosen) {
+        let item = target.path.length === 3 ? next[target.path[0]].links[target.path[1]].moons[target.path[2]] : next[target.path[0]].links[target.path[1]];
+        delete item.rdpProfile;
+      }
+      applyEditorChange(next, back, { label: `Cleared RDP settings from ${counted(chosen.length, "link")} in ${planet.name}` });
+    }, "editor-danger")), update();
+  }
+
   // src/ui/editor/tools/team.js
   function personalSunOptions() {
     return groups.flatMap((sun, index) => sun.team ? [] : [[String(index), sun.name]]);
@@ -4722,266 +4987,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
     }
   }
 
-  // src/ui/editor/screens.js
-  function destinationFields(form, destination, onRdpImported, allowGroup = !1) {
-    let type = element("label", "editor-field"), fieldName = allowGroup ? "Kind" : "Destination type";
-    type.append(element("span", "", fieldName));
-    let select = document.createElement("select");
-    select.setAttribute("aria-label", fieldName);
-    let kinds = [["web", "Website"], ["rdp", "Windows Remote Desktop"]];
-    allowGroup && kinds.push(["group", "Group (no link)"]);
-    for (let [value, label] of kinds) {
-      let option = element("option", "", label);
-      option.value = value, select.append(option);
-    }
-    select.value = destination.type || "web", type.append(select);
-    let url = editorField("Destination URL", destination.url || "", "url"), host = editorField("Computer name or IP address", destination.host || ""), rdpProfile = destination.rdpProfile || null, profileNote = element("p", "data-source", rdpProfile ? "Custom .rdp settings are saved with this link." : "No custom .rdp settings are saved."), settingsField = element("label", "editor-field");
-    settingsField.append(element("span", "", "Connection settings"));
-    let settingsSelect = document.createElement("select");
-    settingsSelect.setAttribute("aria-label", "Connection settings"), settingsField.append(settingsSelect);
-    let fillSettings = (selected) => {
-      settingsSelect.replaceChildren();
-      let add = (value, label) => {
-        let option = element("option", "", label);
-        option.value = value, settingsSelect.append(option);
-      };
-      add("none", "None (just the computer)"), rdpProfile && add("own", "Imported .rdp settings"), rdpPresets.forEach((preset) => add(`preset:${preset.id}`, `Preset: ${preset.name}`)), settingsSelect.value = [...settingsSelect.options].some((option) => option.value === selected) ? selected : "none";
-    };
-    fillSettings(destination.rdpPreset ? `preset:${destination.rdpPreset}` : rdpProfile ? "own" : "none");
-    let importRdp = editorButton("Import .rdp file", () => {
-      let input = document.createElement("input");
-      input.type = "file", input.accept = ".rdp,application/x-rdp", input.addEventListener("change", async () => {
-        let files = input.files;
-        if (files?.length)
-          try {
-            let parsed = parseRdpProfile(await readRdpText(files[0]));
-            select.value = "rdp", host.input.value = parsed.host, rdpProfile = parsed.content, fillSettings("own"), profileNote.textContent = `${parsed.settings} connection settings imported. ${parsed.removed ? `${parsed.removed} password, token, or signature settings excluded. ` : ""}Save this link to keep the profile.`, update(), onRdpImported?.(files[0]);
-          } catch (error) {
-            editorError(`RDP import failed: ${/** @type {any} */
-            error.message}`);
-          }
-      }), input.click();
-    }), update = () => {
-      url.wrapper.hidden = select.value !== "web", host.wrapper.hidden = select.value !== "rdp", profileNote.hidden = select.value !== "rdp", importRdp.hidden = select.value !== "rdp", settingsField.hidden = select.value !== "rdp", favorite.hidden = select.value === "group", url.input.disabled = select.value !== "web";
-    };
-    select.addEventListener("change", update);
-    let note = editorField("Note", destination.note || "", "textarea");
-    note.input.setAttribute("aria-label", "Note"), note.input.maxLength = 500, note.input.placeholder = "Optional: what this link is for, or a hint such as which account to use", note.wrapper.append(element("small", "editor-hint", "Shown on hover and in search. Never put passwords here; notes are plain text in your browser and in exports."));
-    let tags = editorField("Tags", (destination.tags || []).join(", "));
-    tags.input.placeholder = "For example: prod, windows", tags.input.setAttribute("aria-label", "Tags"), tags.wrapper.append(element("small", "editor-hint", "Separate tags with commas. Find tagged links with #tag in Quick find."));
-    let favorite = element("label", "editor-check"), favoriteInput = document.createElement("input");
-    return favoriteInput.type = "checkbox", favoriteInput.checked = destination.favorite === !0, favorite.append(favoriteInput, element("span", "", "Favorite (shown at the top of the Galaxy)")), url.wrapper.append(element("small", "editor-hint", "Use {name} for a part that changes, such as https://jira.example.com/browse/{ticket}; Orbit asks for it when you open the link.")), form.append(type, url.wrapper, host.wrapper, settingsField, profileNote, importRdp, note.wrapper, tags.wrapper, favorite), update(), () => {
-      let extras = {
-        ...tags.input.value.trim() ? { tags: tags.input.value } : {},
-        ...favoriteInput.checked && select.value !== "group" ? { favorite: !0 } : {},
-        ...note.input.value.trim() ? { note: note.input.value } : {}
-      };
-      if (select.value === "group") return { type: "group", ...extras };
-      let choice = settingsSelect.value, keepProfile = rdpProfile && choice !== "none" ? { rdpProfile } : {}, preset = choice.startsWith("preset:") ? { rdpPreset: choice.slice(7) } : {};
-      return select.value === "rdp" ? { type: "rdp", host: host.input.value.trim(), ...keepProfile, ...preset, ...extras } : { url: url.input.value.trim(), ...extras };
-    };
-  }
-  function exportMap() {
-    downloadJson({
-      groups: personalGroups(groups),
-      ...routines.length ? { routines } : {},
-      ...rdpPresets.length ? { rdpPresets } : {}
-    }, "orbit-links.json"), noteBackupMade2();
-  }
-  function reviewCheck(className, checked, parts2) {
-    let label = element("label", `editor-check ${className}`), box = (
-      /** @type {HTMLInputElement} */
-      element("input")
-    );
-    return box.type = "checkbox", box.checked = checked, label.append(box, ...parts2), { label, box };
-  }
-  function showImportReview(data, options = {}) {
-    editorHeader(options.title || "Review import", showSunList);
-    let planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0), moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
-      (total, planet) => total + planet.moons.length,
-      0
-    ), 0);
-    options.note && menuContent.append(element("p", "", options.note)), menuContent.append(element("p", "", `The file has ${counted(data.groups.length, "sun")} · ${counted(planetCount, "planet")} · ${counted(moonCount, "moon")}.`));
-    let personal = personalGroups(groups), additions = sunAdditions(personal, data.groups), newRoutines = mergeRoutines(routines, data.routines || []), addedRoutines = newRoutines.length - routines.length, newPresets = mergeRoutines(rdpPresets, data.rdpPresets || []), addedPresets = newPresets.length - rdpPresets.length, picker = element("fieldset", "import-suns");
-    picker.append(element("legend", "", "Choose the suns to add"));
-    let choose = element("p", "import-sun-choose"), setAll = (text, value) => editorButton(text, () => {
-      for (let box of sunBoxes) box.disabled || (box.checked = value);
-      update();
-    }, "import-sun-all"), sunBoxes = data.groups.map((sun, index) => {
-      let adds = additions[index], something = adds.planets + adds.moons > 0 || adds.isNew, what = adds.isNew ? `new sun · ${counted(adds.planets, "planet")} · ${counted(adds.moons, "moon")}` : something ? `already yours · adds ${counted(adds.planets, "planet")}, ${counted(adds.moons, "moon")}` : "already yours · nothing new", { label, box } = reviewCheck(
-        "import-sun",
-        something,
-        [element("span", "import-sun-name", sun.name), element("span", "import-sun-adds", what)]
-      );
-      return box.disabled = !something, box.addEventListener("change", () => update()), picker.append(label), box;
-    });
-    choose.append(setAll("Select all", !0), setAll("Select none", !1)), picker.insertBefore(choose, picker.children[1] ?? null), menuContent.append(picker);
-    let routineBox = addedRoutines ? reviewCheck("import-extra", !0, [`Also add ${counted(addedRoutines, "routine")}`]) : null, presetBox = addedPresets ? reviewCheck("import-extra", !0, [`Also add ${counted(addedPresets, "Remote Desktop preset")}`]) : null;
-    for (let extra of [routineBox, presetBox])
-      extra && (extra.box.addEventListener("change", () => update()), menuContent.append(extra.label));
-    let summary = element("p", "import-merge-summary");
-    menuContent.append(summary);
-    let chosen = () => data.groups.filter((_, index) => sunBoxes[index].checked), merged = () => mergeMaps(personal, chosen()), actions = editorActions(), merge = editorButton("Merge into my map", () => {
-      let withRoutines = !!routineBox?.box.checked, withPresets = !!presetBox?.box.checked;
-      applyEditorChange(
-        [...groups.filter((sun) => sun.team), ...merged().groups],
-        showSunList,
-        {
-          label: options.label || "Merged an imported map",
-          routines: withRoutines ? newRoutines : routines,
-          rdpPresets: withPresets ? newPresets : rdpPresets
-        }
-      );
-    }, "editor-primary");
-    function update() {
-      let { added, skipped } = merged(), routineCount = routineBox?.box.checked ? addedRoutines : 0, presetCount = presetBox?.box.checked ? addedPresets : 0, skippedLinks = skipped.planets + skipped.moons;
-      summary.textContent = `Merge adds ${counted(added.suns, "sun")}, ${counted(added.planets, "planet")}, and ${counted(added.moons, "moon")}${routineCount ? ` and ${counted(routineCount, "routine")}` : ""}${presetCount ? ` and ${counted(presetCount, "Remote Desktop preset")}` : ""}; ${counted(skippedLinks, "link")} already in your map ${skippedLinks === 1 ? "is" : "are"} skipped. Nothing in your map changes.`, merge.disabled = !(added.suns + added.planets + added.moons + routineCount + presetCount);
-    }
-    update(), actions.append(merge), options.replace !== !1 && (menuContent.append(element("p", "editor-hint", "Replace my map swaps your whole map for the file, every sun whatever is ticked. Version history keeps the current map, so you can restore it.")), actions.append(editorButton("Replace my map", () => applyEditorChange(
-      data.groups,
-      showSunList,
-      { clearUndo: !0, label: "Replaced the map with an import", routines: data.routines || [], rdpPresets: data.rdpPresets || [] }
-    )))), actions.append(editorButton("Cancel", showSunList));
-  }
-  function importFile() {
-    pickFile(".json,application/json,.html,.htm,text/html", async (file) => {
-      try {
-        let { text, data } = await readImportFile(file);
-        switch (importKind(data === void 0 ? text : typeof data == "string" ? null : data, file.name)) {
-          case "bookmarks":
-            return reviewBookmarks(text);
-          case "map":
-            return showImportReview(validateMap(data));
-          case "sun":
-            return reviewItem(data, "sun");
-          case "planet":
-            return reviewItem(data, "sun", null, null, "planet");
-          case "moon":
-            return editorError("This file is a moon. Import moons inside a planet: Edit → the planet → Import moon.");
-          default:
-            return editorError("This isn't an Orbit map, sun, planet, or bookmarks file.");
-        }
-      } catch (error) {
-        editorError(`Import failed: ${/** @type {Error} */
-        error.message}`);
-      }
-    });
-  }
-  function importItem(kind, sunIndex, planetIndex = null) {
-    selectJsonFile((data) => reviewItem(data, kind, sunIndex, planetIndex));
-  }
-  function reviewItem(data, kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
-    let item = validItemExport(data, kind, sourceKind), back = kind === "sun" ? showSunList : kind === "planet" ? () => showSunEditor(sunIndex) : () => showPlanetEditor(sunIndex, planetIndex);
-    if (editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back), menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun") {
-      let planet = item.links[0];
-      menuContent.append(element("p", "", isGroup(planet) ? "The group becomes the first planet in a new sun and keeps all its links." : "The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.")), isGroup(planet) || menuContent.append(element("p", "", `Planet destination: ${planet.host || planet.url}`));
-    }
-    if (kind === "sun") {
-      let moons = item.links.reduce((sum, planet) => sum + planet.moons.length, 0);
-      menuContent.append(element("p", "", `${counted(item.links.length, "planet")} · ${counted(moons, "moon")}`));
-    } else kind === "planet" ? menuContent.append(element("p", "", isGroup(item) ? item.moons.length ? counted(item.moons.length, "link") : "No links yet" : `${counted(item.moons.length, "moon")} · ${item.host || item.url}`)) : menuContent.append(element("p", "", item.host || item.url));
-    let destination = kind === "sun" ? "the Galaxy" : kind === "planet" ? `${groups[sunIndex].name} sun` : `${groups[sunIndex].name} sun → ${groups[sunIndex].links[planetIndex].name} planet`;
-    menuContent.append(element("p", "", `Add to ${destination}. Existing links will remain.`));
-    let actions = editorActions();
-    actions.append(editorButton(`Add ${kind}`, () => {
-      let next = copyGroups(), imported = JSON.parse(JSON.stringify(item)), showNext;
-      kind === "sun" ? (next.some((sun) => sun.id === imported.id) && (imported.id = uniqueSunId(imported.name, new Set(next.map((sun) => sun.id)))), next.push(imported), showNext = () => showSunEditor(next.length - 1)) : kind === "planet" ? (next[sunIndex].links.push(imported), showNext = () => showPlanetEditor(sunIndex, next[sunIndex].links.length - 1)) : (next[sunIndex].links[planetIndex].moons.push(imported), showNext = () => showMoonEditor(
-        sunIndex,
-        planetIndex,
-        next[sunIndex].links[planetIndex].moons.length - 1
-      )), applyEditorChange(next, showNext);
-    }, "editor-primary")), actions.append(editorButton("Cancel", back));
-  }
-  function resetMap() {
-    let id = activeWorkspace(), name = workspaceName(id), message = id === "main" ? "Replace Main's edits with its default links?" : defaultWorkspace(id) ? `Replace ${name}'s edits with its default links?` : `Replace ${name}'s map with Main's default map?`;
-    if (confirmed(message))
-      try {
-        store.resetToBundled(), showSunList();
-      } catch (error) {
-        editorError(
-          /** @type {any} */
-          error.message
-        );
-      }
-  }
-  function editorGroup(label, ...controls) {
-    let group = element("section", "editor-group"), heading = element("h4", "editor-group-label", label);
-    heading.id = `editor-group-${label.toLowerCase().replaceAll(" ", "-")}`, group.setAttribute("aria-labelledby", heading.id);
-    let actions = element("div", "editor-actions");
-    actions.append(...controls), group.append(heading, actions), menuContent.append(group);
-  }
-  function moveSun(index, amount, after) {
-    let target = index + amount;
-    if (!groups[index] || !groups[target] || groups[index].team || groups[target].team) return;
-    let next = copyGroups();
-    moveEntry(next, index, amount) && applyEditorChange(next, () => after(target), { label: `Reordered sun ${groups[index].name}` });
-  }
-  function sunRowActions(index, firstPersonal) {
-    return editorRowActions(groups[index].name, index - firstPersonal, groups.length - firstPersonal, [index], (amount) => {
-      let scroll = menuContent.scrollTop;
-      moveSun(index, amount, (target) => {
-        showSunList(), focusMovedRow(menuContent.querySelector(".editor-list"), target, amount, scroll);
-      });
-    }, showSunList);
-  }
-  function showSunList() {
-    editorHeader("Edit links", () => editorTree ? leaveEditorPage() : showMenuPanel("Settings")), menuContent.append(element("p", "", "Choose a sun to edit its planets and moons, or add, import, and export below. Changes are saved in this browser. History keeps earlier versions.")), menuContent.append(element("p", "data-source", `Active link map: ${dataSourceLabel()}`));
-    let due = backupDue2();
-    due && menuContent.append(backupReminder(due)), editorActions().append(
-      tip(editorButton("Add sun", () => showSunEditor(null), "editor-primary"), "Create a new sun, a group of planets, at the end of your Galaxy."),
-      tip(editorButton("Add a link", () => showQuickAdd("")), "Add a planet or moon quickly by pasting its address.")
-    ), menuContent.append(element("h4", "editor-section-title", "Suns"));
-    let list = element("div", "editor-list"), firstPersonal = groups.findIndex((sun) => !sun.team);
-    groups.forEach((sun, index) => {
-      let summary = `${sun.icon ? `${sun.icon} ` : ""}${sun.name} · ${counted(sun.links.length, "planet")}${sun.team ? " · team, read-only" : ""}`;
-      list.append(editorExportRow(
-        "sun",
-        sun,
-        summary,
-        sun.team ? "View" : "Edit",
-        () => showSunEditor(index),
-        ...sun.team ? [] : sunRowActions(index, firstPersonal)
-      ));
-    }), menuContent.append(list);
-    let hidden = team.groups.filter((sun) => hiddenTeamSuns().has(sun.id));
-    hidden.length && menuContent.append(element("p", "data-source", `${counted(hidden.length, "team sun")} hidden. Show them again in Settings.`)), editorGroup(
-      "Import",
-      tip(editorButton("Import a file", importFile), "Add from a file: a whole map (pick which suns, or replace your map), a single sun, a planet as a new sun, or a browser bookmarks file."),
-      tip(editorButton("Link pack", showPackImport), "Paste a link pack someone shared and add the links you don't have yet.")
-    ), editorGroup(
-      "Export",
-      tip(editorButton("Whole map (JSON)", exportMap), "Download your whole map, with routines and presets, as a backup or to move it to another browser."),
-      tip(editorButton("Share favorites", shareFavorites), "Copy your favorites as a link pack to send to someone.")
-    );
-    let fileMode = location.protocol === "file:", checkLinks2 = editorButton("Check links", () => {
-      fileMode || showLinkCheck();
-    });
-    fileMode && checkLinks2.setAttribute("aria-disabled", "true"), editorGroup(
-      "Organize",
-      tip(editorButton("Routines", showRoutines), "Name sets of links to open together, and have Orbit offer them at set times."),
-      tip(editorButton("RDP presets", showPresets), "Saved Remote Desktop settings (screen size, monitors) to reuse across computers."),
-      tip(editorButton("Find duplicates", showDuplicates), "List links that appear more than once in your map."),
-      tip(checkLinks2, fileMode ? "Check links needs the local server: run python3 serve.py and open http://localhost:8000." : "Test every web link and mark the ones that don't answer."),
-      tip(editorButton("History", showHistory), "Your map before each of your last 20 changes; restore any of them.")
-    ), editorGroup(
-      "Start over",
-      tip(editorButton("Reset to file data", resetMap, "editor-danger"), defaultWorkspace(activeWorkspace()) ? `Replace ${workspaceName(activeWorkspace())}'s edits with its default links.` : activeWorkspace() === "main" ? "Replace Main's edits with its default links." : `Replace ${workspaceName(activeWorkspace())}'s map with Main's default map.`),
-      element("p", "editor-hint", "History keeps the current map.")
-    );
-    let tags = tagCounts();
-    if (tags.length) {
-      menuContent.append(element("h4", "editor-section-title", "Tags"));
-      let list2 = element("div", "tag-list");
-      tags.forEach(([tag, count]) => list2.append(editorButton(`#${tag} · ${count}`, () => {
-        closeMenu(), quickFind.value = `#${tag}`, setFindQuery(quickFind.value), location.hash && location.hash !== "#" ? location.hash = "" : hooks.render();
-      }, "tag-button"))), menuContent.append(list2);
-    }
-    renderEditorTree();
-  }
-  function tagCounts() {
-    let counts = /* @__PURE__ */ new Map();
-    return groups.forEach((sun) => sun.links.forEach((planet) => [planet, ...planet.moons].forEach((item) => (item.tags || []).forEach((tag) => counts.set(tag, (counts.get(tag) || 0) + 1))))), [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  }
+  // src/ui/editor/item-editors.js
   function childItems(map, parentPath) {
     let [sun, planet] = parentPath, planets = map[sun].links;
     return parentPath.length === 1 ? planets : planets[planet].moons;

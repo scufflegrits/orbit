@@ -11,6 +11,6 @@ export const hooks = {
   openMenu: () => {},
   /** Show a menu panel (ui/menu/menu.js). @type {(name: string) => void} */
   showMenuPanel: () => {},
-  /** Export the personal map as JSON (ui/editor/screens.js). */
+  /** Export the personal map as JSON (ui/editor/import-export.js). */
   exportMap: () => {},
 };
