@@ -4,6 +4,10 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ## Unreleased
 
+### New
+
+- **Orbit has a tab icon:** an orbit symbol on a dark square, so its tab is easy to find. Before, the tab showed the browser's blank page icon.
+
 ### Changed
 
 - **Dev Toolbox** gains **Structurizr** in Diagramming, with **The C4 model** as its moon, so it now has 31 links. If you've already saved Dev Toolbox, use Settings → Edit links → **Reset to file data** on it to see them.

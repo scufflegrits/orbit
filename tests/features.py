@@ -2703,12 +2703,28 @@ def f43_settings_layout(ctx):
     print(f"PASS F43 Settings layout ({mode})")
 
 
+# ---- F44 Page icon ---------------------------------------------------------------
+
+def f44_page_icon(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    href = page.evaluate("document.querySelector('link[rel=icon]')?.getAttribute('href') ?? null")
+    check(bool(href) and href.startswith("data:image/svg+xml,"),
+          f"{mode}: the page has its own icon, inside index.html ({href and href[:40]})")
+    # Headless browsers don't fetch tab icons, so load it as an image to prove the SVG is valid.
+    size = page.evaluate("""href => new Promise(done => { const image = new Image();
+      image.onload = () => done([image.naturalWidth, image.naturalHeight]); image.onerror = () => done(null);
+      image.src = href; })""", href)
+    check(size is not None and size[0] > 0 and size[1] > 0, f"{mode}: the icon draws ({size})")
+    print(f"PASS F44 Page icon ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
           f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
-          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout)
+          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout, f44_page_icon)
 
 
 def run_checks(make_ctx, only):

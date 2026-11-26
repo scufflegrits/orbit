@@ -4,7 +4,7 @@ Orbit includes the following third-party material. Its own notices are reproduce
 
 ## Lucide icons
 
-Orbit draws its interface icons from [Lucide](https://lucide.dev) (`lucide-static` 1.79.0; the icons used are listed in `scripts/icons.mjs`, and their shapes are in `src/ui/icon-data.js` and the built `orbit.js`). Some Lucide icons are derived from the Feather project. The full licence text, as published with `lucide-static` 1.79.0:
+Orbit draws its interface icons from [Lucide](https://lucide.dev) (`lucide-static` 1.79.0; the icons used are listed in `scripts/icons.mjs`, and their shapes are in `src/ui/icon-data.js` and the built `orbit.js`; the browser-tab icon in `index.html` is Lucide's "orbit" icon on a dark square). Some Lucide icons are derived from the Feather project. The full licence text, as published with `lucide-static` 1.79.0:
 
 ```text
 ISC License
