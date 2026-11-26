@@ -111,7 +111,7 @@ Local tests use Python Playwright with its Chromium. Each runner checks file mod
 | `tests/orbit_sizes.py` | OS01–OS06, OS08–OS12 at 1920×1080 | 23 passed |
 | `tests/pending_checks.py` | B09, B11, milestones 15–17 (`--only`) | 21 passed |
 | `tests/features.py` | F01–F44, no F05 (F42 is in `default_workspaces.py`) | 84 `PASS F` lines (42 checks × 2 modes) |
-| `npm run check` | Types (`tsc`), import layers, bundle up to date, icon data matches Lucide (`check:icons`) | passed |
+| `npm run check` | Type-checks JavaScript with TypeScript (`tsc --noEmit -p jsconfig.json`). Layer, bundle, and icon checks run separately with `npm run check:layers`, `npm run check:bundle`, and `npm run check:icons`. | passed |
 | `npm run test:unit` | Node tests in `src/**/*.test.js`: examples, property tests, and differential tests against 2.2.1 (`tests/oracle/`). A deliberate behavior change fails its differential test: update the expected result there, don't delete the test | 225 passed |
 | `tests/behavior_check.mjs` | 2.2.1's pure rules (V, D, S, M), read from tag `v2.2.1` | 22 passed |
 | `tests/mode_rules_check.py` | Interaction-mode rules MR01–MR12 | 23 passed |
