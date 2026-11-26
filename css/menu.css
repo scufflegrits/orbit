@@ -144,8 +144,8 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
 .editor-open { width: 100%; margin-top: 0; text-align: left; }
 .editor-primary { border-color: var(--theme-accent); background: color-mix(in srgb, var(--theme-accent) 18%, transparent); color: var(--text); }
 .editor-primary:hover { background: color-mix(in srgb, var(--theme-accent) 29%, transparent); }
-.editor-danger { border-color: rgba(245, 167, 200, .45); color: #ffd5e4; }
-.editor-danger:hover { background: rgba(245, 167, 200, .14); }
+.editor-danger { border-color: rgb(from var(--danger) r g b / .45); color: var(--danger-ink); }
+.editor-danger:hover { background: rgb(from var(--danger) r g b / .14); }
 .editor-back { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; }
 .editor-header { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
 .menu-content .editor-header h3 { margin: 0; }
@@ -289,4 +289,4 @@ html:has(.menu-sheet.editor-page-mode) { overflow: hidden; }
 .editor-sun-removal { margin-top: 24px; }
 .menu-content .editor-sun-removal .editor-hint { margin: 0; }
 
-.editor-error { padding: 10px 12px; border-radius: 9px; background: rgba(245, 167, 200, .12); color: #ffd5e4; }
+.editor-error { padding: 10px 12px; border-radius: 9px; background: rgb(from var(--danger) r g b / .12); color: var(--danger-ink); }

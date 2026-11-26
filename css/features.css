@@ -68,7 +68,7 @@
 }
 .favorite-toggle .icon { width: 17px; height: 17px; }
 .favorite-toggle:hover, .favorite-toggle:focus-visible { border-color: var(--theme-accent); color: var(--text); }
-.favorite-toggle.is-favorite { color: #ffd166; }
+.favorite-toggle.is-favorite { color: var(--favorite); }
 .find-why { color: var(--theme-accent) !important; }
 .tag-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 4px; }
 .find-copy .tag-chips { margin-left: 0; }
@@ -136,7 +136,7 @@
 .list-moon .list-link { color: var(--muted-strong); font-weight: 500; font-size: calc(12px * var(--font-scale)); }
 .list-group { margin: 0; font-weight: 700; cursor: default; }
 .list-link:not(.list-group):hover, .list-link:focus-visible { color: var(--theme-accent); text-decoration: underline; }
-.list-favorite { margin-inline-start: 5px; color: #ffd166; }
+.list-favorite { margin-inline-start: 5px; color: var(--favorite); }
 .list-favorite .icon { width: 12px; height: 12px; vertical-align: -1px; }
 .list-empty { color: var(--subtle); }
 
@@ -317,10 +317,10 @@
 .map-edit-button .icon, .map-remove-button .icon { width: 14px; height: 14px; }
 .map-edit-button:hover { background: var(--hover-base); }
 .map-remove-button {
-  border-color: rgba(245, 167, 200, .5);
-  color: #ffd5e4;
+  border-color: rgb(from var(--danger) r g b / .5);
+  color: var(--danger-ink);
 }
-.map-remove-button:hover { background: color-mix(in srgb, #f5a7c8 17%, var(--surface)); }
+.map-remove-button:hover { background: color-mix(in srgb, var(--danger) 17%, var(--surface)); }
 
 .map-removal-notice {
   position: fixed;
