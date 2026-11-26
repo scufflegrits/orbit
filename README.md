@@ -6,7 +6,7 @@ To rearrange the map, turn on **Edit mode** in the top bar and drag suns, planet
 
 Use **Quick find** in the top bar on the Galaxy or any System to search suns, planets, and moons by name, web address, computer name, or tag; see [Find and open links](#find-and-open-links). Searching from a System returns to the Galaxy with matching results. Press `Ctrl+K` for the command palette.
 
-Orbit includes **Main** and the default **Dev Toolbox** workspace. Main has nine suns, 45 planets, and 106 destinations; Dev Toolbox has five suns and 29 destinations. Dev Toolbox collects Git, web, documentation, data, and diagramming tools.
+Orbit includes **Main** and the default **Dev Toolbox** workspace. Main has nine suns, 45 planets, and 106 destinations; Dev Toolbox has five suns and 31 destinations. Dev Toolbox collects Git, web, documentation, data, and diagramming tools.
 
 ## What's new in 3.0
 

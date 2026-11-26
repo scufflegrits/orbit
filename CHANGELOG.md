@@ -2,6 +2,12 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
+## Unreleased
+
+### Changed
+
+- **Dev Toolbox** gains **Structurizr** in Diagramming, with **The C4 model** as its moon, so it now has 31 links. If you've already saved Dev Toolbox, use Settings → Edit links → **Reset to file data** on it to see them.
+
 ## 3.1.0 — 2026-11-26
 
 ### New

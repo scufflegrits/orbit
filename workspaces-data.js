@@ -168,6 +168,16 @@ window.ORBIT_WORKSPACES = [
             {
               "name": "Graphviz",
               "url": "https://graphviz.org/"
+            },
+            {
+              "name": "Structurizr",
+              "url": "https://structurizr.com/",
+              "moons": [
+                {
+                  "name": "The C4 model",
+                  "url": "https://c4model.com/"
+                }
+              ]
             }
           ]
         }

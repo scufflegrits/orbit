@@ -45,7 +45,7 @@ def run_mode(page, mode, url, legacy):
         check(switch.locator("option").all_inner_texts() == ["Main", "Dev Toolbox"], f"{mode}: default appears in workspace switch")
         switch.select_option("dev-toolbox")
         check(page.locator(".home-hub").count() == 5, f"{mode}: Dev Toolbox has five suns")
-        check("29 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: Dev Toolbox has 29 destinations")
+        check("31 LINKS" in page.locator("#link-count").inner_text(), f"{mode}: Dev Toolbox has 31 destinations")
         if not mode.startswith("Edge"):
             page.screenshot(path=str(ARTIFACTS / f"f42-{mode}-dev-toolbox.png"), full_page=True)
         keys = page.evaluate("Object.keys(localStorage).filter(k => k.startsWith('orbit:')).sort()")

@@ -47,7 +47,7 @@ def run(page, url, mode):
           f"{mode}: showing the defaults writes no browser data")
     page.locator("#workspace-switch").select_option("dev-toolbox")
     page.locator(".home-hub").first.wait_for()
-    check(page.locator(".home-hub").count() == 5 and "29 LINKS" in page.locator("#link-count").inner_text(),
+    check(page.locator(".home-hub").count() == 5 and "31 LINKS" in page.locator("#link-count").inner_text(),
           f"{mode}: Dev Toolbox loads its bundled map")
     page.locator("#workspace-switch").select_option("main")
 

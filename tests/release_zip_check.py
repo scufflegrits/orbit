@@ -36,7 +36,7 @@ def main():
         assert page.locator(".home-hub").count() == suns and f"{suns} SUNS" in count and f"{links} LINKS" in count, count
         assert page.locator("#workspace-switch option").all_inner_texts() == ["Main", "Dev Toolbox"], "Dev Toolbox ships in the release"
         page.locator("#workspace-switch").select_option("dev-toolbox")
-        assert page.locator(".home-hub").count() == 5 and "29 LINKS" in page.locator("#link-count").inner_text(), "Dev Toolbox map loads from the release"
+        assert page.locator(".home-hub").count() == 5 and "31 LINKS" in page.locator("#link-count").inner_text(), "Dev Toolbox map loads from the release"
         page.locator("#workspace-switch").select_option("main")
         # The zip's own fonts/ folder supplies Inter (a zip without it falls back silently).
         page.wait_for_function("document.fonts.status === 'loaded'")
