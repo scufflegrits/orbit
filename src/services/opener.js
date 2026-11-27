@@ -29,13 +29,12 @@ export function openTab(url) {
  * placeholder form. A Remote Desktop link downloads or launches.
  * @param {import('../core/types.js').Destination | import('../core/types.js').GroupPlanet} item
  * @param {{presets: import('../core/types.js').RdpPreset[], launchMode: 'download'|'client'}} options
- * @returns {'ask'|'rdp'|'opened'|'blocked'|'skipped'}
+ * @returns {'ask'|'rdp'|'rdp-too-large'|'opened'|'blocked'|'skipped'}
  */
 export function openDestination(item, { presets, launchMode }) {
   if (isGroup(item)) return 'skipped';
   if (item.type === 'rdp') {
-    launchRdp(item, presets, launchMode);
-    return 'rdp';
+    return launchRdp(item, presets, launchMode) ? 'rdp' : 'rdp-too-large';
   }
   if (templateNames(item.url).length) return 'ask';
   return openTab(item.url) ? 'opened' : 'blocked';

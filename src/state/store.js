@@ -46,7 +46,7 @@ import { countChange, forgetWorkspace } from './backup.js';
  * @property {number} [expectRevision] Refuse the save if the revision is not this one.
  */
 
-/** @typedef {{kind: 'sun'|'planet'|'moon', index: number, item: any, label: string, sunId?: string, planetUrl?: string, planetHost?: string, planetName?: string, planetIndex?: number}} UndoRecord */
+/** @typedef {{kind: 'sun'|'planet'|'moon', index: number, item: any, label: string, sunId?: string, planetId?: string}} UndoRecord */
 
 export function createStore() {
   /** @type {StoreState} */
@@ -77,7 +77,7 @@ export function createStore() {
   function loadBrowserMap() {
     try {
       const text = read(key(KEYS.map));
-      return text === null ? null : validateMap(JSON.parse(text));
+      return text === null ? null : validateMap(JSON.parse(text), { keepPlanetIds: true });
     } catch (error) {
       set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */ (error).message}` });
       return null;
@@ -164,7 +164,7 @@ export function createStore() {
         }
         const normalized = validateMap({ groups: personalGroups(data.groups),
           routines: data.routines !== undefined ? data.routines : state.routines,
-          rdpPresets: data.rdpPresets !== undefined ? data.rdpPresets : state.rdpPresets });
+          rdpPresets: data.rdpPresets !== undefined ? data.rdpPresets : state.rdpPresets }, { keepPlanetIds: true });
         const previous = personalGroups(state.groups);
         writeMap(key(KEYS.map), normalized);
         const changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !==
@@ -246,18 +246,16 @@ export function createStore() {
           record.item.id = uniqueSunId(record.item.name, new Set(next.map(sun => sun.id)));
         }
         next.splice(Math.min(record.index, next.length), 0, record.item);
-      } else {
+      } else if (record.kind === 'planet') {
         const sun = next.find(item => item.id === record.sunId);
         if (!sun) throw new Error('The parent sun no longer exists.');
-        if (record.kind === 'planet') {
-          sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
-        } else {
-          const matching = sun.links.find(planet => /** @type {any} */ (planet).url === record.planetUrl &&
-            /** @type {any} */ (planet).host === record.planetHost && planet.name === record.planetName);
-          const planet = matching || sun.links[/** @type {number} */ (record.planetIndex)];
-          if (!planet) throw new Error('The parent planet no longer exists.');
-          planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
-        }
+        sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
+      } else {
+        if (!record.planetId) throw new Error('This older removal record cannot identify the parent planet.');
+        const matches = personalGroups(next).flatMap(sun => sun.links.filter(planet => planet.planetId === record.planetId));
+        if (matches.length !== 1) throw new Error('The original parent planet could not be identified.');
+        const [planet] = matches;
+        planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
       }
       store.saveMap({ groups: next }, `Undid removal of ${record.label}`, { clearUndo: true });
       return true;

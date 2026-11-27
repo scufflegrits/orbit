@@ -211,9 +211,10 @@ test('clearUndo removes the undo record after a save', () => {
 test('undoRemoval puts a sun, planet, or moon back, then clears the record', () => {
   const store = started();
   assert.equal(store.undoRemoval(), false, 'nothing to undo');
-  store.saveMap({ groups: [sun('a', [{ ...planet('P', 'https://p.test/'), moons: [] }])] }, 'Start');
+  const planetId = 'a'.repeat(32);
+  store.saveMap({ groups: [sun('a', [{ ...planet('P', 'https://p.test/'), planetId }])] }, 'Start');
   storage.setItem('orbit:undo-removal:v1', JSON.stringify({ kind: 'moon', index: 0, item: { name: 'M', url: 'https://m.test/' }, label: 'M',
-    sunId: 'a', planetUrl: 'https://p.test/', planetName: 'P', planetIndex: 0 }));
+    planetId }));
   assert.equal(store.undoRemoval(), true);
   assert.equal(store.state().groups[2].links[0].moons[0].name, 'M');
   assert.equal(store.loadUndoRecord(), null);
@@ -225,6 +226,36 @@ test('undoRemoval puts a sun, planet, or moon back, then clears the record', () 
   assert.throws(() => store.undoRemoval(), { message: 'The parent sun no longer exists.' });
   storage.setItem('orbit:undo-removal:v1', '{"kind":"sun","index":-1,"item":{}}');
   assert.equal(store.loadUndoRecord(), null, 'a negative index is not a record');
+});
+
+test('moon undo follows the original parent across a rename, move and reload, leaving its twin alone', () => {
+  const store = started();
+  const planetId = 'a'.repeat(32);
+  const twin = planet('Dashboard', 'https://dashboard.test/');
+  store.saveMap({ groups: [sun('a', [twin]), sun('b', [{ ...twin, name: 'Renamed Dashboard', planetId }])] });
+  storage.setItem('orbit:undo-removal:v1', JSON.stringify({
+    kind: 'moon', index: 0, item: { name: 'Guide', url: 'https://guide.test/' }, label: 'Guide',
+    sunId: 'a', planetName: twin.name, planetUrl: twin.url, planetId,
+  }));
+  assert.equal(started().undoRemoval(), true);
+  assert.deepEqual(stored().groups.map(s => s.links[0].moons.map(m => m.name)), [[], ['Guide']]);
+});
+
+test('moon undo refuses missing, ambiguous, and legacy parent identities', () => {
+  const store = started();
+  const planetId = 'a'.repeat(32);
+  const parent = { ...planet('P', 'https://p.test/'), planetId };
+  store.saveMap({ groups: [sun('a', [parent, parent])] });
+  const undoKey = 'orbit:undo-removal:v1';
+  const before = stored();
+  for (const id of [planetId, 'b'.repeat(32), undefined]) {
+    const undo = JSON.stringify({ kind: 'moon', index: 0, item: { name: 'M', url: 'https://m.test/' },
+      label: 'M', sunId: 'a', planetIndex: 0, planetName: parent.name, planetUrl: parent.url, planetId: id });
+    storage.setItem(undoKey, undo);
+    assert.throws(() => store.undoRemoval(), /parent planet/);
+    assert.deepEqual(stored(), before);
+    assert.equal(storage.getItem(undoKey), undo);
+  }
 });
 
 test('resetToBundled: Main removes its saved map; another workspace saves the file data (2.2.1, F27)', () => {

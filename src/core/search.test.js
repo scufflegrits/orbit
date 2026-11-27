@@ -35,10 +35,10 @@ test('an empty or blank query finds nothing', () => {
   assert.deepEqual(findMatches(MAP, '   '), []);
 });
 
-test('names match any part of a word, even two letters; other fields need three', () => {
+test('names allow two-letter substring matches while paths only narrow', () => {
   assert.ok(names('ve').includes('The Verge'));
   assert.ok(names('verge.com').includes('The Verge'), 'address with 3+ characters');
-  assert.ok(!names('ji').includes('Board'), 'two letters do not match the path');
+  assert.ok(!names('wo').includes('Board'), 'a parent sun prefix alone cannot find the moon');
 });
 
 test('a typo matches only when the word matches nothing exactly anywhere', () => {
@@ -57,13 +57,26 @@ test('#tag and tag:name keep only items with exactly that tag', () => {
 
 test('a word that matches only where an item sits narrows but never matches on its own', () => {
   assert.deepEqual(names('work'), ['Work', 'Jira'], 'the sun, and Jira by its tag; not every item in the sun');
-  assert.deepEqual(names('tech reviews'), ['Tech reviews']);
+  assert.deepEqual(names('tech reviews'), ['Tech reviews', 'engadget'], 'Engadget also matches by address');
   assert.ok(names('tech engadget').includes('engadget'));
 });
 
 test('notes and Remote Desktop hosts are searched', () => {
   assert.deepEqual(names('gadget blog'), ['engadget']);
   assert.deepEqual(names('lab1'), ['Lab']);
+});
+
+test('a higher scoring path does not hide a direct note or address match', () => {
+  const map = [sun('Work Portal', [
+    web('Dashboard', 'https://dashboard.test/', { note: 'Work' }),
+    web('Reports', 'https://work.test/'),
+    web('Path only', 'https://status.test/'),
+  ])];
+  const matches = findMatches(map, 'work');
+  assert.deepEqual(matches.map(item => item.name), ['Work Portal', 'Dashboard', 'Reports']);
+  assert.equal(matches[1].why, 'Matched the note');
+  assert.equal(matches[2].why, 'Address: work.test');
+  assert.deepEqual(findMatches(map, 'work portal').map(item => item.name), ['Work Portal', 'Dashboard', 'Reports']);
 });
 
 test('a short form like b2 matches build2', () => {
@@ -122,11 +135,17 @@ const filter = fc.constantFrom('#work', '#ops', '#docs', '#daily', 'tag:team', '
 const query = fc.array(fc.oneof({ weight: 4, arbitrary: word }, { weight: 1, arbitrary: filter }), { minLength: 0, maxLength: 3 })
   .chain(words => fc.constantFrom(' ', '  ', ' \t').map(gap => ` ${words.join(gap)} `));
 
-test('findMatches matches 2.2.1 on random maps and queries', () => {
+test('findMatches preserves the 2.2.1 results and ordering when allowing more direct matches', () => {
   const sandbox = oracle();
   fc.assert(fc.property(combinedMap, query, (map, text) => {
     sandbox.set('groups', map);
-    assert.deepEqual(JSON.parse(JSON.stringify(findMatches(map, text))), sandbox.call('findMatches', text));
+    const previous = sandbox.call('findMatches', text);
+    const key = (/** @type {any} */ match) => match.id ?? match.indices.join(':');
+    const previousKeys = new Set(previous.map(key));
+    const current = findMatches(map, text);
+    // Only new results with a previously masked direct match may differ.
+    assert.deepEqual(JSON.parse(JSON.stringify(current.filter(match => previousKeys.has(key(match))))), previous);
+    for (const match of current.filter(match => !previousKeys.has(key(match)))) assert.ok(match.indices);
   }), runs(400));
 });
 

@@ -15,6 +15,16 @@ export function writeBackupState(state) {
   writeSafely(KEYS.backup, JSON.stringify(state));
 }
 
+/** @param {Record<string, BackupEntry>} state @param {string} workspace */
+function ownEntry(state, workspace) {
+  return Object.hasOwn(state, workspace) ? state[workspace] : undefined;
+}
+
+/** @param {string} workspace */
+export function readBackupEntry(workspace) {
+  return ownEntry(readBackupState(), workspace);
+}
+
 /**
  * Count one change in a workspace since its last export.
  * @param {string} workspace
@@ -22,11 +32,10 @@ export function writeBackupState(state) {
  */
 export function countChange(workspace, now = Date.now()) {
   const state = readBackupState();
-  const entry = state[workspace] || {};
-  entry.changes = (entry.changes || 0) + 1;
-  entry.since = entry.since || entry.lastExport || now;
-  state[workspace] = entry;
-  writeBackupState(state);
+  const entry = ownEntry(state, workspace) || {};
+  writeBackupState({ ...state, [workspace]: {
+    ...entry, changes: (entry.changes || 0) + 1, since: entry.since || entry.lastExport || now,
+  } });
 }
 
 /**
@@ -36,8 +45,13 @@ export function countChange(workspace, now = Date.now()) {
  */
 export function noteBackupMade(workspace, now = Date.now()) {
   const state = readBackupState();
-  state[workspace] = { changes: 0, lastExport: now };
-  writeBackupState(state);
+  writeBackupState({ ...state, [workspace]: { changes: 0, lastExport: now } });
+}
+
+/** @param {string} workspace @param {number} snoozeUntil */
+export function snoozeBackup(workspace, snoozeUntil) {
+  const state = readBackupState();
+  writeBackupState({ ...state, [workspace]: { ...ownEntry(state, workspace), snoozeUntil } });
 }
 
 /**

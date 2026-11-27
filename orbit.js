@@ -125,8 +125,10 @@ prompt for credentials:i:1\r
   function rdpLaunchUrl(destination, presets = []) {
     let profileText = effectiveRdpProfile(destination, presets);
     if (!profileText) return `orbit-rdp://${destination.host}/`;
+    let bytes = new TextEncoder().encode(profileText);
+    if (bytes.length > 12e3) return null;
     let binary = "";
-    for (let byte of new TextEncoder().encode(profileText)) binary += String.fromCharCode(byte);
+    for (let byte of bytes) binary += String.fromCharCode(byte);
     let profile = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     return `orbit-rdp://${destination.host}/?profile=${profile}`;
   }
@@ -205,7 +207,7 @@ prompt for credentials:i:1\r
       "group"
     ), ...tags ? { tags } : {}, ...note ? { note } : {} };
   }
-  function validateMap(data) {
+  function validateMap(data, { keepPlanetIds = !1 } = {}) {
     if (!data || !Array.isArray(data.groups)) throw new Error('The link map needs a "groups" array.');
     let used = /* @__PURE__ */ new Set(), normalized = data.groups.map((group, groupIndex) => {
       if (!group || typeof group != "object") throw new Error(`Sun ${groupIndex + 1} is invalid.`);
@@ -217,7 +219,10 @@ prompt for credentials:i:1\r
       let id = group.id === void 0 || group.id === null || group.id === "" ? uniqueSunId(name, used) : String(group.id);
       if (used.has(id)) throw new Error(`Duplicate sun ID: ${id}`);
       used.add(id);
-      let links = group.links.map((link, linkIndex) => validPlanet(link, `Planet ${linkIndex + 1} in ${name}`)), icon2 = validSunIcon(group.icon, name);
+      let links = group.links.map((link, linkIndex) => {
+        let planet = validPlanet(link, `Planet ${linkIndex + 1} in ${name}`);
+        return keepPlanetIds && typeof link.planetId == "string" && /^[a-f0-9]{32}$/.test(link.planetId) && (planet.planetId = link.planetId), planet;
+      }), icon2 = validSunIcon(group.icon, name);
       return { id, name, description: String(group.description || ""), color, ...icon2 ? { icon: icon2 } : {}, links };
     }), routines2 = validRoutines(data.routines), rdpPresets2 = validRdpPresets(data.rdpPresets), presetIds = new Set(rdpPresets2.map((preset) => preset.id));
     for (let sun of normalized)
@@ -408,7 +413,7 @@ prompt for credentials:i:1\r
     ), t = (
       /** @type {{sun: number, planet: number}} */
       target
-    ), [planet] = next[s.sun].links.splice(s.planet, 1), targetIndex = s.sun === t.sun && s.planet < t.planet ? t.planet - 1 : t.planet, { moons: _moons, ...moon } = (
+    ), [planet] = next[s.sun].links.splice(s.planet, 1), targetIndex = s.sun === t.sun && s.planet < t.planet ? t.planet - 1 : t.planet, { moons: _moons, planetId: _planetId, ...moon } = (
       /** @type {any} */
       planet
     ), moons = next[t.sun].links[targetIndex].moons;
@@ -416,7 +421,13 @@ prompt for credentials:i:1\r
   }
   function plainCopy(item) {
     let copy = clone(item);
-    return delete copy.team, typeof copy.id == "string" && copy.id.startsWith("team:") && (copy.id = copy.id.slice(5)), copy;
+    return delete copy.team, delete copy.planetId, Array.isArray(copy.links) && (copy.links = copy.links.map(withoutPlanetId)), typeof copy.id == "string" && copy.id.startsWith("team:") && (copy.id = copy.id.slice(5)), copy;
+  }
+  function withoutPlanetId({ planetId: _, ...planet }) {
+    return planet;
+  }
+  function withoutPlanetIds(groups2) {
+    return groups2.map((sun) => ({ ...sun, links: sun.links.map(withoutPlanetId) }));
   }
   function personalGroups(list) {
     return list.filter((sun) => !sun.team);
@@ -725,13 +736,27 @@ prompt for credentials:i:1\r
   function writeBackupState(state) {
     writeSafely(KEYS.backup, JSON.stringify(state));
   }
+  function ownEntry(state, workspace) {
+    return Object.hasOwn(state, workspace) ? state[workspace] : void 0;
+  }
+  function readBackupEntry(workspace) {
+    return ownEntry(readBackupState(), workspace);
+  }
   function countChange(workspace, now2 = Date.now()) {
-    let state = readBackupState(), entry = state[workspace] || {};
-    entry.changes = (entry.changes || 0) + 1, entry.since = entry.since || entry.lastExport || now2, state[workspace] = entry, writeBackupState(state);
+    let state = readBackupState(), entry = ownEntry(state, workspace) || {};
+    writeBackupState({ ...state, [workspace]: {
+      ...entry,
+      changes: (entry.changes || 0) + 1,
+      since: entry.since || entry.lastExport || now2
+    } });
   }
   function noteBackupMade(workspace, now2 = Date.now()) {
     let state = readBackupState();
-    state[workspace] = { changes: 0, lastExport: now2 }, writeBackupState(state);
+    writeBackupState({ ...state, [workspace]: { changes: 0, lastExport: now2 } });
+  }
+  function snoozeBackup(workspace, snoozeUntil) {
+    let state = readBackupState();
+    writeBackupState({ ...state, [workspace]: { ...ownEntry(state, workspace), snoozeUntil } });
   }
   function forgetWorkspace(workspace) {
     let state = readBackupState();
@@ -761,7 +786,7 @@ prompt for credentials:i:1\r
     function loadBrowserMap() {
       try {
         let text = read(key(KEYS.map));
-        return text === null ? null : validateMap(JSON.parse(text));
+        return text === null ? null : validateMap(JSON.parse(text), { keepPlanetIds: !0 });
       } catch (error) {
         return set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */
         error.message}` }), null;
@@ -780,7 +805,7 @@ prompt for credentials:i:1\r
     function writeMap(mapKey, map) {
       backupUnreadableMap(mapKey), map.groups.some((sun) => sun.links.some(isGroup)) && migrate(), write(mapKey, JSON.stringify(map));
     }
-    let store7 = {
+    let store6 = {
       /** @returns {Readonly<StoreState>} */
       state: () => state,
       /**
@@ -827,7 +852,7 @@ prompt for credentials:i:1\r
             groups: personalGroups(data.groups),
             routines: data.routines !== void 0 ? data.routines : state.routines,
             rdpPresets: data.rdpPresets !== void 0 ? data.rdpPresets : state.rdpPresets
-          }), previous = personalGroups(state.groups);
+          }, { keepPlanetIds: !0 }), previous = personalGroups(state.groups);
           writeMap(key(KEYS.map), normalized);
           let changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !== JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
           label !== !1 && changed && recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets), changed && countChange(state.workspace), set({
@@ -894,30 +919,23 @@ prompt for credentials:i:1\r
        * is nothing to undo; throws when it can't be put back.
        */
       undoRemoval() {
-        let record = store7.loadUndoRecord();
+        let record = store6.loadUndoRecord();
         if (!record) return !1;
         let next = JSON.parse(JSON.stringify(state.groups));
         if (record.kind === "sun")
           next.some((sun) => sun.id === record.item.id) && (record.item.id = uniqueSunId(record.item.name, new Set(next.map((sun) => sun.id)))), next.splice(Math.min(record.index, next.length), 0, record.item);
-        else {
+        else if (record.kind === "planet") {
           let sun = next.find((item) => item.id === record.sunId);
           if (!sun) throw new Error("The parent sun no longer exists.");
-          if (record.kind === "planet")
-            sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
-          else {
-            let planet = sun.links.find((planet2) => (
-              /** @type {any} */
-              planet2.url === record.planetUrl && /** @type {any} */
-              planet2.host === record.planetHost && planet2.name === record.planetName
-            )) || sun.links[
-              /** @type {number} */
-              record.planetIndex
-            ];
-            if (!planet) throw new Error("The parent planet no longer exists.");
-            planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
-          }
+          sun.links.splice(Math.min(record.index, sun.links.length), 0, record.item);
+        } else {
+          if (!record.planetId) throw new Error("This older removal record cannot identify the parent planet.");
+          let matches = personalGroups(next).flatMap((sun) => sun.links.filter((planet2) => planet2.planetId === record.planetId));
+          if (matches.length !== 1) throw new Error("The original parent planet could not be identified.");
+          let [planet] = matches;
+          planet.moons.splice(Math.min(record.index, planet.moons.length), 0, record.item);
         }
-        return store7.saveMap({ groups: next }, `Undid removal of ${record.label}`, { clearUndo: !0 }), !0;
+        return store6.saveMap({ groups: next }, `Undid removal of ${record.label}`, { clearUndo: !0 }), !0;
       },
       /**
        * Hide or show a team sun. Stored as a shared preference; the revision goes up.
@@ -990,7 +1008,7 @@ prompt for credentials:i:1\r
         return place.team ? place.index : place.index + state.groups.filter((sun) => sun.team).length;
       }
     };
-    return store7;
+    return store6;
   }
 
   // src/state/page-store.js
@@ -1644,7 +1662,15 @@ prompt for credentials:i:1\r
       sunId: sun.id,
       index: path[path.length - 1]
     };
-    if (kind === "sun" ? next.splice(sunIndex, 1) : kind === "planet" ? next[sunIndex].links.splice(planetIndex, 1) : (undoRecord.planetIndex = planetIndex, undoRecord.planetName = planet.name, "url" in planet && (undoRecord.planetUrl = planet.url), "host" in planet && (undoRecord.planetHost = planet.host), next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1)), store.saveMap({ groups: next }, `Removed ${kind} ${item.name}`, { undoRecord, expectRevision: revision }), store.clearWarning(), setStorageWarning(""), kind === "sun" && location.hash === `#group/${encodeURIComponent(sun.id)}`) {
+    if (kind === "sun")
+      next.splice(sunIndex, 1);
+    else if (kind === "planet")
+      next[sunIndex].links.splice(planetIndex, 1);
+    else {
+      let parent = next[sunIndex].links[planetIndex];
+      parent.planetId ?? (parent.planetId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("")), undoRecord.planetId = parent.planetId, parent.moons.splice(moonIndex, 1);
+    }
+    if (store.saveMap({ groups: next }, `Removed ${kind} ${item.name}`, { undoRecord, expectRevision: revision }), store.clearWarning(), setStorageWarning(""), kind === "sun" && location.hash === `#group/${encodeURIComponent(sun.id)}`) {
       let url = new URL(location.href);
       url.hash = "", history.replaceState(history.state, "", url);
     }
@@ -2184,13 +2210,19 @@ prompt for credentials:i:1\r
       shown.hidden = !0;
     }, isError ? 9e3 : 4e3), message;
   }
+  function showRdpSizeNotice() {
+    return showOpenAllNotice("These Remote Desktop settings are too large for Client mode. Switch to Download mode in Settings to save the connection file.", !0);
+  }
+  function rdpSizeButton(button, name) {
+    button.type = "button", button.dataset.rdpTooLarge = "true", button.title = `Remote Desktop settings for ${name} exceed the Client mode limit`, button.setAttribute("aria-label", button.title), button.addEventListener("click", showRdpSizeNotice);
+  }
 
   // src/ui/notices/backup.js
   function noteBackupMade2() {
     noteBackupMade(activeWorkspace()), document.querySelector("#backup-reminder")?.remove();
   }
   function backupDue2(time = now()) {
-    return backupDue(readBackupState()[activeWorkspace()], readBoolean("orbit:backup-reminders", !0), time);
+    return backupDue(readBackupEntry(activeWorkspace()), readBoolean("orbit:backup-reminders", !0), time);
   }
   function backupReminder(due) {
     let box = element("div", "routine-offer backup-reminder"), workspace = activeWorkspace(), where = workspace === "main" || loadWorkspaces().length > 1 ? ` in ${workspaceName(workspace)}` : "";
@@ -2201,8 +2233,7 @@ prompt for credentials:i:1\r
     });
     let later = element("button", "routine-offer-dismiss", "Remind me later");
     return later.type = "button", later.addEventListener("click", () => {
-      let state = readBackupState();
-      state[activeWorkspace()] = { ...state[activeWorkspace()], snoozeUntil: now() + SNOOZE_MS }, writeBackupState(state), document.querySelector("#backup-reminder")?.remove(), box.remove();
+      snoozeBackup(workspace, now() + SNOOZE_MS), document.querySelector("#backup-reminder")?.remove(), box.remove();
     }), box.append(save, later), box;
   }
   function showBackupReminder() {
@@ -2230,7 +2261,13 @@ prompt for credentials:i:1\r
     downloadText(rdpFileContent(destination, presets), rdpFileName(destination), "application/x-rdp");
   }
   function launchRdp(destination, presets, mode) {
-    mode === "download" ? downloadRdp(destination, presets) : globalThis.location.href = rdpLaunchUrl(destination, presets);
+    if (mode === "download") downloadRdp(destination, presets);
+    else {
+      let url = rdpLaunchUrl(destination, presets);
+      if (url === null) return !1;
+      globalThis.location.href = url;
+    }
+    return !0;
   }
 
   // src/services/opener.js
@@ -2242,7 +2279,7 @@ prompt for credentials:i:1\r
     return opened && (opened.opener = null), !!opened;
   }
   function openDestination(item, { presets, launchMode }) {
-    return isGroup(item) ? "skipped" : item.type === "rdp" ? (launchRdp(item, presets, launchMode), "rdp") : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
+    return isGroup(item) ? "skipped" : item.type === "rdp" ? launchRdp(item, presets, launchMode) ? "rdp" : "rdp-too-large" : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
   }
   function planLinks(items, label, { question = null, extra = "", values = readVariables() } = {}) {
     let all = items.filter((item) => item.type === void 0), web = all.filter((item) => templateNames(item.url).every((name) => Object.hasOwn(values, name) && values[name])).map((item) => ({ item, url: fillTemplate(item.url, values) })), skipped = items.filter((item) => item.type === "rdp").length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
@@ -2356,6 +2393,7 @@ prompt for credentials:i:1\r
   function openDestination2(item) {
     let result = openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode });
     if (result === "ask") return askForVariables(item);
+    if (result === "rdp-too-large") return showRdpSizeNotice();
     result !== "skipped" && noteOpened(item);
   }
   function openLinks2(items, label, { confirm = !0, question = null, extra = "" } = {}) {
@@ -2414,9 +2452,22 @@ prompt for credentials:i:1\r
     });
   }
 
+  // src/ui/system-route.js
+  function systemIdFromHash(hash) {
+    try {
+      let route = decodeURIComponent(hash.slice(1));
+      return route.startsWith("group/") ? route.slice(6) : null;
+    } catch {
+      return null;
+    }
+  }
+
   // src/ui/menu/workspaces.js
   function switchWorkspace(id) {
-    loadWorkspaces().some((item) => item.id === id) && (modes.send("switchWorkspace"), store.switchWorkspace(id) && (updateWorkspaceSwitch(), location.hash && location.hash !== "#" && !groups.some((sun) => location.hash.includes(encodeURIComponent(sun.id))) ? location.hash = "" : hooks.render(), offerDueRoutines(), showBackupReminder()));
+    if (!loadWorkspaces().some((item) => item.id === id) || (modes.send("switchWorkspace"), !store.switchWorkspace(id))) return;
+    updateWorkspaceSwitch();
+    let sunId = systemIdFromHash(location.hash);
+    location.hash && location.hash !== "#" && !groups.some((sun) => sun.id === sunId) ? location.hash = "" : hooks.render(), offerDueRoutines(), showBackupReminder();
   }
   function addWorkspace(name, start2) {
     return store.addWorkspace(name, start2);
@@ -3502,18 +3553,18 @@ prompt for credentials:i:1\r
     if (!tokens.length && !tagFilters.length) return [];
     let entries = searchEntries(groups2).filter((entry) => tagFilters.every((tag) => entry.tags.includes(tag))), strictHits = new Set(tokens.filter((token) => entries.some((entry) => entry.fields.some((field) => wordQuality(token, field.text, field.words || [], !1, field.anywhere))))), scored = [];
     return entries.forEach((entry, order) => {
-      let score = 0, reasons = /* @__PURE__ */ new Set();
+      let score = 0, directScore = 0, directKind = "", reasons = /* @__PURE__ */ new Set();
       for (let token of tokens) {
         let best = 0, bestKind = "";
         for (let field of entry.fields) {
           let quality = wordQuality(token, field.text, field.words || [], !strictHits.has(token), field.anywhere) * field.weight;
-          quality > best && (best = quality, bestKind = field.kind);
+          quality > best && (best = quality, bestKind = field.kind), field.kind !== "path" && quality > directScore && (directScore = quality, directKind = field.kind);
         }
         if (!best) return;
         score += best, reasons.add(bestKind);
       }
-      if (tokens.length && ![...reasons].some((kind) => kind !== "path")) return;
-      tokens.length || (score = 1);
+      if (tokens.length && !directScore) return;
+      reasons.size === 1 && reasons.has("path") && reasons.add(directKind), tokens.length || (score = 1);
       let match = { ...entry.match, score };
       reasons.has("name") || (reasons.has("address") ? match.why = `Address: ${addressText(entry.match.destination)}` : reasons.has("tag") ? match.why = "Matched a tag" : reasons.has("note") && (match.why = "Matched the note")), scored.push({ match, order });
     }), scored.sort((a, b) => b.match.score - a.match.score || a.order - b.order), scored.map((item) => item.match);
@@ -3799,13 +3850,13 @@ prompt for credentials:i:1\r
   }
   function findResult(match) {
     if (modes.inEditMode() && match.indices) return editFindResult(match);
-    let group = match.kind === "Group", isRdp = match.destination?.type === "rdp", download = isRdp && rdpLaunchMode === "download", template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0, node = (
+    let group = match.kind === "Group", isRdp = match.destination?.type === "rdp", download = isRdp && rdpLaunchMode === "download", clientUrl = isRdp && !download ? rdpLaunchUrl(match.destination, rdpPresets) : null, oversized = isRdp && !download && clientUrl === null, template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0, node = (
       /** @type {HTMLAnchorElement & HTMLButtonElement} */
-      element(match.id || group || download || template ? "button" : "a", "find-item")
+      element(match.id || group || download || template || oversized ? "button" : "a", "find-item")
     );
     match.id ? (node.type = "button", node.addEventListener("click", () => {
       location.hash = `group/${encodeURIComponent(match.id)}`;
-    })) : group ? (node.type = "button", node.addEventListener("click", () => openGroup(match.indices[0], match.indices[1]))) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, rdpPresets)), node.title = `Download Remote Desktop connection for ${match.name}`) : isRdp ? (node.href = rdpLaunchUrl(match.destination, rdpPresets), node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && !group && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match));
+    })) : group ? (node.type = "button", node.addEventListener("click", () => openGroup(match.indices[0], match.indices[1]))) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, rdpPresets)), node.title = `Download Remote Desktop connection for ${match.name}`) : oversized ? rdpSizeButton(node, match.name) : clientUrl !== null ? (node.href = clientUrl, node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && !group && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match));
     let arrow = element("span", "find-arrow");
     return arrow.append(icon(match.id || group ? "arrow-right" : download ? "download" : "external-link")), node.append(arrow), node;
   }
@@ -3835,9 +3886,9 @@ prompt for credentials:i:1\r
     return image.className = "site-icon", image.alt = "", image.loading = "lazy", image.referrerPolicy = "no-referrer", image.src = `${origin}/favicon.ico`, image.addEventListener("error", () => image.remove()), image;
   }
   function destinationNode(link, className, path) {
-    let isRdp = link.type === "rdp", download = isRdp && rdpLaunchMode === "download", template = !isRdp && templateNames(link.url).length > 0, node = (
+    let isRdp = link.type === "rdp", download = isRdp && rdpLaunchMode === "download", clientUrl = isRdp && !download ? rdpLaunchUrl(link, rdpPresets) : null, oversized = isRdp && !download && clientUrl === null, template = !isRdp && templateNames(link.url).length > 0, node = (
       /** @type {HTMLAnchorElement | HTMLButtonElement} */
-      element(download || template ? "button" : "a", className, link.name)
+      element(download || template || oversized ? "button" : "a", className, link.name)
     );
     path && (node.dataset.destination = path.join(":"));
     let icon2 = siteIcon(link);
@@ -3849,7 +3900,7 @@ prompt for credentials:i:1\r
       /** @type {HTMLAnchorElement} */
       node
     );
-    return template ? (button.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(link)), node.title = `Open ${link.name} (asks for ${templateNames(link.url).join(", ")})`, node.setAttribute("aria-label", node.title)) : download ? (button.type = "button", node.addEventListener("click", () => downloadRdp(link, rdpPresets)), node.title = `Download Remote Desktop connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : isRdp ? (anchor2.href = rdpLaunchUrl(link, rdpPresets), node.title = `Open Remote Desktop Connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : (anchor2.href = link.url, anchor2.target = "_blank", anchor2.rel = "noopener noreferrer", node.title = `Open ${link.name} in a new tab`, node.setAttribute("aria-label", node.title)), link.note && (node.title = `${node.title}
+    return template ? (button.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(link)), node.title = `Open ${link.name} (asks for ${templateNames(link.url).join(", ")})`, node.setAttribute("aria-label", node.title)) : download ? (button.type = "button", node.addEventListener("click", () => downloadRdp(link, rdpPresets)), node.title = `Download Remote Desktop connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : oversized ? rdpSizeButton(button, link.name) : clientUrl !== null ? (anchor2.href = clientUrl, node.title = `Open Remote Desktop Connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : (anchor2.href = link.url, anchor2.target = "_blank", anchor2.rel = "noopener noreferrer", node.title = `Open ${link.name} in a new tab`, node.setAttribute("aria-label", node.title)), link.note && (node.title = `${node.title}
 ${link.note}`), node;
   }
   function linkNode(link, className, path) {
@@ -4079,7 +4130,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   // src/ui/views/render.js
   function render2() {
     modes.send("render"), updateMapLabelSizes();
-    let route = decodeURIComponent(location.hash.slice(1)), id = route.startsWith("group/") ? route.slice(6) : null, group = groups.find((item) => item.id === id);
+    let id = systemIdFromHash(location.hash), group = groups.find((item) => item.id === id);
     modes.send(group ? "openSystem" : "toGalaxy"), group ? renderDetail(group) : renderHome(), layoutOrbits(), editToggle().hidden = !1, updateEditBar(), window.scrollTo({ top: 0, behavior: "instant" }), revealPendingGroup(group?.id ?? null);
   }
 
@@ -4277,7 +4328,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
 
   // src/ui/notices/team-updates.js
   function checkTeamUpdates() {
-    if (document.querySelector("#team-updates")?.remove(), !team.groups.length) return;
+    if (document.querySelector("#team-updates")?.remove(), !team.source) return;
     let current = teamEntries(team.groups), changes = teamChanges(readTeamSeen(), current);
     if (changes.first) return rememberTeam(current);
     let { added, removed } = changes;
@@ -4420,7 +4471,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   // src/ui/editor/import-export.js
   function exportMap() {
     downloadJson({
-      groups: personalGroups(groups),
+      groups: withoutPlanetIds(personalGroups(groups)),
       ...routines.length ? { routines } : {},
       ...rdpPresets.length ? { rdpPresets } : {}
     }, "orbit-links.json"), noteBackupMade2();
@@ -4722,12 +4773,13 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
       let counts = mapCounts(entry.groups), row = element("div", "editor-list-row history-row"), copy = element("span", "history-copy");
       copy.append(element("strong", "", `Before: ${entry.label}`)), copy.append(element("small", "", `${new Date(entry.time).toLocaleString()} · ${counted(counts.suns, "sun")}, ${counted(counts.planets, "planet")}, ${counted(counts.moons, "moon")} · compared with now: ${countDifference(current, counts)}`)), row.append(copy, editorButton("Restore", () => {
         confirmed(`Restore the map from ${new Date(entry.time).toLocaleString()}?`) && applyEditorChange(
-          [...groups.filter((sun) => sun.team), ...entry.groups],
+          [...groups.filter((sun) => sun.team), ...withoutPlanetIds(entry.groups)],
           showHistory,
           {
             label: `Restored the version from ${new Date(entry.time).toLocaleString()}`,
             routines: entry.routines || [],
-            rdpPresets: entry.rdpPresets || []
+            rdpPresets: entry.rdpPresets || [],
+            clearUndo: store.loadUndoRecord()?.kind === "moon"
           }
         );
       })), list.append(row);
@@ -5135,7 +5187,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
         ...readDestination(),
         moons: isNew ? [] : next[sunIndex].links[planetIndex].moons
       };
-      !isNew && isGroup(value) && !isGroup(planet) && !confirmed(`${planet.name} will become a group and lose its link ${planet.type === "rdp" ? planet.host : planet.url}. Continue?`) || (isNew ? next[sunIndex].links.push(value) : next[sunIndex].links[planetIndex] = value, applyEditorChange(next, () => showPlanetEditor(
+      !isNew && isGroup(value) && !isGroup(planet) && !confirmed(`${planet.name} will become a group and lose its link ${planet.type === "rdp" ? planet.host : planet.url}. Continue?`) || (isNew ? next[sunIndex].links.push(value) : next[sunIndex].links[planetIndex] = { ...value, planetId: next[sunIndex].links[planetIndex].planetId }, applyEditorChange(next, () => showPlanetEditor(
         sunIndex,
         isNew ? next[sunIndex].links.length - 1 : planetIndex
       ), { label: `${isNew ? "Added" : "Saved"} planet ${value.name}` }));
@@ -5401,7 +5453,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       /** @type {HTMLElement | null} */
       event.target.closest("[data-destination]")
     ) : null;
-    if (!node || event.defaultPrevented || node.dataset.template) return;
+    if (!node || event.defaultPrevented || node.dataset.template || node.dataset.rdpTooLarge) return;
     let path = (
       /** @type {string} */
       node.dataset.destination.split(":").map(Number)

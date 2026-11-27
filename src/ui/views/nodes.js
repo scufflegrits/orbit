@@ -10,6 +10,7 @@ import { counted, descriptionNode, element, safeColor, tagPath } from '../dom.js
 import { GALAXY_PLANETS, VISIBLE_MOONS } from '../layout/orbits.js';
 import { askForVariables } from '../dialogs/placeholder.js';
 import { modes } from '../page-modes.js';
+import { rdpSizeButton } from '../notices/area.js';
 import { rdpLaunchMode, rdpPresets, showSiteIcons } from '../page.js';
 
 /**
@@ -42,9 +43,11 @@ export function siteIcon(link) {
 export function destinationNode(link, className, path) {
   const isRdp = link.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
+  const clientUrl = isRdp && !download ? rdpLaunchUrl(link, rdpPresets) : null;
+  const oversized = isRdp && !download && clientUrl === null;
   // A link with {placeholders} asks for their values before it opens.
   const template = !isRdp && templateNames(link.url).length > 0;
-  const node = /** @type {HTMLAnchorElement | HTMLButtonElement} */ (element(download || template ? 'button' : 'a', className, link.name));
+  const node = /** @type {HTMLAnchorElement | HTMLButtonElement} */ (element(download || template || oversized ? 'button' : 'a', className, link.name));
   if (path) node.dataset.destination = path.join(':');
   const icon = siteIcon(link);
   if (icon) node.prepend(icon);
@@ -61,8 +64,10 @@ export function destinationNode(link, className, path) {
     node.addEventListener('click', () => downloadRdp(link, rdpPresets));
     node.title = `Download Remote Desktop connection for ${link.name}`;
     node.setAttribute('aria-label', node.title);
-  } else if (isRdp) {
-    anchor.href = rdpLaunchUrl(link, rdpPresets);
+  } else if (oversized) {
+    rdpSizeButton(button, link.name);
+  } else if (clientUrl !== null) {
+    anchor.href = clientUrl;
     node.title = `Open Remote Desktop Connection for ${link.name}`;
     node.setAttribute('aria-label', node.title);
   } else {

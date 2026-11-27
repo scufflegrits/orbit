@@ -166,6 +166,62 @@ def team_checks(browser, root):
             server.shutdown()
 
 
+def empty_team_checks(browser, root):
+    for mode in ("file", "server", "server fallback"):
+        directory = root / ("team-empty-" + mode.replace(" ", "-"))
+        directory.mkdir()
+        write_fixture(directory, DATA)
+        generated = mode != "server"
+        source = directory / ("team-data.js" if generated else "team.json")
+
+        def publish(data):
+            text = json.dumps(data)
+            source.write_text(f"window.ORBIT_TEAM_DATA = {text};\n" if generated else text)
+
+        def reload(page):
+            page.reload(wait_until="load")
+            page.locator(".home-hub").first.wait_for()
+
+        publish({"groups": []})
+        server = None if mode == "file" else serve_case(directory, None if generated else str(source))
+        url = (directory / "index.html").as_uri() if server is None else f"http://localhost:{server.server_port}/index.html"
+        context = browser.new_context(viewport=VIEW)
+        if mode == "server fallback":
+            # The fixture republishes in under a second, below HTTP Last-Modified precision.
+            context.route("**/team-data.js", lambda route: route.continue_())
+        page = context.new_page()
+        try:
+            fresh(page, url)
+            banner = page.locator("#team-updates")
+            seen = lambda: page.evaluate("JSON.parse(localStorage.getItem('orbit:team-seen:v1'))")
+            check(banner.count() == 0 and seen() == [], f"{mode}: an initial empty team map is recorded quietly")
+
+            publish(TEAM_FILE)
+            reload(page)
+            check("1 new, 0 removed" in banner.inner_text(), f"{mode}: a published link is new")
+            banner.get_by_role("button", name="Dismiss").click()
+            previous = seen()
+            source.unlink()
+            reload(page)
+            check(banner.count() == 0 and seen() == previous, f"{mode}: an unavailable source preserves the snapshot")
+
+            publish({"groups": []})
+            reload(page)
+            check("0 new, 1 removed" in banner.inner_text(), f"{mode}: an empty team map reports the last removal")
+            banner.get_by_role("button", name="Dismiss").click()
+            reload(page)
+            check(banner.count() == 0 and seen() == [], f"{mode}: dismissal records the empty snapshot")
+            publish(TEAM_FILE)
+            reload(page)
+            check("1 new, 0 removed" in banner.inner_text(), f"{mode}: republishing the link reports it as new")
+            print(f"PASS team map: empty and unavailable sources ({mode})")
+        finally:
+            context.close()
+            if server is not None:
+                server.shutdown()
+                server.server_close()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cdp", help="Connect to a running browser at this DevTools address (pop-up checks only)")
@@ -205,6 +261,7 @@ def main():
                     finally:
                         context.close()
                 team_checks(browser, root)
+                empty_team_checks(browser, root)
             finally:
                 server.shutdown()
                 browser.close()

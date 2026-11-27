@@ -134,14 +134,17 @@ export function rdpFileName(destination) {
 
 /**
  * The orbit-rdp:// URL the Windows helper opens, with the profile as unpadded base64url.
+ * Returns null when the complete profile exceeds the helper's size limit.
  * @param {RdpDestination} destination
  * @param {RdpPreset[]} [presets]
  */
 export function rdpLaunchUrl(destination, presets = []) {
   const profileText = effectiveRdpProfile(destination, presets);
   if (!profileText) return `orbit-rdp://${destination.host}/`;
+  const bytes = new TextEncoder().encode(profileText);
+  if (bytes.length > RDP_PROFILE_LIMIT) return null;
   let binary = '';
-  for (const byte of new TextEncoder().encode(profileText)) binary += String.fromCharCode(byte);
+  for (const byte of bytes) binary += String.fromCharCode(byte);
   const profile = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return `orbit-rdp://${destination.host}/?profile=${profile}`;
 }

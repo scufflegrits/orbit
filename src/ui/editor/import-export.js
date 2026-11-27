@@ -16,7 +16,7 @@ import { reviewBookmarks } from './tools/bookmarks.js';
 import { menuContent, groups, rdpPresets, routines } from '../page.js';
 
 export function exportMap() {
-  fileIo.downloadJson({ groups: mapOps.personalGroups(groups), ...(routines.length ? { routines } : {}),
+  fileIo.downloadJson({ groups: mapOps.withoutPlanetIds(mapOps.personalGroups(groups)), ...(routines.length ? { routines } : {}),
     ...(rdpPresets.length ? { rdpPresets } : {}) }, 'orbit-links.json');
   noteBackupMade();
 }

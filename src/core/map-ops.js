@@ -131,7 +131,7 @@ export function changeItemLevel(list, source, target) {
   const [planet] = next[s.sun].links.splice(s.planet, 1);
   // Removing the source first shifts a later planet in the same sun down by one.
   const targetIndex = s.sun === t.sun && s.planet < t.planet ? t.planet - 1 : t.planet;
-  const { moons: _moons, ...moon } = /** @type {any} */ (planet);
+  const { moons: _moons, planetId: _planetId, ...moon } = /** @type {any} */ (planet);
   const moons = next[t.sun].links[targetIndex].moons;
   moons.push(moon);
   return { status: 'moved', groups: next, path: { kind: 'moon', sun: t.sun, planet: targetIndex, moon: moons.length - 1 }, total: moons.length };
@@ -147,8 +147,20 @@ export function changeItemLevel(list, source, target) {
 export function plainCopy(item) {
   const copy = clone(item);
   delete copy.team;
+  delete copy.planetId;
+  if (Array.isArray(copy.links)) copy.links = copy.links.map(withoutPlanetId);
   if (typeof copy.id === 'string' && copy.id.startsWith('team:')) copy.id = copy.id.slice(5);
   return copy;
+}
+
+/** @param {Planet} planet */
+function withoutPlanetId({ planetId: _, ...planet }) {
+  return planet;
+}
+
+/** Remove browser-local identity when publishing or replacing a map. @param {Sun[]} groups */
+export function withoutPlanetIds(groups) {
+  return groups.map(sun => ({ ...sun, links: sun.links.map(withoutPlanetId) }));
 }
 
 /**

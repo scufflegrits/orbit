@@ -51,6 +51,22 @@ $fileText = if (Test-Path $file) { Get-Content -LiteralPath $file -Raw } else { 
 Result 'B07-profile' ($line -match '/edit' -and $line.Contains($file) -and $fileText.Contains('screen mode id:i:1') -and $fileText.Contains('desktopwidth:i:1280') -and $fileText.Contains('full address:s:b07-profile.lab:3390')) "cmd=$line"
 Mstsc | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 
+# A 12,000-byte payload reaches the helper through the registered protocol.
+$boundaryHost = 'b07-boundary.lab'
+$prefix = "full address:s:$boundaryHost`r`nusername:s:"
+$boundaryText = $prefix + ('x' * (12000 - $prefix.Length - 2)) + "`r`n"
+$boundaryBytes = [System.Text.Encoding]::UTF8.GetBytes($boundaryText)
+$boundaryProfile = [Convert]::ToBase64String($boundaryBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+$boundaryFile = Join-Path $connections "$boundaryHost.rdp"
+$launchError = $null
+try { Start-Process "orbit-rdp://$boundaryHost/?profile=$boundaryProfile" } catch { $launchError = $_.Exception.Message }
+if (-not $launchError) {
+    for ($i = 0; $i -lt 40 -and -not (Test-Path $boundaryFile); $i++) { Start-Sleep -Milliseconds 250 }
+}
+$boundarySize = if (Test-Path $boundaryFile) { (Get-Item -LiteralPath $boundaryFile).Length } else { 0 }
+Result 'B07-profile-boundary' ($boundarySize -eq 12000) "bytes=$boundarySize launchError=$launchError"
+Mstsc | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
 # B02: uninstall backs up the current key before removing it and the launcher.
 $before = (Backups).Count
 $out = Uninstall

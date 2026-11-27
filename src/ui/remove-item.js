@@ -42,11 +42,10 @@ export function removeMapItem(path) {
   } else if (kind === 'planet') {
     next[sunIndex].links.splice(planetIndex, 1);
   } else {
-    undoRecord.planetIndex = planetIndex;
-    undoRecord.planetName = planet.name;
-    if ('url' in planet) undoRecord.planetUrl = planet.url;
-    if ('host' in planet) undoRecord.planetHost = planet.host;
-    next[sunIndex].links[planetIndex].moons.splice(moonIndex, 1);
+    const parent = next[sunIndex].links[planetIndex];
+    parent.planetId ??= Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('');
+    undoRecord.planetId = parent.planetId;
+    parent.moons.splice(moonIndex, 1);
   }
 
   store.saveMap({ groups: next }, `Removed ${kind} ${item.name}`, { undoRecord, expectRevision: revision });

@@ -153,7 +153,8 @@ def run_milestone_10(page, url, mode):
                   f"{mode}: {theme} {size} sun text scales")
             search = page.get_by_role("searchbox", name="Quick find")
             search.fill("Investor.gov")
-            check(page.locator(".find-item").count() == 1,
+            investor_result = page.locator(".find-item").filter(has=page.get_by_text("Investor.gov", exact=True))
+            check(investor_result.is_visible(),
                   f"{mode}: {theme} {size} search result reachable")
             search.fill("")
             page.locator(".home-hub").filter(has_text="Stocks & Investing").click()

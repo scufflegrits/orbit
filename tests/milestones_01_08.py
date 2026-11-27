@@ -485,10 +485,11 @@ def run_milestone_7(page, url, mode):
     search = page.get_by_role("searchbox", name="Quick find")
     check(search.input_value() == "teCH", f"{mode}: query survives return to Galaxy")
     search.fill("Engadget")
-    check("Tech" in page.locator(".find-item").inner_text(),
+    engadget = page.get_by_role("link", name="Planet Engadget Tech", exact=True)
+    check("Tech" in engadget.inner_text(),
           f"{mode}: planet result shows parent")
     with page.expect_popup() as popup_info:
-        page.locator(".find-item").click()
+        engadget.click()
     popup = popup_info.value
     check(popup.url == "https://www.engadget.com/", f"{mode}: planet search URL")
     popup.close()

@@ -44,7 +44,7 @@ flowchart TB
   class SG_CANVAS groupCanvas
 ```
 
-The release archive includes the browser assets, generated data, Python scripts, and Windows helper. See the [page entry point](../index.html), [local server](../serve.py), [RDP launch service](../src/services/rdp-launch.js), and [release contents](RELEASING.md#what-goes-in-the-zip).
+The release archive includes the browser assets, generated data, Python scripts, and Windows helper. Client mode checks the complete UTF-8 RDP profile, including the destination address, against the helper's 12,000-byte limit before handing off a link. Oversized settings remain available through Download mode. See the [page entry point](../index.html), [local server](../serve.py), [RDP launch service](../src/services/rdp-launch.js), and [release contents](RELEASING.md#what-goes-in-the-zip).
 
 The page loads its shared animation level from browser preferences before creating the optional Constellations background. The existing `orbit:animations` key stores `true` for Full, `calm` for Calm, or `false` for Off. Reading the preference does not write to storage. The page applies `data-motion` and the existing `data-animations` flag together. The backdrop uses one frame request at a time. Full schedules continuous frames, and Calm redraws when the pointer changes without advancing the stars. Off and device reduced motion suppress backdrop movement and pointer effects. Open menus and hidden tabs also suspend those effects. See the [preference reader](../src/state/prefs.js), [page state](../src/ui/page.js), [backdrop](../src/ui/backdrop/backdrop.js), and [animation checks](TEST_MATRIX.md#animation-levels).
 
@@ -129,7 +129,7 @@ classDiagram
   PLANET *-- "0..*" MOON
 ```
 
-See the [validated map types](../src/core/types.js), [schema](../src/core/schema.js), and [workspace metadata](../src/state/workspaces.js).
+When a moon is removed, its parent planet receives a browser-local ID if it does not already have one. The ID follows that planet across edits, moves, and reloads. Undo restores the moon only if it can find one personal planet with that ID in the active workspace. Copies and portable exports omit these IDs. See the [validated map types](../src/core/types.js), [schema](../src/core/schema.js), [removal record](../src/ui/remove-item.js), and [map store](../src/state/store.js).
 
 ## Startup and map selection
 
@@ -178,7 +178,7 @@ sequenceDiagram
   end
 ```
 
-An unreadable saved map produces a warning. Without a valid saved map, the store uses Main's default for Main, a matching bundled default for another default workspace, or an empty map when the workspace has no bundled default. See the [source loaders](../src/services/sources.js), [startup](../src/app/start.js), [map store](../src/state/store.js), and [data generator](../sync.py).
+An unreadable saved map produces a warning. Without a valid saved map, the store uses Main's default for Main, a matching bundled default for another default workspace, or an empty map when the workspace has no bundled default. A malformed System URL opens the Galaxy. Team update notices compare successfully loaded maps, including empty maps, to the last seen snapshot. See the [source loaders](../src/services/sources.js), [startup](../src/app/start.js), [System route parser](../src/ui/system-route.js), [team update notice](../src/ui/notices/team-updates.js), [map store](../src/state/store.js), and [data generator](../sync.py).
 
 ## Saving a map edit
 

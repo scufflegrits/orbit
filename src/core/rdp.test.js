@@ -10,6 +10,20 @@ import {
   rdpLaunchUrl, validRdpHost,
 } from './rdp.js';
 
+test('client URL limit includes the destination address and counts UTF-8 bytes', () => {
+  const destination = { name: 'Lab', type: /** @type {const} */ ('rdp'), host: 'h', rdpPreset: 'wide' };
+  const prefix = 'full address:s:h\r\nusername:s:';
+  const value = 'é'.repeat(Math.floor((12000 - prefix.length - 2) / 2));
+  const padding = 'x'.repeat(12000 - prefix.length - value.length * 2 - 2);
+  const presets = [{ id: 'wide', name: 'Wide', settings: 'username:s:' + value + padding }];
+  const url = rdpLaunchUrl(destination, presets);
+  assert.ok(url);
+  assert.equal(new URL(url).searchParams.get('profile')?.length, 16000);
+  const longerHost = { ...destination, host: 'hh' };
+  assert.equal(rdpLaunchUrl(longerHost, presets), null);
+  assert.equal(new TextEncoder().encode(rdpFileContent(longerHost, presets)).length, 12001);
+});
+
 const old = oracle();
 const outcome = body => {
   try {

@@ -38,3 +38,16 @@ export function showOpenAllNotice(message, isError = false) {
   shown.hideTimer = setTimeout(() => { shown.hidden = true; }, isError ? 9000 : 4000);
   return message;
 }
+
+export function showRdpSizeNotice() {
+  return showOpenAllNotice('These Remote Desktop settings are too large for Client mode. Switch to Download mode in Settings to save the connection file.', true);
+}
+
+/** @param {HTMLButtonElement} button @param {string} name */
+export function rdpSizeButton(button, name) {
+  button.type = 'button';
+  button.dataset.rdpTooLarge = 'true';
+  button.title = `Remote Desktop settings for ${name} exceed the Client mode limit`;
+  button.setAttribute('aria-label', button.title);
+  button.addEventListener('click', showRdpSizeNotice);
+}

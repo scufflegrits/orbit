@@ -9,6 +9,7 @@ import { icon } from '../icons.js';
 import { askForVariables } from '../dialogs/placeholder.js';
 import { openEditorAt } from '../editor/page.js';
 import { modes } from '../page-modes.js';
+import { rdpSizeButton } from '../notices/area.js';
 import { openGroup } from '../views/group-planets.js';
 import { isFavorite, setFavorite } from '../views/favorites.js';
 import { app, groups, rdpLaunchMode, rdpPresets } from '../page.js';
@@ -44,8 +45,10 @@ function findResult(match) {
   const group = match.kind === 'Group';
   const isRdp = match.destination?.type === 'rdp';
   const download = isRdp && rdpLaunchMode === 'download';
+  const clientUrl = isRdp && !download ? rdpLaunchUrl(match.destination, rdpPresets) : null;
+  const oversized = isRdp && !download && clientUrl === null;
   const template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0;
-  const node = /** @type {HTMLAnchorElement & HTMLButtonElement} */ (element(match.id || group || download || template ? 'button' : 'a', 'find-item'));
+  const node = /** @type {HTMLAnchorElement & HTMLButtonElement} */ (element(match.id || group || download || template || oversized ? 'button' : 'a', 'find-item'));
   if (match.id) {
     node.type = 'button';
     node.addEventListener('click', () => { location.hash = `group/${encodeURIComponent(match.id)}`; });
@@ -60,8 +63,10 @@ function findResult(match) {
     node.type = 'button';
     node.addEventListener('click', () => downloadRdp(match.destination, rdpPresets));
     node.title = `Download Remote Desktop connection for ${match.name}`;
-  } else if (isRdp) {
-    node.href = rdpLaunchUrl(match.destination, rdpPresets);
+  } else if (oversized) {
+    rdpSizeButton(node, match.name);
+  } else if (clientUrl !== null) {
+    node.href = clientUrl;
     node.title = `Open Remote Desktop Connection for ${match.name}`;
   } else {
     node.href = match.destination.url;

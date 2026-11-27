@@ -252,6 +252,18 @@ test('history matches 2.2.1 recordHistory and loadHistory', () => {
   assert.deepEqual(strip(loadHistory('orbit:history:v1')), strip(old.call('loadHistory')));
 });
 
+test('backup: a Constructor workspace gets its own persisted counter', () => {
+  const { id } = newWorkspace('Constructor');
+  countChange('main', 100);
+  for (let i = 0; i < 20; i++) countChange(id, 200 + i);
+  assert.equal(Object.hasOwn(readBackupState(), id), true);
+  assert.deepEqual(readBackupState()[id], { changes: 20, since: 200 });
+  noteBackupMade(id, 400);
+  assert.deepEqual(readBackupState()[id], { changes: 0, lastExport: 400 });
+  forgetWorkspace(id);
+  assert.deepEqual(readBackupState(), { main: { changes: 1, since: 100 } });
+});
+
 test('backup: counts changes per workspace, resets on export, and forgets a removed workspace', () => {
   countChange('main', 100);
   countChange('main', 200);

@@ -7,7 +7,7 @@ import { counted } from '../../core/words.js';
 import * as opener from '../../services/opener.js';
 import { askForVariables } from '../dialogs/placeholder.js';
 import { confirmed } from '../dialogs/confirm.js';
-import { showOpenAllNotice } from '../notices/area.js';
+import { showOpenAllNotice, showRdpSizeNotice } from '../notices/area.js';
 import { favoriteItems, noteOpened } from './favorites.js';
 import { groups, rdpLaunchMode, rdpPresets } from '../page.js';
 
@@ -18,6 +18,7 @@ import { groups, rdpLaunchMode, rdpPresets } from '../page.js';
 export function openDestination(item) {
   const result = opener.openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode });
   if (result === 'ask') return askForVariables(item);
+  if (result === 'rdp-too-large') return showRdpSizeNotice();
   if (result === 'skipped') return;
   noteOpened(item);
 }

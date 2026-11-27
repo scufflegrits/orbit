@@ -162,6 +162,8 @@ export function findMatches(groups, query) {
   const scored = [];
   entries.forEach((entry, order) => {
     let score = 0;
+    let directScore = 0;
+    let directKind = '';
     /** @type {Set<string>} */
     const reasons = new Set();
     for (const token of tokens) {
@@ -170,6 +172,10 @@ export function findMatches(groups, query) {
       for (const field of entry.fields) {
         const quality = wordQuality(token, field.text, field.words || [], !strictHits.has(token), field.anywhere) * field.weight;
         if (quality > best) { best = quality; bestKind = field.kind; }
+        if (field.kind !== 'path' && quality > directScore) {
+          directScore = quality;
+          directKind = field.kind;
+        }
       }
       if (!best) return;
       score += best;
@@ -177,7 +183,8 @@ export function findMatches(groups, query) {
     }
     // Where an item sits only narrows a search ("tech reviews"); typing a
     // sun's name should not list everything inside it.
-    if (tokens.length && ![...reasons].some(kind => kind !== 'path')) return;
+    if (tokens.length && !directScore) return;
+    if (reasons.size === 1 && reasons.has('path')) reasons.add(directKind);
     if (!tokens.length) score = 1;
     const match = { ...entry.match, score };
     if (!reasons.has('name')) {

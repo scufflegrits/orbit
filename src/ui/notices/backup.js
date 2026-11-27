@@ -18,7 +18,7 @@ export function noteBackupMade() {
 
 /** Whether the active workspace is due a reminder, with the counts for its text. */
 export function backupDue(time = now()) {
-  return dueFor(backup.readBackupState()[activeWorkspace()], readBoolean('orbit:backup-reminders', true), time);
+  return dueFor(backup.readBackupEntry(activeWorkspace()), readBoolean('orbit:backup-reminders', true), time);
 }
 
 /** @param {{changes: number, days: number}} due */
@@ -36,9 +36,7 @@ export function backupReminder(due) {
   const later = element('button', 'routine-offer-dismiss', 'Remind me later');
   later.type = 'button';
   later.addEventListener('click', () => {
-    const state = backup.readBackupState();
-    state[activeWorkspace()] = { ...state[activeWorkspace()], snoozeUntil: now() + SNOOZE_MS };
-    backup.writeBackupState(state);
+    backup.snoozeBackup(workspace, now() + SNOOZE_MS);
     document.querySelector('#backup-reminder')?.remove();
     box.remove();
   });

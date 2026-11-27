@@ -51,9 +51,9 @@ export function showHistory() {
     copy.append(element('small', '', `${new Date(entry.time).toLocaleString()} · ${counted(counts.suns, 'sun')}, ${counted(counts.planets, 'planet')}, ${counted(counts.moons, 'moon')} · compared with now: ${countDifference(current, counts)}`));
     row.append(copy, editorButton('Restore', () => {
       if (!confirmed(`Restore the map from ${new Date(entry.time).toLocaleString()}?`)) return;
-      applyEditorChange([...groups.filter(sun => sun.team), ...entry.groups], showHistory,
+      applyEditorChange([...groups.filter(sun => sun.team), ...mapOps.withoutPlanetIds(entry.groups)], showHistory,
         { label: `Restored the version from ${new Date(entry.time).toLocaleString()}`, routines: entry.routines || [],
-          rdpPresets: entry.rdpPresets || [] });
+          rdpPresets: entry.rdpPresets || [], clearUndo: store.loadUndoRecord()?.kind === 'moon' });
     }));
     list.append(row);
   });

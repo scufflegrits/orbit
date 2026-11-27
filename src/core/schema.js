@@ -154,9 +154,10 @@ function validGroup(value, label) {
  * in, empty routine and preset lists left out. Throws an Error with a message
  * for the user when something can't be fixed.
  * @param {any} data
+ * @param {{keepPlanetIds?: boolean}} [options] Keep browser-local IDs when reading or saving an existing workspace.
  * @returns {MapData}
  */
-export function validateMap(data) {
+export function validateMap(data, { keepPlanetIds = false } = {}) {
   if (!data || !Array.isArray(data.groups)) throw new Error('The link map needs a "groups" array.');
   /** @type {Set<string>} */
   const used = new Set();
@@ -174,7 +175,11 @@ export function validateMap(data) {
     used.add(id);
     /** @type {Planet[]} */
     const links = group.links.map((/** @type {any} */ link, /** @type {number} */ linkIndex) => {
-      return validPlanet(link, `Planet ${linkIndex + 1} in ${name}`);
+      const planet = validPlanet(link, `Planet ${linkIndex + 1} in ${name}`);
+      if (keepPlanetIds && typeof link.planetId === 'string' && /^[a-f0-9]{32}$/.test(link.planetId)) {
+        planet.planetId = link.planetId;
+      }
+      return planet;
     });
     const icon = validSunIcon(group.icon, name);
     return { id, name, description: String(group.description || ''), color, ...(icon ? { icon } : {}), links };

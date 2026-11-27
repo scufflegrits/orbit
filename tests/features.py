@@ -273,6 +273,12 @@ def f03_search(ctx):
           f"{mode}: unrelated links stay out")
     check(page.locator(".find-empty").count() == 0 and search(page, "zzzz-none") == [] and
           "#tag" in page.locator(".find-empty").inner_text(), f"{mode}: no results explains the options")
+    save_map_js(page, "next[1].links[1].note = 'Alpha'")
+    check(search(page, "alpha") == ["Alpha", "Status"], f"{mode}: a direct note match survives the higher-ranked path")
+    page.keyboard.press("Control+k")
+    page.locator(".palette-input").fill("alpha")
+    check("Status" in page.locator(".palette-option strong").all_inner_texts(), f"{mode}: the palette also includes the note match")
+    page.keyboard.press("Escape")
     print(f"PASS F03 smarter Quick find ({mode})")
 
 
@@ -1106,6 +1112,33 @@ def f22_workspaces(ctx):
     print(f"PASS F22 workspaces ({mode})")
 
 
+def f22_system_routes(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    base = ctx.url.split("#")[0]
+    page.goto(base + "#group/%", wait_until="load")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    page.evaluate("location.hash = 'group/alpha'")
+    page.locator(".detail-heading").filter(has_text="Alpha").wait_for()
+    page.evaluate("location.hash = 'group/%E0%A4'")
+    page.locator(".home-hub").first.wait_for()
+    save_map_js(page, "next[1].id = 'alpha%'")
+    page.evaluate("location.hash = 'group/alpha%25'")
+    page.locator(".detail-heading").filter(has_text="Alpha").wait_for()
+    page.evaluate("location.hash = ''")
+    page.locator(".home-hub").first.wait_for()
+    add_workspace(page, "Other", "An empty map")
+    save_map_js(page, "next.push({ id: 'alpha', name: 'Partial ID', links: [] })")
+    page.locator("#workspace-switch").select_option(label="Main")
+    page.evaluate("location.hash = 'group/alpha%25'")
+    page.locator(".detail-heading").filter(has_text="Alpha").wait_for()
+    page.locator("#workspace-switch").select_option(label="Other")
+    page.locator(".home-hub").filter(has_text="Partial ID").wait_for()
+    check(not page.evaluate("location.hash"), f"{mode}: a partial ID does not keep a System route")
+    print(f"PASS F22 malformed and encoded System routes ({mode})")
+
+
 def reset_to_file_data(page):
     open_editor(page)
     page.get_by_role("button", name="Reset to file data").click()
@@ -1317,6 +1350,30 @@ def f24_backups(ctx):
     print(f"PASS F24 backup reminders ({mode})")
 
 
+def f24_constructor_backup(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    add_workspace(page, "Constructor", "A copy of this workspace")
+    page.evaluate("""() => {
+      for (let i = 0; i < 20; i++) {
+        const groups = OrbitTest.groups();
+        groups[1].description = 'Change ' + i;
+        OrbitTest.saveMap(groups);
+      }
+    }""")
+    page.reload(wait_until="load")
+    reminder = page.locator("#backup-reminder")
+    check("20 changes" in reminder.inner_text(), f"{mode}: Constructor counts changes across reload")
+    reminder.get_by_role("button", name="Remind me later").click()
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    check(reminder.count() == 0, f"{mode}: Constructor can snooze its reminder")
+    capture_download(page, "OrbitTest.actions.exportMap()")
+    check(page.evaluate("readBackupState().constructor.changes") == 0,
+          f"{mode}: Constructor can reset its counter by exporting")
+    print(f"PASS F24 Constructor backup tracking ({mode})")
+
+
 # ---- F25 Team map updates -------------------------------------------------------
 
 def f25_team_updates(ctx):
@@ -1398,6 +1455,54 @@ def f26_presets(ctx):
           f"{mode}: a link falls back to its own imported settings")
     close_menu(page)
     print(f"PASS F26 Remote Desktop presets ({mode})")
+
+
+def f26_oversized_preset(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    page.evaluate("""() => {
+      const next = OrbitTest.groups();
+      next[1].links[2].rdpPreset = 'large';
+      OrbitTest.saveMap(next, { rdpPresets: [{ id: 'large', name: 'Large', settings: 'username:s:' + 'x'.repeat(12000) }] });
+      localStorage.setItem('orbit:rdp-launch', 'client');
+    }""")
+    base = ctx.url.split("#")[0]
+    page.goto(base + "#group/alpha", wait_until="load")
+    page.reload(wait_until="load")
+    notice = page.locator("#open-all-notice")
+    map_node = page.locator(".detail-satellite").filter(has_text="Lab Box")
+    expect(map_node).to_have_attribute("data-rdp-too-large", "true")
+    check(map_node.get_attribute("href") is None, f"{mode}: the blocked map action has no protocol URL")
+    map_node.press("Enter")
+    expect(notice).to_contain_text("too large")
+    map_node.click(button="middle")
+    page.locator(".brand").click()
+    check(search(page, "Lab Box")[0] == "Lab Box", f"{mode}: an oversized link can still be found")
+    result = page.locator(".find-item").filter(has_text="Lab Box").first
+    check(result.get_attribute("href") is None, f"{mode}: blocked search result has no protocol URL")
+    notice.evaluate("node => node.remove()")
+    result.click()
+    expect(notice).to_contain_text("Download mode")
+    result.click(button="middle")
+    notice.evaluate("node => node.remove()")
+    page.keyboard.press("Control+k")
+    page.locator(".palette-input").fill("Lab Box")
+    page.locator(".palette-option").filter(has_text="Lab Box").first.click()
+    expect(notice).to_contain_text("too large")
+    check(page.evaluate("loadRecent().length") == 0, f"{mode}: blocked activations never enter Recent")
+
+    page.evaluate("localStorage.setItem('orbit:rdp-launch', 'download')")
+    page.goto(base + "#group/alpha", wait_until="load")
+    page.reload(wait_until="load")
+    if not mode.startswith("remote"):
+        with page.expect_download() as download:
+            map_node.click()
+        profile = Path(download.value.path()).read_bytes()
+        check(len(profile) > 12000 and profile.startswith(b"full address:s:lab-box\r\nusername:s:"),
+              f"{mode}: Download mode produces the full profile")
+    else:
+        expect(map_node).not_to_have_attribute("data-rdp-too-large", "true")
+    print(f"PASS F26 oversized RDP preset ({mode})")
 
 
 def f30_group_planets(ctx):
@@ -1877,6 +1982,33 @@ def f34_remove_map_items(ctx):
     check(len(prompts) == before + 1 and "Main's edits" in prompts[-1] and "default links" in prompts[-1],
           "reset still asks for confirmation")
     print(f"PASS F34 Remove map items ({ctx.mode})")
+
+
+def f34_moon_undo_identity(ctx):
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    save_map_js(page, """const { name, url } = next[1].links[0];
+        next[1].links.push({ name, url, moons: [] })""")
+    open_editor(page)
+    tree(page, "editor-tree-moon", "Guide").click()
+    page.get_by_role("button", name="Remove moon", exact=True).click()
+    tree(page, "editor-tree-planet", "Docs Portal").click()
+    page.get_by_role("button", name="Move planet", exact=True).click()
+    page.get_by_role("button", name="Move down", exact=True).click()
+    page.get_by_role("textbox", name="Planet name").fill("Renamed Docs")
+    page.get_by_role("button", name="Save planet", exact=True).click()
+    page.reload(wait_until="load")
+    open_editor(page)
+    page.locator(".editor-undo").get_by_role("button", name="Undo removal").click()
+    links = stored(page)[0]["links"]
+    renamed = next(planet for planet in links if planet["name"] == "Renamed Docs")
+    twin = next(planet for planet in links if planet["name"] == "Docs Portal")
+    check([moon["name"] for moon in renamed["moons"]] == ["Guide", "Broken Page"] and not twin["moons"],
+          f"{mode}: Undo restores Guide to the renamed parent after reload")
+    exported = capture_download(page, "OrbitTest.actions.exportMap()")
+    check(all("planetId" not in planet for sun in exported["groups"] for planet in sun["links"]),
+          f"{mode}: exported maps omit browser-local planet IDs")
+    print(f"PASS F34 moon undo identity ({mode})")
 
 
 def f35_item_editor_toolbar(ctx):
@@ -2860,8 +2992,10 @@ def f46_planet_reveal(ctx):
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
-          f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
-          f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
+          f22_workspaces, f22_system_routes, f23_link_packs, f24_backups, f24_constructor_backup, f25_team_updates, f26_presets,
+          f26_oversized_preset, f27_reset_workspace, f28_offers_per_workspace, f29_sun_picker, f30_group_planets,
+          f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f34_moon_undo_identity,
+          f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
           f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout, f44_page_icon, f45_help_guide, f46_planet_reveal)
 
 

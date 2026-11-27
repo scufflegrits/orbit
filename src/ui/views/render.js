@@ -8,13 +8,13 @@ import { revealPendingGroup } from './group-planets.js';
 import { renderHome } from './galaxy.js';
 import { renderDetail } from './system.js';
 import { groups } from '../page.js';
+import { systemIdFromHash } from '../system-route.js';
 
 export function render() {
   // A render replaces the nodes a drag is holding, so the gesture ends first.
   modes.send('render');
   updateMapLabelSizes();
-  const route = decodeURIComponent(location.hash.slice(1));
-  const id = route.startsWith('group/') ? route.slice(6) : null;
+  const id = systemIdFromHash(location.hash);
   const group = groups.find(item => item.id === id);
   modes.send(group ? 'openSystem' : 'toGalaxy');
   if (group) renderDetail(group);

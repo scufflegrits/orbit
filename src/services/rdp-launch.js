@@ -21,5 +21,10 @@ export function downloadRdp(destination, presets) {
  */
 export function launchRdp(destination, presets, mode) {
   if (mode === 'download') downloadRdp(destination, presets);
-  else /** @type {any} */ (globalThis).location.href = rdpLaunchUrl(destination, presets);
+  else {
+    const url = rdpLaunchUrl(destination, presets);
+    if (url === null) return false;
+    /** @type {any} */ (globalThis).location.href = url;
+  }
+  return true;
 }

@@ -12,7 +12,7 @@ import { groups } from '../page.js';
 
 export function checkTeamUpdates() {
   document.querySelector('#team-updates')?.remove();
-  if (!team.groups.length) return;
+  if (!team.source) return;
   const current = teamEntries(team.groups);
   const changes = teamChanges(readTeamSeen(), current);
   if (changes.first) return rememberTeam(current);

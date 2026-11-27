@@ -173,7 +173,7 @@ export function showPlanetEditor(sunIndex, planetIndex) {
     if (!isNew && isGroup(value) && !isGroup(planet) &&
         !confirmed(`${planet.name} will become a group and lose its link ${planet.type === 'rdp' ? planet.host : planet.url}. Continue?`)) return;
     if (isNew) next[sunIndex].links.push(value);
-    else next[sunIndex].links[planetIndex] = value;
+    else next[sunIndex].links[planetIndex] = { ...value, planetId: next[sunIndex].links[planetIndex].planetId };
     applyEditorChange(next, () => showPlanetEditor(sunIndex,
       isNew ? next[sunIndex].links.length - 1 : planetIndex), { label: `${isNew ? 'Added' : 'Saved'} planet ${value.name}` });
   });

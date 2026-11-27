@@ -13,8 +13,9 @@
 /** @typedef {WebDestination | RdpDestination} Destination */
 
 /** @typedef {Destination} Moon */
-/** @typedef {Pick<DestinationExtras, 'tags'|'note'> & {name: string, type: 'group', moons: Moon[]}} GroupPlanet */
-/** @typedef {(Destination & {moons: Moon[]}) | GroupPlanet} Planet */
+/** @typedef {{moons: Moon[], planetId?: string}} PlanetFields */
+/** @typedef {Pick<DestinationExtras, 'tags'|'note'> & {name: string, type: 'group'} & PlanetFields} GroupPlanet */
+/** @typedef {(Destination & PlanetFields) | GroupPlanet} Planet */
 
 /**
  * A sun. Team suns (from the team map) sit in front of the personal ones in

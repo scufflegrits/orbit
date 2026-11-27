@@ -13,7 +13,7 @@ function trackDestinationClicks(event) {
   if (event.type === 'auxclick' && event.button !== 1) return;
   const node = event.target instanceof Element ? /** @type {HTMLElement | null} */ (event.target.closest('[data-destination]')) : null;
   // A link with placeholders is recorded when its form is submitted instead.
-  if (!node || event.defaultPrevented || node.dataset.template) return;
+  if (!node || event.defaultPrevented || node.dataset.template || node.dataset.rdpTooLarge) return;
   const path = /** @type {string} */ (node.dataset.destination).split(':').map(Number);
   noteOpened(itemAt(groups, path));
 }
