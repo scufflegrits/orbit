@@ -67,8 +67,9 @@ export function showMenuPanel(name) {
     guide.rel = 'noopener';
     menuContent.append(guide);
     menuContent.append(element('h4', 'editor-section-title', 'Quick keys'));
-    menuContent.append(element('p', '', '/ jumps to Quick find. Ctrl+K (Cmd+K on a Mac) opens the command palette.'));
-    menuContent.append(element('p', '', 'E opens the focused sun, planet, or moon in its editor. Shift+click a planet to open it with all its moons.'));
+    menuContent.append(element('p', '', 'Press / to jump to Quick find. Press Ctrl+K (Cmd+K on a Mac) for the command palette.'));
+    menuContent.append(element('p', '', 'Tab moves through the page. Arrow keys move between suns, and between planets or moons; Enter opens the focused one.'));
+    menuContent.append(element('p', '', 'Press E on a focused sun, planet, or moon to open its editor. Shift+click a planet to open it with all its moons.'));
     menuContent.append(element('p', '', 'Escape goes back one step at a time: it closes the menu, cancels a drag, turns Edit mode off, clears Quick find, then returns to the Galaxy.'));
   } else if (name === 'About') {
     menuContent.append(element('p', '', 'Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.'));

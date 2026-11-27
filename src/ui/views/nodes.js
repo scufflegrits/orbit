@@ -147,7 +147,9 @@ export function planetNode(link, context, point, size, index, sunIndex) {
   cluster.style.setProperty('--y', `${point.y / size * 100}%`);
   cluster.style.setProperty('--cos', Math.cos(point.angle).toFixed(4));
   cluster.style.setProperty('--sin', Math.sin(point.angle).toFixed(4));
-  cluster.style.setProperty('--delay', `${index * (context === 'home' ? 35 : 50)}ms`);
+  // Galaxy planets leave the sun 20 ms apart, so the fifth starts 80 ms after the first and
+  // the reveal reads as one burst; at 35 ms the last one visibly trailed the rest.
+  cluster.style.setProperty('--delay', `${index * (context === 'home' ? 20 : 50)}ms`);
   cluster.append(linkNode(link, context === 'home' ? 'home-satellite' : 'detail-satellite', [sunIndex, index]));
 
   if (link.moons.length) {

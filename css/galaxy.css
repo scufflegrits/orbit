@@ -121,6 +121,9 @@ html[data-theme='auburn'] .detail-stage {
   font: 600 max(calc(11px * var(--font-scale)), calc(clamp(11px, .65vw, 13px) * var(--font-scale) * var(--planet-label-fit, 1)))/1.2 var(--font-display);
   overflow-wrap: anywhere;
   cursor: pointer;
+  /* The hover glow fades in rather than switching on in one frame, so a planet that lands
+     under the pointer brightens gently. Animations Off turns transitions off everywhere. */
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
 .planet-cluster {
@@ -158,6 +161,20 @@ html[data-theme='auburn'] .detail-stage {
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, -50%) scale(1);
+}
+
+/* Planets fly out from the sun's centre, under the pointer resting on it. Until a planet
+   has cleared the sun (measured: 90-100 ms after its own start) it stays behind the sun
+   (z-index 2 against the sun's 3), so the sun keeps the hover and a passing planet doesn't
+   flash its hover glow or jump above the others. Clear of the sun, nothing covers it, so a
+   quick click still lands. The backwards fill applies only during the delay; afterwards
+   the usual z-index rules (including a hovered planet's) apply. Animations Off shows
+   planets in place. Checked by F46. */
+.home-orbit:hover .home-planet-cluster {
+  animation: planet-arriving 0s linear calc(var(--delay) + .2s) backwards;
+}
+@keyframes planet-arriving {
+  from { z-index: 2; }
 }
 
 .home-satellite, .detail-satellite {

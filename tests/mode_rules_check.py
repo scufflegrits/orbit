@@ -92,6 +92,8 @@ def press_planet(page, move=True):
     page.mouse.move(*center(page.locator('.home-hub[data-sun="0"]')))
     planet = page.locator('.home-satellite[data-sun="0"][data-planet="0"]')
     planet.wait_for(state="visible")
+    # Planets glide out from their sun (0.35 s), behind it until clear; press where the planet settles.
+    page.wait_for_timeout(450)
     x, y = center(planet)
     page.mouse.move(x, y)
     page.mouse.down()

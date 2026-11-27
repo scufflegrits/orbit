@@ -15,6 +15,11 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 - **Browser requirements:** Orbit now needs Edge 144, Chrome 144, Firefox 147, or Safari 26.3 or later, the first releases of 2026. Keep your browser up to date.
 - **Dev Toolbox** gains **Structurizr** in Diagramming, with **The C4 model** as its moon, so it now has 31 links. If you've already saved Dev Toolbox, use Settings → Edit links → **Reset to file data** on it to see them.
 
+### Fixed
+
+- **Planets fan out smoothly.** Hovering a sun used to reveal its planets with a visible hiccup on the last one: it started well after the others, and a planet passing under the pointer, or landing under it, flashed its hover glow. Planets now leave the sun 20 ms apart instead of 35 ms, stay behind the sun until they're clear of it, and a planet's hover glow fades in over 0.15 s instead of switching on at once.
+- **The Help tab lists the keyboard basics again**: Tab, the arrow keys and Enter, beside `/`, Ctrl+K, E and Escape.
+
 ## 3.1.0 — 2026-11-26
 
 ### New

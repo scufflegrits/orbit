@@ -1486,6 +1486,7 @@ def f30_group_planets(ctx):
         check(group.get_attribute("aria-expanded") == "true" and ring(), f"{mode}: {view} a pinned group has a ring")
         hover()
         group.click()
+        page.wait_for_timeout(250)  # the ring is a box-shadow, which fades out over 0.15 s
         check(group.get_attribute("aria-expanded") == "false" and not ring(),
               f"{mode}: {view} a second click unpins the group and removes the ring")
         group.click()
@@ -2229,11 +2230,15 @@ def f39_level_change(ctx):
     alpha.hover()
     group = page.locator(".home-orbit:hover .home-satellite").filter(has_text="Monitoring")
     group.wait_for(state="visible")
+    # Planets glide out from their sun (0.35 s), behind it until clear; press where the planet settles.
+    page.wait_for_timeout(450)
     press_drag(group)
     wiki_free = page.locator(".home-hub").filter(has_text="Beta")
     page.mouse.move(*(lambda b: (b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(wiki_free.bounding_box()), steps=6)
     beta_planet = page.locator('.home-satellite[data-sun="2"][data-planet="0"]')
     beta_planet.wait_for(state="visible")
+    # Planets glide out from their sun (0.35 s), behind it until clear; press where the planet settles.
+    page.wait_for_timeout(450)
     page.mouse.move(*(lambda b: (b["x"] + b["width"] / 2, b["y"] + b["height"] / 2))(beta_planet.bounding_box()), steps=6)
     pill = page.locator('.drop-choices [data-action="moon"]')
     pill.wait_for(timeout=3000)
@@ -2787,12 +2792,68 @@ def f45_help_guide(ctx):
     print(f"PASS F45 Help guide ({mode})")
 
 
+# ---- F46 Planet reveal ------------------------------------------------------------
+
+def f46_planet_reveal(ctx):
+    """Hovering a sun fans its planets out as one burst, without a planet catching the hover on the way."""
+    page, mode = ctx.page, ctx.mode
+    fresh(ctx)
+    # The sun with the most planets.
+    counts = page.locator(".home-orbit").evaluate_all("os => os.map(o => o.querySelectorAll('.home-planet-cluster').length)")
+    orbit = page.locator(".home-orbit").nth(counts.index(max(counts)))
+    delays = orbit.locator(".home-planet-cluster").evaluate_all(
+        "cs => cs.map(c => getComputedStyle(c).getPropertyValue('--delay').trim())")
+    check(len(delays) >= 3 and delays == [f"{i * 20}ms" for i in range(len(delays))],
+          f"{mode}: Galaxy planets leave the sun 20 ms apart ({delays})")
+    glow = orbit.locator(".home-satellite").first.evaluate(
+        "el => [getComputedStyle(el).transitionProperty, getComputedStyle(el).transitionDuration]")
+    check("box-shadow" in glow[0] and "0.15s" in glow[1], f"{mode}: the hover glow fades in ({glow})")
+
+    # Rest the pointer on the sun, come in from two sides, and keep moving a little, as a hand
+    # does: no planet may count as hovered while the planets fly out under it.
+    hub = orbit.locator(".home-hub").bounding_box()
+    cx, cy = hub["x"] + hub["width"] / 2, hub["y"] + hub["height"] / 2
+    flashes = []
+    for dx, dy in ((-1, 0), (0, 1)):
+        page.mouse.move(2, 2)
+        page.wait_for_timeout(500)
+        sx, sy = cx + dx * 60, cy + dy * 60
+        page.mouse.move(sx, sy)
+        orbit.evaluate("""o => { const cl = [...o.querySelectorAll('.home-planet-cluster')];
+          window.__flash = 0; const t0 = performance.now();
+          (function tick() { if (cl.some(c => c.matches(':hover'))) window.__flash++;
+            if (performance.now() - t0 < 600) requestAnimationFrame(tick); })(); }""")
+        for i in range(20):
+            f = i / 19 * .7
+            page.mouse.move(sx + (cx - sx) * f, sy + (cy - sy) * f + i % 2)
+            page.wait_for_timeout(16)
+        page.wait_for_timeout(400)
+        flashes.append(page.evaluate("window.__flash"))
+    check(flashes == [0, 0], f"{mode}: no planet catches the hover while flying out ({flashes} frames)")
+
+    # Once out, a planet takes the pointer as usual.
+    planet = orbit.locator(".home-satellite").first.bounding_box()
+    page.mouse.move(planet["x"] + planet["width"] / 2, planet["y"] + planet["height"] / 2)
+    page.wait_for_timeout(250)
+    check(orbit.locator(".home-planet-cluster").first.evaluate("c => c.matches(':hover')"), f"{mode}: a revealed planet takes the pointer")
+    page.mouse.move(2, 2)
+
+    # Animations Off: the glow switches at once, like every other transition.
+    page.evaluate("localStorage.setItem('orbit:animations', 'false')")
+    page.reload(wait_until="load")
+    page.locator(".home-hub").first.wait_for()
+    off = page.locator(".home-satellite").first.evaluate("el => getComputedStyle(el).transitionDuration")
+    page.evaluate("localStorage.removeItem('orbit:animations')")
+    check(set(off.replace(" ", "").split(",")) <= {"0s"}, f"{mode}: with Animations Off the glow has no fade ({off})")
+    print(f"PASS F46 Planet reveal ({mode})")
+
+
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
           f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
           f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
           f22_workspaces, f23_link_packs, f24_backups, f25_team_updates, f26_presets, f27_reset_workspace,
           f28_offers_per_workspace, f29_sun_picker, f30_group_planets, f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
-          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout, f44_page_icon, f45_help_guide)
+          f38_lucide_icons, f39_level_change, f40_fonts, f41_backdrop, f43_settings_layout, f44_page_icon, f45_help_guide, f46_planet_reveal)
 
 
 def run_checks(make_ctx, only):
