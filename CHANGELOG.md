@@ -11,6 +11,7 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 ### Changed
 
+- **Moons appear faster.** Hovering a planet fades its moons in over 0.1 s instead of 0.18 s, all together and in place; a group planet's links do the same.
 - **The README is shorter:** it now covers running Orbit, map files, backups, and setup, and points to the Help guide for everything else.
 - **Browser requirements:** Orbit now needs Edge 144, Chrome 144, Firefox 147, or Safari 26.3 or later, the first releases of 2026. Keep your browser up to date.
 - **Dev Toolbox** gains **Structurizr** in Diagramming, with **The C4 model** as its moon, so it now has 31 links. If you've already saved Dev Toolbox, use Settings → Edit links → **Reset to file data** on it to see them.

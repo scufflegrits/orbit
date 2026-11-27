@@ -270,7 +270,9 @@ html[data-moons='always'] .group-card:has(.home-orbit:is(:hover, :focus-within) 
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity .18s ease, visibility .18s;
+  /* Moons (and a group planet's links) fade in together in place, without flying out or a
+     stagger, which read as busy; 0.1 s keeps the move from a planet to its moons quick. */
+  transition: opacity .1s ease, visibility .1s;
 }
 
 .planet-cluster:hover .moon-field,
