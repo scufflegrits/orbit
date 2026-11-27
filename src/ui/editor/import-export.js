@@ -96,7 +96,8 @@ export function showImportReview(data, options = {}) {
   menuContent.append(summary);
 
   const chosen = () => data.groups.filter((/** @type {any} */ _, /** @type {number} */ index) => sunBoxes[index].checked);
-  const merged = () => mapOps.mergeMaps(personal, chosen());
+  const merged = () => mapOps.mergeMaps(personal, mapOps.rebindImportedPresets(
+    chosen(), data.rdpPresets || [], presetBox?.box.checked ? newPresets : rdpPresets));
   const actions = editorActions();
   const merge = editorButton('Merge into my map', () => {
     const withRoutines = Boolean(routineBox?.box.checked);

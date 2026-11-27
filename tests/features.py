@@ -996,6 +996,15 @@ def f20_variables(ctx):
     page.get_by_role("button", name="Save moon").click()
     check("http or https URL" in page.locator(".editor-error").inner_text(), f"{mode}: an unmatched brace is refused")
     close_menu(page)
+    fresh(ctx)
+    save_map_js(page, "next[1].links[1].moons.push({ name: 'Inherited Template', url: 'https://jira.example.test/{constructor}/{__proto__}/{toString}' })")
+    search(page, "Inherited Template")
+    page.locator(".find-item").filter(has_text="Inherited Template").first.click()
+    for name in ("constructor", "__proto__", "toString"):
+        check(page.get_by_label(name, exact=True).input_value() == "", f"{mode}: {name} starts empty")
+        page.get_by_label(name, exact=True).fill("chosen")
+    urls = popups(page, lambda: page.locator(".variable-form").get_by_role("button", name="Open").click(), expect=1)
+    check(urls == ["https://jira.example.test/chosen/chosen/chosen"], f"{mode}: explicit inherited-name values open correctly")
     print(f"PASS F20 link variables ({mode})")
 
 

@@ -60,3 +60,11 @@ test('fillTemplate matches 2.2.1 on random text and values', () => {
     assert.equal(fillTemplate(text, given), old.call('fillTemplate', text, given));
   }), runs(500));
 });
+
+test('inherited properties are not placeholder values', () => {
+  for (const name of ['constructor', 'toString', '__proto__']) {
+    const url = 'https://a.test/{' + name + '}';
+    assert.equal(fillTemplate(url, {}), 'https://a.test/');
+    assert.equal(fillTemplate(url, Object.fromEntries([[name, 'saved value']])), 'https://a.test/saved%20value');
+  }
+});

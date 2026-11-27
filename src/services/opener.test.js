@@ -173,3 +173,12 @@ test('opening a group is a no-op and bulk opening only plans its moons', () => {
   assert.deepEqual(plan.web.map(item => item.url), ['https://status.test/']);
   assert.equal(plan.note, '');
 });
+
+test('bulk opening skips inherited placeholder names until explicitly saved', () => {
+  for (const name of ['constructor', 'toString', '__proto__']) {
+    const items = [web('Template', 'https://a.test/{' + name + '}')];
+    assert.equal(planLinks(items, 'Templates', { values: {} }).web.length, 0);
+    const values = Object.fromEntries([[name, 'saved value']]);
+    assert.equal(planLinks(items, 'Templates', { values }).web[0].url, 'https://a.test/saved%20value');
+  }
+});

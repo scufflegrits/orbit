@@ -20,5 +20,5 @@ export function templateNames(url) {
  * @returns {string}
  */
 export function fillTemplate(url, values) {
-  return url.replace(PLACEHOLDER, (_, name) => encodeURIComponent(values[name] ?? ''));
+  return url.replace(PLACEHOLDER, (_, name) => encodeURIComponent(Object.hasOwn(values, name) ? values[name] ?? '' : ''));
 }

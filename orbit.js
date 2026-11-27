@@ -53,7 +53,7 @@
     return [...new Set([...String(url || "").matchAll(PLACEHOLDER)].map((match) => String(match[1])))];
   }
   function fillTemplate(url, values) {
-    return url.replace(PLACEHOLDER, (_, name) => encodeURIComponent(values[name] ?? ""));
+    return url.replace(PLACEHOLDER, (_, name) => encodeURIComponent(Object.hasOwn(values, name) ? values[name] ?? "" : ""));
   }
 
   // src/core/rdp.js
@@ -483,6 +483,16 @@ prompt for credentials:i:1\r
   function itemExport(kind, item) {
     return { format: "orbit-item-v1", kind, item: plainCopy(item) };
   }
+  function rebindImportedPresets(groups2, incoming, available) {
+    let next = clone(groups2);
+    for (let sun of next) for (let planet of sun.links)
+      for (let item of [planet, ...planet.moons]) {
+        if (item.type !== "rdp" || !item.rdpPreset) continue;
+        let source = incoming.find((preset) => preset.id === item.rdpPreset), target = source && available.find((preset) => preset.name.toLocaleLowerCase() === source.name.toLocaleLowerCase());
+        target ? item.rdpPreset = target.id : delete item.rdpPreset;
+      }
+    return next;
+  }
 
   // src/state/storage.js
   var KEYS = Object.freeze({
@@ -854,7 +864,12 @@ prompt for credentials:i:1\r
        */
       resetToBundled() {
         let isDefault = !!defaultWorkspace(state.workspace), fileData = validateMap(isDefault ? defaults2.find((item) => item.id === state.workspace)?.map : state.seed);
-        state.workspace === MAIN ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : isDefault ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : writeMap(key(KEYS.map), fileData), recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets), remove(key(KEYS.undo)), set({
+        state.workspace === MAIN ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : isDefault ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : writeMap(key(KEYS.map), fileData), recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets);
+        try {
+          remove(key(KEYS.undo));
+        } catch {
+        }
+        set({
           groups: [...visibleTeam(), ...fileData.groups],
           routines: fileData.routines || [],
           rdpPresets: fileData.rdpPresets || [],
@@ -2230,7 +2245,7 @@ prompt for credentials:i:1\r
     return isGroup(item) ? "skipped" : item.type === "rdp" ? (launchRdp(item, presets, launchMode), "rdp") : templateNames(item.url).length ? "ask" : openTab(item.url) ? "opened" : "blocked";
   }
   function planLinks(items, label, { question = null, extra = "", values = readVariables() } = {}) {
-    let all = items.filter((item) => item.type === void 0), web = all.filter((item) => templateNames(item.url).every((name) => values[name])).map((item) => ({ item, url: fillTemplate(item.url, values) })), skipped = items.filter((item) => item.type === "rdp").length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
+    let all = items.filter((item) => item.type === void 0), web = all.filter((item) => templateNames(item.url).every((name) => Object.hasOwn(values, name) && values[name])).map((item) => ({ item, url: fillTemplate(item.url, values) })), skipped = items.filter((item) => item.type === "rdp").length, unfilled = all.length - web.length, note = `${skipped ? ` ${counted(skipped, "Remote Desktop link")} left out.` : ""}${unfilled ? ` ${counted(unfilled, "link")} with {placeholders} left out until you open ${unfilled === 1 ? "it" : "them"} once.` : ""}${extra}`;
     return {
       web,
       note,
@@ -2310,7 +2325,7 @@ prompt for credentials:i:1\r
     let names = templateNames(item.url), remembered = readVariables(), opener = document.activeElement instanceof HTMLElement ? document.activeElement : null, overlay = element("div", "palette-overlay variable-overlay"), scrim = element("div", "palette-scrim"), form = element("form", "palette variable-form");
     form.setAttribute("role", "dialog"), form.setAttribute("aria-modal", "true"), form.setAttribute("aria-label", `Open ${item.name}`), form.append(element("h2", "variable-title", `Open ${item.name}`)), form.append(element("p", "variable-address", item.url));
     let inputs = names.map((name) => {
-      let field = editorField(name, remembered[name] || "");
+      let field = editorField(name, Object.hasOwn(remembered, name) && remembered[name] || "");
       return field.input.setAttribute("aria-label", name), field.input.required = !0, field.input.autocomplete = "off", form.append(field.wrapper), /** @type {[string, HTMLInputElement]} */
       [name, field.input];
     }), preview = element("p", "variable-preview"), update = () => {
@@ -4443,7 +4458,11 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
       extra && (extra.box.addEventListener("change", () => update()), menuContent.append(extra.label));
     let summary = element("p", "import-merge-summary");
     menuContent.append(summary);
-    let chosen = () => data.groups.filter((_, index) => sunBoxes[index].checked), merged = () => mergeMaps(personal, chosen()), actions = editorActions(), merge = editorButton("Merge into my map", () => {
+    let chosen = () => data.groups.filter((_, index) => sunBoxes[index].checked), merged = () => mergeMaps(personal, rebindImportedPresets(
+      chosen(),
+      data.rdpPresets || [],
+      presetBox?.box.checked ? newPresets : rdpPresets
+    )), actions = editorActions(), merge = editorButton("Merge into my map", () => {
       let withRoutines = !!routineBox?.box.checked, withPresets = !!presetBox?.box.checked;
       applyEditorChange(
         [...groups.filter((sun) => sun.team), ...merged().groups],

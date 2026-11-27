@@ -295,3 +295,26 @@ export function packLink(item) {
 export function itemExport(kind, item) {
   return { format: 'orbit-item-v1', kind, item: plainCopy(item) };
 }
+
+/**
+ * Rebind imported RDP links to the merged presets by name: merging can
+ * rename an incoming id or reuse an existing preset with the same name.
+ * Missing or deselected presets must not bind to an unrelated local id.
+ * @param {Sun[]} groups
+ * @param {import('./types.js').RdpPreset[]} incoming
+ * @param {import('./types.js').RdpPreset[]} available
+ * @returns {Sun[]}
+ */
+export function rebindImportedPresets(groups, incoming, available) {
+  const next = clone(groups);
+  for (const sun of next) for (const planet of sun.links) {
+    for (const item of [planet, ...planet.moons]) {
+      if (item.type !== 'rdp' || !item.rdpPreset) continue;
+      const source = incoming.find(preset => preset.id === item.rdpPreset);
+      const target = source && available.find(preset => preset.name.toLocaleLowerCase() === source.name.toLocaleLowerCase());
+      if (target) item.rdpPreset = target.id;
+      else delete item.rdpPreset;
+    }
+  }
+  return next;
+}

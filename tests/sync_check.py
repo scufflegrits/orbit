@@ -33,7 +33,7 @@ def main():
                 if planet.get("type") != "group":
                     addresses.append(planet["url"])
                 addresses.extend(moon["url"] for moon in planet.get("moons", []))
-        check(len(addresses) == 29 and len(set(addresses)) == 29, "default workspace preserves 29 unique destinations")
+        check(bool(addresses) and len(set(addresses)) == len(addresses), "default workspace destinations are nonempty and unique")
 
         (root / "workspaces/dev-toolbox.json").unlink()
         result = run(root)

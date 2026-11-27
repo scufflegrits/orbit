@@ -61,7 +61,7 @@ export function openDestination(item, { presets, launchMode }) {
  */
 export function planLinks(items, label, { question = null, extra = '', values = readVariables() } = {}) {
   const all = items.filter(item => item.type === undefined);
-  const web = all.filter(item => templateNames(item.url).every(name => values[name]))
+  const web = all.filter(item => templateNames(item.url).every(name => Object.hasOwn(values, name) && values[name]))
     .map(item => ({ item, url: fillTemplate(item.url, values) }));
   const skipped = items.filter(item => item.type === 'rdp').length;
   const unfilled = all.length - web.length;

@@ -212,7 +212,7 @@ export function createStore() {
         writeMap(key(KEYS.map), fileData);
       }
       recordHistory(key(KEYS.history), personalGroups(state.groups), 'Reset to file data', state.routines, state.rdpPresets);
-      remove(key(KEYS.undo));
+      try { remove(key(KEYS.undo)); } catch { /* The reset is saved; keep the displayed map in sync. */ }
       set({ groups: [...visibleTeam(), ...fileData.groups], routines: fileData.routines || [], rdpPresets: fileData.rdpPresets || [],
         revision: state.revision + 1, source: state.workspace === MAIN || isDefault ? 'bundled' : 'browser', warning: '' });
       notify('reset');

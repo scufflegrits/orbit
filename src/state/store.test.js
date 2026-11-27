@@ -467,3 +467,16 @@ test('the Main backup does not overwrite a preexisting workspace named Unreadabl
   assert.equal(storage.getItem('orbit:map:v1:unreadable'), '{"groups":[]}');
   assert.equal(storage.getItem('orbit:map:v1::unreadable'), 'broken JSON');
 });
+
+test('reset keeps memory in sync with disk if clearing the old undo record fails', () => {
+  const store = started();
+  store.saveMap({ groups: [sun('edited')] });
+  const removeItem = storage.removeItem.bind(storage);
+  storage.removeItem = key => {
+    if (key === 'orbit:undo-removal:v1') throw new Error('Cannot remove undo');
+    removeItem(key);
+  };
+  assert.doesNotThrow(() => store.resetToBundled());
+  assert.deepEqual(store.state().groups.filter(s => !s.team), SEED.groups);
+  assert.equal(storage.getItem('orbit:map:v1'), null);
+});

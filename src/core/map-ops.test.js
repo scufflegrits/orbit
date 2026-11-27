@@ -407,3 +407,22 @@ test('changeItemLevel: moon to planet and back returns the moon to the end of it
     assert.equal(JSON.stringify(map), before, 'input unchanged');
   }), { numRuns: 300 });
 });
+
+test('imported RDP preset references follow merged ids rather than colliding local ids', async () => {
+  const { rebindImportedPresets, mergeRoutines } = await import('./map-ops.js');
+  const local = [{ id: 'shared', name: 'Local', settings: 'screen mode id:i:1' }];
+  const incoming = [{ id: 'shared', name: 'Imported', settings: 'screen mode id:i:2' }];
+  const groups = [{ id: 'work', name: 'Work', color: '#123456', description: '', links: [
+    { name: 'Host', type: 'rdp', host: 'host', rdpPreset: 'shared', moons: [
+      { name: 'Moon', type: 'rdp', host: 'moon', rdpPreset: 'shared' }
+    ] }
+  ] }];
+  const before = JSON.stringify(groups);
+  const merged = mergeRoutines(local, incoming);
+  const result = rebindImportedPresets(groups, incoming, merged);
+  assert.equal(result[0].links[0].rdpPreset, merged[1].id);
+  assert.equal(result[0].links[0].moons[0].rdpPreset, merged[1].id);
+  assert.equal(rebindImportedPresets(groups, incoming, local)[0].links[0].rdpPreset, undefined);
+  assert.equal(rebindImportedPresets(groups, incoming, [{ ...incoming[0], id: 'existing' }])[0].links[0].rdpPreset, 'existing');
+  assert.equal(JSON.stringify(groups), before);
+});

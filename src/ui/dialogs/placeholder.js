@@ -48,7 +48,7 @@ export function variableFormOpened() {
   form.append(element('h2', 'variable-title', `Open ${item.name}`));
   form.append(element('p', 'variable-address', item.url));
   const inputs = names.map(name => {
-    const field = editorField(name, remembered[name] || '');
+    const field = editorField(name, Object.hasOwn(remembered, name) ? remembered[name] || '' : '');
     field.input.setAttribute('aria-label', name);
     field.input.required = true;
     field.input.autocomplete = 'off';
