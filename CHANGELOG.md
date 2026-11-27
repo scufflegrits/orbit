@@ -2,7 +2,7 @@
 
 What changed in each version of Orbit, newest first. Your version is shown in Settings → About.
 
-## Unreleased
+## 3.2.0 — 2026-11-27
 
 ### New
 
@@ -23,6 +23,12 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 - **Placeholders with unusual names** such as `{constructor}` or `{toString}` start empty and open only with the value you type. Before, they could fill in with stray text, and Open all could open those links unfilled.
 - **Imported Remote Desktop links keep the right preset.** When an imported preset had the same id as one of yours, its links could attach to your preset and connect with the wrong settings. Imported links now follow their preset by name. If you don't import the presets and none of yours has that name, the link uses its own settings, if it has any, or the defaults.
 - **Reset to file data always updates the screen.** If the browser failed to clear the old undo record during a reset, the screen could keep showing the map from before the reset.
+- **Undo returns a removed moon to its original planet**, even after you rename or move the planet and reload Orbit. An older pending removal that doesn't identify the original planet shows an error.
+- **Invalid System links open the Galaxy.** A malformed address no longer prevents Orbit from loading.
+- **Backup reminders work in a workspace named Constructor.** Orbit now counts its edits and shows a reminder when a backup is due.
+- **Quick find and the command palette keep direct matches.** A matching sun or planet name can no longer hide a link that also matches by its address, tag, or note.
+- **Team updates report the last shared links removed.** A team map that becomes empty now shows the removal notice.
+- **Oversized Remote Desktop presets explain how to open the link.** If the Windows helper can't accept a profile of that size, Orbit points you to **Download .rdp file** in Settings.
 
 ## 3.1.0 — 2026-11-26
 
