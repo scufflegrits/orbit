@@ -20,6 +20,9 @@ What changed in each version of Orbit, newest first. Your version is shown in Se
 
 - **Planets fan out smoothly.** Hovering a sun used to reveal its planets with a visible hiccup on the last one: it started well after the others, and a planet passing under the pointer, or landing under it, flashed its hover glow. Planets now leave the sun 20 ms apart instead of 35 ms, stay behind the sun until they're clear of it, and a planet's hover glow fades in over 0.15 s instead of switching on at once.
 - **The Help tab lists the keyboard basics again**: Tab, the arrow keys and Enter, beside `/`, Ctrl+K, E and Escape.
+- **Placeholders with unusual names** such as `{constructor}` or `{toString}` start empty and open only with the value you type. Before, they could fill in with stray text, and Open all could open those links unfilled.
+- **Imported Remote Desktop links keep the right preset.** When an imported preset had the same id as one of yours, its links could attach to your preset and connect with the wrong settings. Imported links now follow their preset by name. If you don't import the presets and none of yours has that name, the link uses its own settings, if it has any, or the defaults.
+- **Reset to file data always updates the screen.** If the browser failed to clear the old undo record during a reset, the screen could keep showing the map from before the reset.
 
 ## 3.1.0 — 2026-11-26
 
