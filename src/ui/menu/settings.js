@@ -6,6 +6,7 @@ import { hooks } from '../hooks.js';
 import { icon } from '../icons.js';
 import { tip } from '../tooltip.js';
 import { showBackupReminder } from '../notices/backup.js';
+import { refreshTeamUpdateLinks } from '../notices/team-updates.js';
 import { editorButton } from '../editor/kit.js';
 import { openEditorPage } from '../editor/page.js';
 import { CONFIRM_DELETE_KEY } from '../remove-item.js';
@@ -345,6 +346,7 @@ function remoteDesktopSettings() {
   updateRdpSetup();
   rdpSelect.addEventListener('change', () => {
     setRdpLaunchMode(/** @type {any} */ (rdpSelect.value));
+    refreshTeamUpdateLinks();
     prefs.savePreference('orbit:rdp-launch', rdpLaunchMode);
     updateRdpSetup();
     hooks.render();

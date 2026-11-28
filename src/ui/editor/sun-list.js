@@ -63,7 +63,7 @@ export function showSunList() {
   groups.forEach((sun, index) => {
     const summary = `${sun.icon ? `${sun.icon} ` : ''}${sun.name} · ${counted(sun.links.length, 'planet')}${sun.team ? ' · team, read-only' : ''}`;
     list.append(editorExportRow('sun', sun, summary, sun.team ? 'View' : 'Edit', () => nav.showSunEditor(index),
-      ...(sun.team ? [] : sunRowActions(index, firstPersonal))));
+      Boolean(sun.team), ...(sun.team ? [] : sunRowActions(index, firstPersonal))));
   });
   menuContent.append(list);
   const hidden = team.groups.filter(sun => prefs.hiddenTeamSuns().has(sun.id));

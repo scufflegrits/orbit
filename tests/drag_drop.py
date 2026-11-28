@@ -588,15 +588,26 @@ def run_rejections(page, url, mode):
     start = galaxy_planet(page, 0, 1)
     drag_to(page, start, pt(node(page, ".home-hub", 1)))
     check(stored(page) == moved_planet(FIXTURE, 0, 1, 1), f"{mode}: Edit mode still works after the failures")
+
+    # Start the gesture after a different map has already been written.
+    latest = stored(page)
+    latest["groups"][0]["description"] = "Edited by the other tab"
+    other = json.dumps(latest)
+    page.evaluate("([key, value]) => localStorage.setItem(key, value)", [STORAGE_KEY, other])
+    start = galaxy_planet(page, 0, 0)
+    drag_to(page, start, pt(node(page, ".home-hub", 2)))
+    check(saved_map(page) == other and "Reload Orbit" in status(page),
+          f"{mode}: a drag started with an already stale map preserves the newer data")
     print(f"PASS DD07 invalid drops, cancellation, save failure ({mode})")
 
 
 def run_undo(page, url, mode):
     """DD08: one-step drag Undo, separate from removal Undo."""
-    fresh(page, url)
     removal = json.dumps({"kind": "planet", "sunId": "beta", "index": 0, "label": "Kept planet",
                           "item": {"name": "Kept", "url": "https://example.test/kept", "moons": []}})
-    page.evaluate("value => localStorage.setItem('orbit:undo-removal:v1', value)", removal)
+    fresh(page, url, **{STORAGE_KEY: json.dumps(FIXTURE), "orbit:undo-removal:v1": removal})
+    check(page.evaluate("OrbitTest.undoRecord()?.label") == "Kept planet",
+          f"{mode}: the seeded legacy removal Undo belongs to the saved map")
     edit_on(page)
     undo = page.locator("#edit-undo")
     check(undo.is_hidden(), f"{mode}: no drag Undo before a drag")

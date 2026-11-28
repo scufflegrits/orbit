@@ -11,24 +11,30 @@ import { element } from '../dom.js';
 import { editorButton, editorField } from '../editor/kit.js';
 import { modes } from '../page-modes.js';
 import { noteOpened } from '../views/favorites.js';
+import { focusMapItem } from '../views/group-planets.js';
+import { quickFind, settingsTrigger } from '../page.js';
 
 /**
  * The form's controller, set exactly while the form is open; whether it is
  * open is always asked of the mode store, never read from this.
- * @type {{overlay: HTMLElement, opener: HTMLElement | null}}
+ * @type {{overlay: HTMLElement, opener: HTMLElement | null, shell: HTMLElement, shellWasInert: boolean}}
  */
 let variableDialog = /** @type {any} */ (null);
 /** The link to ask about, kept from askForVariables() until the form is built. */
 let variableItem = /** @type {any} */ (null);
+/** @type {HTMLElement | null} */
+let variableOpener = null;
 
 /**
  * Ask for each placeholder, then open the link. The Open click is the user
  * action that lets the browser open a tab.
  * @param {any} item
+ * @param {HTMLElement} [trigger]
  */
-export function askForVariables(item) {
+export function askForVariables(item, trigger) {
   if (modes.overlayIs('placeholder')) closeVariableDialog();
   variableItem = item;
+  variableOpener = trigger || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
   modes.send('openPlaceholder');
 }
 
@@ -38,7 +44,10 @@ export function variableFormOpened() {
   variableItem = null;
   const names = templateNames(item.url);
   const remembered = readVariables();
-  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const opener = variableOpener;
+  variableOpener = null;
+  const shell = /** @type {HTMLElement} */ (document.querySelector('.app-shell'));
+  const shellWasInert = shell.inert;
   const overlay = element('div', 'palette-overlay variable-overlay');
   const scrim = element('div', 'palette-scrim');
   const form = element('form', 'palette variable-form');
@@ -82,11 +91,22 @@ export function variableFormOpened() {
       event.stopPropagation();
       closeVariableDialog();
     }
+    if (event.key === 'Tab') {
+      const controls = [ ...inputs.map(([, input]) => input), open, cancel ].filter(control => !control.disabled);
+      const first = controls[0];
+      const last = controls.at(-1);
+      const active = document.activeElement;
+      if (event.shiftKey ? active === first : active === last) {
+        event.preventDefault();
+        (event.shiftKey ? last : first)?.focus();
+      }
+    }
   });
   scrim.addEventListener('click', closeVariableDialog);
   overlay.append(scrim, form);
   document.body.append(overlay);
-  variableDialog = { overlay, opener };
+  variableDialog = { overlay, opener, shell, shellWasInert };
+  shell.inert = true;
   (inputs.find(([, input]) => !input.value)?.[1] || inputs[0]?.[1])?.focus();
 }
 
@@ -97,8 +117,11 @@ export function closeVariableDialog() {
 
 /** Called only by the mode subscriber, when the placeholder form has closed. */
 export function variableFormClosed() {
-  const { overlay, opener } = variableDialog;
+  const { overlay, opener, shell, shellWasInert } = variableDialog;
   variableDialog = /** @type {any} */ (null);
   overlay.remove();
-  if (opener && document.contains(opener)) opener.focus();
+  shell.inert = shellWasInert;
+  if (opener?.isConnected && focusMapItem(opener)) return;
+  quickFind.focus({ preventScroll: true });
+  if (document.activeElement !== quickFind) settingsTrigger.focus({ preventScroll: true });
 }

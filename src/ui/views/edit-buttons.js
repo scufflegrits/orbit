@@ -7,7 +7,7 @@ import { app, groups, showEditButtons } from '../page.js';
 import { removeMapItem } from '../remove-item.js';
 import { modes } from '../page-modes.js';
 import { buttonTipsDelay, tip } from '../tooltip.js';
-import { setGroupExpanded } from './group-planets.js';
+import { focusMapItem } from './group-planets.js';
 
 const MAP_ITEM = ':is(.home-hub, .detail-hub, .home-satellite, .detail-satellite, .more-link, .moon-link, .overflow-moon-link)';
 /** @type {HTMLElement | null} */
@@ -53,12 +53,7 @@ function mapFocus(origin, path) {
     const node = origin.isConnected ? origin : app.querySelector(moonSelector) ||
       app.querySelector(planetSelector) || app.querySelector(`${base}[data-kind="sun"]`);
     if (!(node instanceof HTMLElement)) return false;
-    const containers = [node.closest('.home-orbit'), node.closest('.planet-cluster, .overflow-planet')];
-    if (node.dataset.kind === 'moon' && containers[1]?.classList.contains('group-cluster')) setGroupExpanded(containers[1]);
-    for (const container of containers) container?.classList.add('restoring-map-focus');
-    node.focus({ preventScroll: node === origin });
-    for (const container of containers) container?.classList.remove('restoring-map-focus');
-    return document.activeElement === node;
+    return focusMapItem(node, node === origin);
   };
 }
 

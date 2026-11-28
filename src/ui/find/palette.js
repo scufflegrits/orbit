@@ -70,7 +70,7 @@ function runMatch(match) {
   } else if (match.kind === 'Group') {
     openGroup(match.indices[0], match.indices[1]);
   } else {
-    openDestination(match.destination);
+    openDestination(match.destination, match.indices);
   }
 }
 

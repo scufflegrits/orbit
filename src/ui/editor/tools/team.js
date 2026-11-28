@@ -7,7 +7,8 @@ import { counted, descriptionNode, element, tagChips } from '../../dom.js';
 import { isFavorite, setFavorite } from '../../views/favorites.js';
 import { applyEditorChange, copyGroups, editorActions, editorButton, editorExportRow, editorHeader, exportItem, moveTargetField } from '../kit.js';
 import { nav } from '../nav.js';
-import { groups, menuContent } from '../../page.js';
+import { groups, menuContent, rdpPresets } from '../../page.js';
+import { team } from '../../team-map.js';
 
 function personalSunOptions() {
   return groups.flatMap((sun, index) => sun.team ? [] : [[String(index), sun.name]]);
@@ -24,21 +25,21 @@ export function showTeamSun(index) {
   const actions = editorActions();
   actions.append(editorButton('Copy sun to my map', () => {
     const next = copyGroups();
-    const copy = mapOps.plainCopy(sun);
+    const { item: copy, presets } = mapOps.copyTeamItem('sun', sun, team.rdpPresets, rdpPresets);
     copy.id = mapOps.uniqueSunId(copy.name, new Set(next.map((/** @type {any} */ item) => item.id)));
     next.push(copy);
-    applyEditorChange(next, () => nav.showSunEditor(next.length - 1), { label: `Copied team sun ${sun.name}` });
+    applyEditorChange(next, () => nav.showSunEditor(next.length - 1), { label: `Copied team sun ${sun.name}`, rdpPresets: presets });
   }, 'editor-primary'));
   actions.append(editorButton('Hide this team sun', () => {
     store.setTeamSunHidden(sun.id, true);
     nav.showSunList();
   }));
-  actions.append(editorButton('Export sun', () => exportItem('sun', sun)));
+  actions.append(editorButton('Export sun', () => exportItem('sun', sun, true)));
   menuContent.append(element('h4', 'editor-section-title', 'Planets'));
   const list = element('div', 'editor-list');
   sun.links.forEach((/** @type {any} */ planet, /** @type {any} */ planetIndex) => {
     const summary = `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? 'link' : 'moon')}`;
-    list.append(editorExportRow('planet', planet, summary, 'View', () => showTeamItem([index, planetIndex])));
+    list.append(editorExportRow('planet', planet, summary, 'View', () => showTeamItem([index, planetIndex]), true));
   });
   menuContent.append(list);
 }
@@ -76,12 +77,13 @@ export function showTeamItem(path) {
     editorActions().append(editorButton(isMoon ? 'Copy moon to my map' : 'Copy planet to my map', () => {
       const next = copyGroups();
       const [targetSun, targetPlanet] = select.value.split(':').map(Number);
-      if (isMoon && !isGroup(item)) next[targetSun].links[targetPlanet].moons.push(mapOps.plainCopy(item));
-      else next[targetSun].links.push(mapOps.plainCopy(item));
+      const { item: copy, presets } = mapOps.copyTeamItem(isMoon ? 'moon' : 'planet', item, team.rdpPresets, rdpPresets);
+      if (isMoon) next[targetSun].links[targetPlanet].moons.push(copy);
+      else next[targetSun].links.push(copy);
       applyEditorChange(next, () => isMoon
         ? nav.showMoonEditor(targetSun, targetPlanet, next[targetSun].links[targetPlanet].moons.length - 1)
         : nav.showPlanetEditor(targetSun, next[targetSun].links.length - 1),
-      { label: `Copied team ${isMoon ? 'moon' : 'planet'} ${item.name}` });
+      { label: `Copied team ${isMoon ? 'moon' : 'planet'} ${item.name}`, rdpPresets: presets });
     }, 'editor-primary'));
   } else {
     menuContent.append(element('p', 'editor-hint', `Add ${isMoon ? 'a planet' : 'a sun'} to your own map to copy this ${isMoon ? 'moon' : 'planet'} into it.`));
@@ -90,7 +92,7 @@ export function showTeamItem(path) {
     menuContent.append(element('h4', 'editor-section-title', group ? 'Links' : 'Moons'));
     const list = element('div', 'editor-list');
     planet.moons.forEach((/** @type {any} */ moon, /** @type {any} */ moonIndex) => {
-      list.append(editorExportRow('moon', moon, moon.name, 'View', () => showTeamItem([path[0], path[1], moonIndex])));
+      list.append(editorExportRow('moon', moon, moon.name, 'View', () => showTeamItem([path[0], path[1], moonIndex]), true));
     });
     menuContent.append(list);
   }

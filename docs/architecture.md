@@ -133,7 +133,7 @@ When a moon is removed, its parent planet receives a browser-local ID if it does
 
 ## Startup and map selection
 
-Direct launch uses the generated JavaScript data. Served launch reads `links.json` for Main and uses the generated workspace list to discover default workspaces, preferring each workspace's JSON when it can be fetched. The team source is independent. Served mode tries `/team.json` before the generated team data, and a team load error leaves personal startup available. Generate the bundled data with `python3 sync.py` after editing project map files.
+Direct launch uses the generated JavaScript data. Served launch reads `links.json` for Main and uses the generated workspace list to discover default workspaces, preferring each workspace's JSON when it can be fetched. The team source is independent. Served mode tries `/team.json` before the generated team data, and a team load error leaves personal startup available. The team source supplies its own Remote Desktop presets, which the UI selects by the destination's source sun. Generate the bundled data with `python3 sync.py` after editing project map files.
 
 ```mermaid
 ---
@@ -164,13 +164,14 @@ sequenceDiagram
     else Main default loads
       SOURCES-->>START: Main default
       START->>SOURCES: Load team data and default workspaces
-      SOURCES-->>START: Valid data and any team error
+      SOURCES-->>START: Defaults, team suns and presets, any team error
       START->>STORE: Start with loaded maps
       STORE->>STORAGE: Read active workspace and saved map
+      STORAGE-->>STORE: Saved value or read error
       alt Valid saved map
-        STORAGE-->>STORE: Use saved map
+        STORE->>STORE: Use map and keep raw value
       else Saved map missing or unreadable
-        STORE->>STORE: Select workspace default or empty map
+        STORE->>STORE: Select bundled fallback
       end
       STORE->>STORE: Add visible team suns to the view
       STORE-->>START: Notify subscribers to render
@@ -178,11 +179,11 @@ sequenceDiagram
   end
 ```
 
-An unreadable saved map produces a warning. Without a valid saved map, the store uses Main's default for Main, a matching bundled default for another default workspace, or an empty map when the workspace has no bundled default. A malformed System URL opens the Galaxy. Team update notices compare successfully loaded maps, including empty maps, to the last seen snapshot. See the [source loaders](../src/services/sources.js), [startup](../src/app/start.js), [System route parser](../src/ui/system-route.js), [team update notice](../src/ui/notices/team-updates.js), [map store](../src/state/store.js), and [data generator](../sync.py).
+An unreadable saved map produces a warning. Without a valid saved map, the store uses Main's default for Main, a matching bundled default for another default workspace, or an empty map when the workspace has no bundled default. The store retains the raw saved value, including a missing key or invalid text, for the next write check. A malformed System URL opens the Galaxy. Team update notices compare successfully loaded maps, including empty maps, to the last seen snapshot. They use the team item's location to render an action when that sun is visible. See the [source loaders](../src/services/sources.js), [startup](../src/app/start.js), [System route parser](../src/ui/system-route.js), [team preset selection](../src/ui/team-map.js), [team update notice](../src/ui/notices/team-updates.js), [map store](../src/state/store.js), and [data generator](../sync.py).
 
 ## Saving a map edit
 
-The page's map store owns writes. It validates the personal map and saves it under the active workspace's browser storage key. When appropriate, it records the previous personal map in history and updates the backup reminder count. The page receives the updated view through a store subscription.
+The page's map store owns writes. Before committing an edit or reset, it checks that the workspace still exists and that its saved value matches the snapshot loaded by this tab. A conflict leaves the newer map in storage and lets the user reload. When appropriate, the store records the previous personal map in History and updates the backup reminder count. It publishes the updated view through a store subscription.
 
 ```mermaid
 ---
@@ -207,26 +208,31 @@ sequenceDiagram
 
   rect rgb(255, 255, 255)
     EDITOR->>STORE: Save edited map
-    STORE->>STORE: Keep personal suns and validate
-    alt Edit is rejected
+    STORE->>STORAGE: Read workspace key and compare to loaded value
+    alt Workspace removed, read failed, or value changed
       STORE-->>EDITOR: Return save error
-    else Edit is valid
-      STORE->>STORAGE: Write workspace map
-      alt Storage write fails
-        STORAGE-->>STORE: Storage error
+    else Workspace snapshot matches
+      STORE->>STORE: Keep personal suns and validate
+      alt Validation fails
         STORE-->>EDITOR: Return save error
-      else Map saved
-        opt Eligible change
-          STORE->>STORAGE: Record previous map in history
+      else Map is valid
+        STORE->>STORAGE: Write workspace map
+        alt Storage write fails
+          STORAGE-->>STORE: Storage error
+          STORE-->>EDITOR: Return save error
+        else Map saved
+          opt Eligible change
+            STORE->>STORAGE: Record previous map in History
+          end
+          STORE->>STORE: Update map snapshot, state, and revision
+          STORE-->>PAGE: Notify subscriber to redraw
         end
-        STORE->>STORE: Update map state and revision
-        STORE-->>PAGE: Notify subscriber to redraw
       end
     end
   end
 ```
 
-The store preserves unreadable raw map data before replacing it. Optional removal undo records have their own save and recovery handling. See the [page store](../src/state/page-store.js), [save implementation](../src/state/store.js), and [store tests](../src/state/store.test.js).
+The store preserves unreadable raw map data before replacing it. Undo removal requires a valid saved map and a matching browser-local undo generation. Restoring History commits a new generation with the restored map, so older undo records become ineligible even if cleanup fails. The saved value check covers edits based on an earlier completed write. Simultaneous writes would require coordination across tabs. See the [page store](../src/state/page-store.js), [save implementation](../src/state/store.js), and [store tests](../src/state/store.test.js).
 
 ## Interaction state
 

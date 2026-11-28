@@ -98,15 +98,16 @@ async function fetchTeamData(env) {
  * prefix so they can't collide with personal ones, and each sun is marked
  * `team: true`.
  * @param {SourceEnv} [env]
- * @returns {Promise<{groups: any[], source: string, error: string}>}
+ * @returns {Promise<{groups: any[], rdpPresets: import('../core/types.js').RdpPreset[], source: string, error: string}>}
  */
 export async function loadTeamMap(env = pageEnv()) {
   try {
     const loaded = await fetchTeamData(env);
-    if (!loaded) return { groups: [], source: '', error: '' };
-    const groups = validateMap(loaded.data).groups.map(sun => ({ ...sun, id: `team:${sun.id}`, team: true }));
-    return { groups, source: loaded.source, error: '' };
+    if (!loaded) return { groups: [], rdpPresets: [], source: '', error: '' };
+    const map = validateMap(loaded.data);
+    const groups = map.groups.map(sun => ({ ...sun, id: `team:${sun.id}`, team: true }));
+    return { groups, rdpPresets: map.rdpPresets || [], source: loaded.source, error: '' };
   } catch (error) {
-    return { groups: [], source: '', error: `The team map could not be loaded: ${/** @type {Error} */ (error).message}` };
+    return { groups: [], rdpPresets: [], source: '', error: `The team map could not be loaded: ${/** @type {Error} */ (error).message}` };
   }
 }

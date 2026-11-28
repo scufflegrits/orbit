@@ -45,12 +45,30 @@ test('team map: a 404 or a failure falls back to team-data.js; file:// uses only
 });
 
 test('team map: none at all is no error; a failure with no team-data.js is reported, never thrown', async () => {
-  assert.deepEqual(await loadTeamMap(served({ './team.json': { status: 404 } })), { groups: [], source: '', error: '' });
-  assert.deepEqual(await loadTeamMap(file()), { groups: [], source: '', error: '' });
+  assert.deepEqual(await loadTeamMap(served({ './team.json': { status: 404 } })), { groups: [], rdpPresets: [], source: '', error: '' });
+  assert.deepEqual(await loadTeamMap(file()), { groups: [], rdpPresets: [], source: '', error: '' });
   assert.deepEqual(await loadTeamMap(served({ './team.json': { status: 500 } })),
-    { groups: [], source: '', error: 'The team map could not be loaded: HTTP 500' });
+    { groups: [], rdpPresets: [], source: '', error: 'The team map could not be loaded: HTTP 500' });
   const invalid = await loadTeamMap(file({ teamData: { groups: [{ name: '' }] } }));
   assert.match(invalid.error, /^The team map could not be loaded: /);
+});
+
+test('team map keeps the preset definitions from the selected source', async () => {
+  const teamData = (/** @type {string} */ settings) => ({
+    groups: [{ name: 'Ops', links: [{ name: 'Lab', type: 'rdp', host: 'demo', rdpPreset: 'display' }] }],
+    rdpPresets: [{ id: 'display', name: 'Display', settings }],
+  });
+  const script = teamData('screen mode id:i:1');
+  const json = teamData('screen mode id:i:2');
+  for (const [env, expected] of [
+    [file({ teamData: script }), script],
+    [served({ './team.json': { status: 404 } }, { teamData: script }), script],
+    [served({ './team.json': { status: 200, body: json } }, { teamData: script }), json],
+  ]) {
+    const result = await loadTeamMap(env);
+    assert.deepEqual(result.rdpPresets, expected.rdpPresets);
+    assert.equal(result.groups[0].links[0].rdpPreset, 'display');
+  }
 });
 
 test('team map: the same groups, source, and error as 2.2.1 loadTeamMap', async () => {
@@ -71,8 +89,8 @@ test('team map: the same groups, source, and error as 2.2.1 loadTeamMap', async 
           json: async () => { if (spec.badJson) throw new SyntaxError('Unexpected token < in JSON'); return spec.body; } };
       };`);
     await old.callAsync('loadTeamMap');
-    const result = await loadTeamMap({ protocol, fetch: fakeFetch({ './team.json': spec }), bundledData: undefined, teamData: local });
-    assert.deepEqual(result, { groups: old.get('teamGroups'), source: old.get('teamSource'), error: old.get('teamError') });
+    const { groups, source, error } = await loadTeamMap({ protocol, fetch: fakeFetch({ './team.json': spec }), bundledData: undefined, teamData: local });
+    assert.deepEqual({ groups, source, error }, { groups: old.get('teamGroups'), source: old.get('teamSource'), error: old.get('teamError') });
   }), runs(300));
 });
 

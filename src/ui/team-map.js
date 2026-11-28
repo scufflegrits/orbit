@@ -4,9 +4,11 @@
 // store shows team suns in front of the personal map. Moved in rewrite
 // phase 6b.
 import { loadTeamMap as load } from '../services/sources.js';
+import { groups, rdpPresets } from './page.js';
 
 export const team = {
   /** @type {any[]} */ groups: [],
+  /** @type {import('../core/types.js').RdpPreset[]} */ rdpPresets: [],
   source: '',
   error: '',
 };
@@ -15,6 +17,12 @@ export const team = {
 export async function loadTeamMap() {
   const loaded = await load();
   team.groups = loaded.groups;
+  team.rdpPresets = loaded.rdpPresets;
   team.source = loaded.source;
   team.error = loaded.error;
+}
+
+/** @param {number[]} [path] */
+export function presetsForDestination(path) {
+  return path && groups[path[0]]?.team ? team.rdpPresets : rdpPresets;
 }

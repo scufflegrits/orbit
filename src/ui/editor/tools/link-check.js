@@ -1,12 +1,14 @@
 // Check links (2.2.1 tools.js): ask serve.py whether each web address answers; server mode only.
 // Moved in rewrite phase 6b.
-import { destinationKey, isGroup } from '../../../core/destination.js';
+import { isGroup } from '../../../core/destination.js';
 import { templateNames } from '../../../core/templates.js';
 import { checkLinks } from '../../../services/link-check.js';
+import { store } from '../../../state/page-store.js';
 import { counted, element } from '../../dom.js';
 import { icon } from '../../icons.js';
 import { editorActions, editorButton, editorHeader, editPath, linkCheckResults, pathLabel } from '../kit.js';
 import { nav } from '../nav.js';
+import { modes } from '../../page-modes.js';
 import { groups, menuContent } from '../../page.js';
 
 function webLinksByUrl() {
@@ -24,7 +26,7 @@ function webLinksByUrl() {
 }
 
 export function showLinkCheck() {
-  editorHeader('Check links', nav.showSunList);
+  const header = editorHeader('Check links', nav.showSunList);
   if (location.protocol === 'file:') {
     menuContent.append(element('p', '', 'Checking links needs the local server, because a page opened from a file cannot read other sites. In the Orbit folder, run:'));
     menuContent.append(element('code', 'editor-code', 'python3 serve.py'));
@@ -36,18 +38,30 @@ export function showLinkCheck() {
   const status = element('p', 'link-check-status');
   status.setAttribute('role', 'status');
   const results = element('div', 'link-check-results');
-  const start = editorButton('Start check', () => runLinkCheck(byUrl, status, results, start), 'editor-primary');
+  const panelActive = () => modes.overlayIs('menuEditor') && menuContent.contains(header);
+  const start = editorButton('Start check', () => runLinkCheck(status, results, start, panelActive), 'editor-primary');
   editorActions().append(start);
   menuContent.append(status, results);
 }
 
 /**
- * @param {any} byUrl
  * @param {any} status
  * @param {any} results
  * @param {any} start
+ * @param {() => boolean} panelActive
  */
-async function runLinkCheck(byUrl, status, results, start) {
+async function runLinkCheck(status, results, start, panelActive) {
+  const { workspace, revision } = store.state();
+  const byUrl = webLinksByUrl();
+  const currentMap = () => store.state().workspace === workspace && store.state().revision === revision;
+  const requireCurrentResult = () => {
+    if (!panelActive()) return false;
+    if (currentMap()) return true;
+    start.disabled = false;
+    status.textContent = 'The link map changed. Start a new check to see current results.';
+    results.replaceChildren();
+    return false;
+  };
   start.disabled = true;
   results.replaceChildren();
   const urls = [...byUrl.keys()];
@@ -55,17 +69,21 @@ async function runLinkCheck(byUrl, status, results, start) {
   try {
     // The requests moved to src/services/link-check.js in rewrite phase 4.
     answers = await checkLinks(urls,
-      { onProgress: (done, total) => { status.textContent = `Checked ${done} of ${total}…`; } });
+      { onProgress: (done, total) => {
+        if (panelActive() && currentMap()) status.textContent = `Checked ${done} of ${total}…`;
+      } });
   } catch (error) {
+    if (!requireCurrentResult()) return;
     status.textContent = `The check stopped: ${/** @type {any} */ (error).message}`;
     start.disabled = false;
     return;
   }
+  if (!requireCurrentResult()) return;
   linkCheckResults.clear();
   const failures = [];
   for (const [url, entries] of byUrl) {
     const answer = answers[url] || { ok: false, error: 'no answer' };
-    for (const entry of entries) linkCheckResults.set(destinationKey(entry.item), answer);
+    linkCheckResults.set(url, answer);
     if (!answer.ok) failures.push({ url, answer, entries });
   }
   status.textContent = failures.length
@@ -78,7 +96,9 @@ async function runLinkCheck(byUrl, status, results, start) {
     title.prepend(icon('triangle-alert'));
     copy.append(title);
     copy.append(element('small', '', `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`));
-    row.append(copy, editorButton(groups[path[0]].team ? 'View' : 'Edit', () => editPath(path)));
+    row.append(copy, editorButton(groups[path[0]].team ? 'View' : 'Edit', () => {
+      if (requireCurrentResult()) editPath(path);
+    }));
     results.append(row);
   }));
   start.disabled = false;

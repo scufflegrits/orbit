@@ -9,14 +9,16 @@ import { askForVariables } from '../dialogs/placeholder.js';
 import { confirmed } from '../dialogs/confirm.js';
 import { showOpenAllNotice, showRdpSizeNotice } from '../notices/area.js';
 import { favoriteItems, noteOpened } from './favorites.js';
-import { groups, rdpLaunchMode, rdpPresets } from '../page.js';
+import { groups, rdpLaunchMode } from '../page.js';
+import { presetsForDestination } from '../team-map.js';
 
 /**
  * Open one destination the way its circle on the map would.
  * @param {any} item
+ * @param {number[]} [path]
  */
-export function openDestination(item) {
-  const result = opener.openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode });
+export function openDestination(item, path) {
+  const result = opener.openDestination(item, { presets: presetsForDestination(path), launchMode: rdpLaunchMode });
   if (result === 'ask') return askForVariables(item);
   if (result === 'rdp-too-large') return showRdpSizeNotice();
   if (result === 'skipped') return;

@@ -19,6 +19,7 @@ with tempfile.TemporaryDirectory() as base:
     (site / "ok").mkdir(parents=True)
     (site / "ok" / "index.html").write_text("<title>OK</title>")
     (site / "ok" / "guide.html").write_text("<title>Guide</title>")
+    (site / "sample").write_text("Works at the exact file URL")
     (site / "favicon.ico").write_bytes(F.PNG)
     target = ThreadingHTTPServer(("127.0.0.1", 8774), partial(QuietHandler, directory=str(site)))
     Thread(target=target.serve_forever, daemon=True).start()

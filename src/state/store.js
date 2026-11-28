@@ -43,10 +43,14 @@ import { countChange, forgetWorkspace } from './backup.js';
  * @typedef {object} SaveOptions
  * @property {object} [undoRecord] Written to the workspace's undo key first; put back if the save fails.
  * @property {boolean} [clearUndo] Remove the undo record after saving.
+ * @property {boolean} [invalidateUndo] Invalidate removal Undo in the committed map.
  * @property {number} [expectRevision] Refuse the save if the revision is not this one.
  */
 
-/** @typedef {{kind: 'sun'|'planet'|'moon', index: number, item: any, label: string, sunId?: string, planetId?: string}} UndoRecord */
+/** @typedef {{kind: 'sun'|'planet'|'moon', index: number, item: any, label: string, sunId?: string, planetId?: string, generation?: string}} UndoRecord */
+
+const newUndoGeneration = () => Array.from(crypto.getRandomValues(new Uint8Array(16)),
+  byte => byte.toString(16).padStart(2, '0')).join('');
 
 export function createStore() {
   /** @type {StoreState} */
@@ -55,6 +59,11 @@ export function createStore() {
   };
   /** @type {{id: string, name: string, map: MapData}[]} */
   let defaults = [];
+  /** @type {string|null|undefined} */
+  let loadedMap;
+  let hasSavedMap = false;
+  /** @type {string|undefined} */
+  let undoGeneration;
   /** @type {Set<Subscriber>} */
   const subscribers = new Set();
 
@@ -75,12 +84,27 @@ export function createStore() {
    * @returns {MapData|null}
    */
   function loadBrowserMap() {
+    loadedMap = undefined;
+    hasSavedMap = false;
+    undoGeneration = undefined;
     try {
-      const text = read(key(KEYS.map));
-      return text === null ? null : validateMap(JSON.parse(text), { keepPlanetIds: true });
+      loadedMap = read(key(KEYS.map));
+      if (loadedMap === null) return null;
+      const data = JSON.parse(loadedMap);
+      const map = validateMap(data, { keepPlanetIds: true });
+      undoGeneration = typeof data.undoGeneration === 'string' ? data.undoGeneration : undefined;
+      hasSavedMap = true;
+      return map;
     } catch (error) {
       set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */ (error).message}` });
       return null;
+    }
+  }
+
+  function requireCurrentMap() {
+    if (loadedMap === undefined || read(key(KEYS.map)) !== loadedMap ||
+        !loadWorkspaces().some(workspace => workspace.id === state.workspace)) {
+      throw new Error('The saved link map changed or could not be read. Reload Orbit and try again.');
     }
   }
 
@@ -101,11 +125,13 @@ export function createStore() {
     }
   }
 
-  /** @param {string} mapKey @param {MapData} map */
-  function writeMap(mapKey, map) {
+  /** @param {string} mapKey @param {MapData} map @param {string} [generation] */
+  function writeMap(mapKey, map, generation) {
+    const text = JSON.stringify(generation === undefined ? map : { ...map, undoGeneration: generation });
     backupUnreadableMap(mapKey);
     if (map.groups.some(sun => sun.links.some(isGroup))) migrate();
-    write(mapKey, JSON.stringify(map));
+    write(mapKey, text);
+    return text;
   }
 
   const store = {
@@ -154,25 +180,24 @@ export function createStore() {
       if (options.expectRevision !== undefined && options.expectRevision !== state.revision) {
         throw new Error('The link map changed, so nothing was saved.');
       }
+      requireCurrentMap();
+      const normalized = validateMap({ groups: personalGroups(data.groups),
+        routines: data.routines !== undefined ? data.routines : state.routines,
+        rdpPresets: data.rdpPresets !== undefined ? data.rdpPresets : state.rdpPresets }, { keepPlanetIds: true });
+      const previous = personalGroups(state.groups);
+      const changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !==
+        JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
       const undoKey = key(KEYS.undo);
+      const generation = options.invalidateUndo || (!hasSavedMap && read(undoKey) !== null)
+        ? newUndoGeneration() : undoGeneration;
       /** @type {string|null|undefined} */
       let previousUndo;
       try {
         if (options.undoRecord) {
           previousUndo = read(undoKey);
-          write(undoKey, JSON.stringify(options.undoRecord));
+          write(undoKey, JSON.stringify({ ...options.undoRecord, generation }));
         }
-        const normalized = validateMap({ groups: personalGroups(data.groups),
-          routines: data.routines !== undefined ? data.routines : state.routines,
-          rdpPresets: data.rdpPresets !== undefined ? data.rdpPresets : state.rdpPresets }, { keepPlanetIds: true });
-        const previous = personalGroups(state.groups);
-        writeMap(key(KEYS.map), normalized);
-        const changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !==
-          JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
-        if (label !== false && changed) recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets);
-        if (changed) countChange(state.workspace);
-        set({ groups: [...visibleTeam(), ...normalized.groups], routines: normalized.routines || [],
-          rdpPresets: normalized.rdpPresets || [], revision: state.revision + 1, source: 'browser' });
+        loadedMap = writeMap(key(KEYS.map), normalized, generation);
       } catch (error) {
         if (options.undoRecord) {
           try {
@@ -182,8 +207,14 @@ export function createStore() {
         }
         throw error;
       }
-      if (options.clearUndo) {
-        try { remove(undoKey); } catch { /* The map is saved; a stale undo record is harmless. */ }
+      hasSavedMap = true;
+      undoGeneration = generation;
+      if (label !== false && changed) recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets);
+      if (changed) countChange(state.workspace);
+      set({ groups: [...visibleTeam(), ...normalized.groups], routines: normalized.routines || [],
+        rdpPresets: normalized.rdpPresets || [], revision: state.revision + 1, source: 'browser' });
+      if (options.clearUndo || options.invalidateUndo) {
+        try { remove(undoKey); } catch { /* The map and its undo generation have been committed. */ }
       }
       notify('save');
     },
@@ -200,16 +231,20 @@ export function createStore() {
      * map as it was; the removal undo is cleared.
      */
     resetToBundled() {
+      requireCurrentMap();
       const isDefault = Boolean(defaultWorkspace(state.workspace));
       const fileData = validateMap(isDefault ? defaults.find(item => item.id === state.workspace)?.map : state.seed);
-      if (state.workspace === MAIN) {
+      if (state.workspace === MAIN || isDefault) {
         backupUnreadableMap(key(KEYS.map));
         remove(key(KEYS.map));
-      } else if (isDefault) {
-        backupUnreadableMap(key(KEYS.map));
-        remove(key(KEYS.map));
+        loadedMap = null;
+        hasSavedMap = false;
+        undoGeneration = undefined;
       } else {
-        writeMap(key(KEYS.map), fileData);
+        const generation = newUndoGeneration();
+        loadedMap = writeMap(key(KEYS.map), fileData, generation);
+        undoGeneration = generation;
+        hasSavedMap = true;
       }
       recordHistory(key(KEYS.history), personalGroups(state.groups), 'Reset to file data', state.routines, state.rdpPresets);
       try { remove(key(KEYS.undo)); } catch { /* The reset is saved; keep the displayed map in sync. */ }
@@ -220,11 +255,12 @@ export function createStore() {
 
     /** The workspace's last removal, if it can be undone. @returns {UndoRecord|null} */
     loadUndoRecord() {
+      if (!hasSavedMap) return null;
       try {
         const saved = readSafely(key(KEYS.undo));
         if (!saved) return null;
         const record = JSON.parse(saved);
-        return record && ['sun', 'planet', 'moon'].includes(record.kind) &&
+        return record && record.generation === undoGeneration && ['sun', 'planet', 'moon'].includes(record.kind) &&
           Number.isInteger(record.index) && record.index >= 0 && record.item ? record : null;
       } catch {
         return null;
@@ -236,6 +272,7 @@ export function createStore() {
      * is nothing to undo; throws when it can't be put back.
      */
     undoRemoval() {
+      requireCurrentMap();
       const record = store.loadUndoRecord();
       if (!record) return false;
       /** @type {Sun[]} */

@@ -27,7 +27,8 @@ function trackDestinationClicks(event) {
 export function installClicks() {
   document.addEventListener('click', event => {
     if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element) ||
-        event.composedPath().includes(menuOverlay)) return;
+        event.composedPath().some(node => node === menuOverlay ||
+          (node instanceof Element && node.classList.contains('variable-overlay')))) return;
     const button = event.target.closest('button.group-planet');
     if (button && app.contains(button) && button.parentElement) {
       const cluster = button.parentElement;

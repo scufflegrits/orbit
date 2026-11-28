@@ -350,9 +350,11 @@ prompt for credentials:i:1\r
   async function loadTeamMap(env = pageEnv()) {
     try {
       let loaded = await fetchTeamData(env);
-      return loaded ? { groups: validateMap(loaded.data).groups.map((sun) => ({ ...sun, id: `team:${sun.id}`, team: !0 })), source: loaded.source, error: "" } : { groups: [], source: "", error: "" };
+      if (!loaded) return { groups: [], rdpPresets: [], source: "", error: "" };
+      let map = validateMap(loaded.data);
+      return { groups: map.groups.map((sun) => ({ ...sun, id: `team:${sun.id}`, team: !0 })), rdpPresets: map.rdpPresets || [], source: loaded.source, error: "" };
     } catch (error) {
-      return { groups: [], source: "", error: `The team map could not be loaded: ${/** @type {Error} */
+      return { groups: [], rdpPresets: [], source: "", error: `The team map could not be loaded: ${/** @type {Error} */
       error.message}` };
     }
   }
@@ -493,6 +495,46 @@ prompt for credentials:i:1\r
   }
   function itemExport(kind, item) {
     return { format: "orbit-item-v1", kind, item: plainCopy(item) };
+  }
+  function itemDestinations(kind, item) {
+    return kind === "moon" ? [item] : kind === "planet" ? [item, ...item.moons] : item.links.flatMap((planet) => [planet, ...planet.moons]);
+  }
+  function copyTeamItem(kind, item, source, personal) {
+    let copy = plainCopy(item), presets = [...personal], ids = new Set(personal.map((preset) => preset.id)), names = new Set(personal.map((preset) => preset.name.toLocaleLowerCase()));
+    for (let destination of itemDestinations(kind, copy)) {
+      if (destination.type !== "rdp" || !destination.rdpPreset) continue;
+      let preset = source.find((entry) => entry.id === destination.rdpPreset);
+      if (!preset) {
+        delete destination.rdpPreset;
+        continue;
+      }
+      let local = presets.find((entry) => entry.settings === preset.settings);
+      if (!local) {
+        let name = preset.name;
+        for (let i = 2; names.has(name.toLocaleLowerCase()); i++) {
+          let suffix = ` (${i})`;
+          name = preset.name.slice(0, 60 - suffix.length).trimEnd() + suffix;
+        }
+        let id = ids.has(preset.id) ? uniqueSunId(name, ids) : preset.id;
+        ids.add(id), names.add(name.toLocaleLowerCase()), local = { ...preset, id, name }, presets.push(local);
+      }
+      destination.rdpPreset = local.id;
+    }
+    return { item: copy, presets };
+  }
+  function exportTeamItem(kind, item, presets) {
+    let data = itemExport(kind, item), omitted = [];
+    for (let destination of itemDestinations(kind, data.item)) {
+      if (destination.type !== "rdp" || !destination.rdpPreset) continue;
+      let profile = effectiveRdpProfile(destination, presets);
+      if (delete destination.rdpPreset, !!profile)
+        try {
+          destination.rdpProfile = parseRdpProfile(profile, destination.host).content;
+        } catch {
+          omitted.push(destination.name);
+        }
+    }
+    return { data, omitted };
   }
   function rebindImportedPresets(groups2, incoming, available) {
     let next = clone(groups2);
@@ -764,6 +806,10 @@ prompt for credentials:i:1\r
   }
 
   // src/state/store.js
+  var newUndoGeneration = () => Array.from(
+    crypto.getRandomValues(new Uint8Array(16)),
+    (byte) => byte.toString(16).padStart(2, "0")
+  ).join("");
   function createStore() {
     let state = {
       groups: [],
@@ -775,7 +821,7 @@ prompt for credentials:i:1\r
       warning: "",
       seed: null,
       team: []
-    }, defaults2 = [], subscribers = /* @__PURE__ */ new Set(), set = (changes) => {
+    }, defaults2 = [], loadedMap, hasSavedMap = !1, undoGeneration, subscribers = /* @__PURE__ */ new Set(), set = (changes) => {
       state = Object.freeze({ ...state, ...changes });
     }, notify = (kind) => {
       for (let subscriber of [...subscribers]) subscriber(state, kind);
@@ -784,13 +830,19 @@ prompt for credentials:i:1\r
       return state.team.filter((sun) => !hidden.has(sun.id));
     };
     function loadBrowserMap() {
+      loadedMap = void 0, hasSavedMap = !1, undoGeneration = void 0;
       try {
-        let text = read(key(KEYS.map));
-        return text === null ? null : validateMap(JSON.parse(text), { keepPlanetIds: !0 });
+        if (loadedMap = read(key(KEYS.map)), loadedMap === null) return null;
+        let data = JSON.parse(loadedMap), map = validateMap(data, { keepPlanetIds: !0 });
+        return undoGeneration = typeof data.undoGeneration == "string" ? data.undoGeneration : void 0, hasSavedMap = !0, map;
       } catch (error) {
         return set({ warning: `Saved browser data could not be loaded: ${/** @type {Error} */
         error.message}` }), null;
       }
+    }
+    function requireCurrentMap() {
+      if (loadedMap === void 0 || read(key(KEYS.map)) !== loadedMap || !loadWorkspaces().some((workspace) => workspace.id === state.workspace))
+        throw new Error("The saved link map changed or could not be read. Reload Orbit and try again.");
     }
     function backupUnreadableMap(mapKey) {
       let text = read(mapKey);
@@ -802,8 +854,9 @@ prompt for credentials:i:1\r
           write(`${mapKey}:${suffix}`, text);
         }
     }
-    function writeMap(mapKey, map) {
-      backupUnreadableMap(mapKey), map.groups.some((sun) => sun.links.some(isGroup)) && migrate(), write(mapKey, JSON.stringify(map));
+    function writeMap(mapKey, map, generation) {
+      let text = JSON.stringify(generation === void 0 ? map : { ...map, undoGeneration: generation });
+      return backupUnreadableMap(mapKey), map.groups.some((sun) => sun.links.some(isGroup)) && migrate(), write(mapKey, text), text;
     }
     let store6 = {
       /** @returns {Readonly<StoreState>} */
@@ -845,23 +898,14 @@ prompt for credentials:i:1\r
       saveMap(data, label = "Change", options = {}) {
         if (options.expectRevision !== void 0 && options.expectRevision !== state.revision)
           throw new Error("The link map changed, so nothing was saved.");
-        let undoKey = key(KEYS.undo), previousUndo;
+        requireCurrentMap();
+        let normalized = validateMap({
+          groups: personalGroups(data.groups),
+          routines: data.routines !== void 0 ? data.routines : state.routines,
+          rdpPresets: data.rdpPresets !== void 0 ? data.rdpPresets : state.rdpPresets
+        }, { keepPlanetIds: !0 }), previous = personalGroups(state.groups), changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !== JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]), undoKey = key(KEYS.undo), generation = options.invalidateUndo || !hasSavedMap && read(undoKey) !== null ? newUndoGeneration() : undoGeneration, previousUndo;
         try {
-          options.undoRecord && (previousUndo = read(undoKey), write(undoKey, JSON.stringify(options.undoRecord)));
-          let normalized = validateMap({
-            groups: personalGroups(data.groups),
-            routines: data.routines !== void 0 ? data.routines : state.routines,
-            rdpPresets: data.rdpPresets !== void 0 ? data.rdpPresets : state.rdpPresets
-          }, { keepPlanetIds: !0 }), previous = personalGroups(state.groups);
-          writeMap(key(KEYS.map), normalized);
-          let changed = JSON.stringify([previous, state.routines, state.rdpPresets]) !== JSON.stringify([normalized.groups, normalized.routines || [], normalized.rdpPresets || []]);
-          label !== !1 && changed && recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets), changed && countChange(state.workspace), set({
-            groups: [...visibleTeam(), ...normalized.groups],
-            routines: normalized.routines || [],
-            rdpPresets: normalized.rdpPresets || [],
-            revision: state.revision + 1,
-            source: "browser"
-          });
+          options.undoRecord && (previousUndo = read(undoKey), write(undoKey, JSON.stringify({ ...options.undoRecord, generation }))), loadedMap = writeMap(key(KEYS.map), normalized, generation);
         } catch (error) {
           if (options.undoRecord)
             try {
@@ -870,7 +914,13 @@ prompt for credentials:i:1\r
             }
           throw error;
         }
-        if (options.clearUndo)
+        if (hasSavedMap = !0, undoGeneration = generation, label !== !1 && changed && recordHistory(key(KEYS.history), previous, label, state.routines, state.rdpPresets), changed && countChange(state.workspace), set({
+          groups: [...visibleTeam(), ...normalized.groups],
+          routines: normalized.routines || [],
+          rdpPresets: normalized.rdpPresets || [],
+          revision: state.revision + 1,
+          source: "browser"
+        }), options.clearUndo || options.invalidateUndo)
           try {
             remove(undoKey);
           } catch {
@@ -888,8 +938,15 @@ prompt for credentials:i:1\r
        * map as it was; the removal undo is cleared.
        */
       resetToBundled() {
+        requireCurrentMap();
         let isDefault = !!defaultWorkspace(state.workspace), fileData = validateMap(isDefault ? defaults2.find((item) => item.id === state.workspace)?.map : state.seed);
-        state.workspace === MAIN ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : isDefault ? (backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map))) : writeMap(key(KEYS.map), fileData), recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets);
+        if (state.workspace === MAIN || isDefault)
+          backupUnreadableMap(key(KEYS.map)), remove(key(KEYS.map)), loadedMap = null, hasSavedMap = !1, undoGeneration = void 0;
+        else {
+          let generation = newUndoGeneration();
+          loadedMap = writeMap(key(KEYS.map), fileData, generation), undoGeneration = generation, hasSavedMap = !0;
+        }
+        recordHistory(key(KEYS.history), personalGroups(state.groups), "Reset to file data", state.routines, state.rdpPresets);
         try {
           remove(key(KEYS.undo));
         } catch {
@@ -905,11 +962,12 @@ prompt for credentials:i:1\r
       },
       /** The workspace's last removal, if it can be undone. @returns {UndoRecord|null} */
       loadUndoRecord() {
+        if (!hasSavedMap) return null;
         try {
           let saved = readSafely(key(KEYS.undo));
           if (!saved) return null;
           let record = JSON.parse(saved);
-          return record && ["sun", "planet", "moon"].includes(record.kind) && Number.isInteger(record.index) && record.index >= 0 && record.item ? record : null;
+          return record && record.generation === undoGeneration && ["sun", "planet", "moon"].includes(record.kind) && Number.isInteger(record.index) && record.index >= 0 && record.item ? record : null;
         } catch {
           return null;
         }
@@ -919,6 +977,7 @@ prompt for credentials:i:1\r
        * is nothing to undo; throws when it can't be put back.
        */
       undoRemoval() {
+        requireCurrentMap();
         let record = store6.loadUndoRecord();
         if (!record) return !1;
         let next = JSON.parse(JSON.stringify(state.groups));
@@ -1576,6 +1635,37 @@ prompt for credentials:i:1\r
     return readBookmarkFolder(list, "Bookmarks");
   }
 
+  // src/ui/dialogs/confirm.js
+  function confirmed(question) {
+    return (
+      /** @type {any} */
+      globalThis.confirm(question)
+    );
+  }
+
+  // src/ui/notices/area.js
+  function noticeArea() {
+    let area = document.querySelector("#notice-area");
+    return area || (area = element("section", "notice-area"), area.id = "notice-area", area.setAttribute("aria-label", "Notices"), document.querySelector(".app-shell").insertBefore(area, app)), area;
+  }
+  function showOpenAllNotice(message, isError = !1) {
+    let notice = (
+      /** @type {(HTMLElement & {hideTimer?: number}) | null} */
+      document.querySelector("#open-all-notice")
+    );
+    notice || (notice = element("p", "open-all-notice"), notice.id = "open-all-notice", notice.setAttribute("role", "status"), document.body.append(notice));
+    let shown = notice;
+    return shown.textContent = message, shown.classList.toggle("open-all-error", isError), shown.hidden = !1, clearTimeout(shown.hideTimer), shown.hideTimer = setTimeout(() => {
+      shown.hidden = !0;
+    }, isError ? 9e3 : 4e3), message;
+  }
+  function showRdpSizeNotice() {
+    return showOpenAllNotice("These Remote Desktop settings are too large for Client mode. Switch to Download mode in Settings to save the connection file.", !0);
+  }
+  function rdpSizeButton(button, name) {
+    button.type = "button", button.dataset.rdpTooLarge = "true", button.title = `Remote Desktop settings for ${name} exceed the Client mode limit`, button.setAttribute("aria-label", button.title), button.addEventListener("click", showRdpSizeNotice);
+  }
+
   // src/ui/tooltip.js
   var nextDescription = 0, tooltip, anchor = null, timer = 0;
   function tip(node, text) {
@@ -1634,14 +1724,6 @@ prompt for credentials:i:1\r
     }).observe(document.body, { childList: !0, subtree: !0 });
   }
 
-  // src/ui/dialogs/confirm.js
-  function confirmed(question) {
-    return (
-      /** @type {any} */
-      globalThis.confirm(question)
-    );
-  }
-
   // src/ui/remove-item.js
   var CONFIRM_DELETE_KEY = "orbit:confirm-before-delete";
   function removeMapItem(path) {
@@ -1698,6 +1780,23 @@ prompt for credentials:i:1\r
     renderEditorTree: () => {
     }
   };
+
+  // src/ui/team-map.js
+  var team = {
+    /** @type {any[]} */
+    groups: [],
+    /** @type {import('../core/types.js').RdpPreset[]} */
+    rdpPresets: [],
+    source: "",
+    error: ""
+  };
+  async function loadTeamMap2() {
+    let loaded = await loadTeamMap();
+    team.groups = loaded.groups, team.rdpPresets = loaded.rdpPresets, team.source = loaded.source, team.error = loaded.error;
+  }
+  function presetsForDestination(path) {
+    return path && groups[path[0]]?.team ? team.rdpPresets : rdpPresets;
+  }
 
   // src/ui/editor/kit.js
   var editorTree = null;
@@ -1792,7 +1891,11 @@ prompt for credentials:i:1\r
           ...options.rdpPresets !== void 0 ? { rdpPresets: options.rdpPresets } : {}
         },
         options.label || "Edit links change",
-        { undoRecord: options.undoRecord, clearUndo: options.clearUndo }
+        {
+          undoRecord: options.undoRecord,
+          clearUndo: options.clearUndo,
+          invalidateUndo: options.invalidateUndo
+        }
       ), store.clearWarning(), setStorageWarning(""), showNext(), nav.renderEditorTree();
     } catch (error) {
       editorError(
@@ -1815,25 +1918,36 @@ prompt for credentials:i:1\r
     let actions = element("div", "editor-actions");
     return menuContent.append(actions), actions;
   }
+  function guardEditorImport() {
+    let { workspace, revision } = store.state(), header = menuContent.querySelector(".editor-header");
+    return () => {
+      let currentEditor = modes.overlayIs("menuEditor");
+      if (currentEditor && header && menuContent.contains(header) && store.state().workspace === workspace && store.state().revision === revision) return !0;
+      let message = "The map or editor changed. Reopen the import from its intended destination.";
+      return currentEditor ? editorError(message) : showOpenAllNotice(message, !0), !1;
+    };
+  }
   function selectJsonFile(onData) {
+    let current = guardEditorImport();
     pickFile(".json,application/json", async (file) => {
       try {
-        onData(await readJsonFile(file));
+        let data = await readJsonFile(file);
+        current() && onData(data);
       } catch (error) {
-        editorError(`Import failed: ${/** @type {any} */
+        current() && editorError(`Import failed: ${/** @type {any} */
         error.message}`);
       }
     });
   }
-  function exportItem(kind, item) {
-    let slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || kind;
-    downloadJson(itemExport(kind, item), `orbit-${kind}-${slug}.json`);
+  function exportItem(kind, item, teamItem = !1) {
+    let slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || kind, { data, omitted } = teamItem ? exportTeamItem(kind, item, team.rdpPresets) : { data: itemExport(kind, item), omitted: [] };
+    omitted.length && !confirmed(`Export without the team preset settings for ${omitted.join(", ")}? To keep those settings, open the links with Download .rdp file selected in Settings.`) || downloadJson(data, `orbit-${kind}-${slug}.json`);
   }
-  function editorExportRow(kind, item, summary, actionLabel, open, ...extraActions) {
+  function editorExportRow(kind, item, summary, actionLabel, open, teamItem, ...extraActions) {
     let row = element("div", "editor-list-row editor-export-row"), actions = element("div", "editor-row-actions");
     return actions.append(
       editorIconButton(actionLabel, actionLabel === "Edit" ? "pencil" : "eye", open, "editor-button", `${actionLabel} ${item.name}`),
-      editorIconButton(`Export ${item.name}`, "download", () => exportItem(kind, item)),
+      editorIconButton(`Export ${item.name}`, "download", () => exportItem(kind, item, teamItem)),
       ...extraActions
     ), row.append(element("span", "", summary), actions), row;
   }
@@ -1965,7 +2079,7 @@ prompt for credentials:i:1\r
       let marker = element("span", "editor-tree-group");
       marker.append(icon("folder")), marker.setAttribute("role", "img"), marker.setAttribute("aria-label", "Group"), button.prepend(marker);
     }
-    let result = group ? void 0 : linkCheckResults.get(destinationKey(item));
+    let result = group || item.type === "rdp" ? void 0 : linkCheckResults.get(item.url);
     if (result && !result.ok) {
       button.classList.add("editor-tree-broken");
       let broken = element("span", "broken-mark");
@@ -2110,8 +2224,11 @@ prompt for credentials:i:1\r
   }
   function showRdpBatchImport(kind, sunIndex, planetIndex = null) {
     let sun = groups[sunIndex], parent = kind === "moon" ? sun.links[planetIndex] : sun, back = kind === "moon" ? () => nav.showPlanetEditor(sunIndex, planetIndex) : () => nav.showSunEditor(sunIndex);
-    editorHeader("Import .rdp files", back), menuContent.append(element("p", "", `Add ${kind}s under ${sun.name}${kind === "moon" ? ` → ${parent.name}` : ""}. Existing links stay in place.`)), menuContent.append(element("p", "", "Pick multiple .rdp files or a folder, or drop them here. Orbit reads the files in this browser and excludes password, token, and signature settings."));
+    editorHeader("Import .rdp files", back);
+    let current = guardEditorImport();
+    menuContent.append(element("p", "", `Add ${kind}s under ${sun.name}${kind === "moon" ? ` → ${parent.name}` : ""}. Existing links stay in place.`)), menuContent.append(element("p", "", "Pick multiple .rdp files or a folder, or drop them here. Orbit reads the files in this browser and excludes password, token, and signature settings."));
     let dropZone = element("div", "rdp-dropzone", "Drop .rdp files or a folder here"), preview = element("div", "rdp-batch-preview"), actions = editorActions(), add = editorButton("Add imported links", () => {
+      if (!current()) return;
       let next = copyGroups();
       (kind === "moon" ? next[sunIndex].links[planetIndex].moons : next[sunIndex].links).push(...prepared), applyEditorChange(next, back, { label: `Imported ${counted(prepared.length, kind)} from .rdp files` });
     }, "editor-primary");
@@ -2139,12 +2256,12 @@ prompt for credentials:i:1\r
             rdpProfile: parsed.content
           }), excluded += parsed.removed;
         }
-        if (version !== selectionVersion || !menuContent.contains(dropZone)) return;
+        if (version !== selectionVersion || !current()) return;
         prepared = imported, preview.append(element("p", "", `${imported.length} ${kind}${imported.length === 1 ? "" : "s"} ready · ${excluded} sensitive settings excluded · ${files.length - selected.length} other files skipped.`));
         let list = element("ul", "rdp-batch-list");
         imported.forEach((item) => list.append(element("li", "", `${item.name} → ${item.host}`))), preview.append(list), add.disabled = !1;
       } catch (error) {
-        version === selectionVersion && menuContent.contains(dropZone) && editorError(`RDP import failed: ${/** @type {any} */
+        version === selectionVersion && current() && editorError(`RDP import failed: ${/** @type {any} */
         error.message}`);
       }
     }, choose = (folder) => {
@@ -2179,9 +2296,15 @@ prompt for credentials:i:1\r
     return entry.changes >= BACKUP_CHANGES || days >= BACKUP_DAYS ? { changes: entry.changes, days } : null;
   }
   function teamEntries(teamGroups) {
-    return teamGroups.flatMap((sun) => sun.links.flatMap((planet) => [
-      ...isGroup(planet) ? [] : [{ key: destinationKey(planet), name: planet.name, path: sun.name }],
-      ...planet.moons.map((moon) => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` }))
+    return teamGroups.flatMap((sun) => sun.links.flatMap((planet, planetIndex) => [
+      ...isGroup(planet) ? [] : [{ key: destinationKey(planet), name: planet.name, path: sun.name, sunId: sun.id, indices: [planetIndex] }],
+      ...planet.moons.map((moon, moonIndex) => ({
+        key: destinationKey(moon),
+        name: moon.name,
+        path: `${sun.name} → ${planet.name}`,
+        sunId: sun.id,
+        indices: [planetIndex, moonIndex]
+      }))
     ]));
   }
   function teamChanges(seen, current) {
@@ -2192,29 +2315,6 @@ prompt for credentials:i:1\r
       added: current.filter((entry) => !seenKeys.has(entry.key)),
       removed: seen.filter((entry) => !currentKeys.has(entry.key))
     };
-  }
-
-  // src/ui/notices/area.js
-  function noticeArea() {
-    let area = document.querySelector("#notice-area");
-    return area || (area = element("section", "notice-area"), area.id = "notice-area", area.setAttribute("aria-label", "Notices"), document.querySelector(".app-shell").insertBefore(area, app)), area;
-  }
-  function showOpenAllNotice(message, isError = !1) {
-    let notice = (
-      /** @type {(HTMLElement & {hideTimer?: number}) | null} */
-      document.querySelector("#open-all-notice")
-    );
-    notice || (notice = element("p", "open-all-notice"), notice.id = "open-all-notice", notice.setAttribute("role", "status"), document.body.append(notice));
-    let shown = notice;
-    return shown.textContent = message, shown.classList.toggle("open-all-error", isError), shown.hidden = !1, clearTimeout(shown.hideTimer), shown.hideTimer = setTimeout(() => {
-      shown.hidden = !0;
-    }, isError ? 9e3 : 4e3), message;
-  }
-  function showRdpSizeNotice() {
-    return showOpenAllNotice("These Remote Desktop settings are too large for Client mode. Switch to Download mode in Settings to save the connection file.", !0);
-  }
-  function rdpSizeButton(button, name) {
-    button.type = "button", button.dataset.rdpTooLarge = "true", button.title = `Remote Desktop settings for ${name} exceed the Client mode limit`, button.setAttribute("aria-label", button.title), button.addEventListener("click", showRdpSizeNotice);
   }
 
   // src/ui/notices/backup.js
@@ -2244,18 +2344,6 @@ prompt for credentials:i:1\r
     box.id = "backup-reminder", noticeArea().append(box);
   }
 
-  // src/ui/team-map.js
-  var team = {
-    /** @type {any[]} */
-    groups: [],
-    source: "",
-    error: ""
-  };
-  async function loadTeamMap2() {
-    let loaded = await loadTeamMap();
-    team.groups = loaded.groups, team.source = loaded.source, team.error = loaded.error;
-  }
-
   // src/services/rdp-launch.js
   function downloadRdp(destination, presets) {
     downloadText(rdpFileContent(destination, presets), rdpFileName(destination), "application/x-rdp");
@@ -2268,6 +2356,228 @@ prompt for credentials:i:1\r
       globalThis.location.href = url;
     }
     return !0;
+  }
+
+  // src/ui/layout/orbits.js
+  var GALAXY_PLANETS = 5, SYSTEM_PLANETS = 8, VISIBLE_MOONS = 6, galaxyReach = (planet) => 91 + planet / 2, SITE_ICON_ROOM = 19;
+  function labelFit(names, totalLimit, wordLimit) {
+    let longest = Math.max(1, ...names.map((name) => name.length)), word = Math.max(1, ...names.flatMap((name) => name.split(/[\s/-]+/).map((part) => part.length)));
+    return Math.max(0.8, Math.min(1, totalLimit / longest, wordLimit / word));
+  }
+  function updateMapLabelSizes() {
+    document.documentElement.style.setProperty(
+      "--sun-label-fit",
+      String(labelFit(groups.map((sun) => sun.name), 18, 10))
+    );
+  }
+  var ORBIT_LEVELS = {
+    home: {
+      selector: ".home-satellite",
+      variable: "--home-planet-size",
+      base: () => 72,
+      max: 112,
+      names: () => groups.flatMap((sun) => sun.links.slice(0, GALAXY_PLANETS))
+    },
+    detail: {
+      selector: ".detail-satellite",
+      variable: "--detail-planet-size",
+      base: () => Math.min(100, Math.max(70, window.innerWidth * 0.16)),
+      max: 140,
+      names: () => groups.flatMap((sun) => sun.links.slice(0, SYSTEM_PLANETS))
+    },
+    moon: {
+      selector: ".moon-link",
+      variable: "--moon-size",
+      base: () => 72,
+      max: 88,
+      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons.slice(0, VISIBLE_MOONS)))
+    },
+    more: {
+      selector: ".more-link",
+      variable: "--more-planet-size",
+      base: () => 90,
+      max: 130,
+      names: () => groups.flatMap((sun) => sun.links.slice(SYSTEM_PLANETS))
+    },
+    overflowMoon: {
+      selector: ".overflow-moon-link",
+      variable: "--overflow-moon-size",
+      base: () => 76,
+      max: 110,
+      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons))
+    }
+  }, orbitSizes = {}, canvas2 = null, measureContext = () => (
+    /** @type {CanvasRenderingContext2D} */
+    canvas2 ?? (canvas2 = document.createElement("canvas").getContext("2d"))
+  );
+  function labelFits(name, diameter, padding, lineHeight, measure, extra = 0) {
+    let width2 = diameter - padding * 2, space = measure(" "), lines = [];
+    for (let word of name.split(/\s+/).filter(Boolean)) {
+      let wordWidth = measure(word);
+      if (wordWidth > width2) return !1;
+      let last2 = lines.length - 1;
+      last2 >= 0 && lines[last2] + space + wordWidth <= width2 ? lines[last2] += space + wordWidth : lines.push(wordWidth);
+    }
+    let radius = diameter / 2 - 3, half = (lines.length * lineHeight + extra) / 2;
+    return lines.every((lineWidth, line2) => {
+      let y = Math.abs(extra + (line2 + 0.5) * lineHeight - half);
+      return y < radius && lineWidth / 2 <= Math.sqrt(radius * radius - y * y);
+    });
+  }
+  function fitOrbitSizes() {
+    let root = document.documentElement.style, context = measureContext();
+    for (let [key, level] of Object.entries(ORBIT_LEVELS)) {
+      let sample = app.querySelector(level.selector), base = level.base();
+      if (!sample) {
+        orbitSizes[key] || (orbitSizes[key] = base);
+        continue;
+      }
+      let style = getComputedStyle(sample);
+      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      let cache = /* @__PURE__ */ new Map(), measure = (text) => (cache.has(text) || cache.set(text, context.measureText(text).width), cache.get(text)), padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.borderLeftWidth) || 0), lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2, names = [...new Set(level.names().map((item) => item.name))], extra = showSiteIcons ? SITE_ICON_ROOM : 0, size = Math.round(base);
+      for (; size < level.max && !names.every((name) => labelFits(name, size, padding, lineHeight, measure, extra)); ) size += 2;
+      orbitSizes[key] = Math.min(size, level.max), root.setProperty(
+        /** @type {string} */
+        level.variable,
+        `${orbitSizes[key]}px`
+      ), shrinkLongLabels(level.selector, orbitSizes[key], style, padding, extra);
+    }
+  }
+  function shrinkLongLabels(selector, size, style, padding, extra = 0) {
+    let context = measureContext(), fontSize = parseFloat(style.fontSize), lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+    for (
+      let node of
+      /** @type {NodeListOf<HTMLElement>} */
+      app.querySelectorAll(selector)
+    ) {
+      node.style.removeProperty("font-size");
+      for (let step2 = 20; step2 >= 12; step2--) {
+        let scale = step2 / 20;
+        context.font = `${style.fontWeight} ${fontSize * scale}px ${style.fontFamily}`;
+        let measure = (text) => context.measureText(text).width;
+        if (step2 === 12 || labelFits(
+          /** @type {string} */
+          node.textContent,
+          size,
+          padding,
+          lineHeight * scale,
+          measure,
+          extra
+        )) {
+          scale < 1 && (node.style.fontSize = `${(fontSize * scale).toFixed(2)}px`);
+          break;
+        }
+      }
+    }
+  }
+  function circleHull(circles, margin) {
+    let points = circles.flatMap(({ x, y, r }) => Array.from({ length: 24 }, (_, i) => {
+      let turn = i * Math.PI / 12;
+      return { x: x + Math.cos(turn) * (r + margin), y: y + Math.sin(turn) * (r + margin) };
+    })).sort((a, b) => a.x - b.x || a.y - b.y), cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x), half = (list) => list.reduce((hull, point) => {
+      for (; hull.length >= 2 && cross(
+        /** @type {Point} */
+        hull.at(-2),
+        /** @type {Point} */
+        hull.at(-1),
+        point
+      ) <= 0; ) hull.pop();
+      return hull.push(point), hull;
+    }, []), lower = half(points), upper = half([...points].reverse());
+    return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+  }
+  function moonSpokes(points, origin, size) {
+    let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "moon-spokes"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
+    for (let point of points) {
+      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line2.setAttribute("x1", String(origin.x)), line2.setAttribute("y1", String(origin.y)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
+    }
+    return svg;
+  }
+  function layoutMoonField(field) {
+    let angle = Number(field.dataset.angle), home = field.dataset.context === "home", planet = orbitSizes[home ? "home" : "detail"] || (home ? 72 : 100), moon = orbitSizes.moon || 72, moons = (
+      /** @type {HTMLElement[]} */
+      [...field.querySelectorAll(".moon-link")]
+    ), crowded = moons.length > 4, spread = (crowded ? 150 : 130) * Math.PI / 180, step2 = moons.length > 1 ? spread / (moons.length - 1) : 0, extra = crowded ? 28 : 0, radius = Math.max((home ? 98 : 108) + extra, planet / 2 + moon / 2 + 26 + extra);
+    step2 && (radius = Math.max(radius, (moon + 6) / (2 * Math.sin(step2 / 2))));
+    let positions = moons.map((_, index) => {
+      let moonAngle = angle - spread / 2 * (moons.length > 1 ? 1 : 0) + step2 * index;
+      return { x: Math.cos(moonAngle) * radius, y: Math.sin(moonAngle) * radius };
+    }), lift = Math.sin(angle) * galaxyReach(planet);
+    field.dataset.rise = String(Math.round(Math.max(...positions.map((point) => -(lift + point.y))) + moon / 2)), field.dataset.drop = String(Math.round(Math.max(...positions.map((point) => point.y)) + moon / 2));
+    let hull = circleHull([
+      { x: 0, y: 0, r: planet / 2 },
+      ...positions.map((point) => ({ ...point, r: moon / 2 }))
+    ], 12), out = radius * 0.5, center = { x: Math.cos(angle) * out, y: Math.sin(angle) * out }, size = Math.ceil(2 * Math.max(...hull.map((point) => Math.hypot(point.x - center.x, point.y - center.y))));
+    field.style.width = field.style.height = `${size}px`, field.style.clipPath = `polygon(${hull.map((point) => `${(point.x - center.x + size / 2).toFixed(1)}px ${(point.y - center.y + size / 2).toFixed(1)}px`).join(", ")})`, field.style.setProperty("--out-x", `${center.x}px`), field.style.setProperty("--out-y", `${center.y}px`), moons.forEach((node, index) => {
+      node.style.setProperty("--mx", `${positions[index].x - center.x}px`), node.style.setProperty("--my", `${positions[index].y - center.y}px`);
+    });
+    let origin = { x: size / 2 - center.x, y: size / 2 - center.y };
+    field.querySelector(".moon-spokes")?.remove(), field.prepend(moonSpokes(positions.map((point) => ({
+      x: origin.x + point.x,
+      y: origin.y + point.y
+    })), origin, size));
+  }
+  function markCaptionFans() {
+    let planet = orbitSizes.home || 72;
+    for (
+      let orbit of
+      /** @type {NodeListOf<HTMLElement>} */
+      app.querySelectorAll(".home-orbit")
+    ) {
+      let caption = (
+        /** @type {HTMLElement | null} */
+        orbit.parentElement?.querySelector(":scope > .group-description") ?? null
+      ), center = orbit.offsetTop + orbit.offsetHeight / 2;
+      for (
+        let field of
+        /** @type {NodeListOf<HTMLElement>} */
+        orbit.querySelectorAll(".moon-field")
+      ) {
+        let bottom = center + Math.sin(Number(field.dataset.angle)) * galaxyReach(planet) + Number(field.dataset.drop);
+        field.closest(".planet-cluster")?.toggleAttribute(
+          "data-covers-caption",
+          !!caption?.textContent && bottom > /** @type {HTMLElement} */
+          caption.offsetTop
+        );
+      }
+    }
+  }
+  function layoutOrbits() {
+    fitOrbitSizes(), app.querySelectorAll(".moon-field").forEach(layoutMoonField);
+    let firstCard = (
+      /** @type {HTMLElement | null} */
+      app.querySelector(".group-card")
+    ), firstRow = firstCard?.offsetTop, orbitMargin = parseFloat(getComputedStyle(firstCard?.querySelector(".home-orbit") ?? document.body).marginTop) || 0, fans = (
+      /** @type {HTMLElement[]} */
+      [...app.querySelectorAll(".home-orbit .moon-field")].filter((field) => (
+        /** @type {HTMLElement} */
+        field.closest(".group-card").offsetTop === firstRow
+      )).map((field) => Number(field.dataset.rise))
+    ), extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
+    document.documentElement.style.setProperty("--galaxy-fan-room", `${Math.max(0, Math.ceil(extra))}px`), markCaptionFans();
+    let stage = (
+      /** @type {HTMLElement | null} */
+      app.querySelector(".detail-stage")
+    ), note = (
+      /** @type {HTMLElement | null} */
+      app.querySelector(".detail-note")
+    );
+    if (stage && note) {
+      let overhang = Math.max(0, .../** @type {HTMLElement[]} */
+      [...stage.querySelectorAll(".moon-field")].map((field) => (
+        /** @type {HTMLElement} */
+        field.closest(".planet-cluster").offsetTop + Number(field.dataset.drop) - stage.offsetHeight
+      )));
+      note.style.marginTop = overhang > 0 ? `${Math.ceil(overhang + 12)}px` : "";
+    }
+  }
+  function installLayout() {
+    let frame2 = 0;
+    window.addEventListener("resize", () => {
+      cancelAnimationFrame(frame2), frame2 = requestAnimationFrame(layoutOrbits);
+    }), window.addEventListener("load", () => document.fonts?.ready.then(layoutOrbits));
   }
 
   // src/services/opener.js
@@ -2345,6 +2655,39 @@ prompt for credentials:i:1\r
     key !== null && (recordRecent(key, item.name, Date.now()), setTimeout(() => hooks.refreshQuickBar(), 0));
   }
 
+  // src/ui/views/group-planets.js
+  var pendingGroup = null;
+  function setGroupExpanded(cluster, expanded = !0) {
+    cluster.classList.toggle("pinned", expanded), cluster.querySelector(".group-planet")?.setAttribute("aria-expanded", String(expanded));
+  }
+  function focusMapItem(node, preventScroll = !0) {
+    let containers = [node.closest(".home-orbit"), node.closest(".planet-cluster, .overflow-planet")];
+    node.dataset.kind === "moon" && containers[1]?.classList.contains("group-cluster") && setGroupExpanded(containers[1]);
+    for (let container of containers) container?.classList.add("restoring-map-focus");
+    node.focus({ preventScroll });
+    for (let container of containers) container?.classList.remove("restoring-map-focus");
+    return document.activeElement === node;
+  }
+  function collapseGroup() {
+    let cluster = app.querySelector(".pinned");
+    return cluster ? (cluster.contains(document.activeElement) && !document.activeElement?.matches(".group-planet") && cluster.querySelector(".group-planet")?.focus(), setGroupExpanded(cluster, !1), !0) : !1;
+  }
+  function openGroup(sun, planet) {
+    let id = groups[sun]?.id;
+    if (!id) return;
+    let route = `group/${encodeURIComponent(id)}`;
+    pendingGroup = { id, planet }, setFindQuery(""), quickFind.value = "", location.hash === `#${route}` ? revealPendingGroup(id) : location.hash = route;
+  }
+  function revealPendingGroup(id) {
+    let next = pendingGroup;
+    if (pendingGroup = null, !next || id !== next.id) return;
+    let button = (
+      /** @type {HTMLButtonElement|null} */
+      app.querySelector(`.group-planet[data-planet="${next.planet}"]`)
+    ), cluster = button?.parentElement;
+    !button || !cluster || (collapseGroup(), setGroupExpanded(cluster), button.focus(), button.scrollIntoView({ block: "nearest" }));
+  }
+
   // src/ui/dialogs/placeholder.js
   var variableDialog = (
     /** @type {any} */
@@ -2352,14 +2695,19 @@ prompt for credentials:i:1\r
   ), variableItem = (
     /** @type {any} */
     null
-  );
-  function askForVariables(item) {
-    modes.overlayIs("placeholder") && closeVariableDialog(), variableItem = item, modes.send("openPlaceholder");
+  ), variableOpener = null;
+  function askForVariables(item, trigger) {
+    modes.overlayIs("placeholder") && closeVariableDialog(), variableItem = item, variableOpener = trigger || (document.activeElement instanceof HTMLElement ? document.activeElement : null), modes.send("openPlaceholder");
   }
   function variableFormOpened() {
     let item = variableItem;
     variableItem = null;
-    let names = templateNames(item.url), remembered = readVariables(), opener = document.activeElement instanceof HTMLElement ? document.activeElement : null, overlay = element("div", "palette-overlay variable-overlay"), scrim = element("div", "palette-scrim"), form = element("form", "palette variable-form");
+    let names = templateNames(item.url), remembered = readVariables(), opener = variableOpener;
+    variableOpener = null;
+    let shell = (
+      /** @type {HTMLElement} */
+      document.querySelector(".app-shell")
+    ), shellWasInert = shell.inert, overlay = element("div", "palette-overlay variable-overlay"), scrim = element("div", "palette-scrim"), form = element("form", "palette variable-form");
     form.setAttribute("role", "dialog"), form.setAttribute("aria-modal", "true"), form.setAttribute("aria-label", `Open ${item.name}`), form.append(element("h2", "variable-title", `Open ${item.name}`)), form.append(element("p", "variable-address", item.url));
     let inputs = names.map((name) => {
       let field = editorField(name, Object.hasOwn(remembered, name) && remembered[name] || "");
@@ -2377,21 +2725,156 @@ prompt for credentials:i:1\r
       let values = Object.fromEntries(inputs.map(([name, input]) => [name, input.value.trim()]));
       Object.values(values).some((value) => !value) || (saveVariables(values), closeVariableDialog(), openTab(fillTemplate(item.url, values)), noteOpened(item));
     }), form.addEventListener("keydown", (event) => {
-      event.key === "Escape" && (event.preventDefault(), event.stopPropagation(), closeVariableDialog());
-    }), scrim.addEventListener("click", closeVariableDialog), overlay.append(scrim, form), document.body.append(overlay), variableDialog = { overlay, opener }, (inputs.find(([, input]) => !input.value)?.[1] || inputs[0]?.[1])?.focus();
+      if (event.key === "Escape" && (event.preventDefault(), event.stopPropagation(), closeVariableDialog()), event.key === "Tab") {
+        let controls = [...inputs.map(([, input]) => input), open, cancel].filter((control) => !control.disabled), first = controls[0], last2 = controls.at(-1), active = document.activeElement;
+        (event.shiftKey ? active === first : active === last2) && (event.preventDefault(), (event.shiftKey ? last2 : first)?.focus());
+      }
+    }), scrim.addEventListener("click", closeVariableDialog), overlay.append(scrim, form), document.body.append(overlay), variableDialog = { overlay, opener, shell, shellWasInert }, shell.inert = !0, (inputs.find(([, input]) => !input.value)?.[1] || inputs[0]?.[1])?.focus();
   }
   function closeVariableDialog() {
     modes.overlayIs("placeholder") && modes.send("closeOverlay");
   }
   function variableFormClosed() {
-    let { overlay, opener } = variableDialog;
+    let { overlay, opener, shell, shellWasInert } = variableDialog;
     variableDialog = /** @type {any} */
-    null, overlay.remove(), opener && document.contains(opener) && opener.focus();
+    null, overlay.remove(), shell.inert = shellWasInert, !(opener?.isConnected && focusMapItem(opener)) && (quickFind.focus({ preventScroll: !0 }), document.activeElement !== quickFind && settingsTrigger.focus({ preventScroll: !0 }));
+  }
+
+  // src/ui/views/nodes.js
+  function siteIcon(link) {
+    if (!showSiteIcons || link.type === "rdp") return null;
+    let origin;
+    try {
+      origin = new URL(link.url.replace(PLACEHOLDER, "x")).origin;
+    } catch {
+      return null;
+    }
+    let image = document.createElement("img");
+    return image.className = "site-icon", image.alt = "", image.loading = "lazy", image.referrerPolicy = "no-referrer", image.src = `${origin}/favicon.ico`, image.addEventListener("error", () => image.remove()), image;
+  }
+  function destinationNode(link, className, path) {
+    let isRdp = link.type === "rdp", presets = isRdp ? presetsForDestination(path) : [], download = isRdp && rdpLaunchMode === "download", clientUrl = isRdp && !download ? rdpLaunchUrl(link, presets) : null, oversized = isRdp && !download && clientUrl === null, template = !isRdp && templateNames(link.url).length > 0, node = (
+      /** @type {HTMLAnchorElement | HTMLButtonElement} */
+      element(download || template || oversized ? "button" : "a", className, link.name)
+    );
+    path && (node.dataset.destination = path.join(":"));
+    let icon2 = siteIcon(link);
+    icon2 && node.prepend(icon2);
+    let button = (
+      /** @type {HTMLButtonElement} */
+      node
+    ), anchor2 = (
+      /** @type {HTMLAnchorElement} */
+      node
+    );
+    return template ? (button.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(link, node)), node.title = `Open ${link.name} (asks for ${templateNames(link.url).join(", ")})`, node.setAttribute("aria-label", node.title)) : download ? (button.type = "button", node.addEventListener("click", () => downloadRdp(link, presets)), node.title = `Download Remote Desktop connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : oversized ? rdpSizeButton(button, link.name) : clientUrl !== null ? (anchor2.href = clientUrl, node.title = `Open Remote Desktop Connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : (anchor2.href = link.url, anchor2.target = "_blank", anchor2.rel = "noopener noreferrer", node.title = `Open ${link.name} in a new tab`, node.setAttribute("aria-label", node.title)), link.note && (node.title = `${node.title}
+${link.note}`), node;
+  }
+  function linkNode(link, className, path) {
+    let node = isGroup(link) ? groupButton(link, className) : destinationNode(link, className, path);
+    return path && (tagPath(node, path.length === 3 ? "moon" : "planet", path[0], path[1], path[2]), modes.inEditMode() ? (node.title = `Drag ${link.name} to move it`, node.setAttribute("aria-label", `${link.name}. Links are paused in Edit mode.`)) : node.setAttribute("aria-keyshortcuts", "E")), node;
+  }
+  function groupButton(group, className) {
+    let button = element("button", `${className} group-planet`, group.name);
+    button.type = "button";
+    let count = counted(group.moons.length, "link");
+    return button.title = `${group.name}: a group of ${count}`, group.note && (button.title += `
+${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${count}`), button.setAttribute("aria-expanded", "false"), button;
+  }
+  function orbitLines(points, center, size) {
+    let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "orbit-lines"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
+    for (let point of points) {
+      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line2.setAttribute("x1", String(center)), line2.setAttribute("y1", String(center)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
+    }
+    return svg;
+  }
+  function planetNode(link, context, point, size, index, sunIndex) {
+    let cluster = element("div", `planet-cluster ${context}-planet-cluster`), group = isGroup(link);
+    if (group && cluster.classList.add("group-cluster"), cluster.style.setProperty("--x", `${point.x / size * 100}%`), cluster.style.setProperty("--y", `${point.y / size * 100}%`), cluster.style.setProperty("--cos", Math.cos(point.angle).toFixed(4)), cluster.style.setProperty("--sin", Math.sin(point.angle).toFixed(4)), cluster.style.setProperty("--delay", `${index * (context === "home" ? 20 : 50)}ms`), cluster.append(linkNode(link, context === "home" ? "home-satellite" : "detail-satellite", [sunIndex, index])), link.moons.length) {
+      let field = element("div", "moon-field");
+      field.dataset.angle = String(point.angle), field.dataset.context = context, link.moons.slice(0, VISIBLE_MOONS).forEach((moon, moonIndex) => field.append(linkNode(moon, "moon-link", [sunIndex, index, moonIndex]))), cluster.append(field);
+    }
+    if (link.moons.length || group) {
+      let label = link.moons.length ? counted(link.moons.length, group ? "link" : "moon") : "No links yet";
+      cluster.append(element("span", "moon-badge", label));
+    }
+    return cluster;
+  }
+  function overflowPlanetNode(link, sunIndex, planetIndex) {
+    let item = element("div", "overflow-planet"), group = isGroup(link);
+    if (group && item.classList.add("group-cluster"), item.append(linkNode(link, "more-link", [sunIndex, planetIndex])), link.moons.length) {
+      let moons = element("div", "overflow-moons");
+      link.moons.forEach((moon, moonIndex) => moons.append(
+        linkNode(moon, "overflow-moon-link", [sunIndex, planetIndex, moonIndex])
+      )), item.append(moons);
+    }
+    return group && item.append(element(
+      "span",
+      "overflow-group-count",
+      link.moons.length ? counted(link.moons.length, "link") : "No links yet"
+    )), item;
+  }
+  function homeGroup(group, index) {
+    let card = element("section", "group-card");
+    card.style.setProperty("--sun-accent", safeColor(group.color)), card.style.setProperty("--card-index", String(index));
+    let orbit = element("div", "home-orbit");
+    orbit.dataset.sun = String(index);
+    let visible = group.links.slice(0, GALAXY_PLANETS), center = 160, radius = 108, points = visible.map((_, i) => {
+      let angle = (-90 + 360 / visible.length * i) * Math.PI / 180;
+      return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius, angle };
+    });
+    orbit.append(orbitLines(points, center, 320));
+    let hub = element("button", "home-hub");
+    return hub.type = "button", tagPath(hub, "sun", index), modes.inEditMode() || hub.setAttribute("aria-keyshortcuts", "E"), hub.setAttribute("aria-label", `Open ${group.team ? "team " : ""}${group.name} system with ${counted(group.links.length, "planet")}`), group.icon && hub.append(element("span", "hub-icon", group.icon)), hub.append(element("span", "hub-name", group.name)), hub.append(element("span", "hub-count", counted(group.links.length, "planet").toUpperCase())), group.team && (card.classList.add("team-card"), hub.append(element("span", "team-mark", "TEAM"))), hub.addEventListener("click", () => {
+      location.hash = `group/${encodeURIComponent(group.id)}`;
+    }), orbit.append(hub), visible.forEach((link, i) => orbit.append(planetNode(link, "home", points[i], 320, i, index))), card.append(orbit, descriptionNode("group-description", group.description)), card;
+  }
+
+  // src/ui/notices/team-updates.js
+  var refreshAddedLinks = null;
+  function refreshTeamUpdateLinks() {
+    refreshAddedLinks?.();
+  }
+  function checkTeamUpdates() {
+    if (document.querySelector("#team-updates")?.remove(), refreshAddedLinks = null, !team.source) return;
+    let current = teamEntries(team.groups), changes = teamChanges(readTeamSeen(), current);
+    if (changes.first) return rememberTeam(current);
+    let { added, removed } = changes;
+    if (!added.length && !removed.length) return;
+    let box = element("div", "routine-offer team-updates");
+    box.id = "team-updates", box.append(element("p", "routine-offer-copy", `Team map updated: ${added.length} new, ${removed.length} removed.`));
+    let details = element("div", "team-update-list");
+    if (details.hidden = !0, added.length) {
+      details.append(element("strong", "", "New"));
+      let list = element("ul", ""), rendered = "";
+      refreshAddedLinks = () => {
+        let visible = new Map(groups.flatMap((sun, index) => sun.team ? [[sun.id, index]] : [])), layout = JSON.stringify([rdpLaunchMode, [...visible]]);
+        rendered !== layout && (rendered = layout, list.replaceChildren(...added.map((entry) => {
+          let row = element("li", ""), index = visible.get(entry.sunId), path = index === void 0 ? null : [index, ...entry.indices], destination = path && itemAt(groups, path);
+          return row.append(path && destination ? destinationNode(destination, "team-update-link", path) : element("span", "", entry.name), element("small", "", ` in ${entry.path}`)), row;
+        })));
+      }, refreshAddedLinks(), details.append(list);
+    }
+    if (removed.length) {
+      details.append(element("strong", "", "Removed"));
+      let list = element("ul", "");
+      removed.forEach((entry) => list.append(element("li", "", entry.name))), details.append(list);
+    }
+    let show = element("button", "routine-offer-open", "Show what’s new");
+    show.type = "button", show.setAttribute("aria-expanded", "false"), show.addEventListener("click", () => {
+      details.hidden = !details.hidden, show.setAttribute("aria-expanded", String(!details.hidden));
+    });
+    let dismiss = element("button", "routine-offer-dismiss", "Dismiss");
+    dismiss.type = "button", dismiss.addEventListener("click", () => {
+      rememberTeam(current), refreshAddedLinks = null, box.remove();
+    }), box.append(show, dismiss, details), noticeArea().append(box);
   }
 
   // src/ui/views/open.js
-  function openDestination2(item) {
-    let result = openDestination(item, { presets: rdpPresets, launchMode: rdpLaunchMode });
+  function openDestination2(item, path) {
+    let result = openDestination(item, { presets: presetsForDestination(path), launchMode: rdpLaunchMode });
     if (result === "ask") return askForVariables(item);
     if (result === "rdp-too-large") return showRdpSizeNotice();
     result !== "skipped" && noteOpened(item);
@@ -2782,7 +3265,7 @@ prompt for credentials:i:1\r
       setRdpLaunchMode(
         /** @type {any} */
         rdpSelect.value
-      ), savePreference("orbit:rdp-launch", rdpLaunchMode), updateRdpSetup(), hooks.render();
+      ), refreshTeamUpdateLinks(), savePreference("orbit:rdp-launch", rdpLaunchMode), updateRdpSetup(), hooks.render();
     }), rdpRow.append(rdpCopy, rdpSelect), section.append(rdpRow, rdpSetup), section;
   }
   function settingToggle(title, hint, checked, onChange) {
@@ -2843,228 +3326,6 @@ prompt for credentials:i:1\r
       );
       guide.href = "help.html", guide.target = "_blank", guide.rel = "noopener", menuContent.append(guide), menuContent.append(element("h4", "editor-section-title", "Quick keys")), menuContent.append(element("p", "", "Press / to jump to Quick find. Press Ctrl+K (Cmd+K on a Mac) for the command palette.")), menuContent.append(element("p", "", "Tab moves through the page. Arrow keys move between suns, and between planets or moons; Enter opens the focused one.")), menuContent.append(element("p", "", "Press E on a focused sun, planet, or moon to open its editor. Shift+click a planet to open it with all its moons.")), menuContent.append(element("p", "", "Escape goes back one step at a time: it closes the menu, cancels a drag, turns Edit mode off, clears Quick find, then returns to the Galaxy."));
     } else name === "About" && (menuContent.append(element("p", "", "Orbit is a local link map that keeps your favorite destinations in a visual Galaxy.")), menuContent.append(element("p", "", "Your link map runs on this computer, without an account or hosted service.")), menuContent.append(element("p", "", `Version ${APP_VERSION2}`)));
-  }
-
-  // src/ui/layout/orbits.js
-  var GALAXY_PLANETS = 5, SYSTEM_PLANETS = 8, VISIBLE_MOONS = 6, galaxyReach = (planet) => 91 + planet / 2, SITE_ICON_ROOM = 19;
-  function labelFit(names, totalLimit, wordLimit) {
-    let longest = Math.max(1, ...names.map((name) => name.length)), word = Math.max(1, ...names.flatMap((name) => name.split(/[\s/-]+/).map((part) => part.length)));
-    return Math.max(0.8, Math.min(1, totalLimit / longest, wordLimit / word));
-  }
-  function updateMapLabelSizes() {
-    document.documentElement.style.setProperty(
-      "--sun-label-fit",
-      String(labelFit(groups.map((sun) => sun.name), 18, 10))
-    );
-  }
-  var ORBIT_LEVELS = {
-    home: {
-      selector: ".home-satellite",
-      variable: "--home-planet-size",
-      base: () => 72,
-      max: 112,
-      names: () => groups.flatMap((sun) => sun.links.slice(0, GALAXY_PLANETS))
-    },
-    detail: {
-      selector: ".detail-satellite",
-      variable: "--detail-planet-size",
-      base: () => Math.min(100, Math.max(70, window.innerWidth * 0.16)),
-      max: 140,
-      names: () => groups.flatMap((sun) => sun.links.slice(0, SYSTEM_PLANETS))
-    },
-    moon: {
-      selector: ".moon-link",
-      variable: "--moon-size",
-      base: () => 72,
-      max: 88,
-      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons.slice(0, VISIBLE_MOONS)))
-    },
-    more: {
-      selector: ".more-link",
-      variable: "--more-planet-size",
-      base: () => 90,
-      max: 130,
-      names: () => groups.flatMap((sun) => sun.links.slice(SYSTEM_PLANETS))
-    },
-    overflowMoon: {
-      selector: ".overflow-moon-link",
-      variable: "--overflow-moon-size",
-      base: () => 76,
-      max: 110,
-      names: () => groups.flatMap((sun) => sun.links.flatMap((planet) => planet.moons))
-    }
-  }, orbitSizes = {}, canvas2 = null, measureContext = () => (
-    /** @type {CanvasRenderingContext2D} */
-    canvas2 ?? (canvas2 = document.createElement("canvas").getContext("2d"))
-  );
-  function labelFits(name, diameter, padding, lineHeight, measure, extra = 0) {
-    let width2 = diameter - padding * 2, space = measure(" "), lines = [];
-    for (let word of name.split(/\s+/).filter(Boolean)) {
-      let wordWidth = measure(word);
-      if (wordWidth > width2) return !1;
-      let last2 = lines.length - 1;
-      last2 >= 0 && lines[last2] + space + wordWidth <= width2 ? lines[last2] += space + wordWidth : lines.push(wordWidth);
-    }
-    let radius = diameter / 2 - 3, half = (lines.length * lineHeight + extra) / 2;
-    return lines.every((lineWidth, line2) => {
-      let y = Math.abs(extra + (line2 + 0.5) * lineHeight - half);
-      return y < radius && lineWidth / 2 <= Math.sqrt(radius * radius - y * y);
-    });
-  }
-  function fitOrbitSizes() {
-    let root = document.documentElement.style, context = measureContext();
-    for (let [key, level] of Object.entries(ORBIT_LEVELS)) {
-      let sample = app.querySelector(level.selector), base = level.base();
-      if (!sample) {
-        orbitSizes[key] || (orbitSizes[key] = base);
-        continue;
-      }
-      let style = getComputedStyle(sample);
-      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      let cache = /* @__PURE__ */ new Map(), measure = (text) => (cache.has(text) || cache.set(text, context.measureText(text).width), cache.get(text)), padding = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.borderLeftWidth) || 0), lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2, names = [...new Set(level.names().map((item) => item.name))], extra = showSiteIcons ? SITE_ICON_ROOM : 0, size = Math.round(base);
-      for (; size < level.max && !names.every((name) => labelFits(name, size, padding, lineHeight, measure, extra)); ) size += 2;
-      orbitSizes[key] = Math.min(size, level.max), root.setProperty(
-        /** @type {string} */
-        level.variable,
-        `${orbitSizes[key]}px`
-      ), shrinkLongLabels(level.selector, orbitSizes[key], style, padding, extra);
-    }
-  }
-  function shrinkLongLabels(selector, size, style, padding, extra = 0) {
-    let context = measureContext(), fontSize = parseFloat(style.fontSize), lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
-    for (
-      let node of
-      /** @type {NodeListOf<HTMLElement>} */
-      app.querySelectorAll(selector)
-    ) {
-      node.style.removeProperty("font-size");
-      for (let step2 = 20; step2 >= 12; step2--) {
-        let scale = step2 / 20;
-        context.font = `${style.fontWeight} ${fontSize * scale}px ${style.fontFamily}`;
-        let measure = (text) => context.measureText(text).width;
-        if (step2 === 12 || labelFits(
-          /** @type {string} */
-          node.textContent,
-          size,
-          padding,
-          lineHeight * scale,
-          measure,
-          extra
-        )) {
-          scale < 1 && (node.style.fontSize = `${(fontSize * scale).toFixed(2)}px`);
-          break;
-        }
-      }
-    }
-  }
-  function circleHull(circles, margin) {
-    let points = circles.flatMap(({ x, y, r }) => Array.from({ length: 24 }, (_, i) => {
-      let turn = i * Math.PI / 12;
-      return { x: x + Math.cos(turn) * (r + margin), y: y + Math.sin(turn) * (r + margin) };
-    })).sort((a, b) => a.x - b.x || a.y - b.y), cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x), half = (list) => list.reduce((hull, point) => {
-      for (; hull.length >= 2 && cross(
-        /** @type {Point} */
-        hull.at(-2),
-        /** @type {Point} */
-        hull.at(-1),
-        point
-      ) <= 0; ) hull.pop();
-      return hull.push(point), hull;
-    }, []), lower = half(points), upper = half([...points].reverse());
-    return [...lower.slice(0, -1), ...upper.slice(0, -1)];
-  }
-  function moonSpokes(points, origin, size) {
-    let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "moon-spokes"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
-    for (let point of points) {
-      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line2.setAttribute("x1", String(origin.x)), line2.setAttribute("y1", String(origin.y)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
-    }
-    return svg;
-  }
-  function layoutMoonField(field) {
-    let angle = Number(field.dataset.angle), home = field.dataset.context === "home", planet = orbitSizes[home ? "home" : "detail"] || (home ? 72 : 100), moon = orbitSizes.moon || 72, moons = (
-      /** @type {HTMLElement[]} */
-      [...field.querySelectorAll(".moon-link")]
-    ), crowded = moons.length > 4, spread = (crowded ? 150 : 130) * Math.PI / 180, step2 = moons.length > 1 ? spread / (moons.length - 1) : 0, extra = crowded ? 28 : 0, radius = Math.max((home ? 98 : 108) + extra, planet / 2 + moon / 2 + 26 + extra);
-    step2 && (radius = Math.max(radius, (moon + 6) / (2 * Math.sin(step2 / 2))));
-    let positions = moons.map((_, index) => {
-      let moonAngle = angle - spread / 2 * (moons.length > 1 ? 1 : 0) + step2 * index;
-      return { x: Math.cos(moonAngle) * radius, y: Math.sin(moonAngle) * radius };
-    }), lift = Math.sin(angle) * galaxyReach(planet);
-    field.dataset.rise = String(Math.round(Math.max(...positions.map((point) => -(lift + point.y))) + moon / 2)), field.dataset.drop = String(Math.round(Math.max(...positions.map((point) => point.y)) + moon / 2));
-    let hull = circleHull([
-      { x: 0, y: 0, r: planet / 2 },
-      ...positions.map((point) => ({ ...point, r: moon / 2 }))
-    ], 12), out = radius * 0.5, center = { x: Math.cos(angle) * out, y: Math.sin(angle) * out }, size = Math.ceil(2 * Math.max(...hull.map((point) => Math.hypot(point.x - center.x, point.y - center.y))));
-    field.style.width = field.style.height = `${size}px`, field.style.clipPath = `polygon(${hull.map((point) => `${(point.x - center.x + size / 2).toFixed(1)}px ${(point.y - center.y + size / 2).toFixed(1)}px`).join(", ")})`, field.style.setProperty("--out-x", `${center.x}px`), field.style.setProperty("--out-y", `${center.y}px`), moons.forEach((node, index) => {
-      node.style.setProperty("--mx", `${positions[index].x - center.x}px`), node.style.setProperty("--my", `${positions[index].y - center.y}px`);
-    });
-    let origin = { x: size / 2 - center.x, y: size / 2 - center.y };
-    field.querySelector(".moon-spokes")?.remove(), field.prepend(moonSpokes(positions.map((point) => ({
-      x: origin.x + point.x,
-      y: origin.y + point.y
-    })), origin, size));
-  }
-  function markCaptionFans() {
-    let planet = orbitSizes.home || 72;
-    for (
-      let orbit of
-      /** @type {NodeListOf<HTMLElement>} */
-      app.querySelectorAll(".home-orbit")
-    ) {
-      let caption = (
-        /** @type {HTMLElement | null} */
-        orbit.parentElement?.querySelector(":scope > .group-description") ?? null
-      ), center = orbit.offsetTop + orbit.offsetHeight / 2;
-      for (
-        let field of
-        /** @type {NodeListOf<HTMLElement>} */
-        orbit.querySelectorAll(".moon-field")
-      ) {
-        let bottom = center + Math.sin(Number(field.dataset.angle)) * galaxyReach(planet) + Number(field.dataset.drop);
-        field.closest(".planet-cluster")?.toggleAttribute(
-          "data-covers-caption",
-          !!caption?.textContent && bottom > /** @type {HTMLElement} */
-          caption.offsetTop
-        );
-      }
-    }
-  }
-  function layoutOrbits() {
-    fitOrbitSizes(), app.querySelectorAll(".moon-field").forEach(layoutMoonField);
-    let firstCard = (
-      /** @type {HTMLElement | null} */
-      app.querySelector(".group-card")
-    ), firstRow = firstCard?.offsetTop, orbitMargin = parseFloat(getComputedStyle(firstCard?.querySelector(".home-orbit") ?? document.body).marginTop) || 0, fans = (
-      /** @type {HTMLElement[]} */
-      [...app.querySelectorAll(".home-orbit .moon-field")].filter((field) => (
-        /** @type {HTMLElement} */
-        field.closest(".group-card").offsetTop === firstRow
-      )).map((field) => Number(field.dataset.rise))
-    ), extra = Math.max(0, ...fans) - 242 - (firstCard ? orbitMargin : 0);
-    document.documentElement.style.setProperty("--galaxy-fan-room", `${Math.max(0, Math.ceil(extra))}px`), markCaptionFans();
-    let stage = (
-      /** @type {HTMLElement | null} */
-      app.querySelector(".detail-stage")
-    ), note = (
-      /** @type {HTMLElement | null} */
-      app.querySelector(".detail-note")
-    );
-    if (stage && note) {
-      let overhang = Math.max(0, .../** @type {HTMLElement[]} */
-      [...stage.querySelectorAll(".moon-field")].map((field) => (
-        /** @type {HTMLElement} */
-        field.closest(".planet-cluster").offsetTop + Number(field.dataset.drop) - stage.offsetHeight
-      )));
-      note.style.marginTop = overhang > 0 ? `${Math.ceil(overhang + 12)}px` : "";
-    }
-  }
-  function installLayout() {
-    let frame2 = 0;
-    window.addEventListener("resize", () => {
-      cancelAnimationFrame(frame2), frame2 = requestAnimationFrame(layoutOrbits);
-    }), window.addEventListener("load", () => document.fonts?.ready.then(layoutOrbits));
   }
 
   // src/ui/drag/edit-bar.js
@@ -3682,7 +3943,7 @@ prompt for credentials:i:1\r
   }
   function showPackReview(pack) {
     editorHeader(`Review ${pack.name}`, showPackImport);
-    let known = pack.links.filter((link) => pathsForKey(groups, destinationKey(link)).length), fresh = pack.links.filter((link) => !pathsForKey(groups, destinationKey(link)).length);
+    let current = guardEditorImport(), known = pack.links.filter((link) => pathsForKey(groups, destinationKey(link)).length), fresh = pack.links.filter((link) => !pathsForKey(groups, destinationKey(link)).length);
     menuContent.append(element("p", "import-merge-summary", `${counted(pack.links.length, "link")}: ${counted(fresh.length, "new link")} to add${known.length ? `, ${known.length} already on your map` : ""}.`));
     let list = element("ul", "rdp-batch-list");
     pack.links.forEach((link) => list.append(element("li", "", `${link.name} → ${link.type === "rdp" ? link.host : link.url}${known.includes(link) ? " (already on your map)" : ""}`))), menuContent.append(list);
@@ -3702,6 +3963,7 @@ prompt for credentials:i:1\r
       withRoutine = document.createElement("input"), withRoutine.type = "checkbox", withRoutine.checked = !0, withRoutine.setAttribute("aria-label", "Also add the routine"), row.append(withRoutine, element("span", "", `Also add the routine “${pack.routine.name}”`)), menuContent.append(row);
     }
     editorActions().append(editorButton("Add to my map", () => {
+      if (!current()) return;
       let next = copyGroups();
       if (fresh.length) {
         let planets = fresh.map((link) => ({ ...link, moons: [] }));
@@ -3814,31 +4076,6 @@ prompt for credentials:i:1\r
     }), menuContent.append(form);
   }
 
-  // src/ui/views/group-planets.js
-  var pendingGroup = null;
-  function setGroupExpanded(cluster, expanded = !0) {
-    cluster.classList.toggle("pinned", expanded), cluster.querySelector(".group-planet")?.setAttribute("aria-expanded", String(expanded));
-  }
-  function collapseGroup() {
-    let cluster = app.querySelector(".pinned");
-    return cluster ? (cluster.contains(document.activeElement) && !document.activeElement?.matches(".group-planet") && cluster.querySelector(".group-planet")?.focus(), setGroupExpanded(cluster, !1), !0) : !1;
-  }
-  function openGroup(sun, planet) {
-    let id = groups[sun]?.id;
-    if (!id) return;
-    let route = `group/${encodeURIComponent(id)}`;
-    pendingGroup = { id, planet }, setFindQuery(""), quickFind.value = "", location.hash === `#${route}` ? revealPendingGroup(id) : location.hash = route;
-  }
-  function revealPendingGroup(id) {
-    let next = pendingGroup;
-    if (pendingGroup = null, !next || id !== next.id) return;
-    let button = (
-      /** @type {HTMLButtonElement|null} */
-      app.querySelector(`.group-planet[data-planet="${next.planet}"]`)
-    ), cluster = button?.parentElement;
-    !button || !cluster || (collapseGroup(), setGroupExpanded(cluster), button.focus(), button.scrollIntoView({ block: "nearest" }));
-  }
-
   // src/ui/find/results.js
   function findCopy(match) {
     let copy = element("span", "find-copy");
@@ -3850,13 +4087,13 @@ prompt for credentials:i:1\r
   }
   function findResult(match) {
     if (modes.inEditMode() && match.indices) return editFindResult(match);
-    let group = match.kind === "Group", isRdp = match.destination?.type === "rdp", download = isRdp && rdpLaunchMode === "download", clientUrl = isRdp && !download ? rdpLaunchUrl(match.destination, rdpPresets) : null, oversized = isRdp && !download && clientUrl === null, template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0, node = (
+    let group = match.kind === "Group", isRdp = match.destination?.type === "rdp", presets = isRdp ? presetsForDestination(match.indices) : [], download = isRdp && rdpLaunchMode === "download", clientUrl = isRdp && !download ? rdpLaunchUrl(match.destination, presets) : null, oversized = isRdp && !download && clientUrl === null, template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0, node = (
       /** @type {HTMLAnchorElement & HTMLButtonElement} */
       element(match.id || group || download || template || oversized ? "button" : "a", "find-item")
     );
     match.id ? (node.type = "button", node.addEventListener("click", () => {
       location.hash = `group/${encodeURIComponent(match.id)}`;
-    })) : group ? (node.type = "button", node.addEventListener("click", () => openGroup(match.indices[0], match.indices[1]))) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, rdpPresets)), node.title = `Download Remote Desktop connection for ${match.name}`) : oversized ? rdpSizeButton(node, match.name) : clientUrl !== null ? (node.href = clientUrl, node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && !group && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match));
+    })) : group ? (node.type = "button", node.addEventListener("click", () => openGroup(match.indices[0], match.indices[1]))) : template ? (node.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(match.destination, node))) : download ? (node.type = "button", node.addEventListener("click", () => downloadRdp(match.destination, presets)), node.title = `Download Remote Desktop connection for ${match.name}`) : oversized ? rdpSizeButton(node, match.name) : clientUrl !== null ? (node.href = clientUrl, node.title = `Open Remote Desktop Connection for ${match.name}`) : (node.href = match.destination.url, node.target = "_blank", node.rel = "noopener noreferrer"), match.indices && !group && (node.dataset.destination = match.indices.join(":")), node.append(element("span", "find-kind", match.kind), findCopy(match));
     let arrow = element("span", "find-arrow");
     return arrow.append(icon(match.id || group ? "arrow-right" : download ? "download" : "external-link")), node.append(arrow), node;
   }
@@ -3869,100 +4106,15 @@ prompt for credentials:i:1\r
     let sun = groups[match.indices[0]], on = isFavorite(match.destination, sun), star = element("button", `favorite-toggle${on ? " is-favorite" : ""}`);
     return star.append(icon("star", { filled: on })), star.type = "button", star.setAttribute("aria-pressed", String(on)), star.setAttribute("aria-label", `${on ? "Remove" : "Add"} ${match.name} ${on ? "from" : "to"} favorites`), star.title = /** @type {string} */
     star.getAttribute("aria-label"), star.addEventListener("click", () => {
-      setFavorite(match.indices, !on), app.querySelector(`.find-row [data-star="${match.indices.join(":")}"]`)?.focus();
+      try {
+        setFavorite(match.indices, !on);
+      } catch (error) {
+        showOpenAllNotice(`Could not change the favorite. ${/** @type {Error} */
+        error.message}`, !0);
+        return;
+      }
+      app.querySelector(`.find-row [data-star="${match.indices.join(":")}"]`)?.focus();
     }), star.dataset.star = match.indices.join(":"), row.append(result, star), row;
-  }
-
-  // src/ui/views/nodes.js
-  function siteIcon(link) {
-    if (!showSiteIcons || link.type === "rdp") return null;
-    let origin;
-    try {
-      origin = new URL(link.url.replace(PLACEHOLDER, "x")).origin;
-    } catch {
-      return null;
-    }
-    let image = document.createElement("img");
-    return image.className = "site-icon", image.alt = "", image.loading = "lazy", image.referrerPolicy = "no-referrer", image.src = `${origin}/favicon.ico`, image.addEventListener("error", () => image.remove()), image;
-  }
-  function destinationNode(link, className, path) {
-    let isRdp = link.type === "rdp", download = isRdp && rdpLaunchMode === "download", clientUrl = isRdp && !download ? rdpLaunchUrl(link, rdpPresets) : null, oversized = isRdp && !download && clientUrl === null, template = !isRdp && templateNames(link.url).length > 0, node = (
-      /** @type {HTMLAnchorElement | HTMLButtonElement} */
-      element(download || template || oversized ? "button" : "a", className, link.name)
-    );
-    path && (node.dataset.destination = path.join(":"));
-    let icon2 = siteIcon(link);
-    icon2 && node.prepend(icon2);
-    let button = (
-      /** @type {HTMLButtonElement} */
-      node
-    ), anchor2 = (
-      /** @type {HTMLAnchorElement} */
-      node
-    );
-    return template ? (button.type = "button", node.dataset.template = "true", node.addEventListener("click", () => askForVariables(link)), node.title = `Open ${link.name} (asks for ${templateNames(link.url).join(", ")})`, node.setAttribute("aria-label", node.title)) : download ? (button.type = "button", node.addEventListener("click", () => downloadRdp(link, rdpPresets)), node.title = `Download Remote Desktop connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : oversized ? rdpSizeButton(button, link.name) : clientUrl !== null ? (anchor2.href = clientUrl, node.title = `Open Remote Desktop Connection for ${link.name}`, node.setAttribute("aria-label", node.title)) : (anchor2.href = link.url, anchor2.target = "_blank", anchor2.rel = "noopener noreferrer", node.title = `Open ${link.name} in a new tab`, node.setAttribute("aria-label", node.title)), link.note && (node.title = `${node.title}
-${link.note}`), node;
-  }
-  function linkNode(link, className, path) {
-    let node = isGroup(link) ? groupButton(link, className) : destinationNode(link, className, path);
-    return path && (tagPath(node, path.length === 3 ? "moon" : "planet", path[0], path[1], path[2]), modes.inEditMode() ? (node.title = `Drag ${link.name} to move it`, node.setAttribute("aria-label", `${link.name}. Links are paused in Edit mode.`)) : node.setAttribute("aria-keyshortcuts", "E")), node;
-  }
-  function groupButton(group, className) {
-    let button = element("button", `${className} group-planet`, group.name);
-    button.type = "button";
-    let count = counted(group.moons.length, "link");
-    return button.title = `${group.name}: a group of ${count}`, group.note && (button.title += `
-${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${count}`), button.setAttribute("aria-expanded", "false"), button;
-  }
-  function orbitLines(points, center, size) {
-    let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "orbit-lines"), svg.setAttribute("viewBox", `0 0 ${size} ${size}`), svg.setAttribute("aria-hidden", "true");
-    for (let point of points) {
-      let line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line2.setAttribute("x1", String(center)), line2.setAttribute("y1", String(center)), line2.setAttribute("x2", String(point.x)), line2.setAttribute("y2", String(point.y)), svg.append(line2);
-    }
-    return svg;
-  }
-  function planetNode(link, context, point, size, index, sunIndex) {
-    let cluster = element("div", `planet-cluster ${context}-planet-cluster`), group = isGroup(link);
-    if (group && cluster.classList.add("group-cluster"), cluster.style.setProperty("--x", `${point.x / size * 100}%`), cluster.style.setProperty("--y", `${point.y / size * 100}%`), cluster.style.setProperty("--cos", Math.cos(point.angle).toFixed(4)), cluster.style.setProperty("--sin", Math.sin(point.angle).toFixed(4)), cluster.style.setProperty("--delay", `${index * (context === "home" ? 20 : 50)}ms`), cluster.append(linkNode(link, context === "home" ? "home-satellite" : "detail-satellite", [sunIndex, index])), link.moons.length) {
-      let field = element("div", "moon-field");
-      field.dataset.angle = String(point.angle), field.dataset.context = context, link.moons.slice(0, VISIBLE_MOONS).forEach((moon, moonIndex) => field.append(linkNode(moon, "moon-link", [sunIndex, index, moonIndex]))), cluster.append(field);
-    }
-    if (link.moons.length || group) {
-      let label = link.moons.length ? counted(link.moons.length, group ? "link" : "moon") : "No links yet";
-      cluster.append(element("span", "moon-badge", label));
-    }
-    return cluster;
-  }
-  function overflowPlanetNode(link, sunIndex, planetIndex) {
-    let item = element("div", "overflow-planet"), group = isGroup(link);
-    if (group && item.classList.add("group-cluster"), item.append(linkNode(link, "more-link", [sunIndex, planetIndex])), link.moons.length) {
-      let moons = element("div", "overflow-moons");
-      link.moons.forEach((moon, moonIndex) => moons.append(
-        linkNode(moon, "overflow-moon-link", [sunIndex, planetIndex, moonIndex])
-      )), item.append(moons);
-    }
-    return group && item.append(element(
-      "span",
-      "overflow-group-count",
-      link.moons.length ? counted(link.moons.length, "link") : "No links yet"
-    )), item;
-  }
-  function homeGroup(group, index) {
-    let card = element("section", "group-card");
-    card.style.setProperty("--sun-accent", safeColor(group.color)), card.style.setProperty("--card-index", String(index));
-    let orbit = element("div", "home-orbit");
-    orbit.dataset.sun = String(index);
-    let visible = group.links.slice(0, GALAXY_PLANETS), center = 160, radius = 108, points = visible.map((_, i) => {
-      let angle = (-90 + 360 / visible.length * i) * Math.PI / 180;
-      return { x: center + Math.cos(angle) * radius, y: center + Math.sin(angle) * radius, angle };
-    });
-    orbit.append(orbitLines(points, center, 320));
-    let hub = element("button", "home-hub");
-    return hub.type = "button", tagPath(hub, "sun", index), modes.inEditMode() || hub.setAttribute("aria-keyshortcuts", "E"), hub.setAttribute("aria-label", `Open ${group.team ? "team " : ""}${group.name} system with ${counted(group.links.length, "planet")}`), group.icon && hub.append(element("span", "hub-icon", group.icon)), hub.append(element("span", "hub-name", group.name)), hub.append(element("span", "hub-count", counted(group.links.length, "planet").toUpperCase())), group.team && (card.classList.add("team-card"), hub.append(element("span", "team-mark", "TEAM"))), hub.addEventListener("click", () => {
-      location.hash = `group/${encodeURIComponent(group.id)}`;
-    }), orbit.append(hub), visible.forEach((link, i) => orbit.append(planetNode(link, "home", points[i], 320, i, index))), card.append(orbit, descriptionNode("group-description", group.description)), card;
   }
 
   // src/ui/views/galaxy.js
@@ -4037,8 +4189,11 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   }
   function refreshQuickBar() {
     if (!app.classList.contains("home-view")) return;
-    let old = app.querySelector(":scope > .quick-bar"), next = quickBar(), searching = !!quickFind.value.trim();
-    next && (next.hidden = searching), old && next ? old.replaceWith(next) : old ? old.remove() : next && app.querySelector(":scope > .find-results")?.after(next);
+    let old = app.querySelector(":scope > .quick-bar"), active = document.activeElement, focusedChip = active instanceof HTMLElement && active.matches(".quick-chip[data-destination]") && old?.contains(active) ? active : null, next = quickBar(), searching = !!quickFind.value.trim();
+    if (next && (next.hidden = searching), old && next ? old.replaceWith(next) : old ? old.remove() : next && app.querySelector(":scope > .find-results")?.after(next), focusedChip && !focusedChip.isConnected) {
+      let label = focusedChip.closest(".quick-row")?.querySelector(".quick-label")?.textContent, replacement = [...next?.querySelectorAll(".quick-chip[data-destination]") ?? []].find((chip) => chip.getAttribute("data-destination") === focusedChip.dataset.destination && chip.closest(".quick-row")?.querySelector(".quick-label")?.textContent === label);
+      replacement instanceof HTMLElement && replacement.focus({ preventScroll: !0 }), document.activeElement !== replacement && quickFind.focus({ preventScroll: !0 });
+    }
   }
   function renderHome() {
     app.replaceChildren(), app.className = "home-view", settingsTrigger.hidden = !1, topbarSearch.hidden = !1, quickFind.value = findQuery;
@@ -4176,7 +4331,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     ];
   }
   function runMatch(match) {
-    match.id ? location.hash = `group/${encodeURIComponent(match.id)}` : modes.linkOpensEditor("palette") ? openEditorAt(match.indices) : match.kind === "Group" ? openGroup(match.indices[0], match.indices[1]) : openDestination2(match.destination);
+    match.id ? location.hash = `group/${encodeURIComponent(match.id)}` : modes.linkOpensEditor("palette") ? openEditorAt(match.indices) : match.kind === "Group" ? openGroup(match.indices[0], match.indices[1]) : openDestination2(match.destination, match.indices);
   }
   function paletteEntries(query) {
     let words = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean), commands = paletteCommands().filter((command) => words.every((word) => command.label.toLocaleLowerCase().includes(word))), matches = query.trim() ? findMatches(groups, query).slice(0, 40) : [], entries = commands.map((command) => ({ kind: "Command", label: command.label, run: command.run })), address = typedAddress(query);
@@ -4273,14 +4428,21 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
 
   // src/ui/notices/dev-toolbox-moved.js
   var KEY = "orbit:notice:dev-toolbox-moved";
+  function mainDevToolbox() {
+    let { workspace, groups: groups2 } = store.state(), index = workspace === "main" ? groups2.findIndex((sun) => !sun.team && sun.id === "dev-toolbox") : -1;
+    return { groups: groups2, index };
+  }
+  function refreshDevToolboxMovedNotice() {
+    mainDevToolbox().index === -1 && document.querySelector("#dev-toolbox-moved-notice")?.remove();
+  }
   function showDevToolboxMovedNotice() {
-    if (readSafely(KEY) !== null || !defaultWorkspace("dev-toolbox") || store.state().workspace !== "main" || store.state().source !== "browser") return;
-    let groups2 = store.state().groups.filter((sun) => !sun.team), index = groups2.findIndex((sun) => sun.id === "dev-toolbox");
-    if (index < 0) return;
+    if (readSafely(KEY) !== null || !defaultWorkspace("dev-toolbox") || store.state().workspace !== "main" || store.state().source !== "browser" || mainDevToolbox().index < 0) return;
     let box = element("section", "routine-offer");
     box.id = "dev-toolbox-moved-notice", box.setAttribute("role", "status"), box.append(element("p", "routine-offer-copy", "Dev Toolbox now has its own workspace. Remove the Dev Toolbox sun from Main?"));
     let removeButton = element("button", "routine-offer-open", "Remove");
     removeButton.type = "button", removeButton.addEventListener("click", () => {
+      let { groups: groups2, index } = mainDevToolbox();
+      if (index < 0) return box.remove();
       let item = groups2[index], next = groups2.filter((_, i) => i !== index);
       try {
         store.saveMap({ groups: next }, "Removed Dev Toolbox sun from Main", {
@@ -4326,42 +4488,6 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     notice?.contains(document.activeElement) && settingsTrigger.focus({ preventScroll: !0 }), notice?.remove();
   }
 
-  // src/ui/notices/team-updates.js
-  function checkTeamUpdates() {
-    if (document.querySelector("#team-updates")?.remove(), !team.source) return;
-    let current = teamEntries(team.groups), changes = teamChanges(readTeamSeen(), current);
-    if (changes.first) return rememberTeam(current);
-    let { added, removed } = changes;
-    if (!added.length && !removed.length) return;
-    let box = element("div", "routine-offer team-updates");
-    box.id = "team-updates", box.append(element("p", "routine-offer-copy", `Team map updated: ${added.length} new, ${removed.length} removed.`));
-    let details = element("div", "team-update-list");
-    if (details.hidden = !0, added.length) {
-      details.append(element("strong", "", "New"));
-      let list = element("ul", "");
-      added.forEach((entry) => {
-        let item = element("li", ""), path = pathsForKey(groups, entry.key)[0];
-        item.append(
-          path ? destinationNode(itemAt(groups, path), "team-update-link", path) : element("span", "", entry.name),
-          element("small", "", ` in ${entry.path}`)
-        ), list.append(item);
-      }), details.append(list);
-    }
-    if (removed.length) {
-      details.append(element("strong", "", "Removed"));
-      let list = element("ul", "");
-      removed.forEach((entry) => list.append(element("li", "", entry.name))), details.append(list);
-    }
-    let show = element("button", "routine-offer-open", "Show what’s new");
-    show.type = "button", show.setAttribute("aria-expanded", "false"), show.addEventListener("click", () => {
-      details.hidden = !details.hidden, show.setAttribute("aria-expanded", String(!details.hidden));
-    });
-    let dismiss = element("button", "routine-offer-dismiss", "Dismiss");
-    dismiss.type = "button", dismiss.addEventListener("click", () => {
-      rememberTeam(current), box.remove();
-    }), box.append(show, dismiss, details), noticeArea().append(box);
-  }
-
   // src/app/start.js
   function countDestinations() {
     let destinations = groups.reduce((total, group) => total + group.links.reduce(
@@ -4385,7 +4511,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   }
   function start() {
     findPageElements(), readPreferences(), setDefaultWorkspaces(Array.isArray(window.ORBIT_WORKSPACES) ? window.ORBIT_WORKSPACES : []), refreshBackdrop(), settingsTrigger.replaceChildren(icon("settings")), document.querySelector("#menu-close")?.replaceChildren(icon("x")), store.subscribe((state, kind) => {
-      showStoreState(state), countDestinations(), kind !== "switch" && render2(), updateRemovalNotice();
+      showStoreState(state), countDestinations(), refreshTeamUpdateLinks(), refreshDevToolboxMovedNotice(), kind !== "switch" && render2(), updateRemovalNotice();
     }), modes.subscribe((next, previous, event) => {
       let held = (state) => state.mode === "pressed" || state.mode === "dragging";
       if (held(previous) && !held(next) && gestureEnded(previous.mode === "dragging", event), previous.overlay !== next.overlay) {
@@ -4485,7 +4611,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   }
   function showImportReview(data, options = {}) {
     editorHeader(options.title || "Review import", nav.showSunList);
-    let planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0), moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
+    let current = guardEditorImport(), planetCount = data.groups.reduce((sum, sun) => sum + sun.links.length, 0), moonCount = data.groups.reduce((sum, sun) => sum + sun.links.reduce(
       (total, planet) => total + planet.moons.length,
       0
     ), 0);
@@ -4514,6 +4640,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
       data.rdpPresets || [],
       presetBox?.box.checked ? newPresets : rdpPresets
     )), actions = editorActions(), merge = editorButton("Merge into my map", () => {
+      if (!current()) return;
       let withRoutines = !!routineBox?.box.checked, withPresets = !!presetBox?.box.checked;
       applyEditorChange(
         [...groups.filter((sun) => sun.team), ...merged().groups],
@@ -4529,16 +4656,20 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
       let { added, skipped } = merged(), routineCount = routineBox?.box.checked ? addedRoutines : 0, presetCount = presetBox?.box.checked ? addedPresets : 0, skippedLinks = skipped.planets + skipped.moons;
       summary.textContent = `Merge adds ${counted(added.suns, "sun")}, ${counted(added.planets, "planet")}, and ${counted(added.moons, "moon")}${routineCount ? ` and ${counted(routineCount, "routine")}` : ""}${presetCount ? ` and ${counted(presetCount, "Remote Desktop preset")}` : ""}; ${counted(skippedLinks, "link")} already in your map ${skippedLinks === 1 ? "is" : "are"} skipped. Nothing in your map changes.`, merge.disabled = !(added.suns + added.planets + added.moons + routineCount + presetCount);
     }
-    update(), actions.append(merge), options.replace !== !1 && (menuContent.append(element("p", "editor-hint", "Replace my map swaps your whole map for the file, every sun whatever is ticked. Version history keeps the current map, so you can restore it.")), actions.append(editorButton("Replace my map", () => applyEditorChange(
-      data.groups,
-      nav.showSunList,
-      { clearUndo: !0, label: "Replaced the map with an import", routines: data.routines || [], rdpPresets: data.rdpPresets || [] }
-    )))), actions.append(editorButton("Cancel", nav.showSunList));
+    update(), actions.append(merge), options.replace !== !1 && (menuContent.append(element("p", "editor-hint", "Replace my map swaps your whole map for the file, every sun whatever is ticked. Version history keeps the current map, so you can restore it.")), actions.append(editorButton("Replace my map", () => {
+      current() && applyEditorChange(
+        data.groups,
+        nav.showSunList,
+        { clearUndo: !0, label: "Replaced the map with an import", routines: data.routines || [], rdpPresets: data.rdpPresets || [] }
+      );
+    }))), actions.append(editorButton("Cancel", nav.showSunList));
   }
   function importFile() {
+    let current = guardEditorImport();
     pickFile(".json,application/json,.html,.htm,text/html", async (file) => {
       try {
         let { text, data } = await readImportFile(file);
+        if (!current()) return;
         switch (importKind(data === void 0 ? text : typeof data == "string" ? null : data, file.name)) {
           case "bookmarks":
             return reviewBookmarks(text);
@@ -4554,7 +4685,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
             return editorError("This isn't an Orbit map, sun, planet, or bookmarks file.");
         }
       } catch (error) {
-        editorError(`Import failed: ${/** @type {Error} */
+        current() && editorError(`Import failed: ${/** @type {Error} */
         error.message}`);
       }
     });
@@ -4564,7 +4695,9 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
   }
   function reviewItem(data, kind, sunIndex = null, planetIndex = null, sourceKind = kind) {
     let item = validItemExport(data, kind, sourceKind), back = kind === "sun" ? nav.showSunList : kind === "planet" ? () => nav.showSunEditor(sunIndex) : () => nav.showPlanetEditor(sunIndex, planetIndex);
-    if (editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back), menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun") {
+    editorHeader(sourceKind === kind ? `Review ${kind} import` : "Review planet as sun", back);
+    let current = guardEditorImport();
+    if (menuContent.append(element("p", "", item.name)), sourceKind === "planet" && kind === "sun") {
       let planet = item.links[0];
       menuContent.append(element("p", "", isGroup(planet) ? "The group becomes the first planet in a new sun and keeps all its links." : "The shared planet becomes the first planet in a new sun. Its destination and moons stay with it.")), isGroup(planet) || menuContent.append(element("p", "", `Planet destination: ${planet.host || planet.url}`));
     }
@@ -4576,6 +4709,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     menuContent.append(element("p", "", `Add to ${destination}. Existing links will remain.`));
     let actions = editorActions();
     actions.append(editorButton(`Add ${kind}`, () => {
+      if (!current()) return;
       let next = copyGroups(), imported = JSON.parse(JSON.stringify(item)), showNext;
       kind === "sun" ? (next.some((sun) => sun.id === imported.id) && (imported.id = uniqueSunId(imported.name, new Set(next.map((sun) => sun.id)))), next.push(imported), showNext = () => nav.showSunEditor(next.length - 1)) : kind === "planet" ? (next[sunIndex].links.push(imported), showNext = () => nav.showPlanetEditor(sunIndex, next[sunIndex].links.length - 1)) : (next[sunIndex].links[planetIndex].moons.push(imported), showNext = () => nav.showMoonEditor(
         sunIndex,
@@ -4692,7 +4826,8 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     })), byUrl;
   }
   function showLinkCheck() {
-    if (editorHeader("Check links", nav.showSunList), location.protocol === "file:") {
+    let header = editorHeader("Check links", nav.showSunList);
+    if (location.protocol === "file:") {
       menuContent.append(element("p", "", "Checking links needs the local server, because a page opened from a file cannot read other sites. In the Orbit folder, run:")), menuContent.append(element("code", "editor-code", "python3 serve.py")), menuContent.append(element("p", "", "Then open http://localhost:8000 and choose Check links again."));
       return;
     }
@@ -4700,34 +4835,38 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     menuContent.append(element("p", "", `Orbit asks each website address in your map (${byUrl.size} in all) whether it answers. Remote Desktop links are not checked. Nothing is sent anywhere except to those sites.`));
     let status = element("p", "link-check-status");
     status.setAttribute("role", "status");
-    let results = element("div", "link-check-results"), start2 = editorButton("Start check", () => runLinkCheck(byUrl, status, results, start2), "editor-primary");
+    let results = element("div", "link-check-results"), panelActive = () => modes.overlayIs("menuEditor") && menuContent.contains(header), start2 = editorButton("Start check", () => runLinkCheck(status, results, start2, panelActive), "editor-primary");
     editorActions().append(start2), menuContent.append(status, results);
   }
-  async function runLinkCheck(byUrl, status, results, start2) {
+  async function runLinkCheck(status, results, start2, panelActive) {
+    let { workspace, revision } = store.state(), byUrl = webLinksByUrl(), currentMap = () => store.state().workspace === workspace && store.state().revision === revision, requireCurrentResult = () => panelActive() ? currentMap() ? !0 : (start2.disabled = !1, status.textContent = "The link map changed. Start a new check to see current results.", results.replaceChildren(), !1) : !1;
     start2.disabled = !0, results.replaceChildren();
     let urls = [...byUrl.keys()], answers;
     try {
       answers = await checkLinks(
         urls,
         { onProgress: (done, total) => {
-          status.textContent = `Checked ${done} of ${total}…`;
+          panelActive() && currentMap() && (status.textContent = `Checked ${done} of ${total}…`);
         } }
       );
     } catch (error) {
+      if (!requireCurrentResult()) return;
       status.textContent = `The check stopped: ${/** @type {any} */
       error.message}`, start2.disabled = !1;
       return;
     }
+    if (!requireCurrentResult()) return;
     linkCheckResults.clear();
     let failures = [];
     for (let [url, entries] of byUrl) {
       let answer = answers[url] || { ok: !1, error: "no answer" };
-      for (let entry of entries) linkCheckResults.set(destinationKey(entry.item), answer);
-      answer.ok || failures.push({ url, answer, entries });
+      linkCheckResults.set(url, answer), answer.ok || failures.push({ url, answer, entries });
     }
     status.textContent = failures.length ? `Checked ${counted(urls.length, "address", "addresses")}: ${failures.length} did not answer correctly.` : `Checked ${counted(urls.length, "address", "addresses")}: all answered.`, failures.forEach(({ answer, entries }) => entries.forEach(({ item, path }) => {
       let row = element("div", "editor-list-row link-check-failure"), copy = element("span", "history-copy"), title = element("strong", "link-check-name", item.name);
-      title.prepend(icon("triangle-alert")), copy.append(title), copy.append(element("small", "", `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`)), row.append(copy, editorButton(groups[path[0]].team ? "View" : "Edit", () => editPath(path))), results.append(row);
+      title.prepend(icon("triangle-alert")), copy.append(title), copy.append(element("small", "", `${pathLabel(path)} · ${answer.status ? `HTTP ${answer.status}` : answer.error}`)), row.append(copy, editorButton(groups[path[0]].team ? "View" : "Edit", () => {
+        requireCurrentResult() && editPath(path);
+      })), results.append(row);
     })), start2.disabled = !1, nav.renderEditorTree();
   }
 
@@ -4779,7 +4918,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
             label: `Restored the version from ${new Date(entry.time).toLocaleString()}`,
             routines: entry.routines || [],
             rdpPresets: entry.rdpPresets || [],
-            clearUndo: store.loadUndoRecord()?.kind === "moon"
+            invalidateUndo: !0
           }
         );
       })), list.append(row);
@@ -4805,7 +4944,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
     return row.split(":")[0].trim().toLowerCase();
   }
   function presetUsage(id) {
-    return groups.reduce((sum, sun) => sum + sun.links.reduce((total, planet) => total + [planet, ...planet.moons].filter((item) => item.rdpPreset === id).length, 0), 0);
+    return groups.filter((sun) => !sun.team).reduce((sum, sun) => sum + sun.links.reduce((total, planet) => total + [planet, ...planet.moons].filter((item) => item.rdpPreset === id).length, 0), 0);
   }
   function showPresets() {
     editorHeader("Remote Desktop presets", nav.showSunList), menuContent.append(element("p", "", "A preset is a named set of connection settings, such as full screen with all monitors. Choose it for any Remote Desktop planet or moon in Connection settings; each link keeps its own computer. Presets never hold passwords.")), rdpPresets.length || menuContent.append(element("p", "editor-note", "No presets yet."));
@@ -4910,6 +5049,7 @@ ${group.note}`), button.setAttribute("aria-label", `${group.name}, a group of ${
         summary,
         sun.team ? "View" : "Edit",
         () => nav.showSunEditor(index),
+        !!sun.team,
         ...sun.team ? [] : sunRowActions(index, firstPersonal)
       ));
     }), menuContent.append(list);
@@ -5039,15 +5179,15 @@ ${preset.settings}`, `the ${preset.name} preset`);
     editorHeader(`${sun.icon ? `${sun.icon} ` : ""}${sun.name} (team)`, nav.showSunList, [index]), menuContent.append(element("p", "editor-note", "This sun comes from the team map, so it is read-only here. Copy it, or any of its planets and moons, into your own map to change it.")), sun.description && menuContent.append(descriptionNode("", sun.description));
     let actions = editorActions();
     actions.append(editorButton("Copy sun to my map", () => {
-      let next = copyGroups(), copy = plainCopy(sun);
-      copy.id = uniqueSunId(copy.name, new Set(next.map((item) => item.id))), next.push(copy), applyEditorChange(next, () => nav.showSunEditor(next.length - 1), { label: `Copied team sun ${sun.name}` });
+      let next = copyGroups(), { item: copy, presets } = copyTeamItem("sun", sun, team.rdpPresets, rdpPresets);
+      copy.id = uniqueSunId(copy.name, new Set(next.map((item) => item.id))), next.push(copy), applyEditorChange(next, () => nav.showSunEditor(next.length - 1), { label: `Copied team sun ${sun.name}`, rdpPresets: presets });
     }, "editor-primary")), actions.append(editorButton("Hide this team sun", () => {
       store.setTeamSunHidden(sun.id, !0), nav.showSunList();
-    })), actions.append(editorButton("Export sun", () => exportItem("sun", sun))), menuContent.append(element("h4", "editor-section-title", "Planets"));
+    })), actions.append(editorButton("Export sun", () => exportItem("sun", sun, !0))), menuContent.append(element("h4", "editor-section-title", "Planets"));
     let list = element("div", "editor-list");
     sun.links.forEach((planet, planetIndex) => {
       let summary = `${planet.name} · ${counted(planet.moons.length, isGroup(planet) ? "link" : "moon")}`;
-      list.append(editorExportRow("planet", planet, summary, "View", () => showTeamItem([index, planetIndex])));
+      list.append(editorExportRow("planet", planet, summary, "View", () => showTeamItem([index, planetIndex]), !0));
     }), menuContent.append(list);
   }
   function showTeamItem(path) {
@@ -5064,11 +5204,11 @@ ${preset.settings}`, `the ${preset.name} preset`);
     if (options.length) {
       let select = moveTargetField(options);
       select.setAttribute("aria-label", "Copy to"), select.previousElementSibling.textContent = "Copy to", editorActions().append(editorButton(isMoon ? "Copy moon to my map" : "Copy planet to my map", () => {
-        let next = copyGroups(), [targetSun, targetPlanet] = select.value.split(":").map(Number);
-        isMoon && !isGroup(item) ? next[targetSun].links[targetPlanet].moons.push(plainCopy(item)) : next[targetSun].links.push(plainCopy(item)), applyEditorChange(
+        let next = copyGroups(), [targetSun, targetPlanet] = select.value.split(":").map(Number), { item: copy, presets } = copyTeamItem(isMoon ? "moon" : "planet", item, team.rdpPresets, rdpPresets);
+        isMoon ? next[targetSun].links[targetPlanet].moons.push(copy) : next[targetSun].links.push(copy), applyEditorChange(
           next,
           () => isMoon ? nav.showMoonEditor(targetSun, targetPlanet, next[targetSun].links[targetPlanet].moons.length - 1) : nav.showPlanetEditor(targetSun, next[targetSun].links.length - 1),
-          { label: `Copied team ${isMoon ? "moon" : "planet"} ${item.name}` }
+          { label: `Copied team ${isMoon ? "moon" : "planet"} ${item.name}`, rdpPresets: presets }
         );
       }, "editor-primary"));
     } else
@@ -5077,7 +5217,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       menuContent.append(element("h4", "editor-section-title", group ? "Links" : "Moons"));
       let list = element("div", "editor-list");
       planet.moons.forEach((moon, moonIndex) => {
-        list.append(editorExportRow("moon", moon, moon.name, "View", () => showTeamItem([path[0], path[1], moonIndex])));
+        list.append(editorExportRow("moon", moon, moon.name, "View", () => showTeamItem([path[0], path[1], moonIndex]), !0));
       }), menuContent.append(list);
     }
   }
@@ -5102,7 +5242,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
             refresh(), refreshEditorUndo();
           });
         });
-        return editorExportRow(kind, item, summary, "Edit", () => open(index), ...actions);
+        return editorExportRow(kind, item, summary, "Edit", () => open(index), !1, ...actions);
       })), updateParent?.();
     }
     return refresh(), list;
@@ -5288,13 +5428,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
       let sun = groups.findIndex((group) => group.id === sunId);
       if (sun === -1) return !1;
       let [_, planet, moon] = path, base = `${MAP_ITEM}[data-sun="${sun}"]`, planetSelector = `${base}[data-kind="planet"][data-planet="${planet}"]`, moonSelector = `${base}[data-kind="moon"][data-planet="${planet}"][data-moon="${moon}"]`, node = origin.isConnected ? origin : app.querySelector(moonSelector) || app.querySelector(planetSelector) || app.querySelector(`${base}[data-kind="sun"]`);
-      if (!(node instanceof HTMLElement)) return !1;
-      let containers = [node.closest(".home-orbit"), node.closest(".planet-cluster, .overflow-planet")];
-      node.dataset.kind === "moon" && containers[1]?.classList.contains("group-cluster") && setGroupExpanded(containers[1]);
-      for (let container of containers) container?.classList.add("restoring-map-focus");
-      node.focus({ preventScroll: node === origin });
-      for (let container of containers) container?.classList.remove("restoring-map-focus");
-      return document.activeElement === node;
+      return node instanceof HTMLElement ? focusMapItem(node, node === origin) : !1;
     };
   }
   function editItem(item) {
@@ -5462,7 +5596,7 @@ ${preset.settings}`, `the ${preset.name} preset`);
   }
   function installClicks() {
     document.addEventListener("click", (event) => {
-      if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element) || event.composedPath().includes(menuOverlay)) return;
+      if (event.defaultPrevented || modes.inEditMode() || !(event.target instanceof Element) || event.composedPath().some((node) => node === menuOverlay || node instanceof Element && node.classList.contains("variable-overlay"))) return;
       let button = event.target.closest("button.group-planet");
       if (button && app.contains(button) && button.parentElement) {
         let cluster = button.parentElement, expanded = cluster.classList.contains("pinned");

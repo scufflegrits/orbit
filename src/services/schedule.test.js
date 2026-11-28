@@ -111,5 +111,5 @@ test('team destination changes include group moons but ignore groups', () => {
   const map = [{ id: 'team:ops', name: 'Ops', description: '', color: '#123456', links: [
     { name: 'Monitoring', type: /** @type {const} */ ('group'), moons: [{ name: 'Status', url: 'https://status.test/' }] },
   ] }];
-  assert.deepEqual(teamEntries(map), [{ key: 'https://status.test', name: 'Status', path: 'Ops → Monitoring' }]);
+  assert.deepEqual(teamEntries(map), [{ key: 'https://status.test', name: 'Status', path: 'Ops → Monitoring', sunId: 'team:ops', indices: [0, 0] }]);
 });

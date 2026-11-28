@@ -32,8 +32,15 @@ def run_mode(page, mode, url, legacy):
             page.set_viewport_size({"width": 390, "height": 844})
             page.screenshot(path=str(ARTIFACTS / f"f42-{mode}-phone.png"), full_page=True)
             page.set_viewport_size({"width": 1280, "height": 900})
+        page.evaluate("""() => {
+          const groups = OrbitTest.groups();
+          groups.find(sun => sun.id !== 'dev-toolbox').description = 'Edited while the notice was open';
+          OrbitTest.saveMap(groups);
+        }""")
         page.get_by_role("button", name="Remove", exact=True).click()
         check(page.locator(".home-hub").count() == 9, f"{mode}: notice removes old sun through save path")
+        check(page.evaluate("OrbitTest.groups().some(sun => sun.description === 'Edited while the notice was open')"),
+              f"{mode}: notice preserves edits made after it appeared")
         check(page.evaluate("OrbitTest.undoRecord()?.item.id") == "dev-toolbox", f"{mode}: notice removal can be undone")
         check(page.evaluate("OrbitTest.history()[0]?.label") == "Removed Dev Toolbox sun from Main",
               f"{mode}: notice removal appears in history")

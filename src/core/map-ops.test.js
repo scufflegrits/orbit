@@ -8,11 +8,45 @@ import { oracle } from '../../tests/oracle/oracle.mjs';
 import { combinedMap, runs, validMap } from '../../tests/unit/arbitraries.mjs';
 import { destinationKey } from './destination.js';
 import {
-  changeItemLevel, duplicateGroups, itemExport, mapItemAt, mergeMaps, sunAdditions, mergeRoutines, moveMapItem, packLink, personalGroups, plainCopy, samePath,
+  changeItemLevel, copyTeamItem, duplicateGroups, exportTeamItem, itemExport, mapItemAt, mergeMaps, sunAdditions, mergeRoutines, moveMapItem, packLink, personalGroups, plainCopy, samePath,
 } from './map-ops.js';
+import { validItemExport, validRdpPresets } from './schema.js';
 
 const old = oracle();
 const plain = value => JSON.parse(JSON.stringify(value));
+
+test('team copies remap nested presets and keep colliding names within the schema limit', () => {
+  const name = 'x'.repeat(60);
+  const source = [{ id: 'display', name, settings: 'screen mode id:i:2' }];
+  const personal = [{ id: 'display', name, settings: 'screen mode id:i:1' }];
+  const moon = { type: 'rdp', name: 'Lab', host: 'demo', rdpPreset: 'display' };
+  const planet = { ...moon, moons: [moon] };
+  const result = copyTeamItem('planet', planet, source, personal);
+  assert.equal(result.presets.length, 2);
+  assert.deepEqual(validRdpPresets(result.presets), result.presets);
+  assert.notEqual(result.item.rdpPreset, 'display');
+  assert.equal(result.item.rdpPreset, result.item.moons[0].rdpPreset);
+  assert.equal(planet.moons[0].rdpPreset, 'display');
+});
+
+test('team exports inline supported presets and retain fallback profiles for omitted settings', () => {
+  const fallback = 'full address:s:demo\r\nscreen mode id:i:1\r\n';
+  const item = { name: 'Work', id: 'team:work', team: true, links: [
+    { type: 'rdp', name: 'Lab', host: 'demo', rdpPreset: 'display', moons: [
+      { type: 'rdp', name: 'Large', host: 'demo', rdpPreset: 'large', rdpProfile: fallback },
+    ] },
+  ] };
+  const { data, omitted } = exportTeamItem('sun', item, [
+    { id: 'display', name: 'Display', settings: 'screen mode id:i:2' },
+    { id: 'large', name: 'Large', settings: 'username:s:' + 'x'.repeat(12000) },
+  ]);
+  assert.deepEqual(omitted, ['Large']);
+  const [link] = validItemExport(data, 'sun').links;
+  assert.equal(link.rdpProfile, 'full address:s:demo\r\nscreen mode id:i:2\r\n');
+  assert.equal(link.moons[0].rdpProfile, fallback);
+  assert.equal(link.moons[0].rdpPreset, undefined);
+  assert.equal(item.links[0].rdpPreset, 'display');
+});
 
 const mapForMoves = () => [
   { id: 'team:t', name: 'Team', description: '', color: '#79d9f8', team: true, links: [{ name: 'Status', url: 'https://status.test/', moons: [] }] },

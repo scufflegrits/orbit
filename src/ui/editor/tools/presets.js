@@ -36,7 +36,7 @@ function settingKey(row) {
  * @param {any} id
  */
 function presetUsage(id) {
-  return groups.reduce((sum, sun) => sum + sun.links.reduce((/** @type {any} */ total, /** @type {any} */ planet) =>
+  return groups.filter(sun => !sun.team).reduce((sum, sun) => sum + sun.links.reduce((/** @type {any} */ total, /** @type {any} */ planet) =>
     total + [planet, ...planet.moons].filter(item => item.rdpPreset === id).length, 0), 0);
 }
 

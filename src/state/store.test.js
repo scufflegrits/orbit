@@ -200,6 +200,97 @@ test('expectRevision refuses a save made against an older revision', () => {
   assert.deepEqual(stored().groups.map(s => s.id), ['a']);
 });
 
+test('a tab refuses stale saves, reset and removal Undo without touching workspace storage', () => {
+  const first = started();
+  const second = started();
+  const record = { kind: 'sun', index: 0, item: sun('sample'), label: 'Sample' };
+  first.saveMap({ groups: [sun('recent')] }, 'Recent', { undoRecord: record });
+  const snapshot = new Map(storage.data);
+  assert.throws(() => second.saveMap({ groups: [sun('stale')] }, 'Stale', { undoRecord: record }), /Reload Orbit/);
+  assert.throws(second.undoRemoval, /Reload Orbit/);
+  assert.throws(second.resetToBundled, /Reload Orbit/);
+  assert.deepEqual(storage.data, snapshot);
+  assert.equal(second.state().revision, 0);
+  second.switchWorkspace('main');
+  second.saveMap({ groups: [...second.state().groups, sun('added')] });
+  assert.deepEqual(stored().groups.map(group => group.id), ['recent', 'added']);
+});
+
+test('workspace freshness follows each tab and detects a removed default with no map key', () => {
+  const defaults = [{ id: 'tools', name: 'Tools', map: SEED }];
+  const first = started({ defaults });
+  const second = started({ defaults });
+  const custom = first.addWorkspace('Custom', 'empty');
+  second.switchWorkspace(custom);
+  second.saveMap({ groups: [sun('custom')] });
+  first.saveMap({ groups: [sun('main')] });
+  second.resetToBundled();
+  second.saveMap({ groups: [sun('custom')] });
+  second.switchWorkspace('tools');
+  first.removeWorkspace('tools');
+  assert.throws(() => second.saveMap(SEED), /Reload Orbit/);
+  assert.equal(storage.getItem('orbit:map:v1:tools'), null);
+  first.resetToBundled();
+  first.saveMap({ groups: [sun('main')] });
+});
+
+test('a failed startup read requires a reload even if storage recovers before saving', () => {
+  const getItem = storage.getItem.bind(storage);
+  storage.getItem = key => { if (key === 'orbit:map:v1') throw new Error('read failed'); return getItem(key); };
+  const store = started();
+  storage.getItem = getItem;
+  assert.throws(() => store.saveMap(SEED), /Reload Orbit/);
+  store.switchWorkspace('main');
+  assert.doesNotThrow(() => store.saveMap(SEED));
+});
+
+test('History invalidates legacy undo with the map write and survives cleanup failure', () => {
+  const original = { groups: [sun('first')] };
+  const record = JSON.stringify({ kind: 'sun', index: 0, item: sun('gone'), label: 'Gone' });
+  const undoKey = 'orbit:undo-removal:v1';
+  fresh({ 'orbit:map:v1': JSON.stringify(original), [undoKey]: record });
+  const store = started();
+  const snapshot = new Map(storage.data);
+  assert.ok(store.loadUndoRecord());
+  storage.failWrites = true;
+  assert.throws(() => store.saveMap(original, 'Restored', { invalidateUndo: true }));
+  assert.deepEqual(storage.data, snapshot);
+  storage.failWrites = false;
+  const removeItem = storage.removeItem.bind(storage);
+  storage.removeItem = key => { if (key === undoKey) throw new Error('undo cleanup failed'); removeItem(key); };
+  store.saveMap(original, 'Restored', { invalidateUndo: true });
+  assert.equal(storage.getItem(undoKey), record);
+  assert.equal(loadHistory('orbit:history:v1').length, 0, 'same map contents');
+  const reloaded = started();
+  assert.equal(reloaded.loadUndoRecord(), null);
+  reloaded.resetToBundled();
+  assert.equal(reloaded.loadUndoRecord(), null);
+  reloaded.saveMap(SEED);
+  assert.equal(started().loadUndoRecord(), null);
+  reloaded.saveMap({ groups: [] }, 'Removed', { undoRecord: JSON.parse(record) });
+  assert.equal(started().loadUndoRecord()?.label, 'Gone');
+});
+
+test('a custom reset and recovery from unreadable data keep legacy undo ineligible', () => {
+  const record = JSON.stringify({ kind: 'sun', index: 0, item: sun('gone'), label: 'Gone' });
+  const undoKey = 'orbit:undo-removal:v1';
+  const store = started();
+  const id = store.addWorkspace('Custom', 'empty');
+  store.switchWorkspace(id);
+  storage.setItem(`${undoKey}:${id}`, record);
+  storage.setItem(undoKey, record);
+  storage.setItem('orbit:map:v1', 'broken JSON');
+  const removeItem = storage.removeItem.bind(storage);
+  storage.removeItem = key => { if (key.startsWith(undoKey)) throw new Error('undo cleanup failed'); removeItem(key); };
+  store.resetToBundled();
+  assert.equal(started().loadUndoRecord(), null);
+  store.switchWorkspace('main');
+  assert.equal(store.loadUndoRecord(), null);
+  store.saveMap(SEED);
+  assert.equal(started().loadUndoRecord(), null);
+  assert.equal(storage.getItem('orbit:map:v1:unreadable'), 'broken JSON');
+});
+
 test('clearUndo removes the undo record after a save', () => {
   const store = started();
   store.saveMap({ groups: [sun('a')] }, 'A', { undoRecord: { kind: 'sun', index: 0, item: sun('z'), label: 'Z' } });

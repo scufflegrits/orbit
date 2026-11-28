@@ -24,6 +24,13 @@ export function launchRdp(destination, presets, mode) {
   else {
     const url = rdpLaunchUrl(destination, presets);
     if (url === null) return false;
+    if (typeof ORBIT_TEST !== 'undefined' && ORBIT_TEST) {
+      const captured = /** @type {any} */ (globalThis).__orbitRdpHandoffs;
+      if (Array.isArray(captured)) {
+        captured.push(url);
+        return true;
+      }
+    }
     /** @type {any} */ (globalThis).location.href = url;
   }
   return true;

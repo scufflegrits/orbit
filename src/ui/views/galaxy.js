@@ -155,12 +155,23 @@ function galaxyList() {
 export function refreshQuickBar() {
   if (!app.classList.contains('home-view')) return;
   const old = app.querySelector(':scope > .quick-bar');
+  const active = document.activeElement;
+  const focusedChip = active instanceof HTMLElement && active.matches('.quick-chip[data-destination]') &&
+    old?.contains(active) ? active : null;
   const next = quickBar();
   const searching = Boolean(quickFind.value.trim());
   if (next) next.hidden = searching;
   if (old && next) old.replaceWith(next);
   else if (old) old.remove();
   else if (next) app.querySelector(':scope > .find-results')?.after(next);
+  if (focusedChip && !focusedChip.isConnected) {
+    const label = focusedChip.closest('.quick-row')?.querySelector('.quick-label')?.textContent;
+    const replacement = [...(next?.querySelectorAll('.quick-chip[data-destination]') ?? [])].find(chip =>
+      chip.getAttribute('data-destination') === focusedChip.dataset.destination &&
+      chip.closest('.quick-row')?.querySelector('.quick-label')?.textContent === label);
+    if (replacement instanceof HTMLElement) replacement.focus({ preventScroll: true });
+    if (document.activeElement !== replacement) quickFind.focus({ preventScroll: true });
+  }
 }
 
 export function renderHome() {

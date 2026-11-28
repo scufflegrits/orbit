@@ -10,6 +10,16 @@ export function setGroupExpanded(cluster, expanded = true) {
   cluster.querySelector('.group-planet')?.setAttribute('aria-expanded', String(expanded));
 }
 
+/** @param {HTMLElement} node @param {boolean} [preventScroll] */
+export function focusMapItem(node, preventScroll = true) {
+  const containers = [node.closest('.home-orbit'), node.closest('.planet-cluster, .overflow-planet')];
+  if (node.dataset.kind === 'moon' && containers[1]?.classList.contains('group-cluster')) setGroupExpanded(containers[1]);
+  for (const container of containers) container?.classList.add('restoring-map-focus');
+  node.focus({ preventScroll });
+  for (const container of containers) container?.classList.remove('restoring-map-focus');
+  return document.activeElement === node;
+}
+
 /** Close the currently pinned group, if there is one. */
 export function collapseGroup() {
   const cluster = app.querySelector('.pinned');

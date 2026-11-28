@@ -10,7 +10,7 @@ import { counted, element } from '../../dom.js';
 import { routineItems } from '../../views/open.js';
 import { favoriteItems } from '../../views/favorites.js';
 import * as fileIo from '../../../services/file-io.js';
-import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorField, editorHeader, selectJsonFile } from '../kit.js';
+import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorField, editorHeader, guardEditorImport, selectJsonFile } from '../kit.js';
 import { nav } from '../nav.js';
 import { groups, menuContent, routines } from '../../page.js';
 
@@ -60,6 +60,7 @@ export function showPackImport() {
 /** @param {import('../../../core/schema.js').LinkPack} pack */
 function showPackReview(pack) {
   editorHeader(`Review ${pack.name}`, showPackImport);
+  const current = guardEditorImport();
   const known = pack.links.filter(link => pathsForKey(groups, destinationKey(link)).length);
   const fresh = pack.links.filter(link => !pathsForKey(groups, destinationKey(link)).length);
   menuContent.append(element('p', 'import-merge-summary', `${counted(pack.links.length, 'link')}: ${counted(fresh.length, 'new link')} to add${known.length ? `, ${known.length} already on your map` : ''}.`));
@@ -93,6 +94,7 @@ function showPackReview(pack) {
     menuContent.append(row);
   }
   editorActions().append(editorButton('Add to my map', () => {
+    if (!current()) return;
     const next = copyGroups();
     if (fresh.length) {
       const planets = fresh.map((/** @type {any} */ link) => ({ ...link, moons: [] }));

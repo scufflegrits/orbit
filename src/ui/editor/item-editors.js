@@ -53,7 +53,7 @@ function editorChildList(parentPath, open, updateParent) {
           refreshEditorUndo();
         });
       });
-      return editorExportRow(kind, item, summary, 'Edit', () => open(index), ...actions);
+      return editorExportRow(kind, item, summary, 'Edit', () => open(index), false, ...actions);
     }));
     updateParent?.();
   }

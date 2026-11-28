@@ -9,10 +9,11 @@ import { icon } from '../icons.js';
 import { askForVariables } from '../dialogs/placeholder.js';
 import { openEditorAt } from '../editor/page.js';
 import { modes } from '../page-modes.js';
-import { rdpSizeButton } from '../notices/area.js';
+import { rdpSizeButton, showOpenAllNotice } from '../notices/area.js';
 import { openGroup } from '../views/group-planets.js';
 import { isFavorite, setFavorite } from '../views/favorites.js';
-import { app, groups, rdpLaunchMode, rdpPresets } from '../page.js';
+import { app, groups, rdpLaunchMode } from '../page.js';
+import { presetsForDestination } from '../team-map.js';
 
 /** @param {any} match */
 function findCopy(match) {
@@ -44,8 +45,9 @@ function findResult(match) {
   if (modes.inEditMode() && match.indices) return editFindResult(match);
   const group = match.kind === 'Group';
   const isRdp = match.destination?.type === 'rdp';
+  const presets = isRdp ? presetsForDestination(match.indices) : [];
   const download = isRdp && rdpLaunchMode === 'download';
-  const clientUrl = isRdp && !download ? rdpLaunchUrl(match.destination, rdpPresets) : null;
+  const clientUrl = isRdp && !download ? rdpLaunchUrl(match.destination, presets) : null;
   const oversized = isRdp && !download && clientUrl === null;
   const template = match.destination && !group && !isRdp && templateNames(match.destination.url).length > 0;
   const node = /** @type {HTMLAnchorElement & HTMLButtonElement} */ (element(match.id || group || download || template || oversized ? 'button' : 'a', 'find-item'));
@@ -58,10 +60,10 @@ function findResult(match) {
   } else if (template) {
     node.type = 'button';
     node.dataset.template = 'true';
-    node.addEventListener('click', () => askForVariables(match.destination));
+    node.addEventListener('click', () => askForVariables(match.destination, node));
   } else if (download) {
     node.type = 'button';
-    node.addEventListener('click', () => downloadRdp(match.destination, rdpPresets));
+    node.addEventListener('click', () => downloadRdp(match.destination, presets));
     node.title = `Download Remote Desktop connection for ${match.name}`;
   } else if (oversized) {
     rdpSizeButton(node, match.name);
@@ -103,7 +105,12 @@ export function findRow(match) {
   star.setAttribute('aria-label', `${on ? 'Remove' : 'Add'} ${match.name} ${on ? 'from' : 'to'} favorites`);
   star.title = /** @type {string} */ (star.getAttribute('aria-label'));
   star.addEventListener('click', () => {
-    setFavorite(match.indices, !on);
+    try {
+      setFavorite(match.indices, !on);
+    } catch (error) {
+      showOpenAllNotice(`Could not change the favorite. ${/** @type {Error} */ (error).message}`, true);
+      return;
+    }
     // The Galaxy re-renders; keep the keyboard user on this result's star.
     /** @type {HTMLElement | null} */ (app.querySelector(`.find-row [data-star="${match.indices.join(':')}"]`))?.focus();
   });

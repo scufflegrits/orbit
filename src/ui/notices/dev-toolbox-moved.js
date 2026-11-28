@@ -6,12 +6,20 @@ import { noticeArea } from './area.js';
 
 const KEY = 'orbit:notice:dev-toolbox-moved';
 
+function mainDevToolbox() {
+  const { workspace, groups } = store.state();
+  const index = workspace === 'main' ? groups.findIndex(sun => !sun.team && sun.id === 'dev-toolbox') : -1;
+  return { groups, index };
+}
+
+export function refreshDevToolboxMovedNotice() {
+  if (mainDevToolbox().index === -1) document.querySelector('#dev-toolbox-moved-notice')?.remove();
+}
+
 /** Show the one-time migration notice when Main still contains the old Dev Toolbox sun. */
 export function showDevToolboxMovedNotice() {
   if (readSafely(KEY) !== null || !defaultWorkspace('dev-toolbox') || store.state().workspace !== 'main' || store.state().source !== 'browser') return;
-  const groups = store.state().groups.filter(sun => !sun.team);
-  const index = groups.findIndex(sun => sun.id === 'dev-toolbox');
-  if (index < 0) return;
+  if (mainDevToolbox().index < 0) return;
   const box = element('section', 'routine-offer');
   box.id = 'dev-toolbox-moved-notice';
   box.setAttribute('role', 'status');
@@ -19,6 +27,8 @@ export function showDevToolboxMovedNotice() {
   const removeButton = element('button', 'routine-offer-open', 'Remove');
   removeButton.type = 'button';
   removeButton.addEventListener('click', () => {
+    const { groups, index } = mainDevToolbox();
+    if (index < 0) return box.remove();
     const item = groups[index];
     const next = groups.filter((_, i) => i !== index);
     try {

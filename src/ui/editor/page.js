@@ -1,7 +1,7 @@
 // The full-page editor (2.2.1 editor-page.js): opening and leaving it, the
 // Galaxy tree beside the forms, moving a planet or moon to another parent,
 // and importing many .rdp files at once. Moved in rewrite phase 6b.
-import { destinationKey, isGroup } from '../../core/destination.js';
+import { isGroup } from '../../core/destination.js';
 import * as mapOps from '../../core/map-ops.js';
 import * as rdp from '../../core/rdp.js';
 import * as fileIo from '../../services/file-io.js';
@@ -9,7 +9,7 @@ import { counted, element, tagChips } from '../dom.js';
 import { icon } from '../icons.js';
 import { hooks } from '../hooks.js';
 import { modes } from '../page-modes.js';
-import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorHeader, editorTree, linkCheckResults,
+import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorHeader, editorTree, guardEditorImport, linkCheckResults,
   movePositionField, moveTargetField, rememberEditorOrigin, setEditorTree } from './kit.js';
 import { nav } from './nav.js';
 import { groups, menuContent, menuOverlay, menuRoot, setMenuContent } from '../page.js';
@@ -92,7 +92,7 @@ export function decorateTreeItem(button, item) {
     marker.setAttribute('aria-label', 'Group');
     button.prepend(marker);
   }
-  const result = group ? undefined : linkCheckResults.get(destinationKey(item));
+  const result = group || item.type === 'rdp' ? undefined : linkCheckResults.get(item.url);
   if (result && !result.ok) {
     button.classList.add('editor-tree-broken');
     const broken = element('span', 'broken-mark');
@@ -276,12 +276,14 @@ export function showRdpBatchImport(kind, sunIndex, planetIndex = null) {
   const back = kind === 'moon' ? () => nav.showPlanetEditor(sunIndex, planetIndex)
     : () => nav.showSunEditor(sunIndex);
   editorHeader('Import .rdp files', back);
+  const current = guardEditorImport();
   menuContent.append(element('p', '', `Add ${kind}s under ${sun.name}${kind === 'moon' ? ` → ${parent.name}` : ''}. Existing links stay in place.`));
   menuContent.append(element('p', '', 'Pick multiple .rdp files or a folder, or drop them here. Orbit reads the files in this browser and excludes password, token, and signature settings.'));
   const dropZone = element('div', 'rdp-dropzone', 'Drop .rdp files or a folder here');
   const preview = element('div', 'rdp-batch-preview');
   const actions = editorActions();
   const add = editorButton('Add imported links', () => {
+    if (!current()) return;
     const next = copyGroups();
     const target = kind === 'moon' ? next[sunIndex].links[planetIndex].moons : next[sunIndex].links;
     target.push(...prepared);
@@ -311,7 +313,7 @@ export function showRdpBatchImport(kind, sunIndex, planetIndex = null) {
           type: 'rdp', host: parsed.host, rdpProfile: parsed.content });
         excluded += parsed.removed;
       }
-      if (version !== selectionVersion || !menuContent.contains(dropZone)) return;
+      if (version !== selectionVersion || !current()) return;
       prepared = imported;
       preview.append(element('p', '', `${imported.length} ${kind}${imported.length === 1 ? '' : 's'} ready · ${excluded} sensitive settings excluded · ${files.length - selected.length} other files skipped.`));
       const list = element('ul', 'rdp-batch-list');
@@ -319,7 +321,7 @@ export function showRdpBatchImport(kind, sunIndex, planetIndex = null) {
       preview.append(list);
       add.disabled = false;
     } catch (error) {
-      if (version === selectionVersion && menuContent.contains(dropZone)) {
+      if (version === selectionVersion && current()) {
         editorError(`RDP import failed: ${/** @type {any} */ (error).message}`);
       }
     }

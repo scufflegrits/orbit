@@ -64,7 +64,7 @@ export function backupDue(entry, enabled, time = now()) {
   return entry.changes >= BACKUP_CHANGES || days >= BACKUP_DAYS ? { changes: entry.changes, days } : null;
 }
 
-/** @typedef {{key: string, name: string, path: string}} TeamEntry */
+/** @typedef {{key: string, name: string, path: string, sunId: string, indices: number[]}} TeamEntry */
 
 /**
  * Every team planet and moon, by destination key, with where it is.
@@ -72,9 +72,10 @@ export function backupDue(entry, enabled, time = now()) {
  * @returns {TeamEntry[]}
  */
 export function teamEntries(teamGroups) {
-  return teamGroups.flatMap(sun => sun.links.flatMap(planet => [
-    ...(isGroup(planet) ? [] : [{ key: destinationKey(planet), name: planet.name, path: sun.name }]),
-    ...planet.moons.map(moon => ({ key: destinationKey(moon), name: moon.name, path: `${sun.name} → ${planet.name}` })),
+  return teamGroups.flatMap(sun => sun.links.flatMap((planet, planetIndex) => [
+    ...(isGroup(planet) ? [] : [{ key: destinationKey(planet), name: planet.name, path: sun.name, sunId: sun.id, indices: [planetIndex] }]),
+    ...planet.moons.map((moon, moonIndex) => ({ key: destinationKey(moon), name: moon.name,
+      path: `${sun.name} → ${planet.name}`, sunId: sun.id, indices: [planetIndex, moonIndex] })),
   ]));
 }
 

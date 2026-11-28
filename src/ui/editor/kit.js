@@ -8,12 +8,15 @@ import * as mapOps from '../../core/map-ops.js';
 import * as fileIo from '../../services/file-io.js';
 import { store } from '../../state/page-store.js';
 import { element } from '../dom.js';
+import { confirmed } from '../dialogs/confirm.js';
 import { icon } from '../icons.js';
 import { modes } from '../page-modes.js';
+import { showOpenAllNotice } from '../notices/area.js';
 import { hideTooltip, tip } from '../tooltip.js';
 import { removeMapItem } from '../remove-item.js';
 import { nav } from './nav.js';
 import { groups, menuContent, setStorageWarning, storageWarning } from '../page.js';
+import { team } from '../team-map.js';
 
 /**
  * The full-page editor's tree, or null when it isn't open.
@@ -228,7 +231,8 @@ export function applyEditorChange(nextGroups, showNext, options = {}) {
   try {
     store.saveMap({ groups: nextGroups, ...(options.routines !== undefined ? { routines: options.routines } : {}),
       ...(options.rdpPresets !== undefined ? { rdpPresets: options.rdpPresets } : {}) },
-    options.label || 'Edit links change', { undoRecord: options.undoRecord, clearUndo: options.clearUndo });
+    options.label || 'Edit links change', { undoRecord: options.undoRecord, clearUndo: options.clearUndo,
+      invalidateUndo: options.invalidateUndo });
     store.clearWarning();
     setStorageWarning('');
     showNext();
@@ -270,15 +274,32 @@ export function editorActions() {
   return actions;
 }
 
+/** Capture the map and editor screen that an import refers to. */
+export function guardEditorImport() {
+  const { workspace, revision } = store.state();
+  const header = menuContent.querySelector('.editor-header');
+  return () => {
+    const currentEditor = modes.overlayIs('menuEditor');
+    if (currentEditor && header && menuContent.contains(header) &&
+        store.state().workspace === workspace && store.state().revision === revision) return true;
+    const message = 'The map or editor changed. Reopen the import from its intended destination.';
+    if (currentEditor) editorError(message);
+    else showOpenAllNotice(message, true);
+    return false;
+  };
+}
+
 /**
  * @param {any} onData
  */
 export function selectJsonFile(onData) {
+  const current = guardEditorImport();
   fileIo.pickFile('.json,application/json', async file => {
     try {
-      onData(await fileIo.readJsonFile(file));
+      const data = await fileIo.readJsonFile(file);
+      if (current()) onData(data);
     } catch (error) {
-      editorError(`Import failed: ${/** @type {any} */ (error).message}`);
+      if (current()) editorError(`Import failed: ${/** @type {any} */ (error).message}`);
     }
   });
 }
@@ -286,10 +307,14 @@ export function selectJsonFile(onData) {
 /**
  * @param {any} kind
  * @param {any} item
+ * @param {boolean} [teamItem]
  */
-export function exportItem(kind, item) {
+export function exportItem(kind, item, teamItem = false) {
   const slug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || kind;
-  fileIo.downloadJson(mapOps.itemExport(kind, item), `orbit-${kind}-${slug}.json`);
+  const { data, omitted } = teamItem ? mapOps.exportTeamItem(kind, item, team.rdpPresets)
+    : { data: mapOps.itemExport(kind, item), omitted: [] };
+  if (omitted.length && !confirmed(`Export without the team preset settings for ${omitted.join(', ')}? To keep those settings, open the links with Download .rdp file selected in Settings.`)) return;
+  fileIo.downloadJson(data, `orbit-${kind}-${slug}.json`);
 }
 
 /**
@@ -298,14 +323,15 @@ export function exportItem(kind, item) {
  * @param {string} summary
  * @param {'Edit' | 'View'} actionLabel
  * @param {() => void} open
+ * @param {boolean} teamItem
  * @param {...HTMLButtonElement} extraActions
  */
-export function editorExportRow(kind, item, summary, actionLabel, open, ...extraActions) {
+export function editorExportRow(kind, item, summary, actionLabel, open, teamItem, ...extraActions) {
   const row = element('div', 'editor-list-row editor-export-row');
   const actions = element('div', 'editor-row-actions');
   actions.append(
     editorIconButton(actionLabel, actionLabel === 'Edit' ? 'pencil' : 'eye', open, 'editor-button', `${actionLabel} ${item.name}`),
-    editorIconButton(`Export ${item.name}`, 'download', () => exportItem(kind, item)),
+    editorIconButton(`Export ${item.name}`, 'download', () => exportItem(kind, item, teamItem)),
     ...extraActions,
   );
   row.append(element('span', '', summary), actions);

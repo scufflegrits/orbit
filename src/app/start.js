@@ -16,11 +16,11 @@ import { paletteClosed, paletteOpened } from '../ui/find/palette.js';
 import { variableFormClosed, variableFormOpened } from '../ui/dialogs/placeholder.js';
 import { closeMenu, menuHidden, openSettings, showMenuPanel } from '../ui/menu/menu.js';
 import { updateWorkspaceSwitch } from '../ui/menu/workspaces.js';
-import { showDevToolboxMovedNotice } from '../ui/notices/dev-toolbox-moved.js';
+import { showDevToolboxMovedNotice, refreshDevToolboxMovedNotice } from '../ui/notices/dev-toolbox-moved.js';
 import { showBackupReminder } from '../ui/notices/backup.js';
 import { syncRemovalNoticeVisibility, updateRemovalNotice } from '../ui/notices/removal.js';
 import { offerDueRoutines } from '../ui/notices/routine-offer.js';
-import { checkTeamUpdates } from '../ui/notices/team-updates.js';
+import { checkTeamUpdates, refreshTeamUpdateLinks } from '../ui/notices/team-updates.js';
 import * as page from '../ui/page.js';
 import { modes } from '../ui/page-modes.js';
 import { loadTeamMap, team } from '../ui/team-map.js';
@@ -68,6 +68,8 @@ export function start() {
   store.subscribe((state, kind) => {
     page.showStoreState(state);
     countDestinations();
+    refreshTeamUpdateLinks();
+    refreshDevToolboxMovedNotice();
     // A workspace switch redraws itself after deciding whether to leave the System.
     if (kind !== 'switch') render();
     updateRemovalNotice();

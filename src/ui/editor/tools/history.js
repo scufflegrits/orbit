@@ -2,7 +2,7 @@
 // Moved in rewrite phase 6b.
 import * as mapOps from '../../../core/map-ops.js';
 import * as history from '../../../state/history.js';
-import { activeWorkspace, store } from '../../../state/page-store.js';
+import { activeWorkspace } from '../../../state/page-store.js';
 import { KEYS } from '../../../state/storage.js';
 import { workspaceKey } from '../../../state/workspaces.js';
 import { confirmed } from '../../dialogs/confirm.js';
@@ -53,7 +53,7 @@ export function showHistory() {
       if (!confirmed(`Restore the map from ${new Date(entry.time).toLocaleString()}?`)) return;
       applyEditorChange([...groups.filter(sun => sun.team), ...mapOps.withoutPlanetIds(entry.groups)], showHistory,
         { label: `Restored the version from ${new Date(entry.time).toLocaleString()}`, routines: entry.routines || [],
-          rdpPresets: entry.rdpPresets || [], clearUndo: store.loadUndoRecord()?.kind === 'moon' });
+          rdpPresets: entry.rdpPresets || [], invalidateUndo: true });
     }));
     list.append(row);
   });

@@ -4,6 +4,7 @@
 // drag.js, tools.js, routines.js, team.js, sharing.js, and storage.js (2.2.1).
 import { destinationKey, isGroup } from './destination.js';
 import { uniqueSunId } from './schema.js';
+import { effectiveRdpProfile, parseRdpProfile } from './rdp.js';
 
 export { uniqueSunId };
 
@@ -306,6 +307,71 @@ export function packLink(item) {
  */
 export function itemExport(kind, item) {
   return { format: 'orbit-item-v1', kind, item: plainCopy(item) };
+}
+
+/** @param {'sun'|'planet'|'moon'} kind @param {any} item @returns {any[]} */
+function itemDestinations(kind, item) {
+  if (kind === 'moon') return [item];
+  if (kind === 'planet') return [item, ...item.moons];
+  return item.links.flatMap((/** @type {Planet} */ planet) => [planet, ...planet.moons]);
+}
+
+/**
+ * @param {'sun'|'planet'|'moon'} kind
+ * @param {any} item
+ * @param {import('./types.js').RdpPreset[]} source
+ * @param {import('./types.js').RdpPreset[]} personal
+ */
+export function copyTeamItem(kind, item, source, personal) {
+  const copy = plainCopy(item);
+  const presets = [...personal];
+  const ids = new Set(personal.map(preset => preset.id));
+  const names = new Set(personal.map(preset => preset.name.toLocaleLowerCase()));
+  for (const destination of itemDestinations(kind, copy)) {
+    if (destination.type !== 'rdp' || !destination.rdpPreset) continue;
+    const preset = source.find(entry => entry.id === destination.rdpPreset);
+    if (!preset) {
+      delete destination.rdpPreset;
+      continue;
+    }
+    let local = presets.find(entry => entry.settings === preset.settings);
+    if (!local) {
+      let name = preset.name;
+      for (let i = 2; names.has(name.toLocaleLowerCase()); i++) {
+        const suffix = ` (${i})`;
+        name = preset.name.slice(0, 60 - suffix.length).trimEnd() + suffix;
+      }
+      const id = ids.has(preset.id) ? uniqueSunId(name, ids) : preset.id;
+      ids.add(id);
+      names.add(name.toLocaleLowerCase());
+      local = { ...preset, id, name };
+      presets.push(local);
+    }
+    destination.rdpPreset = local.id;
+  }
+  return { item: copy, presets };
+}
+
+/**
+ * @param {'sun'|'planet'|'moon'} kind
+ * @param {any} item
+ * @param {import('./types.js').RdpPreset[]} presets
+ */
+export function exportTeamItem(kind, item, presets) {
+  const data = itemExport(kind, item);
+  const omitted = [];
+  for (const destination of itemDestinations(kind, data.item)) {
+    if (destination.type !== 'rdp' || !destination.rdpPreset) continue;
+    const profile = effectiveRdpProfile(destination, presets);
+    delete destination.rdpPreset;
+    if (!profile) continue;
+    try {
+      destination.rdpProfile = parseRdpProfile(profile, destination.host).content;
+    } catch {
+      omitted.push(destination.name);
+    }
+  }
+  return { data, omitted };
 }
 
 /**

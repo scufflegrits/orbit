@@ -454,6 +454,49 @@ def f08_link_check(ctx):
     print(f"PASS F08 link check ({mode})")
 
 
+def f08_link_check_identity(ctx):
+    if not ctx.server_mode:
+        return
+    page, mode = ctx.page, ctx.mode
+    install_team_fixture(ctx, {"groups": []})
+    fresh(ctx)
+    for reverse in (False, True):
+        links = [{"name": name, "url": ctx.target + path} for name, path in (
+            ("Working", "/sample"), ("Broken One", "/sample/"), ("Broken Two", "/sample/"))]
+        page.evaluate("""links => OrbitTest.saveMap([{ id: 'test', name: 'Test', links }])""",
+                      list(reversed(links)) if reverse else links)
+        open_editor(page)
+        page.get_by_role("button", name="Check links", exact=True).click()
+        page.get_by_role("button", name="Start check", exact=True).click()
+        expect(page.locator(".link-check-status")).to_contain_text("1 did not answer correctly", timeout=60000)
+        expect(page.locator(".editor-tree-broken")).to_have_count(2)
+        expect(page.locator(".editor-tree-broken").filter(has_text="Working")).to_have_count(0)
+        expect(page.locator(".link-check-failure")).to_have_count(2)
+        page.locator(".link-check-failure").filter(has_text="Broken One").get_by_role("button", name="Edit").click()
+        expect(page.locator(".editor-header h3")).to_have_text("Edit Broken One")
+        close_menu(page)
+
+    pending = []
+    page.route("**/api/check-links", lambda route: pending.append(route), times=1)
+    open_editor(page)
+    page.get_by_role("button", name="Check links", exact=True).click()
+    with page.expect_request("**/api/check-links"):
+        page.get_by_role("button", name="Start check", exact=True).click()
+    close_menu(page)
+    page.evaluate("""url => OrbitTest.saveMap([{ id: 'test', name: 'Test', links: [{ name: 'Working', url }] }])""",
+                  ctx.target + "/sample")
+    open_editor(page)
+    page.get_by_role("button", name="Check links", exact=True).click()
+    page.get_by_role("button", name="Start check", exact=True).click()
+    expect(page.locator(".link-check-status")).to_contain_text("all answered", timeout=60000)
+    with page.expect_response("**/api/check-links"):
+        pending[0].fulfill(json={ctx.target + "/sample": {"ok": False, "status": 404}})
+    page.wait_for_timeout(150)
+    expect(page.locator(".editor-tree-broken")).to_have_count(0)
+    expect(page.locator(".link-check-failure")).to_have_count(0)
+    print(f"PASS F08 exact URLs and stale checks ({mode})")
+
+
 # ---- F09 Version history -------------------------------------------------------
 
 def f09_history(ctx):
@@ -487,6 +530,98 @@ def f09_history(ctx):
     check(rows[:2] == ["Before: Reset to file data", "Before: Moved sun test"], f"{mode}: resets and other saves are kept ({rows[:2]})")
     close_menu(page)
     print(f"PASS F09 version history ({mode})")
+
+
+def f09_history_removal_undo(ctx):
+    page = ctx.page
+    for kind, name in (("sun", "Beta"), ("planet", "Wiki"), ("moon", "Guide")):
+        fresh(ctx)
+        open_editor(page)
+        tree(page, f"editor-tree-{kind}", name).click()
+        page.get_by_role("button", name=f"Remove {kind}", exact=True).click()
+        back_steps = {"sun": 0, "planet": 1, "moon": 2}[kind]
+        for _ in range(back_steps):
+            page.locator(".editor-header .editor-back").click()
+        page.get_by_role("button", name="History", exact=True).click()
+        page.locator(".history-row").first.get_by_role("button", name="Restore").click()
+        expect(page.locator(".editor-undo")).to_have_count(0)
+        expect(page.locator(".history-row").first).to_contain_text("Restored the version")
+        page.reload(wait_until="load")
+        open_editor(page)
+        expect(page.locator("#map-removal-notice")).to_have_count(0)
+        expect(page.locator(f".editor-tree-{kind}").filter(has_text=name)).to_have_count(1)
+        expect(page.locator(".editor-undo")).to_have_count(0)
+    print(f"PASS F09 History clears removal Undo ({ctx.mode})")
+
+
+def f09_stale_workspace(ctx):
+    first = ctx.page
+    fresh(ctx)
+    second = first.context.new_page()
+    second.on("dialog", lambda dialog: dialog.accept())
+    try:
+        second.goto(ctx.url, wait_until="load")
+        second.locator(".home-hub").first.wait_for()
+        for page, name in ((first, "Wiki"), (second, "Docs Portal")):
+            open_editor(page)
+            tree(page, "editor-tree-planet", name).click()
+        first.get_by_label("Planet name", exact=True).fill("Renamed Wiki")
+        first.get_by_role("button", name="Save planet", exact=True).click()
+        snapshot = first.evaluate("Object.fromEntries(Object.entries(localStorage))")
+        draft = second.get_by_label("Planet name", exact=True)
+        draft.fill("Renamed Docs")
+        second.get_by_role("button", name="Save planet", exact=True).click()
+        expect(second.locator(".editor-error")).to_contain_text("Reload Orbit")
+        expect(draft).to_have_value("Renamed Docs")
+        close_menu(second)
+        search(second, "Docs Portal")
+        star = second.get_by_role("button", name="Add Docs Portal to favorites", exact=True)
+        star.click()
+        expect(second.locator("#open-all-notice")).to_contain_text("Reload Orbit")
+        expect(star).to_be_focused()
+        check(first.evaluate("Object.fromEntries(Object.entries(localStorage))") == snapshot,
+              f"{ctx.mode}: conflicted actions leave storage unchanged")
+        second.reload(wait_until="load")
+        open_editor(second)
+        tree(second, "editor-tree-planet", "Docs Portal").click()
+        second.get_by_label("Planet name", exact=True).fill("Renamed Docs")
+        second.get_by_role("button", name="Save planet", exact=True).click()
+        expect(tree(second, "editor-tree-planet", "Renamed Wiki")).to_be_visible()
+        expect(tree(second, "editor-tree-planet", "Renamed Docs")).to_be_visible()
+        check("Renamed Wiki" in second.evaluate("localStorage.getItem('orbit:history:v1')"),
+              f"{ctx.mode}: the newer map was recorded in History after retry")
+    finally:
+        second.close()
+    print(f"PASS F09 stale workspace guards ({ctx.mode})")
+
+
+def f09_delayed_import(ctx):
+    page = ctx.page
+    fresh(ctx)
+    add_workspace(page, "Import destination", "An empty map")
+    close_menu(page)
+    page.get_by_role("combobox", name="Workspace", exact=True).select_option("main")
+    open_editor(page)
+    tree(page, "editor-tree-sun", "Alpha").click()
+    page.evaluate("""() => {
+      const text = File.prototype.text;
+      File.prototype.text = function () {
+        return new Promise(resolve => {
+          window.releaseOrbitFile = () => resolve(text.call(this));
+        });
+      };
+    }""")
+    upload_json(page, "Import planet", {"format": "orbit-item-v1", "kind": "planet",
+                                        "item": {"name": "Delayed", "url": "https://delayed.example.test/"}})
+    page.wait_for_function("typeof window.releaseOrbitFile === 'function'")
+    close_menu(page)
+    page.get_by_role("combobox", name="Workspace", exact=True).select_option("import-destination")
+    page.evaluate("window.releaseOrbitFile()")
+    expect(page.locator("#open-all-notice")).to_contain_text("Reopen the import")
+    expect(page.get_by_role("heading", name="Review planet import")).to_have_count(0)
+    check(json.loads(page.evaluate("localStorage.getItem('orbit:map:v1:import-destination')")) == {"groups": []},
+          f"{ctx.mode}: delayed import leaves the second workspace alone")
+    print(f"PASS F09 delayed import stays in its original workspace ({ctx.mode})")
 
 
 # ---- F10 Duplicates ------------------------------------------------------------
@@ -974,6 +1109,12 @@ def f20_variables(ctx):
     dialog = page.locator(".variable-form")
     check(dialog.is_visible() and page.evaluate("document.activeElement.getAttribute('aria-label')") == "ticket",
           f"{mode}: the form asks for the first value")
+    page.keyboard.press("Shift+Tab")
+    expect(dialog.get_by_role("button", name="Cancel")).to_be_focused()
+    page.keyboard.press("Tab")
+    expect(dialog.get_by_label("ticket", exact=True)).to_be_focused()
+    page.keyboard.press("Tab")
+    expect(dialog.get_by_label("env", exact=True)).to_be_focused()
     page.get_by_label("ticket", exact=True).fill("ABC 12")
     page.get_by_label("env", exact=True).fill("prod")
     check(page.locator(".variable-preview").inner_text() == "https://jira.example.test/browse/ABC%2012?env=prod",
@@ -981,8 +1122,14 @@ def f20_variables(ctx):
     urls = popups(page, lambda: dialog.get_by_role("button", name="Open").click(), expect=1)
     check(urls == ["https://jira.example.test/browse/ABC%2012?env=prod"], f"{mode}: Open opens the filled address ({urls})")
     check(page.locator(".variable-form").count() == 0, f"{mode}: the form closes")
+    expect(result).to_be_focused()
     search(page, "")
     check("Ticket" in page.locator(".quick-chip").all_inner_texts(), f"{mode}: the link is recorded as recent")
+    chip = page.locator(".quick-chip").filter(has_text="Ticket")
+    chip.click()
+    urls = popups(page, lambda: dialog.get_by_label("ticket", exact=True).press("Enter"), expect=1)
+    check(len(urls) == 1 and urls[0].endswith("?env=prod"), f"{mode}: keyboard submission opens the filled URL")
+    expect(chip).to_be_focused()
     page.locator(".quick-chip").filter(has_text="Ticket").click()
     check(page.get_by_label("ticket", exact=True).input_value() == "ABC 12", f"{mode}: the last values are remembered")
     urls = popups(page, lambda: page.keyboard.press("Escape"))
@@ -1012,6 +1159,44 @@ def f20_variables(ctx):
     urls = popups(page, lambda: page.locator(".variable-form").get_by_role("button", name="Open").click(), expect=1)
     check(urls == ["https://jira.example.test/chosen/chosen/chosen"], f"{mode}: explicit inherited-name values open correctly")
     print(f"PASS F20 link variables ({mode})")
+
+
+def f20_placeholder_focus(ctx):
+    page = ctx.page
+    fresh(ctx)
+    page.evaluate("""() => OrbitTest.saveMap([{ id: 'focus', name: 'Focus Test', links: [
+      { name: 'Group', type: 'group', moons: [{ name: 'Ticket', url: 'https://docs.example.test/{id}' }] }
+    ] }])""")
+    page.locator(".home-hub").filter(has_text="Focus Test").click()
+    group = page.locator(".detail-satellite.group-planet")
+    group.click()
+    moon = page.locator(".moon-link").filter(has_text="Ticket")
+    moon.click()
+    dialog = page.locator(".variable-form")
+    field = dialog.get_by_label("id", exact=True)
+    page.keyboard.press("Shift+Tab")
+    expect(dialog.get_by_role("button", name="Cancel")).to_be_focused()
+    page.keyboard.press("Tab")
+    expect(field).to_be_focused()
+    dialog.get_by_role("button", name="Cancel").click()
+    expect(moon).to_be_focused()
+    expect(group).to_have_attribute("aria-expanded", "true")
+    moon.click()
+    page.locator(".variable-overlay .palette-scrim").click(position={"x": 8, "y": 8})
+    expect(moon).to_be_focused()
+    moon.click()
+    page.evaluate("location.hash = ''")
+    page.locator(".home-view").wait_for()
+    expect(field).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(page.locator("#quick-find")).to_be_focused()
+    page.keyboard.press("Control+k")
+    page.locator(".palette-input").fill("Ticket")
+    page.locator(".palette-option").filter(has_text="Ticket").first.click()
+    expect(field).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(page.locator("#quick-find")).to_be_focused()
+    print(f"PASS F20 placeholder focus, pinned groups, and redraws ({ctx.mode})")
 
 
 # ---- F21 Quick add --------------------------------------------------------------
@@ -1402,7 +1587,172 @@ def f25_team_updates(ctx):
     print(f"PASS F25 team map updates ({mode})")
 
 
+def f25_team_update_identity(ctx):
+    page = ctx.page
+    payload = {"groups": [
+        {"id": "first", "name": "First Team", "links": [{"name": "Welcome", "url": "https://welcome.example.test/"}]},
+        {"id": "ops", "name": "Ops", "links": [
+            {"name": "Team Runbook", "url": "https://runbook.example.test/#team"},
+            {"name": "Team Copy", "url": "https://runbook.example.test/#copy"},
+            {"name": "Shared Lab", "type": "rdp", "host": "demo"}]},
+    ]}
+    install_team_fixture(ctx, payload)
+    fresh(ctx)
+    page.evaluate("""() => {
+      OrbitTest.saveMap([{ id: 'team:ops', name: 'Personal', links: [
+        { name: 'My Runbook', url: 'https://runbook.example.test/#personal' }
+      ] }]);
+      localStorage.setItem('orbit:team-seen:v1', JSON.stringify([{key: 'https://welcome.example.test', name: 'Welcome'}]));
+      localStorage.setItem('orbit:team-hidden', JSON.stringify(['team:ops']));
+    }""")
+    page.reload(wait_until="load")
+    box = page.locator("#team-updates")
+    box.get_by_role("button", name="Show what’s new").click()
+    expect(box).to_contain_text("3 new, 0 removed")
+    expect(box).to_contain_text("Team Runbook")
+    expect(box).not_to_contain_text("My Runbook")
+    expect(box.locator(".team-update-link")).to_have_count(0)
+    page.locator("#settings-trigger").click()
+    page.locator(".team-settings").get_by_role("button", name="Show", exact=True).click()
+    close_menu(page)
+    runbook = box.get_by_role("link", name="Open Team Runbook in a new tab", exact=True)
+    expect(runbook).to_have_attribute("href", "https://runbook.example.test/#team")
+    expect(box.get_by_role("link", name="Open Team Copy in a new tab", exact=True)).to_have_attribute(
+        "href", "https://runbook.example.test/#copy")
+    open_editor(page)
+    tree(page, "editor-tree-sun", "First Team").click()
+    page.get_by_role("button", name="Hide this team sun", exact=True).click()
+    close_menu(page)
+    expect(runbook).to_have_attribute("data-destination", "0:0")
+    urls = popups(page, runbook.click, expect=1)
+    check(urls == ["https://runbook.example.test/#team"], f"{ctx.mode}: exact shared link opens")
+    check(page.evaluate("loadRecent()[0].name") == "Team Runbook", f"{ctx.mode}: team notice records the right item")
+    page.locator("#settings-trigger").click()
+    page.locator("#settings-group-remote-desktop").locator("..").locator("select").select_option("client")
+    close_menu(page)
+    expect(box.locator("a.team-update-link").filter(has_text="Shared Lab")).to_have_attribute("href", "orbit-rdp://demo/")
+    print(f"PASS F25 team notice keeps item identity ({ctx.mode})")
+
+
 # ---- F26 Remote Desktop presets ---------------------------------------------------
+
+def install_team_fixture(ctx, fixture):
+    if ctx.server_mode:
+        ctx.page.route("**/team.json", lambda route: route.fulfill(json=fixture))
+    else:
+        ctx.page.add_init_script(f"""
+          Object.defineProperty(window, 'ORBIT_TEAM_DATA', {{
+            get: () => ({json.dumps(fixture)}), set: () => {{}},
+          }});
+        """)
+
+
+def f26_team_presets(ctx):
+    page = ctx.page
+    long_name = "x" * 60
+    preset = {"id": "display", "name": long_name, "settings": "screen mode id:i:2"}
+    install_team_fixture(ctx, {"groups": [{"id": "ops", "name": "Ops", "links": [
+        {"name": "Shared Lab", "type": "rdp", "host": "lab-box", "rdpPreset": "display", "moons": [
+            {"name": "Shared Moon", "type": "rdp", "host": "demo", "rdpPreset": "display"},
+            {"name": "Oversized Moon", "type": "rdp", "host": "demo", "rdpPreset": "large", "rdpProfile": PROFILE},
+        ]},
+    ]}], "rdpPresets": [preset, {"id": "large", "name": "Large", "settings": "username:s:" + "x" * 12000}]})
+    fresh(ctx)
+    page.evaluate("""preset => {
+      const next = OrbitTest.groups();
+      next.find(sun => sun.id === 'alpha').links[2].rdpPreset = preset.id;
+      OrbitTest.saveMap(next, { rdpPresets: [preset] });
+    }""", {**preset, "settings": "screen mode id:i:1"})
+    page.locator(".home-hub").filter(has_text="Ops").click()
+    lab = page.locator(".detail-satellite").filter(has_text="Shared Lab")
+    if not ctx.mode.startswith("remote"):
+        with page.expect_download() as download:
+            lab.click()
+        check(Path(download.value.path()).read_text().splitlines() == ["full address:s:lab-box", "screen mode id:i:2"],
+              f"{ctx.mode}: shared System download keeps its preset")
+    page.locator("#settings-trigger").click()
+    page.locator("#settings-group-remote-desktop").locator("..").locator("select").select_option("client")
+    close_menu(page)
+
+    def decode(url):
+        payload = url.split("?profile=", 1)[1]
+        return base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)).decode()
+
+    check("screen mode id:i:2" in decode(lab.get_attribute("href")), f"{ctx.mode}: shared System client settings")
+    page.locator(".brand").click()
+    search(page, "Shared Moon")
+    result = page.locator(".find-item").filter(has_text="Shared Moon")
+    check(decode(result.get_attribute("href")).startswith("full address:s:demo\r\nscreen mode id:i:2"),
+          f"{ctx.mode}: team moon uses shared settings in Quick find")
+    page.evaluate("window.__orbitRdpHandoffs = []")
+    page.keyboard.press("Control+k")
+    page.locator(".palette-input").fill("Shared Lab")
+    page.locator(".palette-option").filter(has_text="Shared Lab").first.click()
+    handoffs = page.evaluate("window.__orbitRdpHandoffs")
+    check(len(handoffs) == 1 and "screen mode id:i:2" in decode(handoffs[0]), f"{ctx.mode}: palette handed off shared settings")
+    search(page, "Shared Lab")
+    page.get_by_role("button", name="Add Shared Lab to favorites", exact=True).click()
+    search(page, "Lab Box")
+    local = page.locator(".find-item").filter(has_text="Lab Box").first
+    check("screen mode id:i:1" in decode(local.get_attribute("href")), f"{ctx.mode}: personal settings stay local")
+    page.get_by_role("button", name="Add Lab Box to favorites", exact=True).click()
+    search(page, "")
+    favorites = page.locator(".quick-row").filter(has=page.get_by_role("heading", name="Favorites", exact=True))
+    recent = page.locator(".quick-row").filter(has=page.get_by_role("heading", name="Recent", exact=True))
+    for row, name, setting in ((favorites, "Lab Box", 1), (favorites, "Shared Lab", 2), (recent, "Shared Lab", 2)):
+        chip = row.locator(".quick-chip").filter(has_text=name)
+        check(f"screen mode id:i:{setting}" in decode(chip.get_attribute("href")),
+              f"{ctx.mode}: {name} chip uses its own settings")
+    open_editor(page)
+    tree(page, "editor-tree-sun", "Ops").click()
+    page.get_by_role("button", name="Copy sun to my map", exact=True).click()
+    saved = json.loads(saved_map(page))
+    copied = next(group for group in saved["groups"] if group["name"] == "Ops")
+    copied_id = copied["links"][0]["rdpPreset"]
+    check(copied_id != "display" and copied["links"][0]["moons"][0]["rdpPreset"] == copied_id,
+          f"{ctx.mode}: copied links share a remapped local preset")
+    check(any(preset["id"] == copied_id and len(preset["name"]) <= 60 for preset in saved["rdpPresets"]),
+          f"{ctx.mode}: copied preset name fits validation")
+    tree(page, "editor-tree-sun", "Ops").click()
+    export = page.get_by_role("button", name="Export sun", exact=True)
+    DISMISS_NEXT.add(page)
+    cancelled = export.evaluate("button => OrbitTest.captureDownload(() => button.click())")
+    check(cancelled is None, f"{ctx.mode}: export can be cancelled")
+    exported = export.evaluate("button => OrbitTest.captureDownload(() => button.click())")
+    link = exported["item"]["links"][0]
+    check("rdpPreset" not in json.dumps(exported) and "screen mode id:i:2" in link["rdpProfile"]
+          and "screen mode id:i:1" in link["moons"][1]["rdpProfile"],
+          f"{ctx.mode}: export materializes shared presets and keeps fallback settings")
+    page.locator(".editor-header .editor-back").click()
+    page.get_by_role("button", name="RDP presets", exact=True).click()
+    personal_preset = page.locator(".editor-pane .editor-list-row").filter(
+        has=page.get_by_text(long_name, exact=True))
+    expect(personal_preset).to_contain_text("used by 1 link")
+    personal_preset.get_by_role("button", name="Edit", exact=True).click()
+    page.get_by_role("button", name="Remove preset", exact=True).click()
+    close_menu(page)
+    check(all(item["id"] != "display" for item in json.loads(saved_map(page))["rdpPresets"]),
+          f"{ctx.mode}: the personal ID was removed")
+    add_workspace(page, "No personal presets", "An empty map")
+    close_menu(page)
+    search(page, "Shared Lab")
+    shared = page.locator(".find-item").filter(has=page.get_by_text("Shared Lab", exact=True))
+    check("screen mode id:i:2" in decode(shared.get_attribute("href")),
+          f"{ctx.mode}: the team preset survives personal deletion and a workspace switch")
+    search(page, "Oversized Moon")
+    oversized = page.locator(".find-item").filter(has=page.get_by_text("Oversized Moon", exact=True))
+    expect(oversized).to_have_attribute("data-rdp-too-large", "true")
+    page.locator("#settings-trigger").click()
+    page.get_by_label("Remote Desktop launch", exact=True).select_option("download")
+    close_menu(page)
+    expect(oversized).not_to_have_attribute("data-rdp-too-large", "true")
+    if not ctx.mode.startswith("remote"):
+        with page.expect_download() as download:
+            oversized.click()
+        check(b"username:s:" + b"x" * 12000 in Path(download.value.path()).read_bytes(),
+              f"{ctx.mode}: the shared oversized preset is available in a download")
+    print(f"PASS F26 team RDP preset ownership ({ctx.mode})")
+
 
 def f26_presets(ctx):
     page, mode = ctx.page, ctx.mode
@@ -2990,9 +3340,11 @@ def f46_planet_reveal(ctx):
 
 
 CHECKS = (f01_recent_favorites, f02_open_all, f03_search, f04_palette, f06_bulk_rdp, f07_tags, f08_link_check,
-          f09_history, f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
-          f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f21_quick_add,
-          f22_workspaces, f22_system_routes, f23_link_packs, f24_backups, f24_constructor_backup, f25_team_updates, f26_presets,
+          f08_link_check_identity, f09_history, f09_history_removal_undo, f09_stale_workspace, f09_delayed_import,
+          f10_duplicates, f11_merge_import, f12_team, f13_bookmarks, f14_icons, f15_list,
+          f16_open_all_favorites, f17_routines, f18_arrival, f19_notes, f20_variables, f20_placeholder_focus, f21_quick_add,
+          f22_workspaces, f22_system_routes, f23_link_packs, f24_backups, f24_constructor_backup, f25_team_updates, f25_team_update_identity,
+          f26_presets, f26_team_presets,
           f26_oversized_preset, f27_reset_workspace, f28_offers_per_workspace, f29_sun_picker, f30_group_planets,
           f31_edit_links_layout, f32_button_tips, f33_edit_from_map, f34_remove_map_items, f34_moon_undo_identity,
           f35_item_editor_toolbar, f36_sun_row_actions, f37_child_row_actions,
@@ -3040,6 +3392,7 @@ def start_target_site():
     (site / "ok").mkdir()
     (site / "ok" / "index.html").write_text("<title>OK</title>")
     (site / "ok" / "guide.html").write_text("<title>Guide</title>")
+    (site / "sample").write_text("Works at the exact file URL")
     (site / "favicon.ico").write_bytes(PNG)
     server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=str(site)))
     Thread(target=server.serve_forever, daemon=True).start()

@@ -11,7 +11,7 @@ import { confirmed } from '../dialogs/confirm.js';
 import { counted, element } from '../dom.js';
 import { nav } from './nav.js';
 import { noteBackupMade } from '../notices/backup.js';
-import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorHeader, selectJsonFile } from './kit.js';
+import { applyEditorChange, copyGroups, editorActions, editorButton, editorError, editorHeader, guardEditorImport, selectJsonFile } from './kit.js';
 import { reviewBookmarks } from './tools/bookmarks.js';
 import { menuContent, groups, rdpPresets, routines } from '../page.js';
 
@@ -46,6 +46,7 @@ function reviewCheck(className, checked, parts) {
  */
 export function showImportReview(data, options = {}) {
   editorHeader(options.title || 'Review import', nav.showSunList);
+  const current = guardEditorImport();
   const planetCount = data.groups.reduce((/** @type {any} */ sum, /** @type {any} */ sun) => sum + sun.links.length, 0);
   const moonCount = data.groups.reduce((/** @type {any} */ sum, /** @type {any} */ sun) => sum + sun.links.reduce(
     (/** @type {any} */ total, /** @type {any} */ planet) => total + planet.moons.length, 0), 0);
@@ -100,6 +101,7 @@ export function showImportReview(data, options = {}) {
     chosen(), data.rdpPresets || [], presetBox?.box.checked ? newPresets : rdpPresets));
   const actions = editorActions();
   const merge = editorButton('Merge into my map', () => {
+    if (!current()) return;
     const withRoutines = Boolean(routineBox?.box.checked);
     const withPresets = Boolean(presetBox?.box.checked);
     applyEditorChange([...groups.filter(sun => sun.team), ...merged().groups], nav.showSunList,
@@ -118,17 +120,20 @@ export function showImportReview(data, options = {}) {
   actions.append(merge);
   if (options.replace !== false) {
     menuContent.append(element('p', 'editor-hint', 'Replace my map swaps your whole map for the file, every sun whatever is ticked. Version history keeps the current map, so you can restore it.'));
-    actions.append(editorButton('Replace my map', () =>
-      applyEditorChange(data.groups, nav.showSunList,
-        { clearUndo: true, label: 'Replaced the map with an import', routines: data.routines || [], rdpPresets: data.rdpPresets || [] })));
+    actions.append(editorButton('Replace my map', () => {
+      if (current()) applyEditorChange(data.groups, nav.showSunList,
+        { clearUndo: true, label: 'Replaced the map with an import', routines: data.routines || [], rdpPresets: data.rdpPresets || [] });
+    }));
   }
   actions.append(editorButton('Cancel', nav.showSunList));
 }
 
 export function importFile() {
+  const current = guardEditorImport();
   fileIo.pickFile('.json,application/json,.html,.htm,text/html', async file => {
     try {
       const { text, data } = await fileIo.readImportFile(file);
+      if (!current()) return;
       const kind = importKind(data === undefined ? text : typeof data === 'string' ? null : data, file.name);
       switch (kind) {
         case 'bookmarks': return reviewBookmarks(text);
@@ -139,7 +144,7 @@ export function importFile() {
         default: return editorError("This isn't an Orbit map, sun, planet, or bookmarks file.");
       }
     } catch (error) {
-      editorError(`Import failed: ${/** @type {Error} */ (error).message}`);
+      if (current()) editorError(`Import failed: ${/** @type {Error} */ (error).message}`);
     }
   });
 }
@@ -166,6 +171,7 @@ function reviewItem(data, kind, sunIndex = null, planetIndex = null, sourceKind 
     : kind === 'planet' ? () => nav.showSunEditor(sunIndex)
       : () => nav.showPlanetEditor(sunIndex, planetIndex);
   editorHeader(sourceKind === kind ? `Review ${kind} import` : 'Review planet as sun', back);
+  const current = guardEditorImport();
   menuContent.append(element('p', '', item.name));
   if (sourceKind === 'planet' && kind === 'sun') {
     const planet = item.links[0];
@@ -190,6 +196,7 @@ function reviewItem(data, kind, sunIndex = null, planetIndex = null, sourceKind 
   menuContent.append(element('p', '', `Add to ${destination}. Existing links will remain.`));
   const actions = editorActions();
   actions.append(editorButton(`Add ${kind}`, () => {
+    if (!current()) return;
     const next = copyGroups();
     const imported = JSON.parse(JSON.stringify(item));
     let showNext;

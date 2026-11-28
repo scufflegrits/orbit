@@ -1,17 +1,25 @@
 // Team map update notices (2.2.1 sharing.js): the first load records the
 // team links quietly; later loads report what is new and what was removed.
 // The comparison is services/schedule.js. Moved in rewrite phase 6a.
-import { itemAt, pathsForKey } from '../../core/destination.js';
+import { itemAt } from '../../core/destination.js';
 import { teamChanges, teamEntries } from '../../services/schedule.js';
 import { readTeamSeen, rememberTeam } from '../../state/prefs.js';
 import { element } from '../dom.js';
 import { destinationNode } from '../views/nodes.js';
 import { team } from '../team-map.js';
 import { noticeArea } from './area.js';
-import { groups } from '../page.js';
+import { groups, rdpLaunchMode } from '../page.js';
+
+/** @type {(() => void) | null} */
+let refreshAddedLinks = null;
+
+export function refreshTeamUpdateLinks() {
+  refreshAddedLinks?.();
+}
 
 export function checkTeamUpdates() {
   document.querySelector('#team-updates')?.remove();
+  refreshAddedLinks = null;
   if (!team.source) return;
   const current = teamEntries(team.groups);
   const changes = teamChanges(readTeamSeen(), current);
@@ -26,13 +34,23 @@ export function checkTeamUpdates() {
   if (added.length) {
     details.append(element('strong', '', 'New'));
     const list = element('ul', '');
-    added.forEach(entry => {
-      const item = element('li', '');
-      const path = pathsForKey(groups, entry.key)[0];
-      item.append(path ? destinationNode(itemAt(groups, path), 'team-update-link', path) : element('span', '', entry.name),
-        element('small', '', ` in ${entry.path}`));
-      list.append(item);
-    });
+    let rendered = '';
+    refreshAddedLinks = () => {
+      const visible = new Map(groups.flatMap((sun, index) => sun.team ? [[sun.id, index]] : []));
+      const layout = JSON.stringify([rdpLaunchMode, [...visible]]);
+      if (rendered === layout) return;
+      rendered = layout;
+      list.replaceChildren(...added.map(entry => {
+        const row = element('li', '');
+        const index = visible.get(entry.sunId);
+        const path = index === undefined ? null : [index, ...entry.indices];
+        const destination = path && itemAt(groups, path);
+        row.append(path && destination ? destinationNode(destination, 'team-update-link', path)
+          : element('span', '', entry.name), element('small', '', ` in ${entry.path}`));
+        return row;
+      }));
+    };
+    refreshAddedLinks();
     details.append(list);
   }
   if (removed.length) {
@@ -52,6 +70,7 @@ export function checkTeamUpdates() {
   dismiss.type = 'button';
   dismiss.addEventListener('click', () => {
     rememberTeam(current);
+    refreshAddedLinks = null;
     box.remove();
   });
   box.append(show, dismiss, details);
